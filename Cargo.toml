@@ -1,0 +1,14 @@
+[package]
+name = "rsrl"
+version = "0.1.0"
+authors = ["Tom Spooner <spooner10000@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+
+[dependencies]
+log = "0.3"
+blas = "0.15"
+rand = "0.3"
+futures = "0.1"
+ndarray = "0.8"

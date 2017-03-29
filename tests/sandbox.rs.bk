@@ -1,0 +1,36 @@
+extern crate rsrl;
+
+use rsrl::{Function, Parameterised};
+use rsrl::fa::{Table, Partitions};
+use rsrl::domain::{Domain, Observation, MountainCar};
+use rsrl::policies::{Policy, Greedy};
+use rsrl::geometry::Space;
+use rsrl::geometry::dimensions::Partition;
+use rsrl::geometry::projection::project;
+
+
+#[test]
+fn main() {
+    let mut d = MountainCar::default();
+    let mut p = {
+        let aspace = d.action_space();
+        let fa = Partitions::new(d.state_space().with_partitions(20),
+                                 aspace.dim());
+
+        Greedy::<<MountainCar as Domain>::StateSpace, Partitions>::new(fa)
+    };
+
+    let mut a = match d.emit() {
+        Observation::Full(ref s) => p.pi(s),
+        _ => panic!("FooBar")
+    };
+
+    loop {
+        a = match d.step(a).to {
+            Observation::Full(ref s) => {
+                p.pi(s)
+            },
+            _ => break
+        };
+    }
+}
