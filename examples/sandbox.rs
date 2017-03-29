@@ -10,7 +10,6 @@ use rsrl::geometry::{Space, Span};
 use rsrl::loggers::DefaultLogger;
 
 
-#[test]
 fn main() {
     DefaultLogger::init();
 
