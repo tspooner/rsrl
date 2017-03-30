@@ -4,10 +4,9 @@ pub trait Projection<D: Dimension> {
     fn project(self, d: D) -> D::Value;
 }
 
-pub fn project<T, D: Dimension>(val: T, d: D) -> D::Value
+pub fn project<T, D: Dimension>(d: D, val: T) -> D::Value
     where T: Projection<D>
 {
-
     val.project(d)
 }
 
