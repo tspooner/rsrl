@@ -1,5 +1,7 @@
+use {Function, Parameterised};
 use domain::Transition;
 use geometry::{Space, ActionSpace};
+use policies::Policy;
 
 
 pub trait Agent<S: Space> {
@@ -7,5 +9,5 @@ pub trait Agent<S: Space> {
 }
 
 
-mod td_zero;
-pub use self::td_zero::{QLearning, SARSA};
+pub mod td_zero;
+pub mod actor_critic;

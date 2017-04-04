@@ -1,4 +1,5 @@
-use {Function, Parameterised};
+use super::{Function, Parameterised};
+
 use ndarray::{arr1, Array2};
 use geometry::{Span, Space, RegularSpace};
 use geometry::dimensions::Partition;
@@ -47,13 +48,12 @@ impl Function<[f64], Vec<f64>> for Partitions {
         // Get the row slice and convert to a Vec<f64>:
         self.weights.row(ri).to_vec()
     }
-}
 
-impl Function<Vec<f64>, Vec<f64>> for Partitions {
-    fn evaluate(&self, inputs: &Vec<f64>) -> Vec<f64> {
-        self.evaluate(inputs.as_slice())
+    fn n_outputs(&self) -> usize {
+        self.weights.cols()
     }
 }
+
 
 impl Parameterised<[f64], Vec<f64>> for Partitions {
     fn update(&mut self, inputs: &[f64], errors: &Vec<f64>) {
@@ -62,12 +62,6 @@ impl Parameterised<[f64], Vec<f64>> for Partitions {
 
         // Get the row slice and perform update via memcpy:
         self.weights.row_mut(ri).add_assign(&arr1(errors));
-    }
-}
-
-impl Parameterised<Vec<f64>, Vec<f64>> for Partitions {
-    fn update(&mut self, inputs: &Vec<f64>, errors: &Vec<f64>) {
-        self.update(inputs.as_slice(), errors)
     }
 }
 

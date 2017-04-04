@@ -5,8 +5,6 @@ use domain::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
 
-use std::fmt::Debug;
-
 
 pub struct QLearning<Q, P> {
     q_func: Q,
@@ -33,8 +31,7 @@ impl<Q, P> QLearning<Q, P> {
 }
 
 impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
-    where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, Vec<f64>>,
-          S::Repr: Debug
+    where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]>
 {
     fn handle(&mut self, t: &Transition<S, ActionSpace>) -> usize {
         let (s, ns) = (t.from.get(), t.to.get());
@@ -48,9 +45,9 @@ impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
         let mut errors = vec![0.0; qs.len()];
         errors[a] = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
 
-        self.q_func.update(s, &errors);
+        self.q_func.update(s, errors.as_slice());
 
-        self.exploration_policy.sample(qs.as_slice())
+        self.exploration_policy.sample(nqs.as_slice())
     }
 }
 
@@ -76,8 +73,7 @@ impl<Q, P> SARSA<Q, P> {
 }
 
 impl<S: Space, Q, P: Policy> Agent<S> for SARSA<Q, P>
-    where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, Vec<f64>>,
-          S::Repr: Debug
+    where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]>
 {
     fn handle(&mut self, t: &Transition<S, ActionSpace>) -> usize {
         let (s, ns) = (t.from.get(), t.to.get());
@@ -91,8 +87,8 @@ impl<S: Space, Q, P: Policy> Agent<S> for SARSA<Q, P>
         let mut errors = vec![0.0; qs.len()];
         errors[a] = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
 
-        self.q_func.update(s, &errors);
+        self.q_func.update(s, errors.as_slice());
 
-        self.policy.sample(qs.as_slice())
+        self.policy.sample(nqs.as_slice())
     }
 }

@@ -1,7 +1,7 @@
-use {Function, Parameterised};
-use utils::cartesian_product;
-use ndarray::{Axis, ArrayView, Array1, Array2};
+use super::{Function, Parameterised};
 
+use utils::{cartesian_product, dot};
+use ndarray::{Axis, ArrayView, Array1, Array2};
 use geometry::{Span, Space, RegularSpace};
 use geometry::dimensions::Partition;
 
@@ -48,6 +48,22 @@ impl RBFNetwork {
     }
 }
 
+
+impl Function<[f64], f64> for RBFNetwork {
+    fn evaluate(&self, inputs: &[f64]) -> f64 {
+        // Compute the feature vector phi:
+        let phi = self.phi(inputs);
+
+        // Apply matrix multiplication and return f64:
+        dot(self.weights.column(0).into_slice().unwrap(),
+            phi.as_slice().unwrap())
+    }
+
+    fn n_outputs(&self) -> usize {
+        1
+    }
+}
+
 impl Function<[f64], Vec<f64>> for RBFNetwork {
     fn evaluate(&self, inputs: &[f64]) -> Vec<f64> {
         // Compute the feature vector phi:
@@ -56,11 +72,22 @@ impl Function<[f64], Vec<f64>> for RBFNetwork {
         // Apply matrix multiplication and return Vec<f64>:
         (self.weights.t().dot(&phi)).into_raw_vec()
     }
+
+    fn n_outputs(&self) -> usize {
+        self.weights.cols()
+    }
 }
 
-impl Function<Vec<f64>, Vec<f64>> for RBFNetwork {
-    fn evaluate(&self, inputs: &Vec<f64>) -> Vec<f64> {
-        self.evaluate(inputs.as_slice())
+add_support!(RBFNetwork, Function, Vec<f64>, [f64, Vec<f64>]);
+
+
+impl Parameterised<[f64], f64> for RBFNetwork {
+    fn update(&mut self, inputs: &[f64], error: &f64) {
+        // Compute the feature vector phi:
+        let phi = self.phi(inputs);
+
+        // Update the weights via scaled_add:
+        self.weights.column_mut(0).scaled_add(*error, &phi);
     }
 }
 
@@ -78,79 +105,4 @@ impl Parameterised<[f64], [f64]> for RBFNetwork {
     }
 }
 
-impl Parameterised<Vec<f64>, Vec<f64>> for RBFNetwork {
-    fn update(&mut self, inputs: &Vec<f64>, errors: &Vec<f64>) {
-        self.update(inputs.as_slice(), errors.as_slice())
-    }
-}
-
-
-// #[cfg(test)]
-// mod tests {
-    // use test::Bencher;
-
-    // use {Function, Parameterised};
-    // use utils::kernels::Exponential;
-    // use geometry::RegularSpace;
-    // use geometry::dimensions::Partition;
-
-    // use super::BasisNetwork;
-
-    // #[test]
-    // fn test_singular_rbf_network() {
-        // let mut ds = RegularSpace::new();
-        // ds = ds.push(Partition::new(0.0, 1.0, 1));
-
-        // let bases = vec![Exponential::new(1.0); 1];
-
-        // let mut net = BasisNetwork::new(bases, ds, 1);
-
-        // net.update(&vec![0.5], &vec![5.0]);
-        // assert_eq!(net.evaluate(&vec![0.5]), &[5.0]);
-    // }
-
-    // #[bench]
-    // fn bench_phi(b: &mut Bencher) {
-        // let mut ds = RegularSpace::new();
-        // ds = ds.push(Partition::new(0.0, 9.0, 10));
-
-        // let bases = vec![Exponential::new(1.0); 10];
-        // let mut net = BasisNetwork::new(bases, ds, 1);
-
-        // b.iter(|| net.phi(&vec![1.5]));
-    // }
-
-    // #[bench]
-    // fn bench_evaluate(b: &mut Bencher) {
-        // let mut ds = RegularSpace::new();
-        // ds = ds.push(Partition::new(0.0, 9.0, 10));
-
-        // let bases = vec![Exponential::new(1.0); 10];
-        // let mut net = BasisNetwork::new(bases, ds, 1);
-
-        // b.iter(|| net.evaluate(&vec![1.5]));
-    // }
-
-    // #[bench]
-    // fn bench_update(b: &mut Bencher) {
-        // let mut ds = RegularSpace::new();
-        // ds = ds.push(Partition::new(0.0, 9.0, 10));
-
-        // let bases = vec![Exponential::new(1.0); 10];
-        // let mut net = BasisNetwork::new(bases, ds, 1);
-
-        // b.iter(|| net.update(&vec![1.5], &vec![10.0]));
-    // }
-
-    // #[bench]
-    // fn bench_update_mc(b: &mut Bencher) {
-        // let mut ds = RegularSpace::new();
-        // ds = ds.push(Partition::new(-1.2, 0.5, 20));
-        // ds = ds.push(Partition::new(-0.07, 0.07, 20));
-
-        // let bases = vec![Exponential::new(0.1); 400];
-        // let mut net = BasisNetwork::new(bases, ds, 3);
-
-        // b.iter(|| net.update(&vec![0.0, 0.0], &vec![1.0, 0.0, 0.7]));
-    // }
-// }
+add_support!(RBFNetwork, Parameterised, Vec<f64>, [f64, [f64]]);

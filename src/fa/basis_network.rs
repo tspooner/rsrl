@@ -1,4 +1,5 @@
-use {Function, Parameterised};
+use super::{Function, Parameterised};
+
 use std::iter::FromIterator;
 use utils::kernels::Kernel;
 use ndarray::{ArrayView, Array1, Array2};
@@ -21,6 +22,10 @@ impl BasisFunction {
 impl Function<[f64], f64> for BasisFunction {
     fn evaluate(&self, input: &[f64]) -> f64 {
         self.kernel.apply(&self.loc, input)
+    }
+
+    fn n_outputs(&self) -> usize {
+        1
     }
 }
 
@@ -55,13 +60,12 @@ impl Function<[f64], Vec<f64>> for BasisNetwork {
         // Apply matrix multiplication and return Vec<f64>:
         (self.weights.t().dot(&phi)).into_raw_vec()
     }
-}
 
-impl Function<Vec<f64>, Vec<f64>> for BasisNetwork {
-    fn evaluate(&self, inputs: &Vec<f64>) -> Vec<f64> {
-        self.evaluate(inputs.as_slice())
+    fn n_outputs(&self) -> usize {
+        self.weights.cols()
     }
 }
+
 
 impl Parameterised<[f64], [f64]> for BasisNetwork {
     fn update(&mut self, inputs: &[f64], errors: &[f64]) {
@@ -75,11 +79,5 @@ impl Parameterised<[f64], [f64]> for BasisNetwork {
 
         // Update the weights via addassign:
         self.weights += &phi.dot(&update_matrix)
-    }
-}
-
-impl Parameterised<Vec<f64>, Vec<f64>> for BasisNetwork {
-    fn update(&mut self, inputs: &Vec<f64>, errors: &Vec<f64>) {
-        self.update(inputs.as_slice(), errors.as_slice())
     }
 }

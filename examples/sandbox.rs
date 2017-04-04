@@ -3,7 +3,9 @@ extern crate rsrl;
 use rsrl::{Function, Parameterised};
 use rsrl::fa::RBFNetwork;
 use rsrl::domain::{Domain, Observation, MountainCar};
-use rsrl::agents::{Agent, QLearning, SARSA};
+use rsrl::agents::Agent;
+use rsrl::agents::td_zero::SARSA;
+use rsrl::agents::actor_critic::ActorCritic;
 use rsrl::policies::{Policy, Greedy};
 use rsrl::geometry::{Space, Span};
 
@@ -20,18 +22,19 @@ fn main() {
         _ => panic!("Non-finite action space!")
     };
 
-    let fa = RBFNetwork::new(
+    let actor = RBFNetwork::new(
         domain.state_space().with_partitions(10), n_actions);
+    let critic = RBFNetwork::new(
+        domain.state_space().with_partitions(10), 1);
 
-    let mut pi = Greedy;
+    let mut agent = ActorCritic::new(actor, critic, Greedy, 0.01, 0.05, 0.95);
+
     let mut a = match domain.emit() {
-        Observation::Full(ref s) => pi.sample(s),
+        Observation::Full(ref s) => Greedy.sample(s),
         _ => panic!("FooBar"),
     };
 
-    let mut agent = SARSA::new(fa, pi);
-
-    for e in 1..1000 {
+    for e in 1..2000 {
         let mut n_steps = 0;
         for j in 1..1000 {
             let t = domain.step(a);
