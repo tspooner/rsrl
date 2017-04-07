@@ -49,7 +49,6 @@ pub trait Domain {
     fn reward(&self,
               from: &Observation<Self::StateSpace, Self::ActionSpace>,
               to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64;
-
     fn is_terminal(&self) -> bool;
 
     fn state_space(&self) -> Self::StateSpace;

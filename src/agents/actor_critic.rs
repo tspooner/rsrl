@@ -36,7 +36,7 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for ActorCritic<Q, V, P>
     where V: Function<S::Repr, f64> + Parameterised<S::Repr, f64>,
           Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]>
 {
-    fn act(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.actor.evaluate(s).as_slice())
     }
 
@@ -52,6 +52,6 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for ActorCritic<Q, V, P>
         self.actor.update(s, errors.as_slice());
         self.critic.update(s, &(self.alpha*delta));
 
-        <Self as Agent<S>>::act(self, ns)
+        <Self as Agent<S>>::pi(self, ns)
     }
 }

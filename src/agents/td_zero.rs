@@ -24,7 +24,7 @@ impl<Q, P> QLearning<Q, P> {
             exploration_policy: policy,
             greedy_policy: Greedy,
 
-            alpha: 0.10,
+            alpha: 0.05,
             gamma: 0.95,
         }
     }
@@ -33,7 +33,7 @@ impl<Q, P> QLearning<Q, P> {
 impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
     where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]>
 {
-    fn act(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S::Repr) -> usize {
         self.exploration_policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
@@ -51,7 +51,7 @@ impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
 
         self.q_func.update(s, errors.as_slice());
 
-        <Self as Agent<S>>::act(self, ns)
+        <Self as Agent<S>>::pi(self, ns)
     }
 }
 
@@ -70,7 +70,7 @@ impl<Q, P> SARSA<Q, P> {
             q_func: q_func,
             policy: policy,
 
-            alpha: 0.10,
+            alpha: 0.05,
             gamma: 0.95,
         }
     }
@@ -79,7 +79,7 @@ impl<Q, P> SARSA<Q, P> {
 impl<S: Space, Q, P: Policy> Agent<S> for SARSA<Q, P>
     where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]>
 {
-    fn act(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
@@ -97,6 +97,6 @@ impl<S: Space, Q, P: Policy> Agent<S> for SARSA<Q, P>
 
         self.q_func.update(s, errors.as_slice());
 
-        <Self as Agent<S>>::act(self, ns)
+        <Self as Agent<S>>::pi(self, ns)
     }
 }
