@@ -4,49 +4,56 @@ use geometry::dimensions::Dimension;
 
 
 // TODO: Differentiate between full and partial observations.
-pub enum Observation<S: Space> {
-    Full(S::Repr),
-    Partial(S::Repr),
+pub enum Observation<S: Space, A: Space> {
+    Full {
+        state: S::Repr,
+        actions: Vec<A::Repr>,
+    },
+    Partial {
+        state: S::Repr,
+        actions: Vec<A::Repr>,
+    },
     Terminal(S::Repr),
 }
 
-impl<S: Space> Observation<S> {
-    pub fn get(&self) -> &S::Repr {
+impl<S: Space, A: Space> Observation<S, A> {
+    pub fn state(&self) -> &S::Repr {
         use self::Observation::*;
 
         match self {
-            &Full(ref s) | &Partial(ref s) | &Terminal(ref s) => s
+            &Full { ref state, .. } |
+                &Partial { ref state, .. } |
+                &Terminal(ref state) => state
         }
     }
 }
 
 
 pub struct Transition<S: Space, A: Space> {
-    pub from: Observation<S>,
+    pub from: Observation<S, A>,
     pub action: A::Repr,
     pub reward: f64,
-    pub to: Observation<S>,
+    pub to: Observation<S, A>,
 }
 
 
 pub trait Domain {
     type StateSpace: Space;
-    // type ActionSpace: Space;
+    type ActionSpace: Space;
 
-    fn emit(&self) -> Observation<Self::StateSpace>;
+    fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace>;
     fn step(&mut self,
             a: <dimensions::Discrete as Dimension>::Value)
-            -> Transition<Self::StateSpace, ActionSpace>;
+            -> Transition<Self::StateSpace, Self::ActionSpace>;
 
     fn reward(&self,
-              from: &Observation<Self::StateSpace>,
-              to: &Observation<Self::StateSpace>)
-              -> f64;
+              from: &Observation<Self::StateSpace, Self::ActionSpace>,
+              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64;
 
     fn is_terminal(&self) -> bool;
 
     fn state_space(&self) -> Self::StateSpace;
-    fn action_space(&self) -> ActionSpace;
+    fn action_space(&self) -> Self::ActionSpace;
 }
 
 

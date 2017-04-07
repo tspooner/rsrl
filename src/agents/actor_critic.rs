@@ -36,8 +36,12 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for ActorCritic<Q, V, P>
     where V: Function<S::Repr, f64> + Parameterised<S::Repr, f64>,
           Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]>
 {
+    fn act(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.actor.evaluate(s).as_slice())
+    }
+
     fn handle(&mut self, t: &Transition<S, ActionSpace>) -> usize {
-        let (s, ns) = (t.from.get(), t.to.get());
+        let (s, ns) = (t.from.state(), t.to.state());
 
         let delta = t.reward +
             self.gamma*self.critic.evaluate(ns) - self.critic.evaluate(s);
@@ -48,6 +52,6 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for ActorCritic<Q, V, P>
         self.actor.update(s, errors.as_slice());
         self.critic.update(s, &(self.alpha*delta));
 
-        self.policy.sample(self.actor.evaluate(ns).as_slice())
+        <Self as Agent<S>>::act(self, ns)
     }
 }

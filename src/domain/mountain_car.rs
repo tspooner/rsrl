@@ -52,18 +52,21 @@ impl Default for MountainCar {
 
 impl Domain for MountainCar {
     type StateSpace = RegularSpace<Continuous>;
+    type ActionSpace = ActionSpace;
     // type ActionSpace = UnitarySpace<Discrete>;
 
-    fn emit(&self) -> Observation<Self::StateSpace> {
-        // TODO: Don't return all actions.
+    fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
         if self.is_terminal() {
             Observation::Terminal(vec![self.state.0, self.state.1])
         } else {
-            Observation::Full(vec![self.state.0, self.state.1])
+            Observation::Full {
+                state: vec![self.state.0, self.state.1],
+                actions: vec![0, 1, 2]
+            }
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Self::StateSpace, ActionSpace> {
+    fn step(&mut self, a: usize) -> Transition<Self::StateSpace, Self::ActionSpace> {
         let from = self.emit();
 
         self.update_state(a);
@@ -78,8 +81,8 @@ impl Domain for MountainCar {
         }
     }
 
-    fn reward(&self, _: &Observation<Self::StateSpace>,
-              to: &Observation<Self::StateSpace>) -> f64
+    fn reward(&self, _: &Observation<Self::StateSpace, Self::ActionSpace>,
+              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
     {
         match to {
             &Observation::Terminal(_) => GOAL_REWARD,
@@ -113,7 +116,7 @@ mod tests {
         let m = MountainCar::default();
 
         match m.emit() {
-            Observation::Full(ovs) => {
+            Observation::Full { ref state, .. } => {
                 assert_eq!(ovs[0], -0.5);
                 assert_eq!(ovs[1], 0.0);
             }

@@ -22,4 +22,5 @@ pub use fa::{Function, Parameterised};
 
 pub mod policies;
 pub mod agents;
+pub mod experiment;
 pub mod loggers;

@@ -33,8 +33,12 @@ impl<Q, P> QLearning<Q, P> {
 impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
     where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]>
 {
+    fn act(&mut self, s: &S::Repr) -> usize {
+        self.exploration_policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
     fn handle(&mut self, t: &Transition<S, ActionSpace>) -> usize {
-        let (s, ns) = (t.from.get(), t.to.get());
+        let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
         let nqs = self.q_func.evaluate(ns);
@@ -47,7 +51,7 @@ impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
 
         self.q_func.update(s, errors.as_slice());
 
-        self.exploration_policy.sample(nqs.as_slice())
+        <Self as Agent<S>>::act(self, ns)
     }
 }
 
@@ -75,8 +79,12 @@ impl<Q, P> SARSA<Q, P> {
 impl<S: Space, Q, P: Policy> Agent<S> for SARSA<Q, P>
     where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]>
 {
+    fn act(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
     fn handle(&mut self, t: &Transition<S, ActionSpace>) -> usize {
-        let (s, ns) = (t.from.get(), t.to.get());
+        let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
         let nqs = self.q_func.evaluate(ns);
@@ -89,6 +97,6 @@ impl<S: Space, Q, P: Policy> Agent<S> for SARSA<Q, P>
 
         self.q_func.update(s, errors.as_slice());
 
-        self.policy.sample(nqs.as_slice())
+        <Self as Agent<S>>::act(self, ns)
     }
 }

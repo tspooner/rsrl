@@ -30,7 +30,7 @@ fn main() {
     let mut agent = ActorCritic::new(actor, critic, Greedy, 0.01, 0.05, 0.95);
 
     let mut a = match domain.emit() {
-        Observation::Full(ref s) => Greedy.sample(s),
+        Observation::Full { ref state, .. } => Greedy.sample(state),
         _ => panic!("FooBar"),
     };
 
