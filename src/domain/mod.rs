@@ -3,7 +3,6 @@ use geometry::dimensions;
 use geometry::dimensions::Dimension;
 
 
-// TODO: Differentiate between full and partial observations.
 pub enum Observation<S: Space, A: Space> {
     Full {
         state: S::Repr,

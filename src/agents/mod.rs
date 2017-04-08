@@ -6,8 +6,7 @@ use policies::Policy;
 
 pub trait Agent<S: Space> {
     fn pi(&mut self, s: &S::Repr) -> usize;
-
-    fn handle(&mut self, t: &Transition<S, ActionSpace>) -> usize;
+    fn train(&mut self, t: &Transition<S, ActionSpace>);
 }
 
 

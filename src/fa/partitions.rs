@@ -54,9 +54,11 @@ impl Function<[f64], Vec<f64>> for Partitions {
     }
 }
 
+add_support!(Partitions, Function, Vec<f64>, [Vec<f64>]);
 
-impl Parameterised<[f64], Vec<f64>> for Partitions {
-    fn update(&mut self, inputs: &[f64], errors: &Vec<f64>) {
+
+impl Parameterised<[f64], [f64]> for Partitions {
+    fn update(&mut self, inputs: &[f64], errors: &[f64]) {
         // Hash the inputs down to a row index:
         let ri = self.hash(inputs);
 
@@ -64,6 +66,8 @@ impl Parameterised<[f64], Vec<f64>> for Partitions {
         self.weights.row_mut(ri).add_assign(&arr1(errors));
     }
 }
+
+add_support!(Partitions, Parameterised, Vec<f64>, [[f64]]);
 
 
 #[cfg(test)]

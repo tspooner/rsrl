@@ -49,9 +49,11 @@ impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
 
             n_steps = j;
 
+            self.agent.train(&t);
+
             a = match t.to {
                 Observation::Terminal(_) => break,
-                _ => self.agent.handle(&t)
+                _ => self.agent.pi(&t.to.state())
             };
         }
 

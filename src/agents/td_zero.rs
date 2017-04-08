@@ -24,8 +24,8 @@ impl<Q, P> QLearning<Q, P> {
             exploration_policy: policy,
             greedy_policy: Greedy,
 
-            alpha: 0.05,
-            gamma: 0.95,
+            alpha: 0.10,
+            gamma: 0.99,
         }
     }
 }
@@ -37,7 +37,7 @@ impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
         self.exploration_policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn handle(&mut self, t: &Transition<S, ActionSpace>) -> usize {
+    fn train(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
@@ -50,8 +50,6 @@ impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
         errors[a] = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
 
         self.q_func.update(s, errors.as_slice());
-
-        <Self as Agent<S>>::pi(self, ns)
     }
 }
 
@@ -70,8 +68,8 @@ impl<Q, P> SARSA<Q, P> {
             q_func: q_func,
             policy: policy,
 
-            alpha: 0.05,
-            gamma: 0.95,
+            alpha: 0.10,
+            gamma: 0.99,
         }
     }
 }
@@ -83,7 +81,7 @@ impl<S: Space, Q, P: Policy> Agent<S> for SARSA<Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn handle(&mut self, t: &Transition<S, ActionSpace>) -> usize {
+    fn train(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
@@ -96,7 +94,5 @@ impl<S: Space, Q, P: Policy> Agent<S> for SARSA<Q, P>
         errors[a] = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
 
         self.q_func.update(s, errors.as_slice());
-
-        <Self as Agent<S>>::pi(self, ns)
     }
 }

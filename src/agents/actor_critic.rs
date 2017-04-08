@@ -40,7 +40,7 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for ActorCritic<Q, V, P>
         self.policy.sample(self.actor.evaluate(s).as_slice())
     }
 
-    fn handle(&mut self, t: &Transition<S, ActionSpace>) -> usize {
+    fn train(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let delta = t.reward +
@@ -51,7 +51,5 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for ActorCritic<Q, V, P>
 
         self.actor.update(s, errors.as_slice());
         self.critic.update(s, &(self.alpha*delta));
-
-        <Self as Agent<S>>::pi(self, ns)
     }
 }

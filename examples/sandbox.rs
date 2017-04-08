@@ -4,7 +4,7 @@ use rsrl::{Function, Parameterised};
 use rsrl::fa::RBFNetwork;
 use rsrl::domain::{Domain, Observation, MountainCar};
 use rsrl::agents::Agent;
-use rsrl::agents::td_zero::SARSA;
+use rsrl::agents::td_zero::QLearning;
 use rsrl::policies::{Policy, Greedy, EpsilonGreedy};
 use rsrl::geometry::{Space, Span};
 use rsrl::experiment::SerialExperiment;
@@ -18,15 +18,12 @@ fn main() {
     let mut domain = MountainCar::default();
     let mut agent = {
         let aspace = domain.action_space();
-        let n_actions = match aspace.span() {
-            Span::Finite(na) => na,
-            _ => panic!("Non-finite action space!")
-        };
+        let n_actions: usize = aspace.span().into();
 
         let q_func = RBFNetwork::new(
             domain.state_space().with_partitions(8), n_actions);
 
-        SARSA::new(q_func, EpsilonGreedy::new(aspace, 0.05))
+        QLearning::new(q_func, Greedy)
     };
 
     // Training:
