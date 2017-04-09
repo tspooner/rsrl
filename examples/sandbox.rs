@@ -4,7 +4,7 @@ use rsrl::{Function, Parameterised};
 use rsrl::fa::RBFNetwork;
 use rsrl::domain::{Domain, Observation, MountainCar};
 use rsrl::agents::Agent;
-use rsrl::agents::td_zero::QLearning;
+use rsrl::agents::td::QLearning;
 use rsrl::policies::{Policy, Greedy, EpsilonGreedy};
 use rsrl::geometry::{Space, Span};
 use rsrl::experiment::SerialExperiment;
