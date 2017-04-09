@@ -1,6 +1,6 @@
-use super::{Function, Parameterised};
+use super::{Function, Parameterised, Linear};
 
-use ndarray::{arr1, Array2};
+use ndarray::{arr1, Array1, Array2};
 use geometry::{Span, Space, RegularSpace};
 use geometry::dimensions::Partition;
 
@@ -40,6 +40,7 @@ impl Partitions {
     }
 }
 
+
 impl Function<[f64], Vec<f64>> for Partitions {
     fn evaluate(&self, inputs: &[f64]) -> Vec<f64> {
         // Hash the inputs down to a row index:
@@ -54,7 +55,7 @@ impl Function<[f64], Vec<f64>> for Partitions {
     }
 }
 
-add_support!(Partitions, Function, Vec<f64>, [Vec<f64>]);
+add_vec_support!(Partitions, Function, Vec<f64>);
 
 
 impl Parameterised<[f64], [f64]> for Partitions {
@@ -67,7 +68,19 @@ impl Parameterised<[f64], [f64]> for Partitions {
     }
 }
 
-add_support!(Partitions, Parameterised, Vec<f64>, [[f64]]);
+add_vec_support!(Partitions, Parameterised, [f64]);
+
+
+impl Linear<[f64]> for Partitions {
+    fn phi(&self, input: &[f64]) -> Array1<f64> {
+        let mut phi = Array1::<f64>::zeros((self.weights.rows(),));
+        phi[self.hash(input)] = 1.0;
+
+        phi
+    }
+}
+
+add_vec_support!(Partitions, Linear);
 
 
 #[cfg(test)]

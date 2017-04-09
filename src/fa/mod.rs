@@ -21,13 +21,13 @@ pub trait Linear<I: ?Sized> {
 }
 
 
-macro_rules! add_support {
-    ($ft:ty, Function, $it:ty, [$($ot:ty),+]) => {
-        $(impl Function<$it, $ot> for $ft
+macro_rules! add_vec_support {
+    ($ft:ty, Function, $($ot:ty),+) => {
+        $(impl Function<Vec<f64>, $ot> for $ft
             where $ft: Function<[f64], $ot>
         {
-            fn evaluate(&self, inputs: &$it) -> $ot {
-                self.evaluate(inputs.as_slice())
+            fn evaluate(&self, input: &Vec<f64>) -> $ot {
+                self.evaluate(input.as_slice())
             }
 
             fn n_outputs(&self) -> usize {
@@ -35,14 +35,22 @@ macro_rules! add_support {
             }
         })+
     };
-    ($ft:ty, Parameterised, $it:ty, [$($et:ty),+]) => {
-        $(impl Parameterised<$it, $et> for $ft
+    ($ft:ty, Parameterised, $($et:ty),+) => {
+        $(impl Parameterised<Vec<f64>, $et> for $ft
             where $ft: Parameterised<[f64], $et>
         {
-            fn update(&mut self, inputs: &$it, errors: &$et) {
-                self.update(inputs.as_slice(), errors)
+            fn update(&mut self, input: &Vec<f64>, errors: &$et) {
+                self.update(input.as_slice(), errors)
             }
         })+
+    };
+    ($ft:ty, Linear) => {
+        impl Linear<Vec<f64>> for $ft where $ft: Linear<[f64]>
+        {
+            fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
+                self.phi(input.as_slice())
+            }
+        }
     }
 }
 

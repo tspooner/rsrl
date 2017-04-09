@@ -1,4 +1,4 @@
-use super::{Function, Parameterised};
+use super::{Function, Parameterised, Linear};
 
 use utils::{cartesian_product, dot};
 use ndarray::{Axis, ArrayView, Array1, Array2};
@@ -38,25 +38,16 @@ impl RBFNetwork {
             weights: Array2::<f64>::zeros((n_features, n_outputs)),
         }
     }
-
-    fn phi(&self, inputs: &[f64]) -> Array1<f64> {
-        let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), inputs).unwrap();
-        let e = (&d * &d * &self.gamma).mapv(|v| v.exp()).sum(Axis(1));
-        let z = e.sum(Axis(0));
-
-        e / z
-    }
 }
 
 
 impl Function<[f64], f64> for RBFNetwork {
-    fn evaluate(&self, inputs: &[f64]) -> f64 {
+    fn evaluate(&self, input: &[f64]) -> f64 {
         // Compute the feature vector phi:
-        let phi = self.phi(inputs);
+        let phi = self.phi(input);
 
         // Apply matrix multiplication and return f64:
-        dot(self.weights.column(0).into_slice().unwrap(),
-            phi.as_slice().unwrap())
+        dot(self.weights.as_slice().unwrap(), phi.as_slice().unwrap())
     }
 
     fn n_outputs(&self) -> usize {
@@ -65,9 +56,9 @@ impl Function<[f64], f64> for RBFNetwork {
 }
 
 impl Function<[f64], Vec<f64>> for RBFNetwork {
-    fn evaluate(&self, inputs: &[f64]) -> Vec<f64> {
+    fn evaluate(&self, input: &[f64]) -> Vec<f64> {
         // Compute the feature vector phi:
-        let phi = self.phi(inputs);
+        let phi = self.phi(input);
 
         // Apply matrix multiplication and return Vec<f64>:
         (self.weights.t().dot(&phi)).into_raw_vec()
@@ -78,13 +69,13 @@ impl Function<[f64], Vec<f64>> for RBFNetwork {
     }
 }
 
-add_support!(RBFNetwork, Function, Vec<f64>, [f64, Vec<f64>]);
+add_vec_support!(RBFNetwork, Function, f64, Vec<f64>);
 
 
 impl Parameterised<[f64], f64> for RBFNetwork {
-    fn update(&mut self, inputs: &[f64], error: &f64) {
+    fn update(&mut self, input: &[f64], error: &f64) {
         // Compute the feature vector phi:
-        let phi = self.phi(inputs);
+        let phi = self.phi(input);
 
         // Update the weights via scaled_add:
         self.weights.column_mut(0).scaled_add(*error, &phi);
@@ -92,17 +83,30 @@ impl Parameterised<[f64], f64> for RBFNetwork {
 }
 
 impl Parameterised<[f64], [f64]> for RBFNetwork {
-    fn update(&mut self, inputs: &[f64], errors: &[f64]) {
+    fn update(&mut self, input: &[f64], errors: &[f64]) {
         // Compute the feature vector phi:
-        let phi = self.phi(inputs).into_shape((1, self.weights.rows())).unwrap();
+        let phi = self.phi(input).into_shape((self.weights.rows(), 1)).unwrap();
 
         // Compute update matrix using phi and column-wise errors:
         let update_matrix =
             ArrayView::from_shape((1, self.weights.cols()), errors).unwrap();
 
         // Update the weights via addassign:
-        self.weights += &phi.t().dot(&update_matrix)
+        self.weights += &phi.dot(&update_matrix)
     }
 }
 
-add_support!(RBFNetwork, Parameterised, Vec<f64>, [f64, [f64]]);
+add_vec_support!(RBFNetwork, Parameterised, f64, [f64]);
+
+
+impl Linear<[f64]> for RBFNetwork {
+    fn phi(&self, input: &[f64]) -> Array1<f64> {
+        let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
+        let e = (&d * &d * &self.gamma).mapv(|v| v.exp()).sum(Axis(1));
+        let z = e.sum(Axis(0));
+
+        e / z
+    }
+}
+
+add_vec_support!(RBFNetwork, Linear);
