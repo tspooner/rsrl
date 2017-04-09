@@ -1,7 +1,5 @@
-use {Function, Parameterised};
 use domain::Transition;
 use geometry::{Space, ActionSpace};
-use policies::Policy;
 
 
 pub trait Agent<S: Space> {

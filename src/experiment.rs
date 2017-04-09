@@ -1,5 +1,5 @@
 use agents::Agent;
-use domain::{Domain, Observation, Transition};
+use domain::{Domain, Observation};
 use geometry::{Space, ActionSpace};
 
 

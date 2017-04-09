@@ -3,7 +3,7 @@ use super::Agent;
 use {Function, Parameterised};
 use domain::Transition;
 use geometry::{Space, ActionSpace};
-use policies::{Policy, Greedy};
+use policies::Policy;
 
 
 pub struct ActorCritic<Q, V, P> {
