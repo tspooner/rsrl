@@ -5,7 +5,7 @@ use geometry::dimensions::{Continuous, Discrete};
 
 
 const X_MIN: f64 = -1.2;
-const X_MAX: f64 = 0.5;
+const X_MAX: f64 = 0.6;
 
 const V_MIN: f64 = -0.07;
 const V_MAX: f64 = 0.07;
@@ -26,6 +26,12 @@ pub struct MountainCar {
 }
 
 impl MountainCar {
+    fn new(state: (f64, f64)) -> MountainCar {
+        MountainCar {
+            state: state
+        }
+    }
+
     fn initial_state() -> (f64, f64) {
         (-0.5, 0.0)
     }
@@ -46,14 +52,13 @@ impl MountainCar {
 
 impl Default for MountainCar {
     fn default() -> MountainCar {
-        MountainCar { state: MountainCar::initial_state() }
+        MountainCar::new(MountainCar::initial_state())
     }
 }
 
 impl Domain for MountainCar {
     type StateSpace = RegularSpace<Continuous>;
     type ActionSpace = ActionSpace;
-    // type ActionSpace = UnitarySpace<Discrete>;
 
     fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
         if self.is_terminal() {
@@ -71,7 +76,7 @@ impl Domain for MountainCar {
 
         self.update_state(a);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let r = MountainCar::reward(&from, &to);
 
         Transition {
             from: from,
@@ -81,7 +86,7 @@ impl Domain for MountainCar {
         }
     }
 
-    fn reward(&self, _: &Observation<Self::StateSpace, Self::ActionSpace>,
+    fn reward(_: &Observation<Self::StateSpace, Self::ActionSpace>,
               to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
     {
         match to {
@@ -96,8 +101,8 @@ impl Domain for MountainCar {
 
     fn state_space(&self) -> Self::StateSpace {
         Self::StateSpace::new()
-            .push(Continuous::new(-1.2, 0.5))
-            .push(Continuous::new(-0.07, 0.07))
+            .push(Continuous::new(X_MIN, X_MAX))
+            .push(Continuous::new(V_MIN, V_MAX))
     }
 
     fn action_space(&self) -> ActionSpace {
@@ -108,7 +113,7 @@ impl Domain for MountainCar {
 
 #[cfg(test)]
 mod tests {
-    use super::MountainCar;
+    use super::*;
     use domain::{Observation, Domain};
 
     #[test]
@@ -117,12 +122,32 @@ mod tests {
 
         match m.emit() {
             Observation::Full { ref state, .. } => {
-                assert_eq!(ovs[0], -0.5);
-                assert_eq!(ovs[1], 0.0);
+                assert_eq!(state[0], -0.5);
+                assert_eq!(state[1], 0.0);
             }
             _ => panic!("Should yield a fully observable state."),
         }
     }
 
-    // TODO: Write remaining tests.
+    #[test]
+    fn test_is_terminal() {
+        assert!(!MountainCar::default().is_terminal());
+        assert!(!MountainCar::new((-0.5, 0.0)).is_terminal());
+
+        assert!(MountainCar::new((X_MAX, -0.05)).is_terminal());
+        assert!(MountainCar::new((X_MAX, 0.0)).is_terminal());
+        assert!(MountainCar::new((X_MAX, 0.05)).is_terminal());
+
+        assert!(!MountainCar::new((X_MAX-0.0001*X_MAX, 0.0)).is_terminal());
+        assert!(MountainCar::new((X_MAX+0.0001*X_MAX, 0.0)).is_terminal());
+    }
+
+    #[test]
+    fn test_reward() {
+        let s = MountainCar::default().emit();
+        let ns = MountainCar::new((X_MAX, 0.0)).emit();
+
+        assert_eq!(MountainCar::reward(&s, &s), STEP_REWARD);
+        assert_eq!(MountainCar::reward(&s, &ns), GOAL_REWARD);
+    }
 }

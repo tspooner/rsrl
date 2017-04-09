@@ -41,12 +41,10 @@ pub trait Domain {
     type ActionSpace: Space;
 
     fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace>;
-    fn step(&mut self,
-            a: <dimensions::Discrete as Dimension>::Value)
-            -> Transition<Self::StateSpace, Self::ActionSpace>;
+    fn step(&mut self, a: <dimensions::Discrete as Dimension>::Value)
+        -> Transition<Self::StateSpace, Self::ActionSpace>;
 
-    fn reward(&self,
-              from: &Observation<Self::StateSpace, Self::ActionSpace>,
+    fn reward(from: &Observation<Self::StateSpace, Self::ActionSpace>,
               to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64;
     fn is_terminal(&self) -> bool;
 
