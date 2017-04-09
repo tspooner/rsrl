@@ -1,18 +1,25 @@
 // use std::iter::FromIterator;
+use ndarray::Array1;
 
-
+/// An interface for dealing with functions that may be evaluated.
 pub trait Function<I: ?Sized, O> {
+    /// Evaluates the function for a given output.
     fn evaluate(&self, input: &I) -> O;
+
+    /// Returns the number of values this function evaluates to.
     fn n_outputs(&self) -> usize;
 }
 
+/// An interface for dealing with adaptive functions that may be updated.
 pub trait Parameterised<I: ?Sized, E: ?Sized> {
     fn update(&mut self, input: &I, errors: &E);
-
-    // TODO: Implement binary serialization with compression
-    // fn load
-    // fn save
 }
+
+/// An interface for functions which have a linear representation.
+pub trait Linear<I: ?Sized> {
+    fn phi(&self, input: &I) -> Array1<f64>;
+}
+
 
 macro_rules! add_support {
     ($ft:ty, Function, $it:ty, [$($ot:ty),+]) => {
