@@ -4,9 +4,8 @@ use ndarray::{arr1, Array1, Array2};
 use geometry::{Span, Space, RegularSpace};
 use geometry::dimensions::Partition;
 
-use std::ops::AddAssign;
 
-
+/// Linearly partitioned function representation.
 pub struct Partitions {
     weights: Array2<f64>,
     input_space: RegularSpace<Partition>,
@@ -64,7 +63,7 @@ impl Parameterised<[f64], [f64]> for Partitions {
         let ri = self.hash(inputs);
 
         // Get the row slice and perform update via memcpy:
-        self.weights.row_mut(ri).add_assign(&arr1(errors));
+        self.weights.row_mut(ri).scaled_add(1.0, &arr1(errors));
     }
 }
 
@@ -73,10 +72,10 @@ add_vec_support!(Partitions, Parameterised, [f64]);
 
 impl Linear<[f64]> for Partitions {
     fn phi(&self, input: &[f64]) -> Array1<f64> {
-        let mut phi = Array1::<f64>::zeros((self.weights.rows(),));
-        phi[self.hash(input)] = 1.0;
+        let mut p = Array1::<f64>::zeros(self.weights.rows());
+        p[self.hash(input)] = 1.0;
 
-        phi
+        p
     }
 }
 

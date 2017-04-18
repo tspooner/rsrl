@@ -7,7 +7,7 @@ use rsrl::agents::Agent;
 use rsrl::agents::td::QLearning;
 use rsrl::policies::{Policy, Greedy, EpsilonGreedy};
 use rsrl::geometry::{Space, Span};
-use rsrl::experiment::SerialExperiment;
+use rsrl::experiment::{SerialExperiment, Evaluation};
 
 use rsrl::loggers::DefaultLogger;
 
@@ -23,7 +23,7 @@ fn main() {
         let q_func = RBFNetwork::new(
             domain.state_space().with_partitions(8), n_actions);
 
-        QLearning::new(q_func, Greedy)
+        QLearning::new(q_func, Greedy, 0.10, 0.99)
     };
 
     // Training:
@@ -34,8 +34,21 @@ fn main() {
     let _ = e.enumerate()
              .take(1000)
              .inspect(|&(i, ref res)| {
-                 println!("Episode {} - {} steps", i+1, res.n_steps)
+                 println!("Episode {} - {} steps and {} reward",
+                          i+1, res.n_steps, res.total_reward)
              })
              .map(|(_, res)| res)
              .collect::<Vec<_>>();
+
+    // // Testing:
+    // let mut e = Evaluation::new(&mut agent, Box::new(MountainCar::default));
+
+    // let _ = e.enumerate()
+             // .take(1)
+             // .inspect(|&(i, ref res)| {
+                 // println!("Episode {} - {} steps and {} reward",
+                          // i+1, res.n_steps, res.total_reward)
+             // })
+             // .map(|(_, res)| res)
+             // .collect::<Vec<_>>();
 }

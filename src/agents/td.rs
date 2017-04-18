@@ -9,7 +9,7 @@ use policies::{Policy, Greedy};
 pub struct QLearning<Q, P> {
     q_func: Q,
 
-    exploration_policy: P,
+    behaviour_policy: P,
     greedy_policy: Greedy,
 
     alpha: f64,
@@ -17,15 +17,15 @@ pub struct QLearning<Q, P> {
 }
 
 impl<Q, P> QLearning<Q, P> {
-    pub fn new(q_func: Q, policy: P) -> Self {
+    pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64) -> Self {
         QLearning {
             q_func: q_func,
 
-            exploration_policy: policy,
+            behaviour_policy: policy,
             greedy_policy: Greedy,
 
-            alpha: 0.10,
-            gamma: 0.99,
+            alpha: alpha,
+            gamma: gamma,
         }
     }
 }
@@ -34,7 +34,7 @@ impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
     where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]>
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
-        self.exploration_policy.sample(self.q_func.evaluate(s).as_slice())
+        self.behaviour_policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
     fn train(&mut self, t: &Transition<S, ActionSpace>) {
@@ -63,13 +63,13 @@ pub struct SARSA<Q, P> {
 }
 
 impl<Q, P> SARSA<Q, P> {
-    pub fn new(q_func: Q, policy: P) -> Self {
+    pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64) -> Self {
         SARSA {
             q_func: q_func,
             policy: policy,
 
-            alpha: 0.10,
-            gamma: 0.99,
+            alpha: alpha,
+            gamma: gamma,
         }
     }
 }

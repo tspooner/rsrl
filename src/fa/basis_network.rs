@@ -5,6 +5,7 @@ use utils::kernels::Kernel;
 use ndarray::{ArrayView, Array1, Array2};
 
 
+/// Represents the location and kernel associated with a basis function.
 pub struct BasisFunction {
     loc: Vec<f64>,
     kernel: Box<Kernel>,
@@ -30,6 +31,7 @@ impl Function<[f64], f64> for BasisFunction {
 }
 
 
+/// Generic basis function network for function representation.
 pub struct BasisNetwork {
     bases: Vec<BasisFunction>,
     weights: Array2<f64>,

@@ -6,6 +6,7 @@ use geometry::{Span, Space, RegularSpace};
 use geometry::dimensions::Partition;
 
 
+/// Optimised radial basis function network for function representation.
 pub struct RBFNetwork {
     mu: Array2<f64>,
     gamma: Array1<f64>,
