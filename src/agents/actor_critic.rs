@@ -3,7 +3,7 @@ use super::Agent;
 use {Function, Parameterised};
 use domain::Transition;
 use geometry::{Space, ActionSpace};
-use policies::Policy;
+use policies::{Policy, Greedy};
 
 
 pub struct ActorCritic<Q, V, P> {
@@ -40,7 +40,11 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for ActorCritic<Q, V, P>
         self.policy.sample(self.actor.evaluate(s).as_slice())
     }
 
-    fn train(&mut self, t: &Transition<S, ActionSpace>) {
+    fn pi_target(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.actor.evaluate(s).as_slice())
+    }
+
+    fn learn_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let delta = t.reward +
