@@ -69,5 +69,5 @@ pub use self::basis_network::{BasisFunction, BasisNetwork};
 
 // pub mod leaf;
 
-// mod sutton_tiles;
-// pub use self::sutton_tiles::SuttonTiles;
+mod sutton_tiles;
+pub use self::sutton_tiles::SuttonTiles;
