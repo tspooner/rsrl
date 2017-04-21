@@ -7,7 +7,7 @@ use rsrl::agents::Agent;
 use rsrl::agents::td::QLearning;
 use rsrl::policies::{Policy, Greedy, EpsilonGreedy};
 use rsrl::geometry::{Space, Span};
-use rsrl::experiment::{SerialExperiment, Evaluation};
+use rsrl::experiment::{run, SerialExperiment, Evaluation};
 
 use rsrl::loggers::DefaultLogger;
 
@@ -27,28 +27,19 @@ fn main() {
     };
 
     // Training:
-    let mut e = SerialExperiment::new(&mut agent,
-                                      Box::new(MountainCar::default),
-                                      1000);
+    let training_result = {
+        let mut e = SerialExperiment::new(&mut agent,
+                                          Box::new(MountainCar::default),
+                                          1000);
 
-    let _ = e.enumerate()
-             .take(1000)
-             .inspect(|&(i, ref res)| {
-                 println!("Episode {} - {} steps and {} reward",
-                          i+1, res.n_steps, res.total_reward)
-             })
-             .map(|(_, res)| res)
-             .collect::<Vec<_>>();
+        run(e, 1000)
+    };
 
-    // // Testing:
-    // let mut e = Evaluation::new(&mut agent, Box::new(MountainCar::default));
+    // Testing:
+    let testing_result = {
+        let mut e = Evaluation::new(&mut agent,
+                                    Box::new(MountainCar::default));
 
-    // let _ = e.enumerate()
-             // .take(1)
-             // .inspect(|&(i, ref res)| {
-                 // println!("Episode {} - {} steps and {} reward",
-                          // i+1, res.n_steps, res.total_reward)
-             // })
-             // .map(|(_, res)| res)
-             // .collect::<Vec<_>>();
+        run(e, 1)
+    };
 }

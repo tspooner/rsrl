@@ -14,6 +14,21 @@ pub struct Episode {
 }
 
 
+/// Helper function for running experiments.
+pub fn run<T>(runner: T, n_episodes: usize) -> Vec<Episode>
+    where T: Iterator<Item=Episode>
+{
+    runner.enumerate()
+          .take(n_episodes)
+          .inspect(|&(i, ref res)| {
+              println!("Episode {} - {} steps and {} reward",
+                        i+1, res.n_steps, res.total_reward)
+          })
+          .map(|(_, res)| res)
+          .collect::<Vec<_>>()
+}
+
+
 /// Utility for running a single evaluation episode.
 pub struct Evaluation<'a, A: 'a, D> {
     agent: &'a mut A,
