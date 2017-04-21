@@ -7,6 +7,10 @@ use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
 
 
+/// Watkins' Q-learning agent.
+///
+/// C. J. C. H. Watkins and P. Dayan, “Q-learning,” Mach. Learn., vol. 8, no. 3–4, pp. 279–292,
+/// 1992.
 pub struct QLearning<Q, P> {
     q_func: Q,
     policy: P,
@@ -55,6 +59,7 @@ impl<S: Space, Q, P: Policy> Agent<S> for QLearning<Q, P>
 }
 
 
+/// Online Q-learning agent.
 pub struct SARSA<Q, P> {
     q_func: Q,
     policy: P,

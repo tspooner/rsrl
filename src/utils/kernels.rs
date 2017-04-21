@@ -1,11 +1,13 @@
+/// An interface for kernel functions.
 pub trait Kernel {
     fn apply(&self, x1: &[f64], x2: &[f64]) -> f64;
 }
 
 
+/// Linear kernel function.
 #[derive(Clone, Copy)]
 pub struct Linear {
-    pub c: f64,
+    c: f64,
 }
 
 impl Linear {
@@ -20,9 +22,11 @@ impl Kernel for Linear {
     }
 }
 
+
+/// Exponential kernel function.
 #[derive(Clone, Copy)]
 pub struct Exponential {
-    pub gamma: f64,
+    gamma: f64,
 }
 
 impl Exponential {

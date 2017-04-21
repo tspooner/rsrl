@@ -6,6 +6,7 @@ use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
 
 
+/// Regular gradient descent actor-critic learning agent.
 pub struct ActorCritic<Q, V, P> {
     actor: Q,
     critic: V,

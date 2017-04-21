@@ -23,7 +23,7 @@ fn main() {
         let q_func = RBFNetwork::new(
             domain.state_space().with_partitions(8), n_actions);
 
-        QLearning::new(q_func, Greedy, 0.10, 0.99)
+        QLearning::new(q_func, Greedy, 0.1, 0.99)
     };
 
     // Training:
