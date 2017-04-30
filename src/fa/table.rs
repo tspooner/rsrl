@@ -11,7 +11,8 @@ use std::collections::HashMap;
 /// Basic usage:
 ///
 /// ```
-/// use rsrl::fa::{Function, Parameterised, Table};
+/// use rsrl::fa::{Function, Parameterised};
+/// use rsrl::fa::exact::Table;
 ///
 /// let f = {
 ///     let mut t = Table::<(u32, u32), f64>::new();

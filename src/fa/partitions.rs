@@ -120,7 +120,7 @@ impl QFunction<RegularSpace<Continuous>> for Partitions
 mod tests {
     use super::Partitions;
 
-    use {Function, Parameterised};
+    use fa::{Function, Parameterised};
     use geometry::RegularSpace;
     use geometry::dimensions::Partition;
 
@@ -131,11 +131,15 @@ mod tests {
 
         let mut t = Partitions::new(ds, 1);
 
-        t.update(&vec![1.5], &vec![25.5]);
-        assert_eq!(t.evaluate(&vec![1.5]), &[25.5]);
+        t.update(&vec![1.5], 25.5);
 
-        t.update(&vec![1.5], &vec![-12.75]);
-        assert_eq!(t.evaluate(&vec![1.5]), &[12.75]);
+        let out: f64 = t.evaluate(&vec![1.5]);
+        assert_eq!(out, 25.5);
+
+        t.update(&vec![1.5], -12.75);
+
+        let out: f64 = t.evaluate(&vec![1.5]);
+        assert_eq!(out, 12.75);
     }
 
     #[test]
@@ -145,10 +149,12 @@ mod tests {
 
         let mut t = Partitions::new(ds, 1);
 
-        t.update(&vec![0.5], &vec![1.2]);
-        assert_eq!(t.evaluate(&vec![0.2]), &[1.2]);
-        assert_eq!(t.evaluate(&vec![0.5]), &[1.2]);
-        assert_eq!(t.evaluate(&vec![0.8]), &[1.2]);
+        t.update(&vec![0.5], vec![1.2]);
+
+        for value in vec![0.2, 0.5, 0.8] {
+            let out: f64 = t.evaluate(&vec![value]);
+            assert_eq!(out, 1.2);
+        }
     }
 
     #[test]
@@ -161,10 +167,13 @@ mod tests {
         for i in 0..10 {
             let input: Vec<f64> = vec![i as u32 as f64];
 
-            assert_eq!(t.evaluate(&input), &[0.0]);
+            let out: f64 = t.evaluate(&input);
+            assert_eq!(out, 0.0);
 
-            t.update(&input, &vec![1.0]);
-            assert_eq!(t.evaluate(&input), &[1.0]);
+            t.update(&input, vec![1.0]);
+
+            let out: f64 = t.evaluate(&input);
+            assert_eq!(out, 1.0);
         }
     }
 
@@ -180,10 +189,13 @@ mod tests {
             for j in 0..10 {
                 let input: Vec<f64> = vec![i as u32 as f64, j as u32 as f64];
 
-                assert_eq!(t.evaluate(&input), &[0.0]);
+                let out: f64 = t.evaluate(&input);
+                assert_eq!(out, 0.0);
 
-                t.update(&input, &vec![1.0]);
-                assert_eq!(t.evaluate(&input), &[1.0]);
+                t.update(&input, vec![1.0]);
+
+                let out: f64 = t.evaluate(&input);
+                assert_eq!(out, 1.0);
             }
         }
     }
@@ -202,10 +214,13 @@ mod tests {
                 for k in 0..10 {
                     let input: Vec<f64> = vec![i as u32 as f64, j as u32 as f64, k as u32 as f64];
 
-                    assert_eq!(t.evaluate(&input), &[0.0]);
+                    let out: f64 = t.evaluate(&input);
+                    assert_eq!(out, 0.0);
 
-                    t.update(&input, &vec![1.0]);
-                    assert_eq!(t.evaluate(&input), &[1.0]);
+                    t.update(&input, vec![1.0]);
+
+                    let out: f64 = t.evaluate(&input);
+                    assert_eq!(out, 1.0);
                 }
             }
         }
