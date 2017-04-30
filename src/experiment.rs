@@ -21,8 +21,8 @@ pub fn run<T>(runner: T, n_episodes: usize) -> Vec<Episode>
     runner.enumerate()
           .take(n_episodes)
           .inspect(|&(i, ref res)| {
-              println!("Episode {} - {} steps and {} reward",
-                        i+1, res.n_steps, res.total_reward)
+              info!("Episode {} - {} steps | reward {}",
+                    i+1, res.n_steps, res.total_reward)
           })
           .map(|(_, res)| res)
           .collect::<Vec<_>>()
