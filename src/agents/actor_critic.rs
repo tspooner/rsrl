@@ -7,7 +7,7 @@ use policies::{Policy, Greedy};
 use std::marker::PhantomData;
 
 
-/// Regular gradient descent actor-critic.
+/// Regular gradient descent actor critic.
 pub struct ActorCritic<S: Space, P: Policy, Q, V>
     where Q: QFunction<S>,
           V: VFunction<S>

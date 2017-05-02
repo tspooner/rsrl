@@ -1,4 +1,4 @@
-use super::{Function, Parameterised, Linear, QFunction};
+use super::{Function, Parameterised, QFunction};
 
 use ndarray::{arr1, Array1, Array2};
 use geometry::{Span, Space, RegularSpace};
@@ -42,15 +42,15 @@ impl Partitions {
 }
 
 
-impl Function<[f64], f64> for Partitions {
-    fn evaluate(&self, input: &[f64]) -> f64 {
+impl Function<Vec<f64>, f64> for Partitions {
+    fn evaluate(&self, input: &Vec<f64>) -> f64 {
         // Hash the input down to an index:
         self.weights[[self.hash(input), 0]]
     }
 }
 
-impl Function<[f64], Vec<f64>> for Partitions {
-    fn evaluate(&self, input: &[f64]) -> Vec<f64> {
+impl Function<Vec<f64>, Vec<f64>> for Partitions {
+    fn evaluate(&self, input: &Vec<f64>) -> Vec<f64> {
         // Hash the input down to a row index:
         let ri = self.hash(input);
 
@@ -59,11 +59,9 @@ impl Function<[f64], Vec<f64>> for Partitions {
     }
 }
 
-add_vec_support!(Partitions, Function, f64, Vec<f64>);
 
-
-impl Parameterised<[f64], f64> for Partitions {
-    fn update(&mut self, input: &[f64], error: f64) {
+impl Parameterised<Vec<f64>, f64> for Partitions {
+    fn update(&mut self, input: &Vec<f64>, error: f64) {
         let index = self.hash(input);
 
         unsafe {
@@ -72,8 +70,8 @@ impl Parameterised<[f64], f64> for Partitions {
     }
 }
 
-impl Parameterised<[f64], Vec<f64>> for Partitions {
-    fn update(&mut self, input: &[f64], errors: Vec<f64>) {
+impl Parameterised<Vec<f64>, Vec<f64>> for Partitions {
+    fn update(&mut self, input: &Vec<f64>, errors: Vec<f64>) {
         // Hash the input down to a row index:
         let ri = self.hash(input);
 
@@ -81,20 +79,6 @@ impl Parameterised<[f64], Vec<f64>> for Partitions {
         self.weights.row_mut(ri).scaled_add(1.0, &arr1(&errors));
     }
 }
-
-add_vec_support!(Partitions, Parameterised, f64, Vec<f64>);
-
-
-impl Linear<[f64]> for Partitions {
-    fn phi(&self, input: &[f64]) -> Array1<f64> {
-        let mut p = Array1::<f64>::zeros(self.weights.len());
-        p[self.hash(input)] = 1.0;
-
-        p
-    }
-}
-
-add_vec_support!(Partitions, Linear);
 
 
 impl QFunction<RegularSpace<Continuous>> for Partitions
@@ -112,6 +96,13 @@ impl QFunction<RegularSpace<Continuous>> for Partitions
         unsafe {
             *self.weights.uget_mut((index, action)) += error
         }
+    }
+
+    fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
+        let mut p = Array1::<f64>::zeros(self.weights.len());
+        p[self.hash(input)] = 1.0;
+
+        p
     }
 }
 

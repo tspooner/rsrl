@@ -1,6 +1,7 @@
 // TODO: Add support for generic action spaces representation.
 pub trait Policy {
     fn sample(&mut self, qs: &[f64]) -> usize;
+    fn handle_terminal(&mut self) {}
 }
 
 

@@ -1,4 +1,4 @@
-use super::{Function, Parameterised, Linear, QFunction};
+use super::{Function, Parameterised, QFunction};
 
 use utils::dot;
 use utils::kernels::Kernel;
@@ -47,8 +47,8 @@ impl BasisNetwork {
     }
 }
 
-impl Function<[f64], f64> for BasisNetwork {
-    fn evaluate(&self, inputs: &[f64]) -> f64 {
+impl Function<Vec<f64>, f64> for BasisNetwork {
+    fn evaluate(&self, inputs: &Vec<f64>) -> f64 {
         // Compute the feature vector phi:
         let phi = self.phi(inputs);
 
@@ -58,9 +58,9 @@ impl Function<[f64], f64> for BasisNetwork {
     }
 }
 
-impl Function<[f64], Vec<f64>> for BasisNetwork
+impl Function<Vec<f64>, Vec<f64>> for BasisNetwork
 {
-    fn evaluate(&self, input: &[f64]) -> Vec<f64> {
+    fn evaluate(&self, input: &Vec<f64>) -> Vec<f64> {
         // Compute the feature vector phi:
         let phi = self.phi(input);
 
@@ -69,11 +69,9 @@ impl Function<[f64], Vec<f64>> for BasisNetwork
     }
 }
 
-add_vec_support!(BasisNetwork, Function, f64, Vec<f64>);
 
-
-impl Parameterised<[f64], f64> for BasisNetwork {
-    fn update(&mut self, inputs: &[f64], error: f64) {
+impl Parameterised<Vec<f64>, f64> for BasisNetwork {
+    fn update(&mut self, inputs: &Vec<f64>, error: f64) {
         // Compute the feature vector phi:
         let phi = self.phi(inputs);
 
@@ -82,9 +80,9 @@ impl Parameterised<[f64], f64> for BasisNetwork {
     }
 }
 
-impl Parameterised<[f64], Vec<f64>> for BasisNetwork
+impl Parameterised<Vec<f64>, Vec<f64>> for BasisNetwork
 {
-    fn update(&mut self, input: &[f64], errors: Vec<f64>) {
+    fn update(&mut self, input: &Vec<f64>, errors: Vec<f64>) {
         // Compute the feature vector phi:
         let phi = self.phi(input).into_shape((self.bases.len(), 1)).unwrap();
 
@@ -96,19 +94,6 @@ impl Parameterised<[f64], Vec<f64>> for BasisNetwork
         self.weights += &phi.dot(&update_matrix)
     }
 }
-
-add_vec_support!(BasisNetwork, Parameterised, f64, Vec<f64>);
-
-
-impl Linear<[f64]> for BasisNetwork {
-    fn phi(&self, input: &[f64]) -> Array1<f64> {
-        Array1::from_shape_fn((self.bases.len(),), |i| {
-            self.bases[i].evaluate(input)
-        })
-    }
-}
-
-add_vec_support!(BasisNetwork, Linear);
 
 
 impl QFunction<RegularSpace<Continuous>> for BasisNetwork
@@ -125,5 +110,11 @@ impl QFunction<RegularSpace<Continuous>> for BasisNetwork
 
         // Update the weights via scaled_add:
         self.weights.column_mut(action).scaled_add(error, &phi);
+    }
+
+    fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
+        Array1::from_shape_fn((self.bases.len(),), |i| {
+            self.bases[i].evaluate(input)
+        })
     }
 }

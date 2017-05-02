@@ -1,6 +1,6 @@
 use super::Agent;
 
-use fa::QFunction;
+use fa::{VFunction, QFunction};
 use domain::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
@@ -120,29 +120,36 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for SARSA<S, P, Q>
 }
 
 
-// pub struct GreedyGQ<Q, P> {
+// pub struct GreedyGQ<Q, V, P> {
     // q_func: Q,
+    // v_func: V,
+
     // policy: P,
 
-    // alpha: f64,
     // gamma: f64,
-    // eta: f64,
+    // alpha: f64,
+    // beta: f64,
 // }
 
-// impl<Q, P> GreedyGQ<Q, P> {
-    // pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64) -> Self {
+// impl<Q, V, P> GreedyGQ<Q, V, P> {
+    // pub fn new(q_func: Q, v_func: V, policy: P, gamma: f64, alpha: f64, beta: f64) -> Self
+    // {
         // GreedyGQ {
             // q_func: q_func,
+            // v_func: v_func,
+
             // policy: policy,
 
             // alpha: alpha,
             // gamma: gamma,
+            // beta: beta,
         // }
     // }
 // }
 
-// impl<S: Space, Q, P: Policy> Agent<S> for GreedyGQ<Q, P>
-    // where Q: Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, [f64]> + Linear<S::Repr>
+// impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
+    // where Q: QFunction<S>,
+          // V: VFunction<S>
 // {
     // fn pi(&mut self, s: &S::Repr) -> usize {
         // self.policy.sample(self.q_func.evaluate(s).as_slice())
@@ -159,10 +166,12 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for SARSA<S, P, Q>
         // let phi_ns = self.q_func.phi(ns);
 
         // let a = t.action;
-        // let na = Greedy.sample(self.q_func.mul(phi_s).as_slice());
+        // let na = Greedy.sample(self.q_func.evaluate_phi(&phi_s).as_slice());
 
-        // let error = t.reward + self.gamma*nqs[na] - qs[a];
+        // let error = t.reward +
+            // self.q_func.evaluate_action_phi(&(self.gamma*phi_ns - phi_s), a);
+        // let td_estimate = self.v_func.evaluate(s);
 
-        // println!("{:?}", phi_s);
+        // panic!("{:?}", error);
     // }
 // }

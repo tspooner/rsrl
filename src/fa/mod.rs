@@ -1,4 +1,4 @@
-use ndarray::Array1;
+use ndarray::{Array1, Array2};
 use geometry::Space;
 
 /// An interface for dealing with functions that may be evaluated.
@@ -30,57 +30,80 @@ impl<I: ?Sized, E, T> Parameterised<I, E> for Box<T>
 }
 
 
-/// An interface for functions which have a linear representation.
-pub trait Linear<I: ?Sized> {
-    fn phi(&self, input: &I) -> Array1<f64>;
-}
-
-impl<I: ?Sized, T> Linear<I> for Box<T>
-    where T: Linear<I>
-{
-    fn phi(&self, input: &I) -> Array1<f64> {
-        (**self).phi(input)
-    }
-}
-
-
-macro_rules! add_vec_support {
-    ($ft:ty, Function, $($ot:ty),+) => {
-        $(impl Function<Vec<f64>, $ot> for $ft {
-            fn evaluate(&self, input: &Vec<f64>) -> $ot {
-                <Self as Function<[f64], $ot>>::evaluate(self, input.as_slice())
-            }
-        })+
-    };
-    ($ft:ty, Parameterised, $($et:ty),+) => {
-        $(impl Parameterised<Vec<f64>, $et> for $ft {
-            fn update(&mut self, input: &Vec<f64>, error: $et) {
-                <Self as Parameterised<[f64], $et>>::update(self, input.as_slice(), error);
-            }
-        })+
-    };
-    ($ft:ty, Linear) => {
-        impl Linear<Vec<f64>> for $ft {
-            fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
-                <Self as Linear<[f64]>>::phi(self, input.as_slice())
-            }
-        }
-    }
-}
-
-
+/// An interface for value functions.
 pub trait VFunction<S: Space>:
-    Function<S::Repr, f64> + Parameterised<S::Repr, f64> {}
+    Function<S::Repr, f64> + Parameterised<S::Repr, f64>
+{
+    fn phi(&self, input: &S::Repr) -> Array1<f64> {
+        unimplemented!()
+    }
+
+    fn evaluate_phi(&self, phi: &Array1<f64>) -> f64 {
+        unimplemented!()
+    }
+
+    fn update_phi(&mut self, phi: &Array1<f64>, error: f64) -> f64 {
+        unimplemented!()
+    }
+}
 
 impl<S: Space, T> VFunction<S> for T
     where T: Function<S::Repr, f64> + Parameterised<S::Repr, f64> {}
 
 
+/// An interface for action-value functions.
 pub trait QFunction<S: Space>:
     Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, Vec<f64>>
 {
     fn evaluate_action(&self, input: &S::Repr, action: usize) -> f64;
     fn update_action(&mut self, input: &S::Repr, action: usize, error: f64);
+
+    fn phi(&self, input: &S::Repr) -> Array1<f64> {
+        unimplemented!()
+    }
+
+    fn evaluate_phi(&self, phi: &Array1<f64>) -> Vec<f64> {
+        unimplemented!();
+    }
+
+    fn evaluate_action_phi(&self, phi: &Array1<f64>, action: usize) -> f64 {
+        unimplemented!();
+    }
+
+    fn update_phi(&mut self, phi: &Array1<f64>, errors: Vec<f64>) {
+        unimplemented!();
+    }
+
+    fn update_action_phi(&mut self, phi: &Array1<f64>, action: usize, error: f64) {
+        unimplemented!();
+    }
+
+    // NOTE: Eventually we may want to distinguish between the feature vector
+    //       for each action. I can't see this being needed anytime soon so
+    //       for now we will just have a single entry point for computing phi.
+    // fn phi(&self, input: &S::Repr) -> Array2<f64> {
+        // unimplemented!()
+    // }
+
+    // fn phi_action(&self, input: &S::Repr, _: usize) -> Array1<f64>{
+        // unimplemented!()
+    // }
+
+    // fn evaluate_phi(&self, phi: &Array2<f64>) -> f64 {
+        // unimplemented!();
+    // }
+
+    // fn evaluate_action_phi(&self, phi: &Array1<f64>, action: usize) -> f64 {
+        // unimplemented!();
+    // }
+
+    // fn update_phi(&mut self, phi: &Array2<f64>, error: f64) -> f64 {
+        // unimplemented!();
+    // }
+
+    // fn update_action_phi(&mut self, phi: &Array1<f64>, action: usize, error: f64) -> f64 {
+        // unimplemented!();
+    // }
 }
 
 

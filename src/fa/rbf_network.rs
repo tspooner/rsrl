@@ -1,4 +1,4 @@
-use super::{Function, Parameterised, Linear, QFunction};
+use super::{Function, Parameterised, QFunction};
 
 use utils::{cartesian_product, dot};
 use ndarray::{Axis, ArrayView, Array1, Array2};
@@ -44,9 +44,9 @@ impl RBFNetwork
 }
 
 
-impl Function<[f64], f64> for RBFNetwork
+impl Function<Vec<f64>, f64> for RBFNetwork
 {
-    fn evaluate(&self, input: &[f64]) -> f64 {
+    fn evaluate(&self, input: &Vec<f64>) -> f64 {
         // Compute the feature vector phi:
         let phi = self.phi(input);
 
@@ -56,9 +56,9 @@ impl Function<[f64], f64> for RBFNetwork
     }
 }
 
-impl Function<[f64], Vec<f64>> for RBFNetwork
+impl Function<Vec<f64>, Vec<f64>> for RBFNetwork
 {
-    fn evaluate(&self, input: &[f64]) -> Vec<f64> {
+    fn evaluate(&self, input: &Vec<f64>) -> Vec<f64> {
         // Compute the feature vector phi:
         let phi = self.phi(input);
 
@@ -67,12 +67,10 @@ impl Function<[f64], Vec<f64>> for RBFNetwork
     }
 }
 
-add_vec_support!(RBFNetwork, Function, f64, Vec<f64>);
 
-
-impl Parameterised<[f64], f64> for RBFNetwork
+impl Parameterised<Vec<f64>, f64> for RBFNetwork
 {
-    fn update(&mut self, input: &[f64], error: f64) {
+    fn update(&mut self, input: &Vec<f64>, error: f64) {
         // Compute the feature vector phi:
         let phi = self.phi(input);
 
@@ -81,54 +79,59 @@ impl Parameterised<[f64], f64> for RBFNetwork
     }
 }
 
-impl Parameterised<[f64], Vec<f64>> for RBFNetwork
+impl Parameterised<Vec<f64>, Vec<f64>> for RBFNetwork
 {
-    fn update(&mut self, input: &[f64], errors: Vec<f64>) {
+    fn update(&mut self, input: &Vec<f64>, errors: Vec<f64>) {
         // Compute the feature vector phi:
         let phi = self.phi(input).into_shape((self.weights.rows(), 1)).unwrap();
 
         // Compute update matrix using phi and column-wise errors:
-        let update_matrix =
+        let error_matrix =
             ArrayView::from_shape((1, self.weights.cols()), errors.as_slice()).unwrap();
 
         // Update the weights via addassign:
-        self.weights += &phi.dot(&update_matrix)
+        self.weights += &phi.dot(&error_matrix);
     }
 }
 
-add_vec_support!(RBFNetwork, Parameterised, f64, Vec<f64>);
 
-
-impl Linear<[f64]> for RBFNetwork
+impl QFunction<RegularSpace<Continuous>> for RBFNetwork
 {
-    fn phi(&self, input: &[f64]) -> Array1<f64> {
+    fn evaluate_action(&self, input: &Vec<f64>, action: usize) -> f64 {
+        let phi = self.phi(input);
+        self.evaluate_action_phi(&phi, action)
+    }
+
+    fn update_action(&mut self, input: &Vec<f64>, action: usize, error: f64) {
+        let phi = self.phi(input);
+        self.update_action_phi(&phi, action, error);
+    }
+
+    fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
         let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
         let e = (&d * &d * &self.gamma).mapv(|v| v.exp()).sum(Axis(1));
         let z = e.sum(Axis(0));
 
         e / z
     }
-}
 
-add_vec_support!(RBFNetwork, Linear);
-
-
-impl QFunction<RegularSpace<Continuous>> for RBFNetwork
-{
-    fn evaluate_action(&self, input: &Vec<f64>, action: usize) -> f64 {
-        // Compute the feature vector phi:
-        let phi = self.phi(input);
-
-        // Apply matrix multiplication and return f64:
-        dot(self.weights.column(action).as_slice().unwrap(),
-            phi.as_slice().unwrap())
+    fn evaluate_phi(&self, phi: &Array1<f64>) -> Vec<f64> {
+        (self.weights.t().dot(phi)).into_raw_vec()
     }
 
-    fn update_action(&mut self, input: &Vec<f64>, action: usize, error: f64) {
-        // Compute the feature vector phi:
-        let phi = self.phi(input);
+    fn evaluate_action_phi(&self, phi: &Array1<f64>, action: usize) -> f64 {
+        self.weights.column(action).dot(phi)
+    }
 
-        // Update the weights via scaled_add:
+    fn update_phi(&mut self, phi: &Array1<f64>, errors: Vec<f64>) {
+        let phi_view = phi.view().into_shape((self.weights.rows(), 1)).unwrap();
+        let error_matrix =
+            ArrayView::from_shape((1, self.weights.cols()), errors.as_slice()).unwrap();
+
+        self.weights += &phi_view.dot(&error_matrix);
+    }
+
+    fn update_action_phi(&mut self, phi: &Array1<f64>, action: usize, error: f64) {
         self.weights.column_mut(action).scaled_add(error, &phi);
     }
 }
