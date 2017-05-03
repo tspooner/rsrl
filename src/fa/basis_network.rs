@@ -1,4 +1,4 @@
-use super::{Function, Parameterised, QFunction};
+use super::{Function, Parameterised, Linear, QFunction};
 
 use utils::dot;
 use utils::kernels::Kernel;
@@ -96,6 +96,16 @@ impl Parameterised<Vec<f64>, Vec<f64>> for BasisNetwork
 }
 
 
+impl Linear<RegularSpace<Continuous>> for BasisNetwork
+{
+    fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
+        Array1::from_shape_fn((self.bases.len(),), |i| {
+            self.bases[i].evaluate(input)
+        })
+    }
+}
+
+
 impl QFunction<RegularSpace<Continuous>> for BasisNetwork
 {
     fn evaluate_action(&self, input: &Vec<f64>, action: usize) -> f64 {
@@ -112,9 +122,4 @@ impl QFunction<RegularSpace<Continuous>> for BasisNetwork
         self.weights.column_mut(action).scaled_add(error, &phi);
     }
 
-    fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
-        Array1::from_shape_fn((self.bases.len(),), |i| {
-            self.bases[i].evaluate(input)
-        })
-    }
 }

@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2};
+use ndarray::Array1;
 use geometry::Space;
 
 /// An interface for dealing with functions that may be evaluated.
@@ -30,25 +30,24 @@ impl<I: ?Sized, E, T> Parameterised<I, E> for Box<T>
 }
 
 
+/// An interface for linearly parameterised functions.
+pub trait Linear<S: Space> {
+    fn phi(&self, input: &S::Repr) -> Array1<f64>;
+}
+
+
 /// An interface for value functions.
 pub trait VFunction<S: Space>:
     Function<S::Repr, f64> + Parameterised<S::Repr, f64>
 {
-    fn phi(&self, input: &S::Repr) -> Array1<f64> {
+    fn evaluate_phi(&self, _: &Array1<f64>) -> f64 {
         unimplemented!()
     }
 
-    fn evaluate_phi(&self, phi: &Array1<f64>) -> f64 {
-        unimplemented!()
-    }
-
-    fn update_phi(&mut self, phi: &Array1<f64>, error: f64) -> f64 {
+    fn update_phi(&mut self, _: &Array1<f64>, _: f64) {
         unimplemented!()
     }
 }
-
-impl<S: Space, T> VFunction<S> for T
-    where T: Function<S::Repr, f64> + Parameterised<S::Repr, f64> {}
 
 
 /// An interface for action-value functions.
@@ -58,23 +57,19 @@ pub trait QFunction<S: Space>:
     fn evaluate_action(&self, input: &S::Repr, action: usize) -> f64;
     fn update_action(&mut self, input: &S::Repr, action: usize, error: f64);
 
-    fn phi(&self, input: &S::Repr) -> Array1<f64> {
-        unimplemented!()
-    }
-
-    fn evaluate_phi(&self, phi: &Array1<f64>) -> Vec<f64> {
+    fn evaluate_phi(&self, _: &Array1<f64>) -> Vec<f64> {
         unimplemented!();
     }
 
-    fn evaluate_action_phi(&self, phi: &Array1<f64>, action: usize) -> f64 {
+    fn evaluate_action_phi(&self, _: &Array1<f64>, _: usize) -> f64 {
         unimplemented!();
     }
 
-    fn update_phi(&mut self, phi: &Array1<f64>, errors: Vec<f64>) {
+    fn update_phi(&mut self, _: &Array1<f64>, _: Vec<f64>) {
         unimplemented!();
     }
 
-    fn update_action_phi(&mut self, phi: &Array1<f64>, action: usize, error: f64) {
+    fn update_action_phi(&mut self, _: &Array1<f64>, _: usize, _: f64) {
         unimplemented!();
     }
 

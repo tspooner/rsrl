@@ -1,4 +1,4 @@
-use super::{Function, Parameterised, QFunction};
+use super::{Function, Parameterised, Linear, QFunction};
 
 use ndarray::{arr1, Array1, Array2};
 use geometry::{Span, Space, RegularSpace};
@@ -81,6 +81,17 @@ impl Parameterised<Vec<f64>, Vec<f64>> for Partitions {
 }
 
 
+impl Linear<RegularSpace<Continuous>> for Partitions
+{
+    fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
+        let mut p = Array1::<f64>::zeros(self.weights.len());
+        p[self.hash(input)] = 1.0;
+
+        p
+    }
+}
+
+
 impl QFunction<RegularSpace<Continuous>> for Partitions
 {
     fn evaluate_action(&self, input: &Vec<f64>, action: usize) -> f64 {
@@ -96,13 +107,6 @@ impl QFunction<RegularSpace<Continuous>> for Partitions
         unsafe {
             *self.weights.uget_mut((index, action)) += error
         }
-    }
-
-    fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
-        let mut p = Array1::<f64>::zeros(self.weights.len());
-        p[self.hash(input)] = 1.0;
-
-        p
     }
 }
 

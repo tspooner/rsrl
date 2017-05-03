@@ -1,4 +1,4 @@
-use super::{Function, Parameterised, QFunction};
+use super::{Function, Parameterised, Linear, VFunction, QFunction};
 
 use utils::{cartesian_product, dot};
 use ndarray::{Axis, ArrayView, Array1, Array2};
@@ -50,9 +50,7 @@ impl Function<Vec<f64>, f64> for RBFNetwork
         // Compute the feature vector phi:
         let phi = self.phi(input);
 
-        // Apply matrix multiplication and return f64:
-        dot(self.weights.column(0).as_slice().unwrap(),
-            phi.as_slice().unwrap())
+        <Self as VFunction<RegularSpace<Continuous>>>::evaluate_phi(self, &phi)
     }
 }
 
@@ -63,7 +61,7 @@ impl Function<Vec<f64>, Vec<f64>> for RBFNetwork
         let phi = self.phi(input);
 
         // Apply matrix multiplication and return Vec<f64>:
-        (self.weights.t().dot(&phi)).into_raw_vec()
+        <Self as QFunction<RegularSpace<Continuous>>>::evaluate_phi(self, &phi)
     }
 }
 
@@ -74,8 +72,7 @@ impl Parameterised<Vec<f64>, f64> for RBFNetwork
         // Compute the feature vector phi:
         let phi = self.phi(input);
 
-        // Update the weights via scaled_add:
-        self.weights.scaled_add(error, &phi);
+        <Self as VFunction<RegularSpace<Continuous>>>::update_phi(self, &phi, error);
     }
 }
 
@@ -83,14 +80,33 @@ impl Parameterised<Vec<f64>, Vec<f64>> for RBFNetwork
 {
     fn update(&mut self, input: &Vec<f64>, errors: Vec<f64>) {
         // Compute the feature vector phi:
-        let phi = self.phi(input).into_shape((self.weights.rows(), 1)).unwrap();
+        let phi = self.phi(input);
 
-        // Compute update matrix using phi and column-wise errors:
-        let error_matrix =
-            ArrayView::from_shape((1, self.weights.cols()), errors.as_slice()).unwrap();
+        <Self as QFunction<RegularSpace<Continuous>>>::update_phi(self, &phi, errors);
+    }
+}
 
-        // Update the weights via addassign:
-        self.weights += &phi.dot(&error_matrix);
+
+impl Linear<RegularSpace<Continuous>> for RBFNetwork {
+    fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
+        let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
+        let e = (&d * &d * &self.gamma).mapv(|v| v.exp()).sum(Axis(1));
+        let z = e.sum(Axis(0));
+
+        e / z
+    }
+}
+
+
+impl VFunction<RegularSpace<Continuous>> for RBFNetwork
+{
+    fn evaluate_phi(&self, phi: &Array1<f64>) -> f64 {
+        dot(self.weights.column(0).as_slice().unwrap(),
+            phi.as_slice().unwrap())
+    }
+
+    fn update_phi(&mut self, phi: &Array1<f64>, error: f64) {
+        self.weights.column_mut(0).scaled_add(error, phi);
     }
 }
 
@@ -99,20 +115,14 @@ impl QFunction<RegularSpace<Continuous>> for RBFNetwork
 {
     fn evaluate_action(&self, input: &Vec<f64>, action: usize) -> f64 {
         let phi = self.phi(input);
+
         self.evaluate_action_phi(&phi, action)
     }
 
     fn update_action(&mut self, input: &Vec<f64>, action: usize, error: f64) {
         let phi = self.phi(input);
+
         self.update_action_phi(&phi, action, error);
-    }
-
-    fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
-        let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
-        let e = (&d * &d * &self.gamma).mapv(|v| v.exp()).sum(Axis(1));
-        let z = e.sum(Axis(0));
-
-        e / z
     }
 
     fn evaluate_phi(&self, phi: &Array1<f64>) -> Vec<f64> {
