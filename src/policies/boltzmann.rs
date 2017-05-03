@@ -15,17 +15,6 @@ impl Boltzmann {
             rng: thread_rng(),
         }
     }
-
-    pub fn probabilities(&self, qs: &[f64]) -> Vec<f64> {
-        let mq = qs.iter().cloned().fold(f64::MIN, f64::max);
-        let ws: Vec<f64> = qs.iter()
-            .cloned()
-            .map(|q| ((q - mq) / self.tau).exp())
-            .collect();
-
-        let z: f64 = ws.iter().sum();
-        ws.iter().map(|w| w / z).collect()
-    }
 }
 
 impl Policy for Boltzmann {
@@ -37,5 +26,16 @@ impl Policy for Boltzmann {
             Some(index) => index,
             None => ps.len() - 1,
         }
+    }
+
+    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> {
+        let mq = qs.iter().cloned().fold(f64::MIN, f64::max);
+        let ws: Vec<f64> = qs.iter()
+            .cloned()
+            .map(|q| ((q - mq) / self.tau).exp())
+            .collect();
+
+        let z: f64 = ws.iter().sum();
+        ws.iter().map(|w| w / z).collect()
     }
 }
