@@ -2,7 +2,7 @@ extern crate rsrl;
 
 use rsrl::fa::linear::RBFNetwork;
 use rsrl::domain::{Domain, MountainCar};
-use rsrl::agents::td::QLearning;
+use rsrl::agents::td::GreedyGQ;
 use rsrl::policies::{Greedy, EpsilonGreedy};
 use rsrl::geometry::Space;
 use rsrl::experiment::{run, SerialExperiment, Evaluation};
@@ -20,8 +20,10 @@ fn main() {
 
         let q_func = RBFNetwork::new(
             domain.state_space().with_partitions(8), n_actions);
+        let v_func = RBFNetwork::new(
+            domain.state_space().with_partitions(8), 1);
 
-        QLearning::new(q_func, Greedy, 0.1, 0.99)
+        GreedyGQ::new(q_func, v_func, Greedy, 0.99, 0.1, 1e-5)
     };
 
     // Training:

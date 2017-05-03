@@ -1,13 +1,13 @@
 use super::Agent;
 
-use fa::{VFunction, QFunction};
+use fa::{VFunction, QFunction, Linear};
 use domain::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
 use std::marker::PhantomData;
 
 
-/// Watkins' Q-learning.
+/// Watkins' classical offline temporal difference control algorithm.
 ///
 /// C. J. C. H. Watkins and P. Dayan, “Q-learning,” Mach. Learn., vol. 8, no. 3–4, pp. 279–292,
 /// 1992.
@@ -58,14 +58,14 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for QLearning<S, P, Q>
         let a = t.action;
         let na = Greedy.sample(nqs.as_slice());
 
-        let error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
+        let td_error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
 
-        self.q_func.update_action(s, a, error);
+        self.q_func.update_action(s, a, td_error);
     }
 }
 
 
-/// Online Q-learning.
+/// Classical online temporal difference control algorithm.
 pub struct SARSA<S: Space, P: Policy, Q: QFunction<S>>
 {
     q_func: Q,
@@ -113,65 +113,71 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for SARSA<S, P, Q>
         let a = t.action;
         let na = self.policy.sample(nqs.as_slice());
 
-        let error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
+        let td_error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
 
-        self.q_func.update_action(s, a, error);
+        self.q_func.update_action(s, a, td_error);
     }
 }
 
 
-// pub struct GreedyGQ<Q, V, P> {
-    // q_func: Q,
-    // v_func: V,
+/// Gradient temporal difference learning algorithm.
+///
+/// Maei, Hamid R., et al. "Toward off-policy learning control with function approximation."
+/// Proceedings of the 27th International Conference on Machine Learning (ICML-10). 2010.
+pub struct GreedyGQ<Q, V, P> {
+    q_func: Q,
+    v_func: V,
 
-    // policy: P,
+    policy: P,
 
-    // gamma: f64,
-    // alpha: f64,
-    // beta: f64,
-// }
+    gamma: f64,
+    alpha: f64,
+    beta: f64,
+}
 
-// impl<Q, V, P> GreedyGQ<Q, V, P> {
-    // pub fn new(q_func: Q, v_func: V, policy: P, gamma: f64, alpha: f64, beta: f64) -> Self
-    // {
-        // GreedyGQ {
-            // q_func: q_func,
-            // v_func: v_func,
+impl<Q, V, P> GreedyGQ<Q, V, P> {
+    pub fn new(q_func: Q, v_func: V, policy: P, gamma: f64, alpha: f64, beta: f64) -> Self
+    {
+        GreedyGQ {
+            q_func: q_func,
+            v_func: v_func,
 
-            // policy: policy,
+            policy: policy,
 
-            // alpha: alpha,
-            // gamma: gamma,
-            // beta: beta,
-        // }
-    // }
-// }
+            alpha: alpha,
+            gamma: gamma,
+            beta: beta,
+        }
+    }
+}
 
-// impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
-    // where Q: QFunction<S>,
-          // V: VFunction<S>
-// {
-    // fn pi(&mut self, s: &S::Repr) -> usize {
-        // self.policy.sample(self.q_func.evaluate(s).as_slice())
-    // }
+impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
+    where Q: QFunction<S> + Linear<S>,
+          V: VFunction<S> + Linear<S>
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
 
-    // fn pi_target(&mut self, s: &S::Repr) -> usize {
-        // Greedy.sample(self.q_func.evaluate(s).as_slice())
-    // }
+    fn pi_target(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    }
 
-    // fn learn_transition(&mut self, t: &Transition<S, ActionSpace>) {
-        // let (s, ns) = (t.from.state(), t.to.state());
+    fn learn_transition(&mut self, t: &Transition<S, ActionSpace>) {
+        let a = t.action;
+        let (s, ns) = (t.from.state(), t.to.state());
 
-        // let phi_s = self.q_func.phi(s);
-        // let phi_ns = self.q_func.phi(ns);
+        let phi_s = self.q_func.phi(s);
+        let phi_ns = self.q_func.phi(ns);
 
-        // let a = t.action;
-        // let na = Greedy.sample(self.q_func.evaluate_phi(&phi_s).as_slice());
+        let td_error = t.reward +
+            self.q_func.evaluate_action_phi(&(self.gamma*&phi_ns - &phi_s), a);
+        let td_estimate = self.v_func.evaluate(s);
 
-        // let error = t.reward +
-            // self.q_func.evaluate_action_phi(&(self.gamma*phi_ns - phi_s), a);
-        // let td_estimate = self.v_func.evaluate(s);
+        let update_q = td_error*&phi_s - self.gamma*td_estimate*phi_ns;
+        let update_v = (td_error - td_estimate)*phi_s;
 
-        // panic!("{:?}", error);
-    // }
-// }
+        self.q_func.update_action_phi(&update_q, a, self.alpha);
+        self.v_func.update_phi(&update_v, self.alpha*self.beta);
+    }
+}
