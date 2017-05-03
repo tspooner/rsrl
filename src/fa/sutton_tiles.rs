@@ -40,8 +40,8 @@ impl SuttonTiles {
 }
 
 
-impl Function<[f64], Vec<f64>> for SuttonTiles {
-    fn evaluate(&self, input: &[f64]) -> Vec<f64> {
+impl Function<Vec<f64>, Vec<f64>> for SuttonTiles {
+    fn evaluate(&self, input: &Vec<f64>) -> Vec<f64> {
         let evaluate_column = |c| {
             self.load_tiles(input, c as i32).iter().fold(0.0, |acc, &i| {
                 acc + self.weights[[i as usize, c]]
@@ -50,17 +50,11 @@ impl Function<[f64], Vec<f64>> for SuttonTiles {
 
         (0..self.weights.cols()).map(|c| evaluate_column(c)).collect()
     }
-
-    fn n_outputs(&self) -> usize {
-        self.weights.cols()
-    }
 }
 
-add_vec_support!(SuttonTiles, Function, Vec<f64>);
 
-
-impl Parameterised<[f64], [f64]> for SuttonTiles {
-    fn update(&mut self, input: &[f64], errors: &[f64]) {
+impl Parameterised<Vec<f64>, Vec<f64>> for SuttonTiles {
+    fn update(&mut self, input: &Vec<f64>, errors: Vec<f64>) {
         for c in 0..self.weights.cols() {
             for r in self.load_tiles(input, c as i32) {
                 self.weights[[r as usize, c]] += errors[c];
@@ -68,8 +62,6 @@ impl Parameterised<[f64], [f64]> for SuttonTiles {
         }
     }
 }
-
-add_vec_support!(SuttonTiles, Parameterised, [f64]);
 
 
 // impl Linear<[f64]> for SuttonTiles {

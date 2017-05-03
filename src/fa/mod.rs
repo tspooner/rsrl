@@ -1,73 +1,130 @@
-// use std::iter::FromIterator;
 use ndarray::Array1;
+use geometry::Space;
 
 /// An interface for dealing with functions that may be evaluated.
 pub trait Function<I: ?Sized, O> {
-    /// Evaluates the function for a given output.
+    /// Evaluates the function and returns its output.
     fn evaluate(&self, input: &I) -> O;
-
-    /// Returns the number of values this function evaluates to.
-    fn n_outputs(&self) -> usize;
 }
 
-/// An interface for dealing with adaptive functions that may be updated.
-pub trait Parameterised<I: ?Sized, E: ?Sized> {
-    fn update(&mut self, input: &I, errors: &E);
-}
-
-/// An interface for functions which have a linear representation.
-pub trait Linear<I: ?Sized> {
-    fn phi(&self, input: &I) -> Array1<f64>;
-}
-
-
-macro_rules! add_vec_support {
-    ($ft:ty, Function, $($ot:ty),+) => {
-        $(impl Function<Vec<f64>, $ot> for $ft
-            where $ft: Function<[f64], $ot>
-        {
-            fn evaluate(&self, input: &Vec<f64>) -> $ot {
-                self.evaluate(input.as_slice())
-            }
-
-            fn n_outputs(&self) -> usize {
-                <Self as Function<[f64], $ot>>::n_outputs(self)
-            }
-        })+
-    };
-    ($ft:ty, Parameterised, $($et:ty),+) => {
-        $(impl Parameterised<Vec<f64>, $et> for $ft
-            where $ft: Parameterised<[f64], $et>
-        {
-            fn update(&mut self, input: &Vec<f64>, errors: &$et) {
-                self.update(input.as_slice(), errors)
-            }
-        })+
-    };
-    ($ft:ty, Linear) => {
-        impl Linear<Vec<f64>> for $ft where $ft: Linear<[f64]>
-        {
-            fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
-                self.phi(input.as_slice())
-            }
-        }
+impl<I: ?Sized, O, T> Function<I, O> for Box<T>
+    where T: Function<I, O>
+{
+    fn evaluate(&self, input: &I) -> O {
+        (**self).evaluate(input)
     }
 }
 
 
+/// An interface for dealing with adaptive functions.
+pub trait Parameterised<I: ?Sized, E> {
+    fn update(&mut self, input: &I, error: E);
+}
+
+impl<I: ?Sized, E, T> Parameterised<I, E> for Box<T>
+    where T: Parameterised<I, E>
+{
+    fn update(&mut self, input: &I, error: E) {
+        (**self).update(input, error)
+    }
+}
+
+
+/// An interface for linearly parameterised functions.
+pub trait Linear<S: Space> {
+    fn phi(&self, input: &S::Repr) -> Array1<f64>;
+}
+
+
+/// An interface for value functions.
+pub trait VFunction<S: Space>:
+    Function<S::Repr, f64> + Parameterised<S::Repr, f64>
+{
+    fn evaluate_phi(&self, _: &Array1<f64>) -> f64 {
+        unimplemented!()
+    }
+
+    fn update_phi(&mut self, _: &Array1<f64>, _: f64) {
+        unimplemented!()
+    }
+}
+
+
+/// An interface for action-value functions.
+pub trait QFunction<S: Space>:
+    Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, Vec<f64>>
+{
+    fn evaluate_action(&self, input: &S::Repr, action: usize) -> f64;
+    fn update_action(&mut self, input: &S::Repr, action: usize, error: f64);
+
+    fn evaluate_phi(&self, _: &Array1<f64>) -> Vec<f64> {
+        unimplemented!();
+    }
+
+    fn evaluate_action_phi(&self, _: &Array1<f64>, _: usize) -> f64 {
+        unimplemented!();
+    }
+
+    fn update_phi(&mut self, _: &Array1<f64>, _: Vec<f64>) {
+        unimplemented!();
+    }
+
+    fn update_action_phi(&mut self, _: &Array1<f64>, _: usize, _: f64) {
+        unimplemented!();
+    }
+
+    // NOTE: Eventually we may want to distinguish between the feature vector
+    //       for each action. I can't see this being needed anytime soon so
+    //       for now we will just have a single entry point for computing phi.
+    // fn phi(&self, input: &S::Repr) -> Array2<f64> {
+        // unimplemented!()
+    // }
+
+    // fn phi_action(&self, input: &S::Repr, _: usize) -> Array1<f64>{
+        // unimplemented!()
+    // }
+
+    // fn evaluate_phi(&self, phi: &Array2<f64>) -> f64 {
+        // unimplemented!();
+    // }
+
+    // fn evaluate_action_phi(&self, phi: &Array1<f64>, action: usize) -> f64 {
+        // unimplemented!();
+    // }
+
+    // fn update_phi(&mut self, phi: &Array2<f64>, error: f64) -> f64 {
+        // unimplemented!();
+    // }
+
+    // fn update_action_phi(&mut self, phi: &Array1<f64>, action: usize, error: f64) -> f64 {
+        // unimplemented!();
+    // }
+}
+
+
+// XXX: Bug with Rust that renders ICE errors when using VFunctionGroup.
+mod fgroup;
+pub use self::fgroup::VFunctionGroup;
+
+
 mod table;
-pub use self::table::Table;
-
 mod partitions;
-pub use self::partitions::Partitions;
-
 mod rbf_network;
-pub use self::rbf_network::RBFNetwork;
-
 mod basis_network;
-pub use self::basis_network::{BasisFunction, BasisNetwork};
-
-// pub mod leaf;
-
+// mod leaf;
 mod sutton_tiles;
-pub use self::sutton_tiles::SuttonTiles;
+
+pub mod exact {
+    pub use fa::table::*;
+}
+
+pub mod linear {
+    pub use fa::partitions::*;
+    pub use fa::rbf_network::*;
+    pub use fa::basis_network::*;
+    pub use fa::sutton_tiles::*;
+}
+
+pub mod non_linear {
+    // pub use fa::leaf::*;
+}

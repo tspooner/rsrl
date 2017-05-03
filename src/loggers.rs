@@ -1,3 +1,6 @@
+extern crate time;
+
+
 use log;
 use log::{LogRecord, LogLevel, LogMetadata, SetLoggerError, LogLevelFilter};
 
@@ -19,7 +22,7 @@ impl log::Log for DefaultLogger {
 
     fn log(&self, record: &LogRecord) {
         if self.enabled(record.metadata()) {
-            println!("{} - {}", record.level(), record.args());
+            println!("[{}] {}", time::now().ctime(), record.args());
         }
     }
 }

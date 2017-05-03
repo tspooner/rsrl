@@ -1,4 +1,6 @@
-use {Function, Parameterised};
+use super::{Function, Parameterised};
+
+use std::ops::AddAssign;
 use std::hash::Hash;
 use std::collections::HashMap;
 
@@ -9,30 +11,23 @@ use std::collections::HashMap;
 /// Basic usage:
 ///
 /// ```
-/// use rsrl::fa::{Function, Parameterised, Table};
+/// use rsrl::fa::{Function, Parameterised};
+/// use rsrl::fa::exact::Table;
 ///
 /// let f = {
-///     let mut t = Table::<(u32, u32), f64>::new(1);
-///     t.update(&(0, 1), &1.0);
+///     let mut t = Table::<(u32, u32), f64>::new();
+///     t.update(&(0, 1), 1.0);
 ///
 ///     t
 /// };
 ///
 /// assert_eq!(f.evaluate(&(0, 1)), 1.0);
 /// ```
-pub struct Table<K, V> {
-    mapping: HashMap<K, V>,
-
-    n_outputs: usize,
-}
+pub struct Table<K, V>(HashMap<K, V>);
 
 impl<K: Hash + Eq, V> Table<K, V> {
-    pub fn new(n_outputs: usize) -> Self {
-        Table {
-            mapping: HashMap::new(),
-
-            n_outputs: n_outputs
-        }
+    pub fn new() -> Self {
+        Table(HashMap::new())
     }
 }
 
@@ -40,18 +35,24 @@ impl<K: Hash + Eq, V> Table<K, V> {
 //       Really we need a map with defaults.
 //       The issue arises when we try to consider what the default value may be
 //       for the generic type O.
-impl<I: Hash + Eq + Clone, O: Copy> Function<I, O> for Table<I, O> {
+impl<I, O> Function<I, O> for Table<I, O>
+    where I: Hash + Eq,
+          O: Copy + Default
+{
     fn evaluate(&self, input: &I) -> O {
-        self.mapping[input]
-    }
-
-    fn n_outputs(&self) -> usize {
-        self.n_outputs
+        if self.0.contains_key(input) {
+            self.0[input]
+        } else {
+            O::default()
+        }
     }
 }
 
-impl<I: Hash + Eq + Copy, T: Copy> Parameterised<I, T> for Table<I, T> {
-    fn update(&mut self, input: &I, errors: &T) {
-        self.mapping.insert(*input, *errors);
+impl<I, E> Parameterised<I, E> for Table<I, E>
+    where I: Hash + Eq + Copy,
+          E: Default + AddAssign
+{
+    fn update(&mut self, input: &I, error: E) {
+        *self.0.entry(*input).or_insert(E::default()) += error;
     }
 }

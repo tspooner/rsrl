@@ -1,54 +1,44 @@
 extern crate rsrl;
 
-use rsrl::{Function, Parameterised};
-use rsrl::fa::RBFNetwork;
-use rsrl::domain::{Domain, Observation, MountainCar};
-use rsrl::agents::Agent;
-use rsrl::agents::td::QLearning;
-use rsrl::policies::{Policy, Greedy, EpsilonGreedy};
-use rsrl::geometry::{Space, Span};
-use rsrl::experiment::{SerialExperiment, Evaluation};
+use rsrl::fa::linear::RBFNetwork;
+use rsrl::domain::{Domain, MountainCar};
+use rsrl::agents::td::GreedyGQ;
+use rsrl::policies::{Greedy, EpsilonGreedy};
+use rsrl::geometry::Space;
+use rsrl::experiment::{run, SerialExperiment, Evaluation};
 
 use rsrl::loggers::DefaultLogger;
 
 
 fn main() {
-    DefaultLogger::init();
+    let _ = DefaultLogger::init();
 
-    let mut domain = MountainCar::default();
+    let domain = MountainCar::default();
     let mut agent = {
         let aspace = domain.action_space();
         let n_actions: usize = aspace.span().into();
 
         let q_func = RBFNetwork::new(
             domain.state_space().with_partitions(8), n_actions);
+        let v_func = RBFNetwork::new(
+            domain.state_space().with_partitions(8), 1);
 
-        QLearning::new(q_func, Greedy, 0.10, 0.99)
+        GreedyGQ::new(q_func, v_func, Greedy, 0.99, 0.1, 1e-5)
     };
 
     // Training:
-    let mut e = SerialExperiment::new(&mut agent,
+    let training_result = {
+        let e = SerialExperiment::new(&mut agent,
                                       Box::new(MountainCar::default),
                                       1000);
 
-    let _ = e.enumerate()
-             .take(1000)
-             .inspect(|&(i, ref res)| {
-                 println!("Episode {} - {} steps and {} reward",
-                          i+1, res.n_steps, res.total_reward)
-             })
-             .map(|(_, res)| res)
-             .collect::<Vec<_>>();
+        run(e, 1000)
+    };
 
-    // // Testing:
-    // let mut e = Evaluation::new(&mut agent, Box::new(MountainCar::default));
+    // Testing:
+    let testing_result = {
+        let e = Evaluation::new(&mut agent, Box::new(MountainCar::default));
 
-    // let _ = e.enumerate()
-             // .take(1)
-             // .inspect(|&(i, ref res)| {
-                 // println!("Episode {} - {} steps and {} reward",
-                          // i+1, res.n_steps, res.total_reward)
-             // })
-             // .map(|(_, res)| res)
-             // .collect::<Vec<_>>();
+        run(e, 1)
+    };
 }
