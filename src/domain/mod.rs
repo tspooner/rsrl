@@ -44,9 +44,10 @@ pub trait Domain {
     fn step(&mut self, a: <dimensions::Discrete as Dimension>::Value)
         -> Transition<Self::StateSpace, Self::ActionSpace>;
 
-    fn reward(from: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64;
     fn is_terminal(&self) -> bool;
+    fn reward(&self,
+              from: &Observation<Self::StateSpace, Self::ActionSpace>,
+              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64;
 
     fn state_space(&self) -> Self::StateSpace;
     fn action_space(&self) -> Self::ActionSpace;
@@ -55,3 +56,7 @@ pub trait Domain {
 
 mod mountain_car;
 pub use self::mountain_car::MountainCar;
+
+mod grid_world;
+mod cliff_walk;
+pub use self::cliff_walk::CliffWalk;

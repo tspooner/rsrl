@@ -76,7 +76,7 @@ impl Domain for MountainCar {
 
         self.update_state(a);
         let to = self.emit();
-        let r = MountainCar::reward(&from, &to);
+        let r = self.reward(&from, &to);
 
         Transition {
             from: from,
@@ -86,17 +86,18 @@ impl Domain for MountainCar {
         }
     }
 
-    fn reward(_: &Observation<Self::StateSpace, Self::ActionSpace>,
+    fn is_terminal(&self) -> bool {
+        self.state.0 >= X_MAX
+    }
+
+    fn reward(&self,
+              _: &Observation<Self::StateSpace, Self::ActionSpace>,
               to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
     {
         match to {
             &Observation::Terminal(_) => GOAL_REWARD,
             _ => STEP_REWARD,
         }
-    }
-
-    fn is_terminal(&self) -> bool {
-        self.state.0 >= X_MAX
     }
 
     fn state_space(&self) -> Self::StateSpace {
@@ -144,10 +145,12 @@ mod tests {
 
     #[test]
     fn test_reward() {
-        let s = MountainCar::default().emit();
+        let mc = MountainCar::default();
+
+        let s = mc.emit();
         let ns = MountainCar::new((X_MAX, 0.0)).emit();
 
-        assert_eq!(MountainCar::reward(&s, &s), STEP_REWARD);
-        assert_eq!(MountainCar::reward(&s, &ns), GOAL_REWARD);
+        assert_eq!(mc.reward(&s, &s), STEP_REWARD);
+        assert_eq!(mc.reward(&s, &ns), GOAL_REWARD);
     }
 }
