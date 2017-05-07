@@ -1,3 +1,6 @@
+extern crate indicatif;
+use self::indicatif::{ProgressBar, ProgressDrawTarget};
+
 use agents::Agent;
 use domain::{Domain, Observation};
 use geometry::{Space, ActionSpace};
@@ -18,14 +21,20 @@ pub struct Episode {
 pub fn run<T>(runner: T, n_episodes: usize) -> Vec<Episode>
     where T: Iterator<Item=Episode>
 {
-    runner.enumerate()
+    let pb = ProgressBar::new(n_episodes as u64);
+    pb.set_draw_target(ProgressDrawTarget::stdout());
+
+    let out = runner.enumerate()
           .take(n_episodes)
-          .inspect(|&(i, ref res)| {
-              info!("Episode {} - {} steps | reward {}",
-                    i+1, res.n_steps, res.total_reward)
+          .inspect(|&(i, _)| {
+              pb.set_position(i as u64);
           })
           .map(|(_, res)| res)
-          .collect::<Vec<_>>()
+          .collect::<Vec<_>>();
+
+    pb.finish_with_message("Training complete...");
+
+    out
 }
 
 

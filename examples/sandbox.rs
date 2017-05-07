@@ -11,8 +11,6 @@ use rsrl::loggers::DefaultLogger;
 
 
 fn main() {
-    let _ = DefaultLogger::init();
-
     let domain = MountainCar::default();
     let mut agent = {
         let aspace = domain.action_space();
@@ -36,9 +34,11 @@ fn main() {
     };
 
     // Testing:
-    let testing_result = {
-        let e = Evaluation::new(&mut agent, Box::new(MountainCar::default));
+    let testing_result =
+        Evaluation::new(&mut agent, Box::new(MountainCar::default)).next().unwrap();
 
-        run(e, 1)
-    };
+
+    println!("Solution \u{21D2} {} steps | reward {}",
+             testing_result.n_steps,
+             testing_result.total_reward);
 }

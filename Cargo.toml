@@ -1,7 +1,7 @@
 [package]
 name = "rsrl"
-version = "0.1.0"
-authors = ["Tom Spooner <spooner10000@gmail.com>"]
+version = "0.0.0"
+authors = ["Tom Spooner <t.spooner@liverpool.ac.uk>"]
 license = "MIT"
 readme = "README.md"
 build = "build.rs"
@@ -16,3 +16,4 @@ libc = "0.2"
 rand = "0.3"
 time = "0.1"
 ndarray = "0.9"
+indicatif = "0.3"

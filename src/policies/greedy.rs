@@ -9,6 +9,13 @@ impl Policy for Greedy {
         qs.iter().enumerate().skip(1)
            .fold((0, qs[0]), |s, x| if *x.1 > s.1 {(x.0, x.1.clone())} else {s}).0
     }
+
+    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> {
+        let mut ps = vec![0.0; qs.len()];
+        ps[self.sample(qs)] = 1.0;
+
+        ps
+    }
 }
 
 

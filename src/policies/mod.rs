@@ -1,6 +1,8 @@
 // TODO: Add support for generic action spaces representation.
 pub trait Policy {
     fn sample(&mut self, qs: &[f64]) -> usize;
+    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64>;
+
     fn handle_terminal(&mut self) {}
 }
 

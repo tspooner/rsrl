@@ -49,6 +49,18 @@ pub trait VFunction<S: Space>:
     }
 }
 
+impl<S: Space, T> VFunction<S> for Box<T>
+    where T: VFunction<S>
+{
+    fn evaluate_phi(&self, phi: &Array1<f64>) -> f64 {
+        (**self).evaluate_phi(phi)
+    }
+
+    fn update_phi(&mut self, phi: &Array1<f64>, error: f64) {
+        (**self).update_phi(phi, error);
+    }
+}
+
 
 /// An interface for action-value functions.
 pub trait QFunction<S: Space>:
@@ -99,6 +111,34 @@ pub trait QFunction<S: Space>:
     // fn update_action_phi(&mut self, phi: &Array1<f64>, action: usize, error: f64) -> f64 {
         // unimplemented!();
     // }
+}
+
+impl<S: Space, T> QFunction<S> for Box<T>
+    where T: QFunction<S>
+{
+    fn evaluate_action(&self, input: &S::Repr, action: usize) -> f64 {
+        (**self).evaluate_action(input, action)
+    }
+
+    fn update_action(&mut self, input: &S::Repr, action: usize, error: f64) {
+        (**self).update_action(input, action, error);
+    }
+
+    fn evaluate_phi(&self, phi: &Array1<f64>) -> Vec<f64> {
+        (**self).evaluate_phi(phi)
+    }
+
+    fn evaluate_action_phi(&self, phi: &Array1<f64>, action: usize) -> f64 {
+        (**self).evaluate_action_phi(phi, action)
+    }
+
+    fn update_phi(&mut self, phi: &Array1<f64>, error: Vec<f64>) {
+        (**self).update_phi(phi, error);
+    }
+
+    fn update_action_phi(&mut self, phi: &Array1<f64>, action: usize, error: f64) {
+        (**self).update_action_phi(phi, action, error)
+    }
 }
 
 
