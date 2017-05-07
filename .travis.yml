@@ -1,5 +1,6 @@
-sudo: false
 language: rust
+dist: trusty
+sudo: false
 
 # necessary for `travis-cargo coveralls --no-sudo`
 addons:
@@ -22,28 +23,24 @@ rust:
   # # Rust version required changes)
   # - 1.0.0
 
-# load travis-cargo
+# Load travis-cargo
 before_script:
   - |
-      cargo install cargo-travis &&
-      export PATH=$HOME/.cargo/bin:$PATH
+      pip install git+https://github.com/tspooner/travis-cargo.git@fix-coveralls --user &&
+      export PATH=$HOME/.local/bin:$PATH
 
-# the main build
 script:
   - |
-      cargo build &&
-      cargo test &&
-      cargo bench &&
-      cargo --only stable doc
+      travis-cargo build &&
+      travis-cargo test &&
+      travis-cargo bench &&
+      travis-cargo --only stable doc
 
+# Send coverage reports and upload docs
 after_success:
-  # upload the documentation from the build with stable (automatically only actually
-  # runs on the master branch, not individual PRs)
-  - cargo coveralls
+  - |
+      travis-cargo --only stable coveralls --no-sudo --verify;
 
 env:
   global:
-    # override the default `--features unstable` used for the nightly branch (optional)
     - TRAVIS_CARGO_NIGHTLY_FEATURE=""
-    # # encrypted github token for doc upload (see `GH_TOKEN` link above)
-    # - secure: "..."
