@@ -42,7 +42,7 @@ void tiles(
     int coordinates[MAX_NUM_VARS * 2 + 1];   /* one interval number per relevant dimension */
     int num_coordinates = num_floats + num_ints + 1;
 
-    for (int i=0; i<num_ints; i++) coordinates[num_floats+1+i] = ints[i];
+    for (i = 0; i < num_ints; i++) coordinates[num_floats+1+i] = ints[i];
 
     /* quantize state to integers (henceforth, tile widths == num_tilings) */
     for (i = 0; i < num_floats; i++) {
