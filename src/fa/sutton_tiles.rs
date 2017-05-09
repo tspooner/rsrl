@@ -99,23 +99,20 @@ impl Parameterised<Vec<f64>, Vec<f64>> for SuttonTiles {
 //       and action for this implementation of tile coding.
 
 
-// impl QFunction<RegularSpace<Continuous>> for SuttonTiles
-// {
-    // fn evaluate_action(&self, input: &Vec<f64>, action: usize) -> f64 {
-        // // Hash the input down to a set of tiles:
-        // let tiles = self.load_tiles(&input, &[action]);
+impl QFunction<RegularSpace<Continuous>> for SuttonTiles
+{
+    fn evaluate_action(&self, input: &Vec<f64>, action: usize) -> f64 {
+        self.evaluate_index(input, action as c_int)
+    }
 
-        // self.weights[[ri, action]]
-    // }
+    fn update_action(&mut self, input: &Vec<f64>, action: usize, error: f64) {
+        self.int_array[0] = action as c_int;
 
-    // fn update_action(&mut self, input: &Vec<f64>, action: usize, error: f64) {
-        // let index = self.hash(input);
-
-        // unsafe {
-            // *self.weights.uget_mut((index, action)) += error
-        // }
-    // }
-// }
+        for t in self.load_tiles(input, &self.int_array) {
+            self.weights[t] += error;
+        }
+    }
+}
 
 
 #[cfg(test)]
