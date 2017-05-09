@@ -28,7 +28,7 @@ random integers, of which we use only the low-order bytes.
 #include "math.h"
 
 void tiles(
-    int the_tiles[],               // provided array contains returned tiles (tile indices)
+    size_t the_tiles[],               // provided array contains returned tiles (tile indices)
     int num_tilings,           // number of tile indices to be returned in tiles
     int memory_size,           // total number of possible tiles
     float floats[],            // array of floating point variables
