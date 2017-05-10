@@ -37,9 +37,9 @@ script:
       travis-cargo --only stable doc
 
 # Send coverage reports and upload docs
-after_success:
-  - |
-      travis-cargo --only stable coveralls --no-sudo --verify;
+# after_success:
+  # - |
+      # travis-cargo --only stable coveralls --no-sudo --verify;
 
 env:
   global:
