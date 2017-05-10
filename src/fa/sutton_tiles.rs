@@ -1,7 +1,7 @@
 extern crate libc;
 use self::libc::{c_double, c_int, size_t};
 
-use super::{Function, Parameterised, Linear, QFunction};
+use super::{Function, Parameterised, Linear, VFunction, QFunction};
 
 use ndarray::{Axis, Array1};
 use geometry::{Space, RegularSpace};
@@ -85,11 +85,7 @@ impl Parameterised<Vec<f64>, f64> for SuttonTiles {
 impl Parameterised<Vec<f64>, Vec<f64>> for SuttonTiles {
     fn update(&mut self, input: &Vec<f64>, errors: Vec<f64>) {
         for c in 0..self.n_outputs {
-            self.int_array[0] = c as c_int;
-
-            for t in self.load_tiles(input, &self.int_array) {
-                self.weights[t] += errors[c];
-            }
+            <Self as QFunction<RegularSpace<Continuous>>>::update_action(self, input, c, errors[c]);
         }
     }
 }
@@ -97,6 +93,9 @@ impl Parameterised<Vec<f64>, Vec<f64>> for SuttonTiles {
 
 // TODO: Implement Linear - problem is that phi will be a function of the state
 //       and action for this implementation of tile coding.
+
+
+impl VFunction<RegularSpace<Continuous>> for SuttonTiles {}
 
 
 impl QFunction<RegularSpace<Continuous>> for SuttonTiles
