@@ -136,4 +136,22 @@ mod tests {
         let out: f64 = t.evaluate(&vec![1.5]);
         assert_eq!(out, 12.75);
     }
+
+    #[test]
+    fn test_generalisation() {
+        let mut t = SuttonTiles::new(1, 1000, 1);
+
+        t.update(&vec![0.5], 1.0);
+
+        for i in 1..10 {
+            let out: f64 = t.evaluate(&vec![i as f64 / 10.0]);
+            assert_eq!(out, 1.0);
+        }
+
+        let out: f64 = t.evaluate(&vec![-0.000001]);
+        assert_eq!(out, 0.0);
+
+        let out: f64 = t.evaluate(&vec![1.000001]);
+        assert_eq!(out, 0.0);
+    }
 }
