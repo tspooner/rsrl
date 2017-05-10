@@ -123,7 +123,7 @@ mod tests {
     use geometry::dimensions::Partition;
 
     #[test]
-    fn test_simple() {
+    fn test_update_eval() {
         let mut t = SuttonTiles::new(1, 1000, 1);
 
         t.update(&vec![1.5], 25.5);
@@ -153,5 +153,21 @@ mod tests {
 
         let out: f64 = t.evaluate(&vec![1.000001]);
         assert_eq!(out, 0.0);
+    }
+
+    #[test]
+    fn test_multiple_tilings() {
+        let mut t = SuttonTiles::new(2, 1000, 1);
+
+        t.update(&vec![0.5], 1.0);
+
+        let out: f64 = t.evaluate(&vec![0.5]);
+        assert_eq!(out, 1.0);
+
+        let out: f64 = t.evaluate(&vec![0.0]);
+        assert_eq!(out, 0.5);
+
+        let out: f64 = t.evaluate(&vec![1.0]);
+        assert_eq!(out, 0.5);
     }
 }
