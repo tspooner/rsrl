@@ -1,5 +1,6 @@
-use super::{Function, Parameterised, Linear, QFunction};
+use super::{Function, Parameterised, Linear, VFunction, QFunction};
 
+use utils::dot;
 use ndarray::{arr1, Array1, Array2};
 use geometry::{Span, Space, RegularSpace};
 use geometry::dimensions::{Partition, Continuous};
@@ -88,6 +89,19 @@ impl Linear<RegularSpace<Continuous>> for Partitions
         p[self.hash(input)] = 1.0;
 
         p
+    }
+}
+
+
+impl VFunction<RegularSpace<Continuous>> for Partitions
+{
+    fn evaluate_phi(&self, phi: &Array1<f64>) -> f64 {
+        dot(self.weights.column(0).as_slice().unwrap(),
+            phi.as_slice().unwrap())
+    }
+
+    fn update_phi(&mut self, phi: &Array1<f64>, error: f64) {
+        self.weights.column_mut(0).scaled_add(error, phi);
     }
 }
 
