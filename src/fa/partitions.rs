@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn test_update_eval() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Partition::new(0.0, 9.0, 10));
+        ds = ds.push(Partition::new(0.0, 10.0, 10));
 
         let mut t = Partitions::new(ds, 1);
 
@@ -152,16 +152,16 @@ mod tests {
     }
 
     #[test]
-    fn test_collisions() {
+    fn test_generalisation() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Partition::new(0.0, 9.0, 10));
+        ds = ds.push(Partition::new(0.0, 10.0, 10));
 
         let mut t = Partitions::new(ds, 1);
 
         t.update(&vec![0.5], vec![1.2]);
 
-        for value in vec![0.2, 0.5, 0.8] {
-            let out: f64 = t.evaluate(&vec![value]);
+        for i in 1..10 {
+            let out: f64 = t.evaluate(&vec![i as f64 / 10.0]);
             assert_eq!(out, 1.2);
         }
     }
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn test_1d() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Partition::new(0.0, 9.0, 10));
+        ds = ds.push(Partition::new(0.0, 10.0, 10));
 
         let mut t = Partitions::new(ds, 1);
 
@@ -189,8 +189,8 @@ mod tests {
     #[test]
     fn test_2d() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Partition::new(0.0, 9.0, 10));
-        ds = ds.push(Partition::new(0.0, 9.0, 10));
+        ds = ds.push(Partition::new(0.0, 10.0, 10));
+        ds = ds.push(Partition::new(0.0, 10.0, 10));
 
         let mut t = Partitions::new(ds, 1);
 
@@ -212,9 +212,9 @@ mod tests {
     #[test]
     fn test_3d() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Partition::new(0.0, 9.0, 10));
-        ds = ds.push(Partition::new(0.0, 9.0, 10));
-        ds = ds.push(Partition::new(0.0, 9.0, 10));
+        ds = ds.push(Partition::new(0.0, 10.0, 10));
+        ds = ds.push(Partition::new(0.0, 10.0, 10));
+        ds = ds.push(Partition::new(0.0, 10.0, 10));
 
         let mut t = Partitions::new(ds, 1);
 
