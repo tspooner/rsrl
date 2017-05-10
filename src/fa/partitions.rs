@@ -85,7 +85,7 @@ impl Parameterised<Vec<f64>, Vec<f64>> for Partitions {
 impl Linear<RegularSpace<Continuous>> for Partitions
 {
     fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
-        let mut p = Array1::<f64>::zeros(self.weights.len());
+        let mut p = Array1::<f64>::zeros(self.weights.rows());
         p[self.hash(input)] = 1.0;
 
         p

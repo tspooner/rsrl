@@ -152,7 +152,7 @@ mod partitions;
 mod rbf_network;
 mod basis_network;
 // mod leaf;
-// mod sutton_tiles;
+mod sutton_tiles;
 
 pub mod exact {
     pub use fa::table::*;
@@ -162,7 +162,7 @@ pub mod linear {
     pub use fa::partitions::*;
     pub use fa::rbf_network::*;
     pub use fa::basis_network::*;
-    // pub use fa::sutton_tiles::*;
+    pub use fa::sutton_tiles::*;
 }
 
 pub mod non_linear {

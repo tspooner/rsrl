@@ -87,7 +87,8 @@ impl Parameterised<Vec<f64>, Vec<f64>> for RBFNetwork
 }
 
 
-impl Linear<RegularSpace<Continuous>> for RBFNetwork {
+impl Linear<RegularSpace<Continuous>> for RBFNetwork
+{
     fn phi(&self, input: &Vec<f64>) -> Array1<f64> {
         let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
         let e = (&d * &d * &self.gamma).mapv(|v| v.exp()).sum(Axis(1));
