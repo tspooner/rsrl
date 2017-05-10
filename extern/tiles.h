@@ -14,7 +14,7 @@ void tiles(
     size_t the_tiles[],           // provided array contains returned tiles (tile indices)
     int num_tilings,           // number of tile indices to be returned in tiles
     int memory_size,           // total number of possible tiles
-    float floats[],            // array of floating point variables
+    double floats[],           // array of floating point variables
     int num_floats,            // number of floating point variables
     int ints[],                // array of integer variables
     int num_ints);             // number of integer variables
