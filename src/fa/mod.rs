@@ -142,13 +142,12 @@ impl<S: Space, T> QFunction<S> for Box<T>
 }
 
 
-// XXX: Bug with Rust that renders ICE errors when using VFunctionGroup.
 mod fgroup;
 pub use self::fgroup::VFunctionGroup;
 
 
 mod table;
-mod partitions;
+mod uniform_grid;
 mod rbf_network;
 mod basis_network;
 // mod leaf;
@@ -159,7 +158,7 @@ pub mod exact {
 }
 
 pub mod linear {
-    pub use fa::partitions::*;
+    pub use fa::uniform_grid::*;
     pub use fa::rbf_network::*;
     pub use fa::basis_network::*;
     pub use fa::sutton_tiles::*;

@@ -119,8 +119,6 @@ mod tests {
     use super::SuttonTiles;
 
     use fa::{Function, Parameterised};
-    use geometry::RegularSpace;
-    use geometry::dimensions::Partition;
 
     #[test]
     fn test_update_eval() {

@@ -13,13 +13,12 @@ use rsrl::loggers::DefaultLogger;
 fn main() {
     let domain = MountainCar::default();
     let mut agent = {
+        let sspace = domain.state_space();
         let aspace = domain.action_space();
         let n_actions: usize = aspace.span().into();
 
-        let q_func = RBFNetwork::new(
-            domain.state_space().with_partitions(8), n_actions);
-        let v_func = RBFNetwork::new(
-            domain.state_space().with_partitions(8), 1);
+        let q_func = RBFNetwork::new(sspace.partitioned(8), n_actions);
+        let v_func = RBFNetwork::new(sspace.partitioned(8), 1);
 
         GreedyGQ::new(q_func, v_func, Greedy, 0.99, 0.1, 1e-5)
     };

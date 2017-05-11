@@ -118,99 +118,12 @@ impl Dimension for Continuous {
     }
 
     fn contains(&self, val: &Self::Value) -> bool {
-        (val >= self.lb()) && (val <= self.ub())
+        (val >= self.lb()) && (val < self.ub())
     }
 }
 
 impl BoundedDimension for Continuous {
     type ValueBound = Self::Value;
-
-    fn lb(&self) -> &f64 {
-        &self.lb
-    }
-
-    fn ub(&self) -> &f64 {
-        &self.ub
-    }
-}
-
-
-/// A partioned continous dimension.
-#[derive(Clone, Copy)]
-pub struct Partition {
-    lb: f64,
-    ub: f64,
-    density: usize,
-
-    range: RngRange<f64>,
-}
-
-impl Partition {
-    pub fn new(lb: f64, ub: f64, density: usize) -> Partition {
-        Partition {
-            lb: lb,
-            ub: ub,
-            density: density,
-
-            range: RngRange::new(lb, ub),
-        }
-    }
-
-    pub fn from_continuous(d: Continuous, density: usize) -> Partition {
-        Partition {
-            lb: d.lb,
-            ub: d.ub,
-            density: density,
-
-            range: d.range,
-        }
-    }
-
-    pub fn to_partition(&self, val: &f64) -> usize {
-        let clipped = clip!(self.lb, *val, self.ub);
-
-        let diff = clipped - self.lb;
-        let range = self.ub - self.lb;
-
-        let i = ((self.density as f64) * diff / range).floor() as usize;
-
-        if i == self.density { i - 1 } else { i }
-    }
-
-    pub fn centres(&self) -> Vec<f64> {
-        let w = (self.ub - self.lb) / self.density as f64;
-        let hw = w / 2.0;
-
-        (0..self.density).map(|i| self.lb + w*(i as f64) - hw).collect()
-    }
-
-    pub fn partition_width(&self) -> f64 {
-        (self.lb - self.ub) / self.density as f64
-    }
-
-    pub fn density(&self) -> usize {
-        self.density
-    }
-}
-
-impl Dimension for Partition {
-    type Value = usize;
-
-    fn sample(&self, rng: &mut ThreadRng) -> usize {
-        self.to_partition(&self.range.ind_sample(rng))
-    }
-
-    fn span(&self) -> Span {
-        Span::Finite(self.density)
-    }
-
-    fn contains(&self, val: &Self::Value) -> bool {
-        (*val as f64 >= self.lb) && (*val as f64 <= self.ub)
-    }
-}
-
-impl BoundedDimension for Partition {
-    type ValueBound = f64;
 
     fn lb(&self) -> &f64 {
         &self.lb
@@ -304,5 +217,66 @@ impl<'a, D: Dimension> Dimension for &'a D {
 
     fn contains(&self, val: &Self::Value) -> bool {
         (**self).contains(val)
+    }
+}
+
+// TODO: Use quickcheck here to more extenisively test calls to contains...
+
+#[cfg(test)]
+mod tests {
+    use super::{Dimension, BoundedDimension, FiniteDimension};
+    use super::{Null, Infinite, Continuous, Discrete};
+
+    use rand::thread_rng;
+    use geometry::Span;
+
+    #[test]
+    fn test_null() {
+        let d = Null;
+        let mut rng = thread_rng();
+
+        assert_eq!(d.sample(&mut rng), ());
+        assert_eq!(d.span(), Span::Null);
+
+        assert!(!d.contains(&()));
+    }
+
+    #[test]
+    fn test_infinite() {
+        let d = Infinite;
+
+        assert_eq!(d.span(), Span::Infinite);
+
+        assert!(d.contains(&123.456));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_infinite_sample() {
+        let d = Infinite;
+        let mut rng = thread_rng();
+
+        let s = d.sample(&mut rng);
+    }
+
+    #[test]
+    fn test_continuous() {
+        for (lb, ub) in vec![(0.0, 5.0), (-5.0, 5.0), (-5.0, 0.0)] {
+            let d = Continuous::new(lb, ub);
+            let mut rng = thread_rng();
+
+            assert_eq!(d.span(), Span::Infinite);
+
+            assert!(!d.contains(&ub));
+            assert!(d.contains(&lb));
+            assert!(d.contains(&((lb + ub) / 2.0)));
+
+            for _ in 0..100 {
+                let s = d.sample(&mut rng);
+                assert!(s < ub);
+                assert!(s >= lb);
+                assert!(d.contains(&s));
+            }
+        }
     }
 }
