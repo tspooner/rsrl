@@ -2,7 +2,7 @@ use super::{Function, Parameterised, Linear, VFunction, QFunction};
 
 use utils::dot;
 use ndarray::{arr1, Array1, Array2};
-use geometry::{Span, Space, RegularSpace};
+use geometry::{Span, Space, RegularSpace, Projection};
 use geometry::dimensions::{Partitioned, Continuous};
 
 
@@ -32,10 +32,10 @@ impl UniformGrid {
         let mut in_it = input.iter().rev();
         let mut d_it = self.input_space.iter().rev();
 
-        let acc = d_it.next().unwrap().to_partition(in_it.next().unwrap());
+        let acc = in_it.next().unwrap().project(d_it.next().unwrap());
 
-        in_it.zip(d_it).fold(acc, |acc, (v, d)| {
-            let i = d.to_partition(v);
+        d_it.zip(in_it).fold(acc, |acc, (d, v)| {
+            let i = v.project(d);
 
             i + d.density() * acc
         })

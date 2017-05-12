@@ -2,7 +2,8 @@ mod span;
 pub use self::span::Span;
 
 mod spaces;
+pub mod dimensions;
 pub use self::spaces::*;
 
-pub mod dimensions;
-pub mod projection;
+mod projection;
+pub use self::projection::{Projection, project};
