@@ -3,37 +3,41 @@ use super::{Function, Parameterised, Linear, VFunction, QFunction};
 use utils::dot;
 use ndarray::{arr1, Array1, Array2};
 use geometry::{Span, Space, RegularSpace};
-use geometry::dimensions::Continuous;
-use geometry::partitioning::Partitions;
+use geometry::dimensions::{Partitioned, Continuous};
 
 
 /// Linearly partitioned function representation.
 pub struct UniformGrid {
     weights: Array2<f64>,
-    partitions: Vec<Partitions>,
+    input_space: RegularSpace<Partitioned>,
 }
 
 impl UniformGrid {
-    pub fn new(partitions: Vec<Partitions>, n_outputs: usize) -> Self
+    pub fn new(input_space: RegularSpace<Partitioned>,
+               n_outputs: usize) -> Self
     {
-        let n_features = Partitions::dimensionality(&partitions);
+        let n_features = match input_space.span() {
+            Span::Finite(s) => s,
+            _ => panic!("`UniformGrid` function approximator only supports \
+                         partitioned input spaces.")
+        };
 
         UniformGrid {
             weights: Array2::<f64>::zeros((n_features, n_outputs)),
-            partitions: partitions,
+            input_space: input_space,
         }
     }
 
     fn hash(&self, input: &[f64]) -> usize {
         let mut in_it = input.iter().rev();
-        let mut d_it = self.partitions.iter().rev();
+        let mut d_it = self.input_space.iter().rev();
 
-        let acc = d_it.next().unwrap().to_partition(*in_it.next().unwrap());
+        let acc = d_it.next().unwrap().to_partition(in_it.next().unwrap());
 
-        in_it.zip(d_it).fold(acc, |acc, (v, p)| {
-            let i = p.to_partition(*v);
+        in_it.zip(d_it).fold(acc, |acc, (v, d)| {
+            let i = d.to_partition(v);
 
-            i + p.density * acc
+            i + d.density() * acc
         })
     }
 }
@@ -127,14 +131,14 @@ mod tests {
 
     use fa::{Function, Parameterised};
     use geometry::RegularSpace;
-    use geometry::dimensions::Continuous;
+    use geometry::dimensions::Partitioned;
 
     #[test]
     fn test_update_eval() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Continuous::new(0.0, 10.0));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
 
-        let mut t = UniformGrid::new(ds.partitioned(10), 1);
+        let mut t = UniformGrid::new(ds, 1);
 
         t.update(&vec![1.5], 25.5);
 
@@ -150,9 +154,9 @@ mod tests {
     #[test]
     fn test_generalisation() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Continuous::new(0.0, 10.0));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
 
-        let mut t = UniformGrid::new(ds.partitioned(10), 1);
+        let mut t = UniformGrid::new(ds, 1);
 
         t.update(&vec![0.5], vec![1.2]);
 
@@ -165,9 +169,9 @@ mod tests {
     #[test]
     fn test_1d() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Continuous::new(0.0, 10.0));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
 
-        let mut t = UniformGrid::new(ds.partitioned(10), 1);
+        let mut t = UniformGrid::new(ds, 1);
 
         for i in 0..10 {
             let input: Vec<f64> = vec![i as u32 as f64];
@@ -185,10 +189,10 @@ mod tests {
     #[test]
     fn test_2d() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Continuous::new(0.0, 10.0));
-        ds = ds.push(Continuous::new(0.0, 10.0));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
 
-        let mut t = UniformGrid::new(ds.partitioned(10), 1);
+        let mut t = UniformGrid::new(ds, 1);
 
         for i in 0..10 {
             for j in 0..10 {
@@ -208,11 +212,11 @@ mod tests {
     #[test]
     fn test_3d() {
         let mut ds = RegularSpace::new();
-        ds = ds.push(Continuous::new(0.0, 10.0));
-        ds = ds.push(Continuous::new(0.0, 10.0));
-        ds = ds.push(Continuous::new(0.0, 10.0));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
 
-        let mut t = UniformGrid::new(ds.partitioned(10), 1);
+        let mut t = UniformGrid::new(ds, 1);
 
         for i in 0..10 {
             for j in 0..10 {

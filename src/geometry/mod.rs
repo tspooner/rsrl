@@ -6,4 +6,3 @@ pub use self::spaces::*;
 
 pub mod dimensions;
 pub mod projection;
-pub mod partitioning;

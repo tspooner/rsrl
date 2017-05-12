@@ -4,8 +4,7 @@ use rand::ThreadRng;
 
 use super::Span;
 use super::dimensions;
-use super::dimensions::{Dimension, BoundedDimension, Discrete};
-use super::partitioning::Partitions;
+use super::dimensions::{Dimension, Partitioned};
 
 
 pub trait Space {
@@ -17,7 +16,7 @@ pub trait Space {
     fn span(&self) -> Span;
 }
 
-pub type ActionSpace = UnitarySpace<Discrete>;
+pub type ActionSpace = UnitarySpace<dimensions::Discrete>;
 
 
 pub struct UnitarySpace<D: Dimension>(D);
@@ -86,9 +85,17 @@ impl<D: Dimension> Space for RegularSpace<D> {
 }
 
 impl RegularSpace<dimensions::Continuous> {
-    pub fn partitioned(&self, density: usize) -> Vec<Partitions> {
-        self.iter()
-            .map(|d| Partitions::new(*d.lb(), *d.ub(), density))
+    pub fn partitioned(self, density: usize) -> RegularSpace<Partitioned> {
+        self.into_iter()
+            .map(|d| Partitioned::from_continuous(d, density))
+            .collect()
+    }
+}
+
+impl RegularSpace<dimensions::Partitioned> {
+    pub fn centres(&self) -> Vec<Vec<f64>> {
+        self.dimensions.iter()
+            .map(|d| d.centres())
             .collect()
     }
 }
@@ -158,9 +165,9 @@ impl<D1: Dimension, D2: Dimension> Space for PairSpace<D1, D2> {
 }
 
 impl PairSpace<dimensions::Continuous, dimensions::Continuous> {
-    pub fn partitioned(&self, density: usize) -> (Partitions, Partitions) {
-        (Partitions::new(*(self.0).0.lb(), *(self.0).0.ub(), density),
-         Partitions::new(*(self.0).0.lb(), *(self.0).1.ub(), density))
+    pub fn partitioned(self, density: usize) -> PairSpace<Partitioned, Partitioned> {
+        PairSpace((Partitioned::from_continuous((self.0).0, density),
+                   Partitioned::from_continuous((self.0).1, density)))
     }
 }
 

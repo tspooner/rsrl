@@ -33,7 +33,7 @@ pub trait BoundedDimension: Dimension
     /// Returns a reference to the dimension's lower value bound (inclusive).
     fn lb(&self) -> &Self::ValueBound;
 
-    /// Returns a reference to the dimension's upper value bound (inclusive).
+    /// Returns a reference to the dimension's upper value bound (exclusive).
     fn ub(&self) -> &Self::ValueBound;
 }
 
@@ -88,7 +88,7 @@ impl Dimension for Infinite {
 }
 
 
-/// A continous dimensions.
+/// A continous dimension.
 #[derive(Clone, Copy)]
 pub struct Continuous {
     lb: f64,
@@ -124,6 +124,93 @@ impl Dimension for Continuous {
 
 impl BoundedDimension for Continuous {
     type ValueBound = Self::Value;
+
+    fn lb(&self) -> &f64 {
+        &self.lb
+    }
+
+    fn ub(&self) -> &f64 {
+        &self.ub
+    }
+}
+
+
+/// A finite, uniformly partitioned continous dimension.
+#[derive(Clone, Copy)]
+pub struct Partitioned {
+    lb: f64,
+    ub: f64,
+    density: usize,
+
+    range: RngRange<f64>,
+}
+
+impl Partitioned {
+    pub fn new(lb: f64, ub: f64, density: usize) -> Partitioned {
+        Partitioned {
+            lb: lb,
+            ub: ub,
+            density: density,
+
+            range: RngRange::new(lb, ub),
+        }
+    }
+
+    pub fn from_continuous(d: Continuous, density: usize) -> Partitioned {
+        Partitioned {
+            lb: d.lb,
+            ub: d.ub,
+            density: density,
+
+            range: d.range,
+        }
+    }
+
+    pub fn to_partition(&self, val: &f64) -> usize {
+        let clipped = clip!(self.lb, *val, self.ub);
+
+        let diff = clipped - self.lb;
+        let range = self.ub - self.lb;
+
+        let i = ((self.density as f64) * diff / range).floor() as usize;
+
+        if i == self.density { i - 1 } else { i }
+    }
+
+    pub fn centres(&self) -> Vec<f64> {
+        let w = (self.ub - self.lb) / self.density as f64;
+        let hw = w / 2.0;
+
+        (0..self.density).map(|i| self.lb + w*(i as f64) - hw).collect()
+    }
+
+    pub fn partition_width(&self) -> f64 {
+        (self.lb - self.ub) / self.density as f64
+    }
+
+    pub fn density(&self) -> usize {
+        self.density
+    }
+}
+
+impl Dimension for Partitioned {
+    type Value = usize;
+
+    fn sample(&self, rng: &mut ThreadRng) -> usize {
+        self.to_partition(&self.range.ind_sample(rng))
+    }
+
+    fn span(&self) -> Span {
+        Span::Finite(self.density)
+    }
+
+    fn contains(&self, val: &Self::Value) -> bool {
+        (*val as f64 >= self.lb) && (*val as f64 <= self.ub)
+    }
+}
+
+impl BoundedDimension for Partitioned {
+    type ValueBound = f64;
 
     fn lb(&self) -> &f64 {
         &self.lb

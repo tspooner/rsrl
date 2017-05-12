@@ -3,8 +3,7 @@ use super::{Function, Parameterised, Linear, VFunction, QFunction};
 use utils::{cartesian_product, dot};
 use ndarray::{Axis, ArrayView, Array1, Array2};
 use geometry::{Span, Space, RegularSpace};
-use geometry::dimensions::Continuous;
-use geometry::partitioning::Partitions;
+use geometry::dimensions::{Partitioned, Continuous};
 
 
 /// Optimised radial basis function network for function representation.
@@ -17,20 +16,25 @@ pub struct RBFNetwork {
 
 impl RBFNetwork
 {
-    pub fn new(partitions: Vec<Partitions>, n_outputs: usize) -> Self
+    pub fn new(input_space: RegularSpace<Partitioned>, n_outputs: usize) -> Self
     {
-        let n_features = Partitions::dimensionality(&partitions);
+        let n_features = match input_space.span() {
+            Span::Finite(s) => s,
+            _ =>
+                panic!("`RBFNetwork` function approximator only supports \
+                        partitioned input spaces.")
+        };
 
-        let centres = partitions.iter().map(|p| p.centres()).collect();
+        let centres = input_space.centres();
         let flat_combs =
             cartesian_product(&centres)
             .iter().cloned()
             .flat_map(|e| e).collect();
 
         RBFNetwork {
-            mu: Array2::from_shape_vec((n_features, partitions.len()), flat_combs).unwrap(),
-            gamma: partitions.iter().map(|p| {
-                let s = p.partition_width();
+            mu: Array2::from_shape_vec((n_features, input_space.dim()), flat_combs).unwrap(),
+            gamma: input_space.iter().map(|d| {
+                let s = d.partition_width();
                 -1.0 / (s * s)
             }).collect(),
 
