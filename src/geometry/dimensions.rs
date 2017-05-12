@@ -9,7 +9,8 @@ use rand::distributions::{Range as RngRange, IndependentSample};
 // XXX: Address concern about [low, high) convention.
 
 /// The basic dimension type.
-pub trait Dimension {
+pub trait Dimension
+{
     /// The corresponding primitive type.
     type Value;
 
@@ -18,9 +19,6 @@ pub trait Dimension {
 
     /// Returns the total span of this dimension.
     fn span(&self) -> Span;
-
-    /// Returns true iff `val` is contained within this dimension.
-    fn contains(&self, val: &Self::Value) -> bool;
 }
 
 /// Dimension type with saturating upper/lower bounds.
@@ -35,6 +33,9 @@ pub trait BoundedDimension: Dimension
 
     /// Returns a reference to the dimension's upper value bound (exclusive).
     fn ub(&self) -> &Self::ValueBound;
+
+    /// Returns true iff `val` is within the dimension's bounds.
+    fn contains(&self, val: &Self::ValueBound) -> bool;
 }
 
 /// Dimension type with bounds and a finite set of values.
@@ -60,10 +61,6 @@ impl Dimension for Null {
     fn span(&self) -> Span {
         Span::Null
     }
-
-    fn contains(&self, _: &Self::Value) -> bool {
-        false
-    }
 }
 
 
@@ -80,10 +77,6 @@ impl Dimension for Infinite {
 
     fn span(&self) -> Span {
         Span::Infinite
-    }
-
-    fn contains(&self, _: &Self::Value) -> bool {
-        true
     }
 }
 
@@ -116,10 +109,6 @@ impl Dimension for Continuous {
     fn span(&self) -> Span {
         Span::Infinite
     }
-
-    fn contains(&self, val: &Self::Value) -> bool {
-        (val >= self.lb()) && (val < self.ub())
-    }
 }
 
 impl BoundedDimension for Continuous {
@@ -131,6 +120,10 @@ impl BoundedDimension for Continuous {
 
     fn ub(&self) -> &f64 {
         &self.ub
+    }
+
+    fn contains(&self, val: &Self::ValueBound) -> bool {
+        (val >= self.lb()) && (val < self.ub())
     }
 }
 
@@ -166,8 +159,8 @@ impl Partitioned {
         }
     }
 
-    pub fn to_partition(&self, val: &f64) -> usize {
-        let clipped = clip!(self.lb, *val, self.ub);
+    pub fn to_partition(&self, val: f64) -> usize {
+        let clipped = clip!(self.lb, val, self.ub);
 
         let diff = clipped - self.lb;
         let range = self.ub - self.lb;
@@ -197,15 +190,11 @@ impl Dimension for Partitioned {
     type Value = usize;
 
     fn sample(&self, rng: &mut ThreadRng) -> usize {
-        self.to_partition(&self.range.ind_sample(rng))
+        self.to_partition(self.range.ind_sample(rng))
     }
 
     fn span(&self) -> Span {
         Span::Finite(self.density)
-    }
-
-    fn contains(&self, val: &Self::Value) -> bool {
-        (*val as f64 >= self.lb) && (*val as f64 <= self.ub)
     }
 }
 
@@ -218,6 +207,16 @@ impl BoundedDimension for Partitioned {
 
     fn ub(&self) -> &f64 {
         &self.ub
+    }
+
+    fn contains(&self, val: &Self::ValueBound) -> bool {
+        (val >= self.lb()) && (val < self.ub())
+    }
+}
+
+impl FiniteDimension for Partitioned {
+    fn range(&self) -> Range<Self::Value> {
+        0..(self.density + 1)
     }
 }
 
@@ -250,10 +249,6 @@ impl Dimension for Discrete {
     fn span(&self) -> Span {
         Span::Finite(self.ub + 1)
     }
-
-    fn contains(&self, val: &Self::Value) -> bool {
-        val < self.ub()
-    }
 }
 
 impl BoundedDimension for Discrete {
@@ -265,6 +260,10 @@ impl BoundedDimension for Discrete {
 
     fn ub(&self) -> &usize {
         &self.ub
+    }
+
+    fn contains(&self, val: &Self::Value) -> bool {
+        (*val >= 0) && (*val < self.ub)
     }
 }
 
@@ -285,10 +284,6 @@ impl<D: Dimension> Dimension for Box<D> {
     fn span(&self) -> Span {
         (**self).span()
     }
-
-    fn contains(&self, val: &Self::Value) -> bool {
-        (**self).contains(val)
-    }
 }
 
 impl<'a, D: Dimension> Dimension for &'a D {
@@ -301,10 +296,6 @@ impl<'a, D: Dimension> Dimension for &'a D {
     fn span(&self) -> Span {
         (**self).span()
     }
-
-    fn contains(&self, val: &Self::Value) -> bool {
-        (**self).contains(val)
-    }
 }
 
 // TODO: Use quickcheck here to more extenisively test calls to contains...
@@ -312,7 +303,7 @@ impl<'a, D: Dimension> Dimension for &'a D {
 #[cfg(test)]
 mod tests {
     use super::{Dimension, BoundedDimension, FiniteDimension};
-    use super::{Null, Infinite, Continuous, Discrete};
+    use super::{Null, Infinite, Continuous, Partitioned, Discrete};
 
     use rand::thread_rng;
     use geometry::Span;
@@ -324,8 +315,6 @@ mod tests {
 
         assert_eq!(d.sample(&mut rng), ());
         assert_eq!(d.span(), Span::Null);
-
-        assert!(!d.contains(&()));
     }
 
     #[test]
@@ -333,8 +322,6 @@ mod tests {
         let d = Infinite;
 
         assert_eq!(d.span(), Span::Infinite);
-
-        assert!(d.contains(&123.456));
     }
 
     #[test]
@@ -363,6 +350,46 @@ mod tests {
                 assert!(s < ub);
                 assert!(s >= lb);
                 assert!(d.contains(&s));
+            }
+        }
+    }
+
+    #[test]
+    fn test_partitioned() {
+        for (lb, ub, density) in vec![(0.0, 5.0, 5), (-5.0, 5.0, 10), (-5.0, 0.0, 5)] {
+            let d = Partitioned::new(lb, ub, density);
+            let mut rng = thread_rng();
+
+            assert_eq!(d.span(), Span::Finite(density));
+
+            assert!(!d.contains(&ub));
+            assert!(d.contains(&lb));
+            assert!(d.contains(&((lb + ub) / 2.0)));
+
+            for _ in 0..100 {
+                let s = d.sample(&mut rng);
+                assert!(s < density);
+                assert!(s >= 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_discrete() {
+        for size in vec![5, 10, 100] {
+            let d = Discrete::new(size);
+            let mut rng = thread_rng();
+
+            assert_eq!(d.span(), Span::Finite(size));
+
+            assert!(!d.contains(&(size - 1)));
+            assert!(d.contains(&0));
+            assert!(d.contains(&(size - 2)));
+
+            for _ in 0..100 {
+                let s = d.sample(&mut rng);
+                assert!(s < size);
+                assert!(s >= 0);
             }
         }
     }
