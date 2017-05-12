@@ -1,18 +1,33 @@
 use super::Policy;
 
+use utils::argmaxima;
+
+extern crate rand;
+use rand::Rng;
+
 
 pub struct Greedy;
 
-// TODO: Implement random selection of matching maxima.
 impl Policy for Greedy {
     fn sample(&mut self, qs: &[f64]) -> usize {
-        qs.iter().enumerate().skip(1)
-           .fold((0, qs[0]), |s, x| if *x.1 > s.1 {(x.0, x.1.clone())} else {s}).0
+        let maxima = argmaxima(qs).1;
+
+        if maxima.len() == 1 {
+            maxima[0]
+        } else {
+            *rand::thread_rng().choose(&maxima).unwrap()
+        }
     }
 
     fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> {
         let mut ps = vec![0.0; qs.len()];
-        ps[self.sample(qs)] = 1.0;
+
+        let maxima = argmaxima(qs).1;
+
+        let p = 1.0 / maxima.len() as f64;
+        for i in maxima {
+            ps[i] = p;
+        }
 
         ps
     }
@@ -91,7 +106,18 @@ mod tests {
     fn test_precision() {
         let mut g = Greedy;
 
-        let v = vec![0.00000000001, 0.00000000002];
+        let v = vec![1e-7, 2e-7];
         assert!(g.sample(&v) == 1);
+    }
+
+    #[test]
+    fn test_probabilites() {
+        let mut g = Greedy;
+
+        assert_eq!(g.probabilities(&[1e-7, 2e-7, 3e-7, 4e-7]),
+                   vec![0.0, 0.0, 0.0, 1.0]);
+
+        assert_eq!(g.probabilities(&[1e-7, 1e-7, 1e-7, 1e-7]),
+                   vec![0.25, 0.25, 0.25, 0.25]);
     }
 }

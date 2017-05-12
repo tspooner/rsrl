@@ -1,5 +1,6 @@
 extern crate blas;
 use self::blas::c::ddot;
+use std::f64;
 use std::cmp::min;
 
 
@@ -9,6 +10,24 @@ pub mod kernels;
 pub fn dot(x: &[f64], y: &[f64]) -> f64 {
     let n: i32 = min(x.len() as i32, y.len() as i32);
     ddot(n, x, 1, y, 1)
+}
+
+
+pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
+    let mut max = f64::MIN;
+    let mut ixs = vec![];
+
+    for (i, &v) in vals.iter().enumerate() {
+        if (v - max).abs() < 1e-7 {
+            ixs.push(i);
+        } else if v > max {
+            max = v;
+            ixs.clear();
+            ixs.push(i);
+        }
+    }
+
+    (max, ixs)
 }
 
 
