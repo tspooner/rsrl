@@ -19,6 +19,25 @@ pub trait Space {
 pub type ActionSpace = UnitarySpace<dimensions::Discrete>;
 
 
+pub struct NullSpace;
+
+impl Space for NullSpace {
+    type Repr = ();
+
+    fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
+        ()
+    }
+
+    fn dim(&self) -> usize {
+        0
+    }
+
+    fn span(&self) -> Span {
+        Span::Null
+    }
+}
+
+
 pub struct UnitarySpace<D: Dimension>(D);
 
 impl<D: Dimension> UnitarySpace<D> {
@@ -40,6 +59,40 @@ impl<D: Dimension> Space for UnitarySpace<D> {
 
     fn span(&self) -> Span {
         self.0.span()
+    }
+}
+
+
+pub struct PairSpace<D1, D2>((D1, D2))
+    where D1: Dimension,
+          D2: Dimension;
+
+impl<D1: Dimension, D2: Dimension> PairSpace<D1, D2> {
+    pub fn new(d1: D1, d2: D2) -> Self {
+        PairSpace((d1, d2))
+    }
+}
+
+impl<D1: Dimension, D2: Dimension> Space for PairSpace<D1, D2> {
+    type Repr = (D1::Value, D2::Value);
+
+    fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
+        ((self.0).0.sample(rng), (self.0).1.sample(rng))
+    }
+
+    fn dim(&self) -> usize {
+        2
+    }
+
+    fn span(&self) -> Span {
+        (self.0).0.span() * (self.0).1.span()
+    }
+}
+
+impl PairSpace<dimensions::Continuous, dimensions::Continuous> {
+    pub fn partitioned(self, density: usize) -> PairSpace<Partitioned, Partitioned> {
+        PairSpace((Partitioned::from_continuous((self.0).0, density),
+                   Partitioned::from_continuous((self.0).1, density)))
     }
 }
 
@@ -122,95 +175,66 @@ impl<D: Dimension> IntoIterator for RegularSpace<D> {
 }
 
 
-// TODO: Bring back support for Null/Pair spaces.
-// pub struct NullSpace(dimensions::Null);
-
-// impl Space for NullSpace {
-// type Repr = ();
-
-// fn dim(&self) -> usize {
-// 0
+// pub struct HeterogeneousSpace {
+    // dimensions: Vec<Dimension>,
+    // span: Span
 // }
 
-// fn span(&self) -> Span {
-// Span::Null
+// impl HeterogeneousSpace {
+    // pub fn new() -> Self {
+     // HeterogeneousSpace {
+            // dimensions: vec![],
+            // span: Span::Null
+        // }
+    // }
+
+    // pub fn push(mut self, d: D) -> Self {
+        // self.span = self.span * d.span();
+        // self.dimensions.push(d);
+        // self
+    // }
+
+    // pub fn iter(&self) -> Iter<Dimension> {
+        // self.dimensions.iter()
+    // }
 // }
+
+// impl<D: Dimension> Space for HeterogeneousSpace<D> {
+    // type Repr = Vec<D::Value>;
+
+    // fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
+        // self.dimensions.iter().map(|d| d.sample(rng)).collect()
+    // }
+
+    // fn dim(&self) -> usize {
+        // self.dimensions.len()
+    // }
+
+    // fn span(&self) -> Span {
+        // self.span
+    // }
 // }
 
+    // fn sample(&self, rng: &mut ThreadRng) -> Self::Repr;
 
-pub struct PairSpace<D1, D2>((D1, D2))
-    where D1: Dimension,
-          D2: Dimension;
+    // fn dim(&self) -> usize;
+    // fn span(&self) -> Span;
 
-impl<D1: Dimension, D2: Dimension> PairSpace<D1, D2> {
-    pub fn new(d1: D1, d2: D2) -> Self {
-        PairSpace((d1, d2))
+#[cfg(test)]
+mod tests {
+    use super::{Space, NullSpace, UnitarySpace, PairSpace, RegularSpace};
+
+    use rand::thread_rng;
+    use geometry::Span;
+    use geometry::dimensions::*;
+
+    #[test]
+    fn test_null_space() {
+        let ns = NullSpace;
+        let mut rng = thread_rng();
+
+        assert_eq!(ns.sample(&mut rng), ());
+        assert_eq!(ns.dim(), 0);
+        assert_eq!(ns.span(), Span::Null);
     }
 }
-
-impl<D1: Dimension, D2: Dimension> Space for PairSpace<D1, D2> {
-    type Repr = (D1::Value, D2::Value);
-
-    fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
-        ((self.0).0.sample(rng), (self.0).1.sample(rng))
-    }
-
-    fn dim(&self) -> usize {
-        2
-    }
-
-    fn span(&self) -> Span {
-        (self.0).0.span() * (self.0).1.span()
-    }
-}
-
-impl PairSpace<dimensions::Continuous, dimensions::Continuous> {
-    pub fn partitioned(self, density: usize) -> PairSpace<Partitioned, Partitioned> {
-        PairSpace((Partitioned::from_continuous((self.0).0, density),
-                   Partitioned::from_continuous((self.0).1, density)))
-    }
-}
-
-
-// pub struct MultiSpace<D: Dimension> {
-// dimensions: Vec<D>,
-// span: Span
-// }
-
-// impl<D: Dimension> MultiSpace<D> {
-// pub fn new() -> Self {
-// MultiSpace {
-// dimensions: vec![],
-// span: Span::Null
-// }
-// }
-
-// pub fn push(mut self, d: D) -> Self {
-// self.span = self.span * d.span();
-// self.dimensions.push(d);
-// self
-// }
-
-// pub fn iter(&self) -> Iter<D> {
-// self.dimensions.iter()
-// }
-// }
-
-// impl<D: Dimension> Space for MultiSpace<D> {
-// type Repr = Vec<D::Value>;
-
-// fn dim(&self) -> usize {
-// self.dimensions.len()
-// }
-
-// fn span(&self) -> Span {
-// self.span
-// }
-// }
-
-// impl MultiSpace<dimensions::Continuous> {
-// pub fn with_partitions(self, density: usize) -> MultiSpace<Partitioned> {
-// self.into_iter().map(
-// |d| Partitioned::from_continuous(d, density)).collect()
-// }
-// }
