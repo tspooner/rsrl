@@ -24,7 +24,7 @@ pub struct NullSpace;
 impl Space for NullSpace {
     type Repr = ();
 
-    fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
+    fn sample(&self, _: &mut ThreadRng) -> Self::Repr {
         ()
     }
 

@@ -263,7 +263,7 @@ impl BoundedDimension for Discrete {
     }
 
     fn contains(&self, val: &Self::Value) -> bool {
-        (*val >= 0) && (*val < self.ub)
+        *val < self.ub
     }
 }
 

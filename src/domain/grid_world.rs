@@ -1,6 +1,6 @@
 use std::cmp;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Error as IOError};
 use std::fmt::Debug;
 use std::str::FromStr;
 use ndarray::{Array2};
@@ -53,16 +53,17 @@ impl<T> GridWorld<T> {
         }
     }
 
-    pub fn from_file(path: &str) -> GridWorld<T>
+    pub fn from_file(path: &str) -> Result<GridWorld<T>, IOError>
         where T: FromStr,
               T::Err: Debug
     {
         let mut f = File::open(path).unwrap();
         let mut buffer = String::new();
 
-        f.read_to_string(&mut buffer);
-
-        GridWorld::<T>::from_str(&buffer)
+        match f.read_to_string(&mut buffer) {
+            Ok(_) => Ok(GridWorld::<T>::from_str(&buffer)),
+            Err(e) => Err(e),
+        }
     }
 
     pub fn height(&self) -> usize {

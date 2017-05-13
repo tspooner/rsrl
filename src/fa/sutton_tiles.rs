@@ -4,7 +4,7 @@ use self::libc::{c_double, c_int, size_t};
 use super::{Function, Parameterised, Linear, VFunction, QFunction};
 
 use ndarray::{Axis, Array1};
-use geometry::{Space, RegularSpace};
+use geometry::RegularSpace;
 use geometry::dimensions::Continuous;
 
 
