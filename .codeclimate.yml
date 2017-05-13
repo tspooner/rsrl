@@ -1,0 +1,14 @@
+engines:
+  fixme:
+    enabled: true
+
+ratings:
+  paths:
+  - src/**
+  - examples/**
+
+exclude_paths:
+  - target/
+  - extern/
+  - Cargo.*
+  - rustfmt.toml
