@@ -1,5 +1,6 @@
 use rand::{Rng, thread_rng, ThreadRng};
 
+use {Parameter};
 use super::{Policy, Greedy, Random};
 use geometry::ActionSpace;
 
@@ -8,17 +9,17 @@ pub struct EpsilonGreedy {
     greedy: Greedy,
     random: Random,
 
-    epsilon: f64,
+    epsilon: Parameter<f64>,
     rng: ThreadRng,
 }
 
 impl EpsilonGreedy {
-    pub fn new(action_space: ActionSpace, epsilon: f64) -> Self {
+    pub fn new<T: Into<Parameter<f64>>>(action_space: ActionSpace, epsilon: T) -> Self {
         EpsilonGreedy {
             greedy: Greedy,
             random: Random::new(action_space),
 
-            epsilon: epsilon,
+            epsilon: epsilon.into(),
             rng: thread_rng(),
         }
     }
@@ -26,7 +27,7 @@ impl EpsilonGreedy {
 
 impl Policy for EpsilonGreedy {
     fn sample(&mut self, qs: &[f64]) -> usize {
-        if self.rng.next_f64() < self.epsilon {
+        if self.rng.next_f64() < self.epsilon.value() {
             self.random.sample(qs)
         } else {
             self.greedy.sample(qs)
@@ -37,7 +38,7 @@ impl Policy for EpsilonGreedy {
         let pr = (1.0 - self.epsilon) / qs.len() as f64;
 
         self.greedy.probabilities(qs).iter().map(|p| {
-            pr + p*self.epsilon
+            pr + p*self.epsilon.value()
         }).collect()
     }
 }
