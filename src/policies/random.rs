@@ -4,21 +4,21 @@ use super::Policy;
 use geometry::{Space, ActionSpace};
 
 
-pub struct Uniform {
+pub struct Random {
     action_space: ActionSpace,
     rng: ThreadRng,
 }
 
-impl Uniform {
+impl Random {
     pub fn new(aspace: ActionSpace) -> Self {
-        Uniform {
+        Random {
             action_space: aspace,
             rng: thread_rng(),
         }
     }
 }
 
-impl Policy for Uniform {
+impl Policy for Random {
     fn sample(&mut self, _: &[f64]) -> usize {
         self.action_space.sample(&mut self.rng)
     }

@@ -7,7 +7,8 @@ pub trait Policy {
 }
 
 
-pub mod random;
+mod random;
+pub use self::random::Random;
 
 mod greedy;
 pub use self::greedy::Greedy;

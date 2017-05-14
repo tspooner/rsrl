@@ -1,13 +1,12 @@
 use rand::{Rng, thread_rng, ThreadRng};
 
-use super::{Policy, Greedy};
-use super::random::Uniform;
+use super::{Policy, Greedy, Random};
 use geometry::ActionSpace;
 
 
 pub struct EpsilonGreedy {
     greedy: Greedy,
-    random: Uniform,
+    random: Random,
 
     epsilon: f64,
     rng: ThreadRng,
@@ -17,7 +16,7 @@ impl EpsilonGreedy {
     pub fn new(action_space: ActionSpace, epsilon: f64) -> Self {
         EpsilonGreedy {
             greedy: Greedy,
-            random: Uniform::new(action_space),
+            random: Random::new(action_space),
 
             epsilon: epsilon,
             rng: thread_rng(),
