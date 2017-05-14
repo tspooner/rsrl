@@ -1,4 +1,5 @@
 use std::f64;
+use std::cmp::max;
 use std::ops::{Add, Sub, Mul, Div};
 
 
@@ -24,7 +25,7 @@ impl Parameter {
         Parameter::Fixed(value)
     }
 
-    pub fn exponential(init: f64, decay: f64, floor: f64) -> Parameter {
+    pub fn exponential(init: f64, floor: f64, decay: f64) -> Parameter {
         Parameter::Exponential {
             init: init,
             floor: floor,
@@ -33,11 +34,11 @@ impl Parameter {
         }
     }
 
-    pub fn polynomial(init: f64, exponent: f64, floor: f64) -> Parameter {
+    pub fn polynomial(init: f64, floor: f64, exponent: f64) -> Parameter {
         Parameter::Polynomial {
             init: init,
             floor: floor,
-            count: 0,
+            count: 1,
             exponent: exponent,
         }
     }
@@ -52,7 +53,7 @@ impl Parameter {
 
             &Parameter::Polynomial {
                 init: i, floor: f, count: c, exponent: e
-            } => f64::max(i * (c as f64).powf(e), f),
+            } => f64::max(i / (c as f64).powf(e), f),
         }
     }
 
@@ -68,7 +69,7 @@ impl Parameter {
             } => Parameter::Exponential {
                 init: i,
                 floor: f,
-                count: c + 1,
+                count: c.saturating_add(1),
                 decay: d,
             },
             Parameter::Polynomial {
@@ -76,7 +77,7 @@ impl Parameter {
             } => Parameter::Polynomial {
                 init: i,
                 floor: f,
-                count: c + 1,
+                count: c.saturating_add(1),
                 exponent: e,
             },
         }
@@ -90,7 +91,7 @@ impl Parameter {
             } => Parameter::Exponential {
                 init: i,
                 floor: f,
-                count: c - 1,
+                count: c.saturating_sub(1),
                 decay: d,
             },
             Parameter::Polynomial {
@@ -98,7 +99,7 @@ impl Parameter {
             } => Parameter::Polynomial {
                 init: i,
                 floor: f,
-                count: c - 1,
+                count: max(1, c.saturating_sub(1)),
                 exponent: e,
             },
         }
@@ -146,4 +147,105 @@ impl_op!(Mul, f64, mul, *);
 impl_op!(Div, f64, div, /);
 
 
-// TODO: Add tests
+#[cfg(test)]
+mod tests {
+    use super::Parameter;
+
+    #[test]
+    fn test_fixed() {
+        let mut p = Parameter::fixed(1.0);
+
+        assert_eq!(p.value(), 1.0);
+
+        for _ in 0..1000 {
+            p = p.step();
+            assert_eq!(p.value(), 1.0);
+        }
+
+        for _ in 0..1000 {
+            p = p.back();
+            assert_eq!(p.value(), 1.0);
+        }
+    }
+
+    #[test]
+    fn test_exponential() {
+        let mut p = Parameter::exponential(1.0, 0.5, 0.9);
+
+        assert!((p.value() - 1.0).abs() < 1e-7);
+
+        p = p.step();
+        assert!((p.value() - 0.9).abs() < 1e-7);
+
+        p = p.step();
+        assert!((p.value() - 0.81).abs() < 1e-7);
+
+        p = p.step();
+        assert!((p.value() - 0.729).abs() < 1e-7);
+
+        p = p.back();
+        assert!((p.value() - 0.81).abs() < 1e-7);
+
+        p = p.back();
+        assert!((p.value() - 0.9).abs() < 1e-7);
+
+        p = p.back();
+        assert!((p.value() - 1.0).abs() < 1e-7);
+
+        p = p.back();
+        assert!((p.value() - 1.0).abs() < 1e-7);
+
+        for _ in 0..1000 {
+            p = p.step();
+            assert!(p.value() >= 0.5);
+        }
+
+        assert!((p.value() - 0.5).abs() < 1e-7);
+    }
+
+    #[test]
+    fn test_polynomial() {
+        let mut p = Parameter::polynomial(1.0, 0.1, 0.6);
+
+        assert!((p.value() - 1.0).abs() < 1e-7);
+
+        p = p.step();
+        assert!((p.value() - 0.659753955386447).abs() < 1e-7);
+
+        p = p.step();
+        assert!((p.value() - 0.517281857971786).abs() < 1e-7);
+
+        p = p.step();
+        assert!((p.value() - 0.435275281648062).abs() < 1e-7);
+
+        p = p.back();
+        assert!((p.value() - 0.517281857971786).abs() < 1e-7);
+
+        p = p.back();
+        assert!((p.value() - 0.659753955386447).abs() < 1e-7);
+
+        p = p.back();
+        assert!((p.value() - 1.0).abs() < 1e-7);
+
+        p = p.back();
+        assert!((p.value() - 1.0).abs() < 1e-7);
+
+        for _ in 0..1000 {
+            p = p.step();
+            assert!(p.value() >= 0.1);
+        }
+
+        assert!((p.value() - 0.1).abs() < 1e-7);
+    }
+
+    #[test]
+    fn test_to_fixed() {
+        let mut p = Parameter::exponential(1.0, 0.5, 0.9);
+        p = p.step().to_fixed();
+
+        assert!((p.value() - 0.9).abs() < 1e-7);
+
+        p = p.step().step().step().back().back();
+        assert!((p.value() - 0.9).abs() < 1e-7);
+    }
+}
