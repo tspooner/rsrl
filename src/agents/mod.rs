@@ -1,4 +1,4 @@
-use domain::Transition;
+use domains::Transition;
 use geometry::{Space, ActionSpace};
 
 

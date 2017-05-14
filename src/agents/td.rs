@@ -3,7 +3,7 @@ use super::Agent;
 use {Parameter};
 use fa::{VFunction, QFunction, Linear};
 use utils::dot;
-use domain::Transition;
+use domains::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
 use std::marker::PhantomData;
