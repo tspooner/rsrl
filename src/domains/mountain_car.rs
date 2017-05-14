@@ -115,7 +115,7 @@ impl Domain for MountainCar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use domain::{Observation, Domain};
+    use domains::{Observation, Domain};
 
     #[test]
     fn test_initial_observation() {
