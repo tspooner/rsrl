@@ -11,9 +11,9 @@ extern crate ndarray;
 // extern crate futures;
 extern crate rand;
 
+mod utils;
 mod macros;
 
-pub mod utils;
 pub mod geometry;
 pub mod domain;
 pub mod fa;

@@ -1,9 +1,9 @@
 use super::{Function, Parameterised, Linear, QFunction};
 
 use utils::dot;
-use utils::kernels::Kernel;
 use ndarray::{Array1, Array2, ArrayView};
 use geometry::{RegularSpace};
+use geometry::kernels::Kernel;
 use geometry::dimensions::Continuous;
 
 

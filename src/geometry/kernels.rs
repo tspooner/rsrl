@@ -1,3 +1,6 @@
+use utils;
+
+
 /// An interface for kernel functions.
 pub trait Kernel {
     fn apply(&self, x1: &[f64], x2: &[f64]) -> f64;
@@ -18,7 +21,7 @@ impl Linear {
 
 impl Kernel for Linear {
     fn apply(&self, x1: &[f64], x2: &[f64]) -> f64 {
-        super::dot(x1, x2) + self.c
+        utils::dot(x1, x2) + self.c
     }
 }
 
