@@ -10,5 +10,5 @@ pub trait Agent<S: Space> {
 }
 
 
-pub mod actor_critic;
-pub mod td;
+pub mod control;
+pub mod prediction;

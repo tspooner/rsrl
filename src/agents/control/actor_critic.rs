@@ -1,7 +1,6 @@
-use super::Agent;
-
 use {Parameter};
 use fa::{VFunction, QFunction};
+use agents::Agent;
 use domains::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
