@@ -2,7 +2,7 @@ extern crate indicatif;
 use self::indicatif::{ProgressBar, ProgressDrawTarget};
 
 use agents::Agent;
-use domain::{Domain, Observation};
+use domains::{Domain, Observation};
 use geometry::{Space, ActionSpace};
 
 

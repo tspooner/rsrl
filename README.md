@@ -39,12 +39,10 @@ extern crate rsrl;
 
 use rsrl::{run, SerialExperiment, Evaluation};
 use rsrl::fa::linear::RBFNetwork;
-use rsrl::domain::{Domain, MountainCar};
 use rsrl::agents::td::GreedyGQ;
-use rsrl::policies::{Greedy, EpsilonGreedy};
+use rsrl::domains::{Domain, MountainCar};
 use rsrl::geometry::Space;
-
-use rsrl::logging::DefaultLogger;
+use rsrl::policies::Greedy;
 
 
 fn main() {

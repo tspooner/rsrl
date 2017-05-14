@@ -1,7 +1,7 @@
 use super::Agent;
 
 use fa::{VFunction, QFunction};
-use domain::Transition;
+use domains::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
 use std::marker::PhantomData;
