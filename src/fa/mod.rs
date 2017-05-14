@@ -143,9 +143,6 @@ impl<S: Space, T> QFunction<S> for Box<T>
 
 
 mod fgroup;
-pub use self::fgroup::VFunctionGroup;
-
-
 mod table;
 mod uniform_grid;
 mod rbf_network;
@@ -166,4 +163,8 @@ pub mod linear {
 
 pub mod non_linear {
     // pub use fa::leaf::*;
+}
+
+pub mod misc {
+    pub use fa::fgroup::VFunctionGroup;
 }
