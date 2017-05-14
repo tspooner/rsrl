@@ -56,7 +56,7 @@ fn main() {
         let v_func = RBFNetwork::new(
             domain.state_space().partitioned(8), 1);
 
-        GreedyGQ::new(q_func, v_func, Greedy, 0.99, 0.1, 1e-5)
+        GreedyGQ::new(q_func, v_func, Greedy, 0.1, 1e-5, 0.99)
     };
 
     // Training:

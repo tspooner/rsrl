@@ -14,6 +14,9 @@ extern crate rand;
 mod utils;
 mod macros;
 
+mod parameter;
+pub use self::parameter::Parameter;
+
 mod experiment;
 pub use self::experiment::*;
 

@@ -1,15 +1,17 @@
 use std::f64;
 use rand::{Rng, thread_rng, ThreadRng};
+
+use {Parameter};
 use super::Policy;
 
 
 pub struct Boltzmann {
-    tau: f64,
+    tau: Parameter,
     rng: ThreadRng,
 }
 
 impl Boltzmann {
-    pub fn new<T: Into<f64>>(tau: T) -> Self {
+    pub fn new<T: Into<Parameter>>(tau: T) -> Self {
         Boltzmann {
             tau: tau.into(),
             rng: thread_rng(),
@@ -32,7 +34,7 @@ impl Policy for Boltzmann {
         let mq = qs.iter().cloned().fold(f64::MIN, f64::max);
         let ws: Vec<f64> = qs.iter()
             .cloned()
-            .map(|q| ((q - mq) / self.tau).exp())
+            .map(|q| ((q - mq) / self.tau.value()).exp())
             .collect();
 
         let z: f64 = ws.iter().sum();

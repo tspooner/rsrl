@@ -1,5 +1,6 @@
 use super::Agent;
 
+use {Parameter};
 use fa::{VFunction, QFunction, Linear};
 use utils::dot;
 use domains::Transition;
@@ -17,23 +18,25 @@ pub struct QLearning<S: Space, P: Policy, Q: QFunction<S>>
     q_func: Q,
     policy: P,
 
-    alpha: f64,
-    gamma: f64,
+    alpha: Parameter,
+    gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
 
 impl<S: Space, P: Policy, Q: QFunction<S>> QLearning<S, P, Q>
 {
-    pub fn new(q_func: Q, policy: P,
-               alpha: f64, gamma: f64) -> Self
+    pub fn new<T1, T2>(q_func: Q, policy: P,
+                       alpha: T1, gamma: T2) -> Self
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>
     {
         QLearning {
             q_func: q_func,
             policy: policy,
 
-            alpha: alpha,
-            gamma: gamma,
+            alpha: alpha.into(),
+            gamma: gamma.into(),
 
             phantom: PhantomData,
         }
@@ -72,23 +75,25 @@ pub struct SARSA<S: Space, P: Policy, Q: QFunction<S>>
     q_func: Q,
     policy: P,
 
-    alpha: f64,
-    gamma: f64,
+    alpha: Parameter,
+    gamma: Parameter,
 
     phantom: PhantomData<S>
 }
 
 impl<S: Space, P: Policy, Q: QFunction<S>> SARSA<S, P, Q>
 {
-    pub fn new(q_func: Q, policy: P,
-               alpha: f64, gamma: f64) -> Self
+    pub fn new<T1, T2>(q_func: Q, policy: P,
+                       alpha: T1, gamma: T2) -> Self
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>
     {
         SARSA {
             q_func: q_func,
             policy: policy,
 
-            alpha: alpha,
-            gamma: gamma,
+            alpha: alpha.into(),
+            gamma: gamma.into(),
 
             phantom: PhantomData,
         }
@@ -127,23 +132,25 @@ pub struct ExpectedSARSA<S: Space, P: Policy, Q: QFunction<S>>
     q_func: Q,
     policy: P,
 
-    alpha: f64,
-    gamma: f64,
+    alpha: Parameter,
+    gamma: Parameter,
 
     phantom: PhantomData<S>
 }
 
 impl<S: Space, P: Policy, Q: QFunction<S>> ExpectedSARSA<S, P, Q>
 {
-    pub fn new(q_func: Q, policy: P,
-               alpha: f64, gamma: f64) -> Self
+    pub fn new<T1, T2>(q_func: Q, policy: P,
+                       alpha: T1, gamma: T2) -> Self
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>
     {
         ExpectedSARSA {
             q_func: q_func,
             policy: policy,
 
-            alpha: alpha,
-            gamma: gamma,
+            alpha: alpha.into(),
+            gamma: gamma.into(),
 
             phantom: PhantomData,
         }
@@ -186,13 +193,17 @@ pub struct GreedyGQ<Q, V, P> {
 
     policy: P,
 
-    gamma: f64,
-    alpha: f64,
-    beta: f64,
+    alpha: Parameter,
+    beta: Parameter,
+    gamma: Parameter,
 }
 
 impl<Q, V, P> GreedyGQ<Q, V, P> {
-    pub fn new(q_func: Q, v_func: V, policy: P, gamma: f64, alpha: f64, beta: f64) -> Self
+    pub fn new<T1, T2, T3>(q_func: Q, v_func: V, policy: P,
+                           alpha: T1, beta: T2, gamma: T3) -> Self
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>,
+              T3: Into<Parameter>
     {
         GreedyGQ {
             q_func: q_func,
@@ -200,9 +211,9 @@ impl<Q, V, P> GreedyGQ<Q, V, P> {
 
             policy: policy,
 
-            alpha: alpha,
-            gamma: gamma,
-            beta: beta,
+            alpha: alpha.into(),
+            beta: beta.into(),
+            gamma: gamma.into(),
         }
     }
 }
@@ -227,13 +238,13 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
         let phi_ns = self.q_func.phi(ns);
 
         let td_error = t.reward +
-            self.q_func.evaluate_action_phi(&(self.gamma*&phi_ns - &phi_s), a);
+            self.q_func.evaluate_action_phi(&(self.gamma.value()*&phi_ns - &phi_s), a);
         let td_estimate = self.v_func.evaluate(s);
 
         let update_q = td_error*&phi_s - self.gamma*td_estimate*phi_ns;
         let update_v = (td_error - td_estimate)*phi_s;
 
-        self.q_func.update_action_phi(&update_q, a, self.alpha);
+        self.q_func.update_action_phi(&update_q, a, self.alpha.value());
         self.v_func.update_phi(&update_v, self.alpha*self.beta);
     }
 }

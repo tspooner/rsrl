@@ -1,5 +1,6 @@
 use super::Agent;
 
+use {Parameter};
 use fa::{VFunction, QFunction};
 use domains::Transition;
 use geometry::{Space, ActionSpace};
@@ -17,9 +18,9 @@ pub struct ActorCritic<S: Space, P: Policy, Q, V>
 
     policy: P,
 
-    alpha: f64,
-    beta: f64,
-    gamma: f64,
+    alpha: Parameter,
+    beta: Parameter,
+    gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
@@ -28,8 +29,11 @@ impl<S: Space, P: Policy, Q, V> ActorCritic<S, P, Q, V>
     where Q: QFunction<S>,
           V: VFunction<S>
 {
-    pub fn new(actor: Q, critic: V, policy: P,
-               alpha: f64, beta: f64, gamma: f64) -> Self
+    pub fn new<T1, T2, T3>(actor: Q, critic: V, policy: P,
+                           alpha: T1, beta: T2, gamma: T3) -> Self
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>,
+              T3: Into<Parameter>
     {
         ActorCritic {
             actor: actor,
@@ -37,9 +41,9 @@ impl<S: Space, P: Policy, Q, V> ActorCritic<S, P, Q, V>
 
             policy: policy,
 
-            alpha: alpha,
-            beta: beta,
-            gamma: gamma,
+            alpha: alpha.into(),
+            beta: beta.into(),
+            gamma: gamma.into(),
 
             phantom: PhantomData,
         }
