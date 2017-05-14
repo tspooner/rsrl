@@ -6,12 +6,12 @@ use super::Policy;
 
 
 pub struct Boltzmann {
-    tau: Parameter<f64>,
+    tau: Parameter,
     rng: ThreadRng,
 }
 
 impl Boltzmann {
-    pub fn new<T: Into<Parameter<f64>>>(tau: T) -> Self {
+    pub fn new<T: Into<Parameter>>(tau: T) -> Self {
         Boltzmann {
             tau: tau.into(),
             rng: thread_rng(),

@@ -18,9 +18,9 @@ pub struct ActorCritic<S: Space, P: Policy, Q, V>
 
     policy: P,
 
-    alpha: Parameter<f64>,
-    beta: Parameter<f64>,
-    gamma: Parameter<f64>,
+    alpha: Parameter,
+    beta: Parameter,
+    gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
@@ -31,9 +31,9 @@ impl<S: Space, P: Policy, Q, V> ActorCritic<S, P, Q, V>
 {
     pub fn new<T1, T2, T3>(actor: Q, critic: V, policy: P,
                            alpha: T1, beta: T2, gamma: T3) -> Self
-        where T1: Into<Parameter<f64>>,
-              T2: Into<Parameter<f64>>,
-              T3: Into<Parameter<f64>>
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>,
+              T3: Into<Parameter>
     {
         ActorCritic {
             actor: actor,

@@ -18,8 +18,8 @@ pub struct QLearning<S: Space, P: Policy, Q: QFunction<S>>
     q_func: Q,
     policy: P,
 
-    alpha: Parameter<f64>,
-    gamma: Parameter<f64>,
+    alpha: Parameter,
+    gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
@@ -28,8 +28,8 @@ impl<S: Space, P: Policy, Q: QFunction<S>> QLearning<S, P, Q>
 {
     pub fn new<T1, T2>(q_func: Q, policy: P,
                        alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter<f64>>,
-              T2: Into<Parameter<f64>>
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>
     {
         QLearning {
             q_func: q_func,
@@ -75,8 +75,8 @@ pub struct SARSA<S: Space, P: Policy, Q: QFunction<S>>
     q_func: Q,
     policy: P,
 
-    alpha: Parameter<f64>,
-    gamma: Parameter<f64>,
+    alpha: Parameter,
+    gamma: Parameter,
 
     phantom: PhantomData<S>
 }
@@ -85,8 +85,8 @@ impl<S: Space, P: Policy, Q: QFunction<S>> SARSA<S, P, Q>
 {
     pub fn new<T1, T2>(q_func: Q, policy: P,
                        alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter<f64>>,
-              T2: Into<Parameter<f64>>
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>
     {
         SARSA {
             q_func: q_func,
@@ -132,8 +132,8 @@ pub struct ExpectedSARSA<S: Space, P: Policy, Q: QFunction<S>>
     q_func: Q,
     policy: P,
 
-    alpha: Parameter<f64>,
-    gamma: Parameter<f64>,
+    alpha: Parameter,
+    gamma: Parameter,
 
     phantom: PhantomData<S>
 }
@@ -142,8 +142,8 @@ impl<S: Space, P: Policy, Q: QFunction<S>> ExpectedSARSA<S, P, Q>
 {
     pub fn new<T1, T2>(q_func: Q, policy: P,
                        alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter<f64>>,
-              T2: Into<Parameter<f64>>
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>
     {
         ExpectedSARSA {
             q_func: q_func,
@@ -193,17 +193,17 @@ pub struct GreedyGQ<Q, V, P> {
 
     policy: P,
 
-    alpha: Parameter<f64>,
-    beta: Parameter<f64>,
-    gamma: Parameter<f64>,
+    alpha: Parameter,
+    beta: Parameter,
+    gamma: Parameter,
 }
 
 impl<Q, V, P> GreedyGQ<Q, V, P> {
     pub fn new<T1, T2, T3>(q_func: Q, v_func: V, policy: P,
                            alpha: T1, beta: T2, gamma: T3) -> Self
-        where T1: Into<Parameter<f64>>,
-              T2: Into<Parameter<f64>>,
-              T3: Into<Parameter<f64>>
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>,
+              T3: Into<Parameter>
     {
         GreedyGQ {
             q_func: q_func,

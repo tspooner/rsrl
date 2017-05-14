@@ -9,12 +9,12 @@ pub struct EpsilonGreedy {
     greedy: Greedy,
     random: Random,
 
-    epsilon: Parameter<f64>,
+    epsilon: Parameter,
     rng: ThreadRng,
 }
 
 impl EpsilonGreedy {
-    pub fn new<T: Into<Parameter<f64>>>(action_space: ActionSpace, epsilon: T) -> Self {
+    pub fn new<T: Into<Parameter>>(action_space: ActionSpace, epsilon: T) -> Self {
         EpsilonGreedy {
             greedy: Greedy,
             random: Random::new(action_space),
