@@ -14,10 +14,12 @@ extern crate rand;
 mod utils;
 mod macros;
 
+mod experiment;
+pub use self::experiment::*;
+
 pub mod geometry;
 pub mod domain;
 pub mod fa;
 pub mod policies;
 pub mod agents;
-pub mod experiment;
-pub mod loggers;
+pub mod logging;
