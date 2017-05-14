@@ -20,11 +20,11 @@ pub enum Parameter {
 }
 
 impl Parameter {
-    pub fn fixed(value: f64) -> Self {
+    pub fn fixed(value: f64) -> Parameter {
         Parameter::Fixed(value)
     }
 
-    pub fn exponential(init: f64, decay: f64, floor: f64) -> Self {
+    pub fn exponential(init: f64, decay: f64, floor: f64) -> Parameter {
         Parameter::Exponential {
             init: init,
             floor: floor,
@@ -33,7 +33,7 @@ impl Parameter {
         }
     }
 
-    pub fn polynomial(init: f64, exponent: f64, floor: f64) -> Self {
+    pub fn polynomial(init: f64, exponent: f64, floor: f64) -> Parameter {
         Parameter::Polynomial {
             init: init,
             floor: floor,
@@ -56,7 +56,11 @@ impl Parameter {
         }
     }
 
-    pub fn step(self) -> Self {
+    pub fn to_fixed(self) -> Parameter {
+        Parameter::Fixed(self.value())
+    }
+
+    pub fn step(self) -> Parameter {
         match self {
             Parameter::Fixed(_) => self,
             Parameter::Exponential {
@@ -78,7 +82,7 @@ impl Parameter {
         }
     }
 
-    pub fn back(self) -> Self {
+    pub fn back(self) -> Parameter {
         match self {
             Parameter::Fixed(_) => self,
             Parameter::Exponential {
