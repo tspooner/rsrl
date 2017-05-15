@@ -1,7 +1,7 @@
 extern crate indicatif;
 use self::indicatif::{ProgressBar, ProgressDrawTarget};
 
-use agents::Agent;
+use agents::ControlAgent;
 use domains::{Domain, Observation};
 use geometry::{Space, ActionSpace};
 
@@ -45,7 +45,7 @@ pub struct Evaluation<'a, A: 'a, D> {
 }
 
 impl<'a, S: Space, A, D> Evaluation<'a, A, D>
-    where A: Agent<S>,
+    where A: ControlAgent<S, ActionSpace>,
           D: Domain<StateSpace=S, ActionSpace=ActionSpace>
 {
     pub fn new(agent: &'a mut A,
@@ -59,7 +59,7 @@ impl<'a, S: Space, A, D> Evaluation<'a, A, D>
 }
 
 impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
-    where A: Agent<S>,
+    where A: ControlAgent<S, ActionSpace>,
           D: Domain<StateSpace=S, ActionSpace=ActionSpace>
 {
     type Item = Episode;
@@ -99,7 +99,7 @@ pub struct SerialExperiment<'a, A: 'a, D> {
 }
 
 impl<'a, S: Space, A, D> SerialExperiment<'a, A, D>
-    where A: Agent<S>,
+    where A: ControlAgent<S, ActionSpace>,
           D: Domain<StateSpace=S, ActionSpace=ActionSpace>
 {
     pub fn new(agent: &'a mut A,
@@ -115,7 +115,7 @@ impl<'a, S: Space, A, D> SerialExperiment<'a, A, D>
 }
 
 impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
-    where A: Agent<S>,
+    where A: ControlAgent<S, ActionSpace>,
           D: Domain<StateSpace=S, ActionSpace=ActionSpace>
 {
     type Item = Episode;
@@ -135,7 +135,7 @@ impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
             e.n_steps = j;
             e.total_reward += t.reward;
 
-            self.agent.learn_transition(&t);
+            self.agent.handle_transition(&t);
 
             a = match t.to {
                 Observation::Terminal(_) => break,

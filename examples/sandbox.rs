@@ -2,7 +2,7 @@ extern crate rsrl;
 
 use rsrl::{run, SerialExperiment, Evaluation};
 use rsrl::fa::linear::RBFNetwork;
-use rsrl::agents::td::GreedyGQ;
+use rsrl::agents::control::td::GreedyGQ;
 use rsrl::domains::{Domain, MountainCar};
 use rsrl::policies::{Greedy, EpsilonGreedy};
 use rsrl::geometry::Space;

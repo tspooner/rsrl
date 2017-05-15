@@ -1,7 +1,6 @@
-use super::Agent;
-
 use {Parameter};
 use fa::{VFunction, QFunction};
+use agents::{Agent, ControlAgent, PredictionAgent};
 use domains::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
@@ -9,12 +8,12 @@ use std::marker::PhantomData;
 
 
 /// Regular gradient descent actor critic.
-pub struct ActorCritic<S: Space, P: Policy, Q, V>
+pub struct ActorCritic<S: Space, P: Policy, Q, C>
     where Q: QFunction<S>,
-          V: VFunction<S>
+          C: PredictionAgent<S>
 {
     actor: Q,
-    critic: V,
+    critic: C,
 
     policy: P,
 
@@ -25,11 +24,11 @@ pub struct ActorCritic<S: Space, P: Policy, Q, V>
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, P: Policy, Q, V> ActorCritic<S, P, Q, V>
+impl<S: Space, P: Policy, Q, C> ActorCritic<S, P, Q, C>
     where Q: QFunction<S>,
-          V: VFunction<S>
+          C: PredictionAgent<S>
 {
-    pub fn new<T1, T2, T3>(actor: Q, critic: V, policy: P,
+    pub fn new<T1, T2, T3>(actor: Q, critic: C, policy: P,
                            alpha: T1, beta: T2, gamma: T3) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>,
@@ -50,9 +49,20 @@ impl<S: Space, P: Policy, Q, V> ActorCritic<S, P, Q, V>
     }
 }
 
-impl<S: Space, P: Policy, Q, V> Agent<S> for ActorCritic<S, P, Q, V>
+impl<S: Space, P: Policy, Q, C> Agent<S> for ActorCritic<S, P, Q, C>
     where Q: QFunction<S>,
-          V: VFunction<S>
+          C: PredictionAgent<S>
+{
+    fn handle_terminal(&mut self) {
+        self.alpha = self.alpha.step();
+        self.beta = self.beta.step();
+        self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Policy, Q, C> ControlAgent<S, ActionSpace> for ActorCritic<S, P, Q, C>
+    where Q: QFunction<S>,
+          C: PredictionAgent<S>
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.actor.evaluate(s).as_slice())
@@ -62,13 +72,11 @@ impl<S: Space, P: Policy, Q, V> Agent<S> for ActorCritic<S, P, Q, V>
         Greedy.sample(self.actor.evaluate(s).as_slice())
     }
 
-    fn learn_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let delta = t.reward +
-            self.gamma*self.critic.evaluate(ns) - self.critic.evaluate(s);
+        let td_error = self.critic.handle_transition(s, ns, t.reward);
 
-        self.actor.update_action(s, t.action, self.beta*delta);
-        self.critic.update(s, self.alpha*delta);
+        self.actor.update_action(s, t.action, self.beta*td_error);
     }
 }

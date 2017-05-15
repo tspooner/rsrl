@@ -1,4 +1,4 @@
-use geometry::{Space};
+use geometry::{Space, NullSpace};
 use geometry::dimensions;
 use geometry::dimensions::Dimension;
 

@@ -1,14 +1,13 @@
-use domains::Transition;
-use geometry::{Space, ActionSpace};
+use geometry::Space;
 
 
 pub trait Agent<S: Space> {
-    fn pi(&mut self, s: &S::Repr) -> usize;
-    fn pi_target(&mut self, s: &S::Repr) -> usize;
-
-    fn learn_transition(&mut self, t: &Transition<S, ActionSpace>);
+    fn handle_terminal(&mut self) {}
 }
 
+pub use self::control::ControlAgent;
+pub use self::prediction::PredictionAgent;
 
-pub mod actor_critic;
-pub mod td;
+
+pub mod control;
+pub mod prediction;
