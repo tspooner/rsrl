@@ -70,4 +70,10 @@ impl<S: Space, P: Policy, Q, V> Agent<S> for ActorCritic<S, P, Q, V>
         self.actor.update_action(s, t.action, self.beta*delta);
         self.critic.update(s, self.alpha*delta);
     }
+
+    fn handle_terminal(&mut self) {
+        self.alpha = self.alpha.step();
+        self.beta = self.beta.step();
+        self.gamma = self.gamma.step();
+    }
 }

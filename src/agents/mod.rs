@@ -7,6 +7,7 @@ pub trait Agent<S: Space> {
     fn pi_target(&mut self, s: &S::Repr) -> usize;
 
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>);
+    fn handle_terminal(&mut self) {}
 }
 
 

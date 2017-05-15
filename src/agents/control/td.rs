@@ -65,6 +65,11 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for QLearning<S, P, Q>
 
         self.q_func.update_action(s, a, td_error);
     }
+
+    fn handle_terminal(&mut self) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
+    }
 }
 
 
@@ -122,6 +127,11 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for SARSA<S, P, Q>
 
         self.q_func.update_action(s, a, td_error);
     }
+
+    fn handle_terminal(&mut self) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
+    }
 }
 
 
@@ -178,6 +188,11 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for ExpectedSARSA<S, P, Q>
         let td_error = self.alpha*(t.reward + self.gamma*exp_nqs - qs[a]);
 
         self.q_func.update_action(s, a, td_error);
+    }
+
+    fn handle_terminal(&mut self) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
     }
 }
 
@@ -245,5 +260,11 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
 
         self.q_func.update_action_phi(&update_q, a, self.alpha.value());
         self.v_func.update_phi(&update_v, self.alpha*self.beta);
+    }
+
+    fn handle_terminal(&mut self) {
+        self.alpha = self.alpha.step();
+        self.beta = self.beta.step();
+        self.gamma = self.gamma.step();
     }
 }
