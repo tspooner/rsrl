@@ -42,12 +42,13 @@ impl<S: Space, V: VFunction<S>> Agent<S> for TD<S, V>
 
 impl<S: Space, V: VFunction<S>> PredictionAgent<S> for TD<S, V>
 {
-    fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) {
+    fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> f64 {
         let v = self.v_func.evaluate(s);
         let nv = self.v_func.evaluate(ns);
 
         let td_error = self.alpha*(r + self.gamma*nv - v);
-
         self.v_func.update(&s, td_error);
+
+        td_error
     }
 }
