@@ -61,7 +61,7 @@ impl<S: Space, P: Policy, Q, V> Agent<S> for ActorCritic<S, P, Q, V>
         Greedy.sample(self.actor.evaluate(s).as_slice())
     }
 
-    fn learn_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let delta = t.reward +

@@ -135,7 +135,7 @@ impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
             e.n_steps = j;
             e.total_reward += t.reward;
 
-            self.agent.learn_transition(&t);
+            self.agent.handle_transition(&t);
 
             a = match t.to {
                 Observation::Terminal(_) => break,

@@ -1,2 +1,2 @@
-pub mod actor_critic;
 pub mod td;
+pub mod actor_critic;

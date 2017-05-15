@@ -52,7 +52,7 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for QLearning<S, P, Q>
         Greedy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn learn_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
@@ -109,7 +109,7 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for SARSA<S, P, Q>
         Greedy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn learn_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
@@ -166,7 +166,7 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for ExpectedSARSA<S, P, Q>
         Greedy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn learn_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
@@ -229,7 +229,7 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
         Greedy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn learn_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
