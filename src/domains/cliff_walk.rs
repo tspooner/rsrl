@@ -46,7 +46,7 @@ impl Domain for CliffWalk {
         } else {
             Observation::Full {
                 state: self.loc,
-                actions: vec![0, 1, 2, 3]
+                actions: Some(vec![0, 1, 2, 3])
             }
         }
     }
@@ -60,7 +60,7 @@ impl Domain for CliffWalk {
 
         Transition {
             from: from,
-            action: a,
+            action: Some(a),
             reward: r,
             to: to,
         }

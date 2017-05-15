@@ -50,7 +50,7 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for QLearning<S, P, Q>
         let qs = self.q_func.evaluate(s);
         let nqs = self.q_func.evaluate(ns);
 
-        let a = t.action;
+        let a = t.action.unwrap();
         let na = Greedy.sample(nqs.as_slice());
 
         let td_error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
@@ -115,7 +115,7 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for SARSA<S, P, Q>
         let qs = self.q_func.evaluate(s);
         let nqs = self.q_func.evaluate(ns);
 
-        let a = t.action;
+        let a = t.action.unwrap();
         let na = self.policy.sample(nqs.as_slice());
 
         let td_error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
@@ -180,7 +180,7 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for ExpectedSARSA<S, P, Q>
         let qs = self.q_func.evaluate(s);
         let nqs = self.q_func.evaluate(ns);
 
-        let a = t.action;
+        let a = t.action.unwrap();
 
         let exp_nqs = dot(&nqs, &self.policy.probabilities(nqs.as_slice()));
         let td_error = self.alpha*(t.reward + self.gamma*exp_nqs - qs[a]);
@@ -246,7 +246,7 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
           V: VFunction<S> + Linear<S>
 {
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
-        let a = t.action;
+        let a = t.action.unwrap();
         let (s, ns) = (t.from.state(), t.to.state());
 
         let phi_s = self.q_func.phi(s);

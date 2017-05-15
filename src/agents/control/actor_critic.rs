@@ -59,7 +59,7 @@ impl<S: Space, P: Policy, Q, V> Agent<S> for ActorCritic<S, P, Q, V>
         let delta = t.reward +
             self.gamma*self.critic.evaluate(ns) - self.critic.evaluate(s);
 
-        self.actor.update_action(s, t.action, self.beta*delta);
+        self.actor.update_action(s, t.action.unwrap(), self.beta*delta);
         self.critic.update(s, self.alpha*delta);
     }
 
