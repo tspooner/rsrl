@@ -53,16 +53,6 @@ impl<S: Space, P: Policy, Q, V> Agent<S> for ActorCritic<S, P, Q, V>
     where Q: QFunction<S>,
           V: VFunction<S>
 {
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
-        let delta = t.reward +
-            self.gamma*self.critic.evaluate(ns) - self.critic.evaluate(s);
-
-        self.actor.update_action(s, t.action.unwrap(), self.beta*delta);
-        self.critic.update(s, self.alpha*delta);
-    }
-
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.beta = self.beta.step();
@@ -70,7 +60,7 @@ impl<S: Space, P: Policy, Q, V> Agent<S> for ActorCritic<S, P, Q, V>
     }
 }
 
-impl<S: Space, P: Policy, Q, V> ControlAgent<S> for ActorCritic<S, P, Q, V>
+impl<S: Space, P: Policy, Q, V> ControlAgent<S, ActionSpace> for ActorCritic<S, P, Q, V>
     where Q: QFunction<S>,
           V: VFunction<S>
 {
@@ -80,5 +70,15 @@ impl<S: Space, P: Policy, Q, V> ControlAgent<S> for ActorCritic<S, P, Q, V>
 
     fn pi_target(&mut self, s: &S::Repr) -> usize {
         Greedy.sample(self.actor.evaluate(s).as_slice())
+    }
+
+    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+        let (s, ns) = (t.from.state(), t.to.state());
+
+        let delta = t.reward +
+            self.gamma*self.critic.evaluate(ns) - self.critic.evaluate(s);
+
+        self.actor.update_action(s, t.action, self.beta*delta);
+        self.critic.update(s, self.alpha*delta);
     }
 }

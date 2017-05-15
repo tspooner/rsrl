@@ -6,11 +6,11 @@ use geometry::dimensions::Dimension;
 pub enum Observation<S: Space, A: Space> {
     Full {
         state: S::Repr,
-        actions: Option<Vec<A::Repr>>,
+        actions: Vec<A::Repr>,
     },
     Partial {
         state: S::Repr,
-        actions: Option<Vec<A::Repr>>,
+        actions: Vec<A::Repr>,
     },
     Terminal(S::Repr),
 }
@@ -27,17 +27,13 @@ impl<S: Space, A: Space> Observation<S, A> {
     }
 }
 
-pub type StateObservation<S: Space> = Observation<S, NullSpace>;
-
 
 pub struct Transition<S: Space, A: Space> {
     pub from: Observation<S, A>,
-    pub action: Option<A::Repr>,
+    pub action: A::Repr,
     pub reward: f64,
     pub to: Observation<S, A>,
 }
-
-pub type StateTransition<S: Space> = Transition<S, NullSpace>;
 
 
 pub trait Domain {

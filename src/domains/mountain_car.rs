@@ -66,7 +66,7 @@ impl Domain for MountainCar {
         } else {
             Observation::Full {
                 state: vec![self.state.0, self.state.1],
-                actions: Some(vec![0, 1, 2])
+                actions: vec![0, 1, 2]
             }
         }
     }
@@ -80,7 +80,7 @@ impl Domain for MountainCar {
 
         Transition {
             from: from,
-            action: Some(a),
+            action: a,
             reward: r,
             to: to,
         }
