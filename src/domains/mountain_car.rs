@@ -22,18 +22,16 @@ const ALL_ACTIONS: [f64; 3] = [-1.0, 0.0, 1.0];
 
 
 pub struct MountainCar {
-    state: (f64, f64),
+    x: f64,
+    v: f64,
 }
 
 impl MountainCar {
-    fn new(state: (f64, f64)) -> MountainCar {
+    fn new(x: f64, v: f64) -> MountainCar {
         MountainCar {
-            state: state
+            x: x,
+            v: v
         }
-    }
-
-    fn initial_state() -> (f64, f64) {
-        (-0.5, 0.0)
     }
 
     fn dv(x: f64, a: f64) -> f64 {
@@ -43,16 +41,14 @@ impl MountainCar {
     fn update_state(&mut self, a: usize) {
         let a = ALL_ACTIONS[a];
 
-        let v = clip!(V_MIN, self.state.1 + Self::dv(self.state.0, a), V_MAX);
-        let x = clip!(X_MIN, self.state.0 + v, X_MAX);
-
-        self.state = (x, v);
+        self.v = clip!(V_MIN, self.v + Self::dv(self.x, a), V_MAX);
+        self.x = clip!(X_MIN, self.x + self.v, X_MAX);
     }
 }
 
 impl Default for MountainCar {
     fn default() -> MountainCar {
-        MountainCar::new(MountainCar::initial_state())
+        MountainCar::new(-0.5, 0.0)
     }
 }
 
@@ -61,11 +57,13 @@ impl Domain for MountainCar {
     type ActionSpace = ActionSpace;
 
     fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
+        let s = vec![self.x, self.v];
+
         if self.is_terminal() {
-            Observation::Terminal(vec![self.state.0, self.state.1])
+            Observation::Terminal(s)
         } else {
             Observation::Full {
-                state: vec![self.state.0, self.state.1],
+                state: s,
                 actions: vec![0, 1, 2]
             }
         }
@@ -87,7 +85,7 @@ impl Domain for MountainCar {
     }
 
     fn is_terminal(&self) -> bool {
-        self.state.0 >= X_MAX
+        self.x >= X_MAX
     }
 
     fn reward(&self,
