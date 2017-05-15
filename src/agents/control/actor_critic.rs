@@ -1,6 +1,6 @@
 use {Parameter};
 use fa::{VFunction, QFunction};
-use agents::Agent;
+use agents::{Agent, ControlAgent};
 use domains::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
@@ -53,14 +53,6 @@ impl<S: Space, P: Policy, Q, V> Agent<S> for ActorCritic<S, P, Q, V>
     where Q: QFunction<S>,
           V: VFunction<S>
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.actor.evaluate(s).as_slice())
-    }
-
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.actor.evaluate(s).as_slice())
-    }
-
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -75,5 +67,18 @@ impl<S: Space, P: Policy, Q, V> Agent<S> for ActorCritic<S, P, Q, V>
         self.alpha = self.alpha.step();
         self.beta = self.beta.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Policy, Q, V> ControlAgent<S> for ActorCritic<S, P, Q, V>
+    where Q: QFunction<S>,
+          V: VFunction<S>
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.actor.evaluate(s).as_slice())
+    }
+
+    fn pi_target(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.actor.evaluate(s).as_slice())
     }
 }

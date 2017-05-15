@@ -1,7 +1,7 @@
 use {Parameter};
 use fa::{VFunction, QFunction, Linear};
 use utils::dot;
-use agents::Agent;
+use agents::{Agent, ControlAgent};
 use domains::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
@@ -44,14 +44,6 @@ impl<S: Space, P: Policy, Q: QFunction<S>> QLearning<S, P, Q>
 
 impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for QLearning<S, P, Q>
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -69,6 +61,17 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for QLearning<S, P, Q>
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Policy, Q: QFunction<S>> ControlAgent<S> for QLearning<S, P, Q>
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn pi_target(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
     }
 }
 
@@ -106,14 +109,6 @@ impl<S: Space, P: Policy, Q: QFunction<S>> SARSA<S, P, Q>
 
 impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for SARSA<S, P, Q>
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -131,6 +126,17 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for SARSA<S, P, Q>
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Policy, Q: QFunction<S>> ControlAgent<S> for SARSA<S, P, Q>
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn pi_target(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
     }
 }
 
@@ -168,14 +174,6 @@ impl<S: Space, P: Policy, Q: QFunction<S>> ExpectedSARSA<S, P, Q>
 
 impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for ExpectedSARSA<S, P, Q>
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -193,6 +191,17 @@ impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for ExpectedSARSA<S, P, Q>
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Policy, Q: QFunction<S>> ControlAgent<S> for ExpectedSARSA<S, P, Q>
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn pi_target(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
     }
 }
 
@@ -236,14 +245,6 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
     where Q: QFunction<S> + Linear<S>,
           V: VFunction<S> + Linear<S>
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
@@ -266,5 +267,18 @@ impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
         self.alpha = self.alpha.step();
         self.beta = self.beta.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, Q, V, P: Policy> ControlAgent<S> for GreedyGQ<Q, V, P>
+    where Q: QFunction<S> + Linear<S>,
+          V: VFunction<S> + Linear<S>
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn pi_target(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
     }
 }
