@@ -57,6 +57,9 @@ pub trait Domain {
 mod mountain_car;
 pub use self::mountain_car::MountainCar;
 
+mod cart_pole;
+pub use self::cart_pole::CartPole;
+
 mod grid_world;
 mod cliff_walk;
 pub use self::cliff_walk::CliffWalk;

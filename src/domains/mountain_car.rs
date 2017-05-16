@@ -15,25 +15,23 @@ const FORCE_CAR: f64 = 0.001;
 
 const HILL_FREQ: f64 = 3.0;
 
-const STEP_REWARD: f64 = -1.0;
-const GOAL_REWARD: f64 = 0.0;
+const REWARD_STEP: f64 = -1.0;
+const REWARD_GOAL: f64 = 0.0;
 
 const ALL_ACTIONS: [f64; 3] = [-1.0, 0.0, 1.0];
 
 
 pub struct MountainCar {
-    state: (f64, f64),
+    x: f64,
+    v: f64,
 }
 
 impl MountainCar {
-    fn new(state: (f64, f64)) -> MountainCar {
+    fn new(x: f64, v: f64) -> MountainCar {
         MountainCar {
-            state: state
+            x: x,
+            v: v
         }
-    }
-
-    fn initial_state() -> (f64, f64) {
-        (-0.5, 0.0)
     }
 
     fn dv(x: f64, a: f64) -> f64 {
@@ -43,16 +41,14 @@ impl MountainCar {
     fn update_state(&mut self, a: usize) {
         let a = ALL_ACTIONS[a];
 
-        let v = clip!(V_MIN, self.state.1 + Self::dv(self.state.0, a), V_MAX);
-        let x = clip!(X_MIN, self.state.0 + v, X_MAX);
-
-        self.state = (x, v);
+        self.v = clip!(V_MIN, self.v + Self::dv(self.x, a), V_MAX);
+        self.x = clip!(X_MIN, self.x + self.v, X_MAX);
     }
 }
 
 impl Default for MountainCar {
     fn default() -> MountainCar {
-        MountainCar::new(MountainCar::initial_state())
+        MountainCar::new(-0.5, 0.0)
     }
 }
 
@@ -61,11 +57,13 @@ impl Domain for MountainCar {
     type ActionSpace = ActionSpace;
 
     fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
+        let s = vec![self.x, self.v];
+
         if self.is_terminal() {
-            Observation::Terminal(vec![self.state.0, self.state.1])
+            Observation::Terminal(s)
         } else {
             Observation::Full {
-                state: vec![self.state.0, self.state.1],
+                state: s,
                 actions: vec![0, 1, 2]
             }
         }
@@ -87,7 +85,7 @@ impl Domain for MountainCar {
     }
 
     fn is_terminal(&self) -> bool {
-        self.state.0 >= X_MAX
+        self.x >= X_MAX
     }
 
     fn reward(&self,
@@ -95,8 +93,8 @@ impl Domain for MountainCar {
               to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
     {
         match to {
-            &Observation::Terminal(_) => GOAL_REWARD,
-            _ => STEP_REWARD,
+            &Observation::Terminal(_) => REWARD_GOAL,
+            _ => REWARD_STEP,
         }
     }
 
@@ -133,14 +131,14 @@ mod tests {
     #[test]
     fn test_is_terminal() {
         assert!(!MountainCar::default().is_terminal());
-        assert!(!MountainCar::new((-0.5, 0.0)).is_terminal());
+        assert!(!MountainCar::new(-0.5, 0.0).is_terminal());
 
-        assert!(MountainCar::new((X_MAX, -0.05)).is_terminal());
-        assert!(MountainCar::new((X_MAX, 0.0)).is_terminal());
-        assert!(MountainCar::new((X_MAX, 0.05)).is_terminal());
+        assert!(MountainCar::new(X_MAX, -0.05).is_terminal());
+        assert!(MountainCar::new(X_MAX, 0.0).is_terminal());
+        assert!(MountainCar::new(X_MAX, 0.05).is_terminal());
 
-        assert!(!MountainCar::new((X_MAX-0.0001*X_MAX, 0.0)).is_terminal());
-        assert!(MountainCar::new((X_MAX+0.0001*X_MAX, 0.0)).is_terminal());
+        assert!(!MountainCar::new(X_MAX-0.0001*X_MAX, 0.0).is_terminal());
+        assert!(MountainCar::new(X_MAX+0.0001*X_MAX, 0.0).is_terminal());
     }
 
     #[test]
@@ -148,9 +146,9 @@ mod tests {
         let mc = MountainCar::default();
 
         let s = mc.emit();
-        let ns = MountainCar::new((X_MAX, 0.0)).emit();
+        let ns = MountainCar::new(X_MAX, 0.0).emit();
 
-        assert_eq!(mc.reward(&s, &s), STEP_REWARD);
-        assert_eq!(mc.reward(&s, &ns), GOAL_REWARD);
+        assert_eq!(mc.reward(&s, &s), REWARD_STEP);
+        assert_eq!(mc.reward(&s, &ns), REWARD_GOAL);
     }
 }
