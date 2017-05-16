@@ -15,8 +15,8 @@ const FORCE_CAR: f64 = 0.001;
 
 const HILL_FREQ: f64 = 3.0;
 
-const STEP_REWARD: f64 = -1.0;
-const GOAL_REWARD: f64 = 0.0;
+const REWARD_STEP: f64 = -1.0;
+const REWARD_GOAL: f64 = 0.0;
 
 const ALL_ACTIONS: [f64; 3] = [-1.0, 0.0, 1.0];
 
@@ -93,8 +93,8 @@ impl Domain for MountainCar {
               to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
     {
         match to {
-            &Observation::Terminal(_) => GOAL_REWARD,
-            _ => STEP_REWARD,
+            &Observation::Terminal(_) => REWARD_GOAL,
+            _ => REWARD_STEP,
         }
     }
 

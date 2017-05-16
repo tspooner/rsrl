@@ -12,6 +12,7 @@ extern crate ndarray;
 extern crate rand;
 
 mod utils;
+mod consts;
 mod macros;
 
 mod parameter;
