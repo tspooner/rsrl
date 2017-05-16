@@ -131,14 +131,14 @@ mod tests {
     #[test]
     fn test_is_terminal() {
         assert!(!MountainCar::default().is_terminal());
-        assert!(!MountainCar::new((-0.5, 0.0)).is_terminal());
+        assert!(!MountainCar::new(-0.5, 0.0).is_terminal());
 
-        assert!(MountainCar::new((X_MAX, -0.05)).is_terminal());
-        assert!(MountainCar::new((X_MAX, 0.0)).is_terminal());
-        assert!(MountainCar::new((X_MAX, 0.05)).is_terminal());
+        assert!(MountainCar::new(X_MAX, -0.05).is_terminal());
+        assert!(MountainCar::new(X_MAX, 0.0).is_terminal());
+        assert!(MountainCar::new(X_MAX, 0.05).is_terminal());
 
-        assert!(!MountainCar::new((X_MAX-0.0001*X_MAX, 0.0)).is_terminal());
-        assert!(MountainCar::new((X_MAX+0.0001*X_MAX, 0.0)).is_terminal());
+        assert!(!MountainCar::new(X_MAX-0.0001*X_MAX, 0.0).is_terminal());
+        assert!(MountainCar::new(X_MAX+0.0001*X_MAX, 0.0).is_terminal());
     }
 
     #[test]
@@ -146,9 +146,9 @@ mod tests {
         let mc = MountainCar::default();
 
         let s = mc.emit();
-        let ns = MountainCar::new((X_MAX, 0.0)).emit();
+        let ns = MountainCar::new(X_MAX, 0.0).emit();
 
-        assert_eq!(mc.reward(&s, &s), STEP_REWARD);
-        assert_eq!(mc.reward(&s, &ns), GOAL_REWARD);
+        assert_eq!(mc.reward(&s, &s), REWARD_STEP);
+        assert_eq!(mc.reward(&s, &ns), REWARD_GOAL);
     }
 }

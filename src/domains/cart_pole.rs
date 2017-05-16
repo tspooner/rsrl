@@ -132,3 +132,63 @@ impl Domain for CartPole {
         ActionSpace::new(Discrete::new(2))
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use domains::{Observation, Domain};
+
+    #[test]
+    fn test_initial_observation() {
+        let m = CartPole::default();
+
+        match m.emit() {
+            Observation::Full { ref state, .. } => {
+                assert_eq!(state[0], 0.0);
+                assert_eq!(state[1], 0.0);
+                assert_eq!(state[2], 0.0);
+                assert_eq!(state[3], 0.0);
+            }
+            _ => panic!("Should yield a fully observable state."),
+        }
+    }
+
+    #[test]
+    fn test_step_0() {
+        let mut m = CartPole::default();
+
+        let t = m.step(0);
+        let s = t.to.state();
+        assert!((s[0] - 0.0).abs() < 1e-7);
+        assert!((s[1] - -0.1951219512195122).abs() < 1e-7);
+        assert!((s[2] - 0.0).abs() < 1e-7);
+        assert!((s[3] - 0.2926829268292683).abs() < 1e-7);
+
+        let t = m.step(0);
+        let s = t.to.state();
+        assert!((s[0] - -0.0039024390243902443).abs() < 1e-7);
+        assert!((s[1] - -0.3902439024390244).abs() < 1e-7);
+        assert!((s[2] - 0.005853658536585366).abs() < 1e-7);
+        assert!((s[3] - 0.5853658536585366).abs() < 1e-7);
+    }
+
+    #[test]
+    fn test_step_1() {
+        let mut m = CartPole::default();
+
+        let t = m.step(1);
+        let s = t.to.state();
+        assert!((s[0] - 0.0).abs() < 1e-7);
+        assert!((s[1] - 0.1951219512195122).abs() < 1e-7);
+        assert!((s[2] - 0.0).abs() < 1e-7);
+        assert!((s[3] - -0.2926829268292683).abs() < 1e-7);
+
+        let t = m.step(1);
+        let s = t.to.state();
+        assert!((s[0] - 0.0039024390243902443).abs() < 1e-7);
+        assert!((s[1] - 0.3902439024390244).abs() < 1e-7);
+        assert!((s[2] - -0.005853658536585366).abs() < 1e-7);
+        assert!((s[3] - -0.5853658536585366).abs() < 1e-7);
+    }
+}
