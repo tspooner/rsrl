@@ -1,6 +1,6 @@
 use Parameter;
 use fa::VFunction;
-use agents::{Agent, PredictionAgent};
+use agents::PredictionAgent;
 use geometry::{Space, NullSpace};
 use std::marker::PhantomData;
 
@@ -32,14 +32,6 @@ impl<S: Space, V: VFunction<S>> TD<S, V>
     }
 }
 
-impl<S: Space, V: VFunction<S>> Agent<S> for TD<S, V>
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-    }
-}
-
 impl<S: Space, V: VFunction<S>> PredictionAgent<S> for TD<S, V>
 {
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> f64 {
@@ -50,5 +42,10 @@ impl<S: Space, V: VFunction<S>> PredictionAgent<S> for TD<S, V>
         self.v_func.update(&s, td_error);
 
         td_error
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
     }
 }

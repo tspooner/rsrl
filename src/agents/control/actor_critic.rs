@@ -1,6 +1,6 @@
 use {Parameter};
 use fa::{VFunction, QFunction};
-use agents::{Agent, ControlAgent, PredictionAgent};
+use agents::{ControlAgent, PredictionAgent};
 use domains::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
@@ -49,17 +49,6 @@ impl<S: Space, P: Policy, Q, C> ActorCritic<S, P, Q, C>
     }
 }
 
-impl<S: Space, P: Policy, Q, C> Agent<S> for ActorCritic<S, P, Q, C>
-    where Q: QFunction<S>,
-          C: PredictionAgent<S>
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.beta = self.beta.step();
-        self.gamma = self.gamma.step();
-    }
-}
-
 impl<S: Space, P: Policy, Q, C> ControlAgent<S, ActionSpace> for ActorCritic<S, P, Q, C>
     where Q: QFunction<S>,
           C: PredictionAgent<S>
@@ -78,5 +67,11 @@ impl<S: Space, P: Policy, Q, C> ControlAgent<S, ActionSpace> for ActorCritic<S, 
         let td_error = self.critic.handle_transition(s, ns, t.reward);
 
         self.actor.update_action(s, t.action, self.beta*td_error);
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.alpha = self.alpha.step();
+        self.beta = self.beta.step();
+        self.gamma = self.gamma.step();
     }
 }
