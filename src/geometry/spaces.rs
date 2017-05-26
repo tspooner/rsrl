@@ -8,7 +8,7 @@ use super::dimensions::{Dimension, Partitioned};
 
 
 pub trait Space {
-    type Repr;
+    type Repr: Clone;
 
     fn sample(&self, rng: &mut ThreadRng) -> Self::Repr;
 
