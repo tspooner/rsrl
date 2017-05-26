@@ -1,5 +1,5 @@
 use Parameter;
-use fa::VFunction;
+use fa::{VFunction, Linear};
 use agents::PredictionAgent;
 use geometry::{Space, NullSpace};
 use std::marker::PhantomData;
@@ -38,8 +38,8 @@ impl<S: Space, V: VFunction<S>> PredictionAgent<S> for TD<S, V>
         let v = self.v_func.evaluate(s);
         let nv = self.v_func.evaluate(ns);
 
-        let td_error = self.alpha*(r + self.gamma*nv - v);
-        self.v_func.update(&s, td_error);
+        let td_error = r + self.gamma*nv - v;
+        self.v_func.update(&s, self.alpha*td_error);
 
         Some(td_error)
     }
