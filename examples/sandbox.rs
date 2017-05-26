@@ -2,7 +2,8 @@ extern crate rsrl;
 
 use rsrl::{run, SerialExperiment, Evaluation};
 use rsrl::fa::linear::RBFNetwork;
-use rsrl::agents::control::td::QLearning;
+use rsrl::agents::prediction::td::TD;
+use rsrl::agents::control::actor_critic::ActorCritic;
 use rsrl::domains::{Domain, MountainCar};
 use rsrl::policies::{Greedy, EpsilonGreedy};
 use rsrl::geometry::Space;
@@ -18,8 +19,12 @@ fn main() {
 
         let q_func = RBFNetwork::new(
             domain.state_space().partitioned(8), n_actions);
+        let v_func = RBFNetwork::new(
+            domain.state_space().partitioned(8), 1);
 
-        QLearning::new(q_func, Greedy, 0.1, 0.95)
+        let critic = TD::new(v_func, 0.1, 0.99);
+
+        ActorCritic::new(q_func, critic, Greedy, 0.1, 0.99)
     };
 
     // Training:
