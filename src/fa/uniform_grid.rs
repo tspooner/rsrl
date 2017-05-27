@@ -69,6 +69,10 @@ impl Parameterised<Vec<f64>, f64> for UniformGrid {
             *self.weights.uget_mut((index, 0)) += error
         }
     }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        self.weights.shape() == other.weights.shape()
+    }
 }
 
 impl Parameterised<Vec<f64>, Vec<f64>> for UniformGrid {
@@ -78,6 +82,10 @@ impl Parameterised<Vec<f64>, Vec<f64>> for UniformGrid {
 
         // Get the row slice and perform update via memcpy:
         self.weights.row_mut(ri).scaled_add(1.0, &arr1(&errors));
+    }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        <Self as Parameterised<Vec<f64>, f64>>::equivalent(self, other)
     }
 }
 

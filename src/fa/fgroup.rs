@@ -29,6 +29,11 @@ impl<S: Space, V: VFunction<S>> Parameterised<S::Repr, Vec<f64>> for VFunctionGr
             index += 1;
         }
     }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        self.0.iter().zip(other.0.iter())
+            .any(|(ref f1, ref f2)| !f1.equivalent(f2))
+    }
 }
 
 impl<S: Space, V: VFunction<S>> QFunction<S> for VFunctionGroup<S, V>
@@ -58,6 +63,7 @@ mod tests {
 
     impl Parameterised<Vec<f64>, f64> for Mock {
         fn update(&mut self, _: &Vec<f64>, e: f64) { self.0 = e; }
+        fn equivalent(&self, other: &Self) -> bool { self.0 == other.0 }
     }
 
     impl VFunction<RegularSpace<Continuous>> for Mock {}

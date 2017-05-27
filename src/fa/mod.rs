@@ -19,6 +19,7 @@ impl<I: ?Sized, O, T> Function<I, O> for Box<T>
 /// An interface for dealing with adaptive functions.
 pub trait Parameterised<I: ?Sized, E> {
     fn update(&mut self, input: &I, error: E);
+    fn equivalent(&self, other: &Self) -> bool;
 }
 
 impl<I: ?Sized, E, T> Parameterised<I, E> for Box<T>
@@ -26,6 +27,10 @@ impl<I: ?Sized, E, T> Parameterised<I, E> for Box<T>
 {
     fn update(&mut self, input: &I, error: E) {
         (**self).update(input, error)
+    }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        (**self).equivalent(other)
     }
 }
 
