@@ -330,7 +330,7 @@ mod tests {
         let d = Infinite;
         let mut rng = thread_rng();
 
-        let s = d.sample(&mut rng);
+        let _ = d.sample(&mut rng);
     }
 
     #[test]

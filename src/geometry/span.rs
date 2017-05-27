@@ -81,14 +81,14 @@ mod tests {
     #[should_panic]
     fn test_into_null() {
         let s = Span::Null;
-        let v: usize = s.into();
+        let _: usize = s.into();
     }
 
     #[test]
     #[should_panic]
     fn test_into_infinite() {
         let s = Span::Infinite;
-        let v: usize = s.into();
+        let _: usize = s.into();
     }
 
     #[test]
