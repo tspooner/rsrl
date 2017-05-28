@@ -34,6 +34,17 @@ impl<S: Space, V: VFunction<S>> EveryVisitMC<S, V>
             phantom: PhantomData,
         }
     }
+
+    pub fn propagate(&mut self) {
+        let mut sum = 0.0;
+
+        for (s, r) in self.observations.drain(0..).rev() {
+            sum = r + self.gamma*sum;
+
+            let v_est = self.v_func.evaluate(&s);
+            self.v_func.update(&s, self.alpha*(sum - v_est));
+        }
+    }
 }
 
 impl<S: Space, V: VFunction<S>> PredictionAgent<S> for EveryVisitMC<S, V>
@@ -45,14 +56,7 @@ impl<S: Space, V: VFunction<S>> PredictionAgent<S> for EveryVisitMC<S, V>
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
-        let mut sum = 0.0;
-
-        for (s, r) in self.observations.drain(0..).rev() {
-            sum = r + self.gamma*sum;
-
-            let v_est = self.v_func.evaluate(&s);
-            self.v_func.update(&s, self.alpha*(sum - v_est));
-        }
+        self.propagate();
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
