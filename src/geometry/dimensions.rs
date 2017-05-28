@@ -12,7 +12,7 @@ use rand::distributions::{Range as RngRange, IndependentSample};
 pub trait Dimension
 {
     /// The corresponding primitive type.
-    type Value;
+    type Value: Clone;
 
     /// Sample a random value contained by this dimension.
     fn sample(&self, rng: &mut ThreadRng) -> Self::Value;
@@ -330,7 +330,7 @@ mod tests {
         let d = Infinite;
         let mut rng = thread_rng();
 
-        let s = d.sample(&mut rng);
+        let _ = d.sample(&mut rng);
     }
 
     #[test]

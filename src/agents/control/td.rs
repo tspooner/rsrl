@@ -1,7 +1,7 @@
 use {Parameter};
 use fa::{VFunction, QFunction, Linear};
 use utils::dot;
-use agents::{Agent, ControlAgent};
+use agents::ControlAgent;
 use domains::Transition;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
@@ -42,14 +42,6 @@ impl<S: Space, P: Policy, Q: QFunction<S>> QLearning<S, P, Q>
     }
 }
 
-impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for QLearning<S, P, Q>
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-    }
-}
-
 impl<S: Space, P: Policy, Q: QFunction<S>> ControlAgent<S, ActionSpace> for QLearning<S, P, Q>
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
@@ -72,6 +64,11 @@ impl<S: Space, P: Policy, Q: QFunction<S>> ControlAgent<S, ActionSpace> for QLea
         let td_error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
 
         self.q_func.update_action(s, a, td_error);
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
     }
 }
 
@@ -107,14 +104,6 @@ impl<S: Space, P: Policy, Q: QFunction<S>> SARSA<S, P, Q>
     }
 }
 
-impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for SARSA<S, P, Q>
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-    }
-}
-
 impl<S: Space, P: Policy, Q: QFunction<S>> ControlAgent<S, ActionSpace> for SARSA<S, P, Q>
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
@@ -137,6 +126,11 @@ impl<S: Space, P: Policy, Q: QFunction<S>> ControlAgent<S, ActionSpace> for SARS
         let td_error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
 
         self.q_func.update_action(s, a, td_error);
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
     }
 }
 
@@ -172,14 +166,6 @@ impl<S: Space, P: Policy, Q: QFunction<S>> ExpectedSARSA<S, P, Q>
     }
 }
 
-impl<S: Space, P: Policy, Q: QFunction<S>> Agent<S> for ExpectedSARSA<S, P, Q>
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-    }
-}
-
 impl<S: Space, P: Policy, Q: QFunction<S>> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, P, Q>
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
@@ -202,6 +188,11 @@ impl<S: Space, P: Policy, Q: QFunction<S>> ControlAgent<S, ActionSpace> for Expe
         let td_error = self.alpha*(t.reward + self.gamma*exp_nqs - qs[a]);
 
         self.q_func.update_action(s, a, td_error);
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
     }
 }
 
@@ -241,17 +232,6 @@ impl<Q, V, P> GreedyGQ<Q, V, P> {
     }
 }
 
-impl<S: Space, Q, V, P: Policy> Agent<S> for GreedyGQ<Q, V, P>
-    where Q: QFunction<S> + Linear<S>,
-          V: VFunction<S> + Linear<S>
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.beta = self.beta.step();
-        self.gamma = self.gamma.step();
-    }
-}
-
 impl<S: Space, Q, V, P: Policy> ControlAgent<S, ActionSpace> for GreedyGQ<Q, V, P>
     where Q: QFunction<S> + Linear<S>,
           V: VFunction<S> + Linear<S>
@@ -280,5 +260,11 @@ impl<S: Space, Q, V, P: Policy> ControlAgent<S, ActionSpace> for GreedyGQ<Q, V, 
 
         self.q_func.update_action_phi(&update_q, a, self.alpha.value());
         self.v_func.update_phi(&update_v, self.alpha*self.beta);
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.alpha = self.alpha.step();
+        self.beta = self.beta.step();
+        self.gamma = self.gamma.step();
     }
 }

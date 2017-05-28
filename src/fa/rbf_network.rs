@@ -74,6 +74,12 @@ impl Parameterised<Vec<f64>, f64> for RBFNetwork
 
         <Self as VFunction<RegularSpace<Continuous>>>::update_phi(self, &phi, error);
     }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        self.mu == other.mu &&
+            self.gamma == self.gamma &&
+            self.weights.shape() == other.weights.shape()
+    }
 }
 
 impl Parameterised<Vec<f64>, Vec<f64>> for RBFNetwork
@@ -83,6 +89,10 @@ impl Parameterised<Vec<f64>, Vec<f64>> for RBFNetwork
         let phi = self.phi(input);
 
         <Self as QFunction<RegularSpace<Continuous>>>::update_phi(self, &phi, errors);
+    }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        <Self as Parameterised<Vec<f64>, f64>>::equivalent(self, other)
     }
 }
 

@@ -80,7 +80,10 @@ impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
             e.total_reward += t.reward;
 
             a = match t.to {
-                Observation::Terminal(_) => break,
+                Observation::Terminal(ref s) => {
+                    self.agent.handle_terminal(s);
+                    break;
+                },
                 _ => self.agent.pi(&t.to.state())
             };
         }
@@ -138,7 +141,10 @@ impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
             self.agent.handle_transition(&t);
 
             a = match t.to {
-                Observation::Terminal(_) => break,
+                Observation::Terminal(ref s) => {
+                    self.agent.handle_terminal(s);
+                    break;
+                },
                 _ => self.agent.pi(&t.to.state())
             };
         }

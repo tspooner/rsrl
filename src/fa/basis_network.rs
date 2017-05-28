@@ -78,6 +78,10 @@ impl Parameterised<Vec<f64>, f64> for BasisNetwork {
         // Update the weights via addassign:
         self.weights.scaled_add(error, &phi);
     }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        unimplemented!()
+    }
 }
 
 impl Parameterised<Vec<f64>, Vec<f64>> for BasisNetwork
@@ -92,6 +96,10 @@ impl Parameterised<Vec<f64>, Vec<f64>> for BasisNetwork
 
         // Update the weights via addassign:
         self.weights += &phi.dot(&update_matrix)
+    }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        <Self as Parameterised<Vec<f64>, f64>>::equivalent(self, other)
     }
 }
 

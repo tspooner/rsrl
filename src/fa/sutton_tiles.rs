@@ -80,6 +80,13 @@ impl Parameterised<Vec<f64>, f64> for SuttonTiles {
             self.weights[t] += error;
         }
     }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        self.weights.shape() == other.weights.shape() &&
+            self.n_outputs == other.n_outputs &&
+            self.n_tilings == other.n_tilings &&
+            self.memory_size == other.memory_size
+    }
 }
 
 impl Parameterised<Vec<f64>, Vec<f64>> for SuttonTiles {
@@ -87,6 +94,10 @@ impl Parameterised<Vec<f64>, Vec<f64>> for SuttonTiles {
         for c in 0..self.n_outputs {
             <Self as QFunction<RegularSpace<Continuous>>>::update_action(self, input, c, errors[c]);
         }
+    }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        <Self as Parameterised<Vec<f64>, f64>>::equivalent(self, other)
     }
 }
 
