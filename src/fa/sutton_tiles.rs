@@ -129,7 +129,7 @@ impl QFunction<RegularSpace<Continuous>> for SuttonTiles
 mod tests {
     use super::SuttonTiles;
 
-    use fa::{Function, Parameterised};
+    use fa::{Function, Parameterised, QFunction};
 
     #[test]
     fn test_update_eval() {
@@ -178,5 +178,47 @@ mod tests {
 
         let out: f64 = t.evaluate(&vec![1.0]);
         assert_eq!(out, 0.5);
+    }
+
+    #[test]
+    fn test_multiple_outputs() {
+        let mut t = SuttonTiles::new(1, 1000, 2);
+
+        t.update(&vec![0.5], vec![-1.0, 1.0]);
+
+        let out: Vec<f64> = t.evaluate(&vec![0.5]);
+        assert_eq!(out, vec![-1.0, 1.0]);
+    }
+
+    #[test]
+    fn test_qfunction() {
+        let mut t = SuttonTiles::new(1, 1000, 2);
+
+        t.update_action(&vec![0.5], 1, 100.0);
+
+        let out: f64 = t.evaluate_action(&vec![0.5], 0);
+        assert_eq!(out, 0.0);
+
+        let out: f64 = t.evaluate_action(&vec![0.5], 1);
+        assert_eq!(out, 100.0);
+    }
+
+    #[test]
+    fn test_equivalency() {
+        let t = SuttonTiles::new(1, 1000, 2);
+
+        let params = vec![
+            (1, 1000, 2, true),
+            (2, 1000, 2, false),
+            (1, 2000, 2, false),
+            (1, 1000, 3, false),
+        ];
+
+        for (nt, ms, no, eq) in params {
+            let t_test = SuttonTiles::new(nt, ms, no);
+
+            assert!(<SuttonTiles as Parameterised<Vec<f64>, Vec<f64>>>::equivalent(&t, &t_test) == eq);
+            assert!(<SuttonTiles as Parameterised<Vec<f64>, Vec<f64>>>::equivalent(&t_test, &t) == eq);
+        }
     }
 }
