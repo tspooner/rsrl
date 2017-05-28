@@ -133,7 +133,7 @@ impl QFunction<RegularSpace<Continuous>> for UniformGrid
 mod tests {
     use super::UniformGrid;
 
-    use fa::{Function, Parameterised};
+    use fa::{Function, Parameterised, VFunction, QFunction};
     use geometry::RegularSpace;
     use geometry::dimensions::Partitioned;
 
@@ -153,6 +153,24 @@ mod tests {
 
         let out: f64 = t.evaluate(&vec![1.5]);
         assert_eq!(out, 12.75);
+    }
+
+    #[test]
+    fn test_multiple_outputs() {
+        let mut ds = RegularSpace::new();
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+
+        let mut t = UniformGrid::new(ds, 2);
+
+        t.update(&vec![1.5], vec![-20.1, 25.5]);
+
+        let out: Vec<f64> = t.evaluate(&vec![1.5]);
+        assert_eq!(out, vec![-20.1, 25.5]);
+
+        t.update_action(&vec![1.5], 0, 20.1);
+
+        let out: f64 = t.evaluate_action(&vec![1.5], 0);
+        assert_eq!(out, 0.0);
     }
 
     #[test]
