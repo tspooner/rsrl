@@ -16,11 +16,7 @@ impl UniformGrid {
     pub fn new(input_space: RegularSpace<Partitioned>,
                n_outputs: usize) -> Self
     {
-        let n_features = match input_space.span() {
-            Span::Finite(s) => s,
-            _ => panic!("`UniformGrid` function approximator only supports \
-                         partitioned input spaces.")
-        };
+        let n_features = input_space.span().into();
 
         UniformGrid {
             weights: Array2::<f64>::zeros((n_features, n_outputs)),
