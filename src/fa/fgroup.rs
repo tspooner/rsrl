@@ -31,7 +31,7 @@ impl<S: Space, V: VFunction<S>> Parameterised<S::Repr, Vec<f64>> for VFunctionGr
     }
 
     fn equivalent(&self, other: &Self) -> bool {
-        self.0.iter().zip(other.0.iter())
+        !self.0.iter().zip(other.0.iter())
             .any(|(ref f1, ref f2)| !f1.equivalent(f2))
     }
 }
@@ -63,7 +63,9 @@ mod tests {
 
     impl Parameterised<Vec<f64>, f64> for Mock {
         fn update(&mut self, _: &Vec<f64>, e: f64) { self.0 = e; }
-        fn equivalent(&self, other: &Self) -> bool { self.0 == other.0 }
+        fn equivalent(&self, other: &Self) -> bool {
+            (self.0 - other.0).abs() < 1e-5
+        }
     }
 
     impl VFunction<RegularSpace<Continuous>> for Mock {}
@@ -83,6 +85,24 @@ mod tests {
         fg.update(&vec![], vec![4.0, -1.0, 8.0]);
 
         assert_eq!(fg.evaluate(&vec![]), vec![4.0, -1.0, 8.0]);
+    }
+
+    #[test]
+    fn test_equivalency() {
+        let fg1 = VFunctionGroup::new(vec![Mock(0.0), Mock(1.0), Mock(2.0)]);
+        let fg2 = VFunctionGroup::new(vec![Mock(2.0), Mock(1.0), Mock(2.0)]);
+        let fg3 = VFunctionGroup::new(vec![Mock(0.0), Mock(1.0), Mock(2.0)]);
+
+        assert!(fg1.equivalent(&fg1));
+        assert!(fg1.equivalent(&fg3));
+        assert!(fg2.equivalent(&fg2));
+        assert!(fg3.equivalent(&fg1));
+        assert!(fg3.equivalent(&fg3));
+
+        assert!(!fg1.equivalent(&fg2));
+        assert!(!fg2.equivalent(&fg1));
+        assert!(!fg2.equivalent(&fg3));
+        assert!(!fg3.equivalent(&fg2));
     }
 
     #[test]
