@@ -15,11 +15,11 @@ pub enum Trace {
     // TODO: Dutch traces (need to be able to share alpha parameter)
 }
 
-impl Traces {
+impl Trace {
     pub fn get(&self) -> &Array1<f64> {
         match self {
-            &Traces::Accumulating { ref eligibility, .. } |
-                &Traces::Replacing { ref eligibility, .. } =>
+            &Trace::Accumulating { ref eligibility, .. } |
+                &Trace::Replacing { ref eligibility, .. } =>
             {
                 eligibility
             },
@@ -28,8 +28,8 @@ impl Traces {
 
     pub fn decay(&mut self, rate: f64) {
         match self {
-            &mut Traces::Accumulating { ref mut eligibility, lambda } |
-                &mut Traces::Replacing { ref mut eligibility, lambda } =>
+            &mut Trace::Accumulating { ref mut eligibility, lambda } |
+                &mut Trace::Replacing { ref mut eligibility, lambda } =>
             {
                 eligibility.mul_assign(rate*lambda);
             },
@@ -38,11 +38,11 @@ impl Traces {
 
     pub fn update(&mut self, phi: &Array1<f64>) {
         match self {
-            &mut Traces::Accumulating { ref mut eligibility, lambda } => {
+            &mut Trace::Accumulating { ref mut eligibility, lambda } => {
                 eligibility.add_assign(phi);
 
             },
-            &mut Traces::Replacing { ref mut eligibility, lambda } => {
+            &mut Trace::Replacing { ref mut eligibility, lambda } => {
                 eligibility.add_assign(phi);
                 eligibility.map_inplace(|val| *val = val.min(1.0));
             },
