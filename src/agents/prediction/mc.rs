@@ -18,7 +18,8 @@ pub struct EveryVisitMC<S: Space, V: VFunction<S>>
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, V: VFunction<S>> EveryVisitMC<S, V>
+impl<S: Space, V> EveryVisitMC<S, V>
+    where V: VFunction<S>
 {
     pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
@@ -47,7 +48,8 @@ impl<S: Space, V: VFunction<S>> EveryVisitMC<S, V>
     }
 }
 
-impl<S: Space, V: VFunction<S>> PredictionAgent<S> for EveryVisitMC<S, V>
+impl<S: Space, V> PredictionAgent<S> for EveryVisitMC<S, V>
+    where V: VFunction<S>
 {
     fn handle_transition(&mut self, s: &S::Repr, _: &S::Repr, r: f64) -> Option<f64> {
         self.observations.push((s.clone(), r));

@@ -7,5 +7,6 @@ pub trait PredictionAgent<S: Space> {
 }
 
 
-pub mod td;
 pub mod mc;
+pub mod td;
+pub mod gtd;

@@ -11,4 +11,5 @@ pub trait ControlAgent<S: Space, A: Space> {
 
 
 pub mod td;
+pub mod gtd;
 pub mod actor_critic;

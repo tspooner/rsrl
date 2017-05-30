@@ -8,9 +8,10 @@ use std::marker::PhantomData;
 
 
 /// Regular gradient descent actor critic.
-pub struct ActorCritic<S: Space, P: Policy, Q, C>
+pub struct ActorCritic<S: Space, Q, C, P>
     where Q: QFunction<S>,
-          C: PredictionAgent<S>
+          C: PredictionAgent<S>,
+          P: Policy
 {
     actor: Q,
     critic: C,
@@ -23,12 +24,13 @@ pub struct ActorCritic<S: Space, P: Policy, Q, C>
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, P: Policy, Q, C> ActorCritic<S, P, Q, C>
+impl<S: Space, Q, C, P> ActorCritic<S, Q, C, P>
     where Q: QFunction<S>,
-          C: PredictionAgent<S>
+          C: PredictionAgent<S>,
+          P: Policy
 {
     pub fn new<T1, T2>(actor: Q, critic: C, policy: P,
-                           beta: T1, gamma: T2) -> Self
+                       beta: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
@@ -46,9 +48,10 @@ impl<S: Space, P: Policy, Q, C> ActorCritic<S, P, Q, C>
     }
 }
 
-impl<S: Space, P: Policy, Q, C> ControlAgent<S, ActionSpace> for ActorCritic<S, P, Q, C>
+impl<S: Space, Q, C, P> ControlAgent<S, ActionSpace> for ActorCritic<S, Q, C, P>
     where Q: QFunction<S>,
-          C: PredictionAgent<S>
+          C: PredictionAgent<S>,
+          P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.actor.evaluate(s).as_slice())
