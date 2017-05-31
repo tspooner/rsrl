@@ -1,4 +1,4 @@
-# RSRL
+# RSRL ([api](https://tspooner.github.io/rsrl))
 
 [![Build Status](https://travis-ci.org/tspooner/rsrl.svg?branch=master)](https://travis-ci.org/tspooner/rsrl) [![Coverage Status](https://coveralls.io/repos/github/tspooner/rsrl/badge.svg?branch=master)](https://coveralls.io/github/tspooner/rsrl?branch=master) [![Issue Count](https://codeclimate.com/github/tspooner/rsrl/badges/gpa.svg)](https://codeclimate.com/github/tspooner/rsrl)
 
