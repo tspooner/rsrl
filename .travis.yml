@@ -15,22 +15,13 @@ addons:
     sources:
       - kalakris-cmake
 
-# run builds for all the trains (and more)
 rust:
-    - stable
-    # - beta
-    # - nightly
-
-# matrix:
-  # allow_failures:
-    # - rust: nightly
-    # - rust: beta
+  - stable
 
 before_script:
   - |
       cargo install cargo-travis &&
       export PATH=$HOME/.cargo/bin:$PATH
-
 script:
   - |
       cargo build &&
@@ -51,4 +42,5 @@ after_success:
 
 env:
   global:
-    - TRAVIS_CARGO_NIGHTLY_FEATURE=""
+      - TRAVIS_CARGO_NIGHTLY_FEATURE=""
+      - secure: AcBwzPJGszAqn4hW891+ZzbcxVA5wETXUmBg61cGKegHhFKBssB7HaNTcVX1pL3lHUiNGiLKReM+xbMPbth9c3ttz1SKlVsDJbQzt/lNaOjMmdkXd/0PNC7ZWT3yXx8sIbuyz2XCL6TW3dkvYt3G2+Ioy0BxeRepEbfhm1NEMWHoQXbLVkFiH4XtpfADY4DENWiuUbVA3/8+Qwc9R7i4mIf7J8EQWc1+HcNhuy556FrmkkAIDvRU2h0sl9HhjMrTHIKPalfXuriW4pQbZHH+JbA9Xh8MbX230PMqZaELxYkh020Fxy4z2z0VvISmLoMBFQb6JSh11AWQsFno1TZkVqhG2yl1tBPvdKgaqrBLZ8MsES8bG5i/LVDv2kM+dmbtWQmRmn6PnvBmJeJW5bbYx4F2PW57mDUebK/TKEF+1HbBR9KGm2fIihk46mvhxxpQ3ZE7A8lDs17Up9ZBhhYM5RJJ174Ls1Yn+qmtdhEAe5IJ4x5xRNYraTlKJHy2FCgqTeLEKB8TzDB0DUhaDMY6EnuOJdZFjEk5QSzSZJBKNSfyqO+N43vloWt3lszscekgQtYHATvDhylYFrIdRFPrqB3/BYIYOHEzZblTCSres8zmMBTfnWyAn37Z4y4fWsq3NUXcZkOd29HfjAi8qa7vVDQ4d1e1c0RCPOSKiCb7zP0=
