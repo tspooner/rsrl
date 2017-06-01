@@ -1,4 +1,4 @@
-use geometry::{Space, NullSpace};
+use geometry::Space;
 
 
 pub trait PredictionAgent<S: Space> {

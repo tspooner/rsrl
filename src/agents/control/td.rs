@@ -1,5 +1,5 @@
-use {Parameter};
-use fa::{VFunction, QFunction, Linear};
+use Parameter;
+use fa::QFunction;
 use utils::dot;
 use agents::ControlAgent;
 use domains::Transition;

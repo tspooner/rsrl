@@ -1,7 +1,7 @@
 extern crate libc;
 use self::libc::{c_double, c_int, size_t};
 
-use super::{Function, Parameterised, Linear, VFunction, QFunction};
+use super::{Function, Parameterised, VFunction, QFunction};
 
 use ndarray::{Axis, Array1};
 use geometry::RegularSpace;

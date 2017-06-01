@@ -1,5 +1,5 @@
-use {Parameter};
-use fa::{VFunction, QFunction};
+use Parameter;
+use fa::QFunction;
 use agents::{ControlAgent, PredictionAgent};
 use domains::Transition;
 use geometry::{Space, ActionSpace};

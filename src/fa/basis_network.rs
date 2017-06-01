@@ -79,7 +79,7 @@ impl Parameterised<Vec<f64>, f64> for BasisNetwork {
         self.weights.scaled_add(error, &phi);
     }
 
-    fn equivalent(&self, other: &Self) -> bool {
+    fn equivalent(&self, _: &Self) -> bool {
         unimplemented!()
     }
 }

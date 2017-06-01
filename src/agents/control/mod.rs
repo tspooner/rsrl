@@ -1,5 +1,5 @@
 use domains::Transition;
-use geometry::{Space, ActionSpace};
+use geometry::Space;
 
 pub trait ControlAgent<S: Space, A: Space> {
     fn pi(&mut self, s: &S::Repr) -> usize;

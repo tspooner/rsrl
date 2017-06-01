@@ -4,8 +4,6 @@ use agents::PredictionAgent;
 use geometry::Space;
 use std::marker::PhantomData;
 
-use ndarray::ArrayBase;
-
 
 pub struct EveryVisitMC<S: Space, V: VFunction<S>>
 {
