@@ -113,13 +113,11 @@ impl<S: Space, V> PredictionAgent<S> for TDC<S, V>
         let phi_s = self.v_func.phi(s);
         let phi_ns = self.v_func.phi(ns);
 
-        let phi_diff = &phi_s - &(self.gamma.value()*&phi_ns);
-
         let td_error = r + self.gamma*self.v_func.evaluate_phi(&phi_ns) -
             self.v_func.evaluate_phi(&phi_s);
         let td_estimate = self.a_func.evaluate_phi(&phi_s);
 
-        self.v_func.update_phi(&(&(td_estimate*&phi_s) - &(self.gamma.value()*td_estimate*&phi_ns)), self.alpha.value());
+        self.v_func.update_phi(&(&(td_error*&phi_s) - &(self.gamma.value()*td_estimate*&phi_ns)), self.alpha.value());
         self.a_func.update_phi(&phi_s, self.beta*(td_error - td_estimate));
 
         Some(td_error)
