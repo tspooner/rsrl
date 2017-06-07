@@ -59,8 +59,8 @@ impl<S: Space, Q, V, P> ControlAgent<S, ActionSpace> for GreedyGQ<S, Q, V, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
     }
 
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {

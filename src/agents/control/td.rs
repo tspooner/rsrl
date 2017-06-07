@@ -8,6 +8,11 @@ use policies::{Policy, Greedy};
 use std::marker::PhantomData;
 
 
+// pub trait TDControlAgent {
+    // fn target
+// }
+
+
 /// Watkins' classical off policy temporal difference control algorithm.
 ///
 /// C. J. C. H. Watkins and P. Dayan, “Q-learning,” Mach. Learn., vol. 8, no. 3–4, pp. 279–292,
@@ -52,8 +57,8 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
     }
 
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
@@ -118,8 +123,8 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
     }
 
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
@@ -184,8 +189,8 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
     }
 
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
