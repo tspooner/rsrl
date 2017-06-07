@@ -1,7 +1,9 @@
 use Parameter;
 use fa::{VFunction, Linear};
-use agents::{PredictionAgent, Trace};
+use agents::PredictionAgent;
+use agents::memory::Trace;
 use geometry::Space;
+
 use std::marker::PhantomData;
 
 
