@@ -2,7 +2,7 @@ use super::{Function, Parameterised, Linear, VFunction, QFunction};
 
 use utils::dot;
 use ndarray::{arr1, Array1, Array2};
-use geometry::{Span, Space, RegularSpace, Projection};
+use geometry::{Space, RegularSpace, Projection};
 use geometry::dimensions::{Partitioned, Continuous};
 
 

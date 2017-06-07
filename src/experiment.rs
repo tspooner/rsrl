@@ -4,6 +4,7 @@ use self::indicatif::{ProgressBar, ProgressDrawTarget};
 use agents::ControlAgent;
 use domains::{Domain, Observation};
 use geometry::{Space, ActionSpace};
+use policies::Greedy;
 
 
 /// Container for episodic statistics.
@@ -42,6 +43,8 @@ pub fn run<T>(runner: T, n_episodes: usize) -> Vec<Episode>
 pub struct Evaluation<'a, A: 'a, D> {
     agent: &'a mut A,
     domain_factory: Box<Fn() -> D>,
+
+    greedy: Greedy,
 }
 
 impl<'a, S: Space, A, D> Evaluation<'a, A, D>
@@ -54,6 +57,8 @@ impl<'a, S: Space, A, D> Evaluation<'a, A, D>
         Evaluation {
             agent: agent,
             domain_factory: domain_factory,
+
+            greedy: Greedy,
         }
     }
 }
@@ -66,7 +71,8 @@ impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
 
     fn next(&mut self) -> Option<Episode> {
         let mut domain = (self.domain_factory)();
-        let mut a = self.agent.pi_target(domain.emit().state());
+        let mut a = self.agent.evaluate_policy(&mut self.greedy,
+                                               &domain.emit().state());
 
         let mut e = Episode {
             n_steps: 1,
@@ -84,7 +90,8 @@ impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
                     self.agent.handle_terminal(s);
                     break;
                 },
-                _ => self.agent.pi(&t.to.state())
+                _ => self.agent.evaluate_policy(&mut self.greedy,
+                                                &t.to.state())
             };
         }
 

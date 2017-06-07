@@ -1,5 +1,5 @@
-use {Parameter};
-use fa::{VFunction, QFunction};
+use Parameter;
+use fa::QFunction;
 use agents::{ControlAgent, PredictionAgent};
 use domains::Transition;
 use geometry::{Space, ActionSpace};
@@ -57,8 +57,8 @@ impl<S: Space, Q, C, P> ControlAgent<S, ActionSpace> for ActorCritic<S, Q, C, P>
         self.policy.sample(self.actor.evaluate(s).as_slice())
     }
 
-    fn pi_target(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.actor.evaluate(s).as_slice())
+    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+        p.sample(self.actor.evaluate(s).as_slice())
     }
 
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {

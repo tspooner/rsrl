@@ -56,5 +56,5 @@ impl<I, E> Parameterised<I, E> for Table<I, E>
         *self.0.entry(*input).or_insert(E::default()) += error;
     }
 
-    fn equivalent(&self, other: &Self) -> bool { true }
+    fn equivalent(&self, _: &Self) -> bool { true }
 }
