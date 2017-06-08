@@ -8,11 +8,6 @@ use policies::{Policy, Greedy};
 use std::marker::PhantomData;
 
 
-// pub trait TDControlAgent {
-    // fn target
-// }
-
-
 /// Watkins' classical off policy temporal difference control algorithm.
 ///
 /// C. J. C. H. Watkins and P. Dayan, “Q-learning,” Mach. Learn., vol. 8, no. 3–4, pp. 279–292,
@@ -70,9 +65,9 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
         let a = t.action;
         let na = Greedy.sample(nqs.as_slice());
 
-        let td_error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
+        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
 
-        self.q_func.update_action(s, a, td_error);
+        self.q_func.update_action(s, a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -136,9 +131,9 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
         let a = t.action;
         let na = self.policy.sample(nqs.as_slice());
 
-        let td_error = self.alpha*(t.reward + self.gamma*nqs[na] - qs[a]);
+        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
 
-        self.q_func.update_action(s, a, td_error);
+        self.q_func.update_action(s, a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -202,9 +197,9 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
         let a = t.action;
 
         let exp_nqs = dot(&nqs, &self.policy.probabilities(nqs.as_slice()));
-        let td_error = self.alpha*(t.reward + self.gamma*exp_nqs - qs[a]);
+        let td_error = t.reward + self.gamma*exp_nqs - qs[a];
 
-        self.q_func.update_action(s, a, td_error);
+        self.q_func.update_action(s, a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
