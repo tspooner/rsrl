@@ -227,6 +227,16 @@ struct BackupEntry<S: Space> {
 }
 
 
+/// General multi-step temporal-difference learning algorithm.
+///
+/// The sigma parameter varies the degree of sampling, yielding classical
+/// learning algorithms as special cases:
+///
+/// * `0` - `ExpectedSARSA` | `TreeBackup`
+/// * `1` - `SARSA`
+///
+/// De Asis, Kristopher, et al. "Multi-step Reinforcement Learning: A Unifying
+/// Algorithm." arXiv preprint arXiv:1703.01327 (2017).
 pub struct QSigma<S: Space, Q: QFunction<S>, P: Policy>
 {
     q_func: Q,
@@ -280,7 +290,7 @@ impl<S: Space, Q, P> QSigma<S, Q, P>
         let isr = (1..self.n_steps).fold(1.0, |acc, k| {
             let b = &self.backup[k];
 
-            acc * (b.sigma*b.pi/b.mu + 1.0 - b.sigma)
+            acc * (b.sigma*b.mu/b.pi + 1.0 - b.sigma)
         });
 
         self.q_func.update_action(&self.backup[0].s1, self.backup[0].a1,
