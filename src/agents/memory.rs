@@ -1,6 +1,5 @@
 use Parameter;
-use ndarray::{ArrayBase, Array1};
-use std::ops::{AddAssign, MulAssign};
+use ndarray::Array1;
 
 
 pub enum Trace {
@@ -28,7 +27,7 @@ impl Trace {
             &mut Trace::Accumulating { ref mut eligibility, lambda } |
                 &mut Trace::Replacing { ref mut eligibility, lambda } =>
             {
-                eligibility.mul_assign(rate*lambda);
+                *eligibility *= rate*lambda;
             },
         }
     }
@@ -37,12 +36,13 @@ impl Trace {
         match self {
             &mut Trace::Accumulating { ref mut eligibility, lambda } =>
             {
-                eligibility.add_assign(phi);
+                *eligibility += phi;
             },
             &mut Trace::Replacing { ref mut eligibility, lambda } =>
             {
-                eligibility.add_assign(phi);
-                eligibility.map_inplace(|val| *val = val.min(1.0));
+                eligibility.zip_mut_with(phi, |val, &p| {
+                    *val = f64::min(1.0, *val + p);
+                });
             },
         }
     }
