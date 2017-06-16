@@ -7,8 +7,6 @@ use rsrl::domains::{Domain, MountainCar};
 use rsrl::policies::{Greedy, EpsilonGreedy};
 use rsrl::geometry::Space;
 
-use rsrl::logging::DefaultLogger;
-
 
 fn main() {
     let domain = MountainCar::default();
@@ -30,7 +28,7 @@ fn main() {
                                       Box::new(MountainCar::default),
                                       1000);
 
-        run(e, 1000)
+        run(e, 1000, None)
     };
 
     // Testing:
@@ -39,6 +37,6 @@ fn main() {
 
 
     println!("Solution \u{21D2} {} steps | reward {}",
-             testing_result.n_steps,
-             testing_result.total_reward);
+             testing_result.steps,
+             testing_result.reward);
 }

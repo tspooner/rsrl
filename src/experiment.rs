@@ -1,5 +1,4 @@
-extern crate indicatif;
-use self::indicatif::{ProgressBar, ProgressDrawTarget};
+use slog::{Record, Serializer, Result as LogResult, Logger, KV};
 
 use agents::ControlAgent;
 use domains::{Domain, Observation};
@@ -11,31 +10,37 @@ use policies::Greedy;
 #[derive(Debug)]
 pub struct Episode {
     /// The number of steps taken to reach the terminal state.
-    pub n_steps: u64,
+    pub steps: u64,
 
     /// The total accumulated reward over the episode.
-    pub total_reward: f64
+    pub reward: f64
+}
+
+impl KV for Episode {
+    fn serialize(&self, record: &Record,
+                 serializer: &mut Serializer) -> LogResult
+    {
+        serializer.emit_u64("episode-steps", self.steps)?;
+        serializer.emit_f64("episode-reward", self.reward)?;
+
+        Ok(())
+    }
 }
 
 
 /// Helper function for running experiments.
-pub fn run<T>(runner: T, n_episodes: usize) -> Vec<Episode>
+pub fn run<T>(runner: T, n_episodes: usize, logger: Option<Logger>) -> Vec<Episode>
     where T: Iterator<Item=Episode>
 {
-    let pb = ProgressBar::new(n_episodes as u64);
-    pb.set_draw_target(ProgressDrawTarget::stdout());
+    let exp = runner.take(n_episodes);
 
-    let out = runner.enumerate()
-          .take(n_episodes)
-          .inspect(|&(i, _)| {
-              pb.set_position(i as u64);
-          })
-          .map(|(_, res)| res)
-          .collect::<Vec<_>>();
+    match logger {
+        Some(logger) => exp.inspect(|ref res| {
+            info!(logger, "episode complete"; res);
+        }).collect(),
 
-    pb.finish_with_message("Training complete...");
-
-    out
+        None => exp.collect()
+    }
 }
 
 
@@ -75,15 +80,15 @@ impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
                                                &domain.emit().state());
 
         let mut e = Episode {
-            n_steps: 1,
-            total_reward: 0.0,
+            steps: 1,
+            reward: 0.0,
         };
 
         loop {
             let t = domain.step(a);
 
-            e.n_steps += 1;
-            e.total_reward += t.reward;
+            e.steps += 1;
+            e.reward += t.reward;
 
             a = match t.to {
                 Observation::Terminal(ref s) => {
@@ -135,15 +140,15 @@ impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
         let mut a = self.agent.pi(domain.emit().state());
 
         let mut e = Episode {
-            n_steps: 1,
-            total_reward: 0.0,
+            steps: 1,
+            reward: 0.0,
         };
 
         for j in 1..(self.step_limit+1) {
             let t = domain.step(a);
 
-            e.n_steps = j;
-            e.total_reward += t.reward;
+            e.steps = j;
+            e.reward += t.reward;
 
             self.agent.handle_transition(&t);
 

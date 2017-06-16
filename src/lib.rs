@@ -5,6 +5,9 @@
 extern crate log;
 
 #[macro_use]
+extern crate slog;
+
+#[macro_use]
 #[feature(blas)]
 extern crate ndarray;
 
