@@ -152,13 +152,18 @@ impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
 
             self.agent.handle_transition(&t);
 
-            a = match t.to {
-                Observation::Terminal(ref s) => {
-                    self.agent.handle_terminal(s);
-                    break;
-                },
-                _ => self.agent.pi(&t.to.state())
-            };
+            // TODO: Clean this mess up!
+            if let Observation::Terminal(ref s) = t.to {
+                self.agent.handle_terminal(s);
+                break;
+
+            } else if j >= self.step_limit {
+                self.agent.handle_terminal(&t.to.state());
+                break;
+
+            } else {
+                a = self.agent.pi(&t.to.state());
+            }
         }
 
         Some(e)

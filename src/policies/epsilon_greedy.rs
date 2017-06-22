@@ -35,15 +35,15 @@ impl Policy for EpsilonGreedy {
     }
 
     fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> {
-        let pr = (1.0 - self.epsilon) / qs.len() as f64;
+        let pr = self.epsilon / qs.len() as f64;
 
         self.greedy.probabilities(qs).iter().map(|p| {
-            pr + p*self.epsilon.value()
+            pr + p*(1.0 - self.epsilon)
         }).collect()
     }
 
     fn handle_terminal(&mut self) {
-        self.epsilon.step();
+        self.epsilon = self.epsilon.step();
 
         self.greedy.handle_terminal();
         self.random.handle_terminal();
@@ -92,5 +92,10 @@ mod tests {
 
         assert_eq!(p.probabilities(&[1.0, 0.0, 0.0, 0.0, 1.0]),
                    vec![0.35, 0.1, 0.1, 0.1, 0.35]);
+
+        let mut p = EpsilonGreedy::new(action_space(4), 1.0);
+
+        assert_eq!(p.probabilities(&[-1.0, 0.0, 0.0, 0.0]),
+                   vec![0.25, 0.25, 0.25, 0.25]);
     }
 }

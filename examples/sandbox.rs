@@ -14,10 +14,8 @@ fn main() {
         let aspace = domain.action_space();
         let n_actions: usize = aspace.span().into();
 
-        let q_func = RBFNetwork::new(
-            domain.state_space().partitioned(8), n_actions);
-        let policy = EpsilonGreedy::new(aspace,
-                                        Parameter::exponential(0.8, 0.0, 0.95));
+        let q_func = RBFNetwork::new(domain.state_space().partitioned(8), n_actions);
+        let policy = EpsilonGreedy::new(aspace, Parameter::exponential(0.9, 0.01, 0.99));
 
         QSigma::new(q_func, policy, 0.1, 0.99, 0.1, 2)
     };
