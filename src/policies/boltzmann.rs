@@ -40,4 +40,8 @@ impl Policy for Boltzmann {
         let z: f64 = ws.iter().sum();
         ws.iter().map(|w| w / z).collect()
     }
+
+    fn handle_terminal(&mut self) {
+        self.tau = self.tau.step();
+    }
 }

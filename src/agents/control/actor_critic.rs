@@ -57,7 +57,7 @@ impl<S: Space, Q, C, P> ControlAgent<S, ActionSpace> for ActorCritic<S, Q, C, P>
         self.policy.sample(self.actor.evaluate(s).as_slice())
     }
 
-    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.actor.evaluate(s).as_slice())
     }
 
@@ -72,5 +72,7 @@ impl<S: Space, Q, C, P> ControlAgent<S, ActionSpace> for ActorCritic<S, Q, C, P>
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.beta = self.beta.step();
         self.gamma = self.gamma.step();
+
+        self.policy.handle_terminal();
     }
 }

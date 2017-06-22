@@ -41,6 +41,13 @@ impl Policy for EpsilonGreedy {
             pr + p*self.epsilon.value()
         }).collect()
     }
+
+    fn handle_terminal(&mut self) {
+        self.epsilon.step();
+
+        self.greedy.handle_terminal();
+        self.random.handle_terminal();
+    }
 }
 
 

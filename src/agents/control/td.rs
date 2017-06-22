@@ -54,7 +54,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
 
@@ -75,6 +75,8 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+
+        self.policy.handle_terminal();
     }
 }
 
@@ -120,7 +122,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
 
@@ -141,6 +143,8 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+
+        self.policy.handle_terminal();
     }
 }
 
@@ -186,7 +190,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
 
@@ -207,6 +211,8 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+
+        self.policy.handle_terminal();
     }
 }
 
@@ -308,7 +314,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
 
@@ -355,7 +361,8 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
         //       It's likely that this will require a change to the interface :(
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
-
         self.sigma = self.sigma.step();
+
+        self.policy.handle_terminal();
     }
 }

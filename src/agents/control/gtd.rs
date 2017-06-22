@@ -59,7 +59,7 @@ impl<S: Space, Q, V, P> ControlAgent<S, ActionSpace> for GreedyGQ<S, Q, V, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn evaluate_policy(&self, p: &mut Policy, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
 
@@ -85,5 +85,7 @@ impl<S: Space, Q, V, P> ControlAgent<S, ActionSpace> for GreedyGQ<S, Q, V, P>
         self.alpha = self.alpha.step();
         self.beta = self.beta.step();
         self.gamma = self.gamma.step();
+
+        self.policy.handle_terminal();
     }
 }
