@@ -7,8 +7,20 @@ use rsrl::domains::{Domain, MountainCar};
 use rsrl::policies::{Greedy, EpsilonGreedy};
 use rsrl::geometry::Space;
 
+use rsrl::logging;
+use std::fs::OpenOptions;
+
 
 fn main() {
+    let log_path = "/tmp/log_example.log";
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(log_path)
+        .unwrap();
+    let logger = logging::file(file);
+
     let domain = MountainCar::default();
     let mut agent = {
         let aspace = domain.action_space();
@@ -26,7 +38,7 @@ fn main() {
                                       Box::new(MountainCar::default),
                                       1000);
 
-        run(e, 1000, None)
+        run(e, 1500, Some(logger))
     };
 
     // Testing:

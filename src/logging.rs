@@ -1,28 +1,22 @@
-extern crate time;
+use slog::*;
+use slog_term;
+use slog_async;
+
+use std::fs::File;
 
 
-use log;
-use log::{LogRecord, LogLevel, LogMetadata, SetLoggerError, LogLevelFilter};
+pub fn stdout() -> Logger {
+    let decorator = slog_term::TermDecorator::new().build();
+    let drain = slog_term::FullFormat::new(decorator).build().fuse();
+    let drain = slog_async::Async::new(drain).build().fuse();
 
-pub struct DefaultLogger;
-
-impl DefaultLogger {
-    pub fn init() -> Result<(), SetLoggerError> {
-        log::set_logger(|max_log_level| {
-            max_log_level.set(LogLevelFilter::Info);
-            Box::new(DefaultLogger)
-        })
-    }
+    Logger::root(drain, o!())
 }
 
-impl log::Log for DefaultLogger {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
-        metadata.level() <= LogLevel::Info
-    }
+pub fn file(file: File) -> Logger {
+    let decorator = slog_term::PlainDecorator::new(file);
+    let drain = slog_term::FullFormat::new(decorator).build().fuse();
+    let drain = slog_async::Async::new(drain).build().fuse();
 
-    fn log(&self, record: &LogRecord) {
-        if self.enabled(record.metadata()) {
-            println!("[{}] {}", time::now().ctime(), record.args());
-        }
-    }
+    Logger::root(drain, o!())
 }

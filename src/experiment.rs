@@ -20,8 +20,8 @@ impl KV for Episode {
     fn serialize(&self, record: &Record,
                  serializer: &mut Serializer) -> LogResult
     {
-        serializer.emit_u64("episode-steps", self.steps)?;
-        serializer.emit_f64("episode-reward", self.reward)?;
+        serializer.emit_u64("steps", self.steps)?;
+        serializer.emit_f64("reward", self.reward)?;
 
         Ok(())
     }
@@ -35,9 +35,9 @@ pub fn run<T>(runner: T, n_episodes: usize, logger: Option<Logger>) -> Vec<Episo
     let exp = runner.take(n_episodes);
 
     match logger {
-        Some(logger) => exp.inspect(|ref res| {
-            info!(logger, "episode complete"; res);
-        }).collect(),
+        Some(logger) => exp.zip(1..(n_episodes+1)).inspect(|&(ref res, i)| {
+            info!(logger, "episode {}", i; res);
+        }).map(|(res, i)| res).collect(),
 
         None => exp.collect()
     }
