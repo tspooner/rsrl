@@ -68,6 +68,12 @@ impl Dimension for Null {
 #[derive(Clone, Copy)]
 pub struct Infinite;
 
+impl Infinite {
+    pub fn bounded(self, lb: f64, ub: f64) -> Continuous {
+        Continuous::new(lb, ub)
+    }
+}
+
 impl Dimension for Infinite {
     type Value = f64;
 
