@@ -1,4 +1,5 @@
 use std::f64;
+use std::fmt;
 use std::ops::Range;
 use super::span::Span;
 
@@ -48,7 +49,7 @@ pub trait FiniteDimension: BoundedDimension
 
 
 /// A null dimension.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Null;
 
 impl Dimension for Null {
@@ -65,7 +66,7 @@ impl Dimension for Null {
 
 
 /// An infinite dimension.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Infinite;
 
 impl Infinite {
@@ -130,6 +131,15 @@ impl BoundedDimension for Continuous {
 
     fn contains(&self, val: &Self::ValueBound) -> bool {
         (val >= self.lb()) && (val < self.ub())
+    }
+}
+
+impl fmt::Debug for Continuous {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Continuous")
+            .field("lb", &self.lb)
+            .field("ub", &self.ub)
+            .finish()
     }
 }
 
@@ -226,9 +236,19 @@ impl FiniteDimension for Partitioned {
     }
 }
 
+impl fmt::Debug for Partitioned {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Partitioned")
+            .field("lb", &self.lb)
+            .field("ub", &self.ub)
+            .field("density", &self.density)
+            .finish()
+    }
+}
+
 
 /// A finite discrete dimension.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Discrete {
     lb: usize,
     ub: usize,
@@ -276,6 +296,15 @@ impl BoundedDimension for Discrete {
 impl FiniteDimension for Discrete {
     fn range(&self) -> Range<Self::Value> {
         0..(self.ub + 1)
+    }
+}
+
+impl fmt::Debug for Discrete {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Discrete")
+            .field("lb", &self.lb)
+            .field("ub", &self.ub)
+            .finish()
     }
 }
 
