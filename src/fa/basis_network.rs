@@ -24,7 +24,7 @@ impl BasisFunction {
 
 impl Function<[f64], f64> for BasisFunction {
     fn evaluate(&self, input: &[f64]) -> f64 {
-        self.kernel.apply(&self.loc, input)
+        self.kernel.kernel(&self.loc, input)
     }
 }
 
