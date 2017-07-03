@@ -50,7 +50,7 @@ impl<I, O> Function<I, O> for Table<I, O>
 
 impl<I, E> Parameterised<I, E> for Table<I, E>
     where I: Hash + Eq + Copy,
-          E: Default + AddAssign
+          E: Clone + Default + AddAssign
 {
     fn update(&mut self, input: &I, error: E) {
         *self.0.entry(*input).or_insert(E::default()) += error;
