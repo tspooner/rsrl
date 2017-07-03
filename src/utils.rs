@@ -1,12 +1,16 @@
-extern crate blas;
-use self::blas::c::ddot;
+extern crate blas_sys;
+use self::blas_sys::c::cblas_ddot;
+
 use std::f64;
 use std::cmp::min;
 
 
 pub fn dot(x: &[f64], y: &[f64]) -> f64 {
     let n: i32 = min(x.len() as i32, y.len() as i32);
-    ddot(n, x, 1, y, 1)
+
+    unsafe {
+        cblas_ddot(n, x.as_ptr(), 1, y.as_ptr(), 1)
+    }
 }
 
 

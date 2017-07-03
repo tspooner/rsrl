@@ -11,10 +11,14 @@ gcc = "0.3"
 
 [dependencies]
 log = "0.3"
-blas = "0.15"
 libc = "0.2"
 rand = "0.3"
 slog = "2.0"
 time = "0.1"
-ndarray = "0.9"
-rusty-machine="0.5"
+serde = "0.9"
+serde_json = "0.9"
+serde_derive = "0.9"
+rusty-machine = "0.5"
+
+ndarray = { version = "0.9", features = ["blas", "serde"] }
+blas-sys = { version = "0.6", default-features = false, features = ["openblas"] }

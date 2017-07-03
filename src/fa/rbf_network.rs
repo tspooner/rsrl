@@ -7,7 +7,7 @@ use geometry::dimensions::{Partitioned, Continuous};
 
 
 /// Optimised radial basis function network for function representation.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct RBFNetwork {
     mu: Array2<f64>,
     gamma: Array1<f64>,
