@@ -7,6 +7,7 @@ use geometry::dimensions::{Partitioned, Continuous};
 
 
 /// Linearly partitioned function representation.
+#[derive(Clone)]
 pub struct UniformGrid {
     weights: Array2<f64>,
     input_space: RegularSpace<Partitioned>,

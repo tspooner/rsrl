@@ -3,11 +3,12 @@ use geometry::Space;
 use std::marker::PhantomData;
 
 
+#[derive(Clone)]
 pub struct VFunctionGroup<S, V: VFunction<S>>(Vec<V>, PhantomData<S>)
-    where S: Space + Clone;
+    where S: Space;
 
 impl<S, V: VFunction<S>> VFunctionGroup<S, V>
-    where S: Space + Clone
+    where S: Space
 {
     pub fn new(functions: Vec<V>) -> Self {
         VFunctionGroup(functions, PhantomData)
@@ -15,7 +16,7 @@ impl<S, V: VFunction<S>> VFunctionGroup<S, V>
 }
 
 impl<S, V: VFunction<S>> Function<S::Repr, Vec<f64>> for VFunctionGroup<S, V>
-    where S: Space + Clone
+    where S: Space
 {
     fn evaluate(&self, state: &S::Repr) -> Vec<f64> {
         self.0.iter().map(|f| f.evaluate(state)).collect()
@@ -23,7 +24,7 @@ impl<S, V: VFunction<S>> Function<S::Repr, Vec<f64>> for VFunctionGroup<S, V>
 }
 
 impl<S, V: VFunction<S>> Parameterised<S::Repr, Vec<f64>> for VFunctionGroup<S, V>
-    where S: Space + Clone
+    where S: Space
 {
     fn update(&mut self, state: &S::Repr, mut errors: Vec<f64>) {
         let mut index = 0;
@@ -41,7 +42,7 @@ impl<S, V: VFunction<S>> Parameterised<S::Repr, Vec<f64>> for VFunctionGroup<S, 
 }
 
 impl<S, V: VFunction<S>> QFunction<S> for VFunctionGroup<S, V>
-    where S: Space + Clone
+    where S: Space
 {
     fn evaluate_action(&self, state: &S::Repr, action: usize) -> f64 {
         self.0[action].evaluate(state)

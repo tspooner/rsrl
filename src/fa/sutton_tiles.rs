@@ -16,6 +16,7 @@ extern {
 }
 
 
+#[derive(Clone)]
 pub struct SuttonTiles {
     weights: Array1<c_double>,
 

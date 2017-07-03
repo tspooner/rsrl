@@ -23,6 +23,7 @@ use std::collections::HashMap;
 ///
 /// assert_eq!(f.evaluate(&(0, 1)), 1.0);
 /// ```
+#[derive(Clone)]
 pub struct Table<K, V>(HashMap<K, V>);
 
 impl<K: Hash + Eq, V> Table<K, V> {
