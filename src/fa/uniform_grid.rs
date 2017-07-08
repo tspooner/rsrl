@@ -2,8 +2,8 @@ use super::{Function, Parameterised, Linear, VFunction, QFunction};
 
 use utils::dot;
 use ndarray::{arr1, Array1, Array2};
-use geometry::{Space, RegularSpace, Projection};
-use geometry::dimensions::{Partitioned, Continuous};
+use geometry::{Space, RegularSpace};
+use geometry::dimensions::{Dimension, Partitioned, Continuous};
 
 
 /// Linearly partitioned function representation.
@@ -28,13 +28,10 @@ impl UniformGrid {
         let mut in_it = input.iter().rev();
         let mut d_it = self.input_space.iter().rev();
 
-        let acc = in_it.next().unwrap().project(d_it.next().unwrap());
+        let acc = d_it.next().unwrap().convert(*in_it.next().unwrap());
 
-        d_it.zip(in_it).fold(acc, |acc, (d, v)| {
-            let i = v.project(d);
-
-            i + d.density() * acc
-        })
+        d_it.zip(in_it)
+            .fold(acc, |acc, (d, v)| d.convert(*v) + d.density() * acc)
     }
 }
 
