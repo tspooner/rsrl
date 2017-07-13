@@ -1,26 +1,21 @@
 use Parameter;
-use fa::{VFunction, Projection};
+use fa::{VFunction, Projection, Linear};
 use agents::PredictionAgent;
 use geometry::Space;
-use std::marker::PhantomData;
 
 
-pub struct GTD2<S: Space, V: VFunction<S> + Projection<S>>
+pub struct GTD2<S: Space, P: Projection<S>>
 {
-    v_func: V,
-    a_func: V,
+    v_func: Linear<S, P>,
+    a_func: Linear<S, P>,
 
     alpha: Parameter,
     beta: Parameter,
     gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S: Space, V> GTD2<S, V>
-    where V: VFunction<S> + Projection<S>
-{
-    pub fn new<T1, T2, T3>(v_func: V, a_func: V,
+impl<S: Space, P: Projection<S>> GTD2<S, P> {
+    pub fn new<T1, T2, T3>(v_func: Linear<S, P>, a_func: Linear<S, P>,
                            alpha: T1, beta: T2, gamma: T3) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>,
@@ -37,8 +32,6 @@ impl<S: Space, V> GTD2<S, V>
             alpha: alpha.into(),
             beta: beta.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }
@@ -68,22 +61,18 @@ impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
 }
 
 
-pub struct TDC<S: Space, V: VFunction<S> + Projection<S>>
+pub struct TDC<S: Space, P: Projection<S>>
 {
-    v_func: V,
-    a_func: V,
+    v_func: Linear<S, P>,
+    a_func: Linear<S, P>,
 
     alpha: Parameter,
     beta: Parameter,
     gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S: Space, V> TDC<S, V>
-    where V: VFunction<S> + Projection<S>
-{
-    pub fn new<T1, T2, T3>(v_func: V, a_func: V,
+impl<S: Space, P: Projection<S>> TDC<S, P> {
+    pub fn new<T1, T2, T3>(v_func: Linear<S, P>, a_func: Linear<S, P>,
                            alpha: T1, beta: T2, gamma: T3) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>,
@@ -100,8 +89,6 @@ impl<S: Space, V> TDC<S, V>
             alpha: alpha.into(),
             beta: beta.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }
