@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
-use super::{Function, Parameterised, VFunction, QFunction};
-use super::projection::Projection;
+use super::{Function, Parameterised, VFunction, QFunction, Projection};
 use utils::dot;
 use ndarray::{ArrayView, Array1, Array2};
 use geometry::Space;
@@ -108,5 +107,19 @@ impl<S: Space, P: Projection<S>> QFunction<S> for Linear<S, P> {
 
     fn update_action_phi(&mut self, phi: &Array1<f64>, action: usize, error: f64) {
         self.weights.column_mut(action).scaled_add(error, &phi);
+    }
+}
+
+impl<S: Space, P: Projection<S>> Projection<S> for Linear<S, P> {
+    fn project(&self, input: &S::Repr) -> Array1<f64> {
+        self.projector.project(input)
+    }
+
+    fn dim(&self) -> usize {
+        self.projector.dim()
+    }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        self.projector.equivalent(&other.projector)
     }
 }
