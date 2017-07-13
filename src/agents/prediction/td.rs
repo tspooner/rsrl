@@ -1,5 +1,5 @@
 use Parameter;
-use fa::{VFunction, Projection};
+use fa::{VFunction, Projection, Linear};
 use agents::PredictionAgent;
 use agents::memory::Trace;
 use geometry::Space;
@@ -55,39 +55,32 @@ impl<S: Space, V> PredictionAgent<S> for TD<S, V>
 }
 
 
-pub struct TDLambda<S: Space, V: VFunction<S> + Projection<S>>
+pub struct TDLambda<S: Space, P: Projection<S>>
 {
-    v_func: V,
     trace: Trace,
+    v_func: Linear<S, P>,
 
     alpha: Parameter,
     gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S: Space, V> TDLambda<S, V>
-    where V: VFunction<S> + Projection<S>
-{
-    pub fn new<T1, T2>(v_func: V, trace: Trace, alpha: T1, gamma: T2) -> Self
+impl<S: Space, P: Projection<S>> TDLambda<S, P> {
+    pub fn new<T1, T2>(trace: Trace, v_func: Linear<S, P>,
+                       alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
         TDLambda {
-            v_func: v_func,
             trace: trace,
+            v_func: v_func,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
-impl<S: Space, V> PredictionAgent<S> for TDLambda<S, V>
-    where V: VFunction<S> + Projection<S>
-{
+impl<S: Space, P: Projection<S>> PredictionAgent<S> for TDLambda<S, P> {
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
         let phi_s = self.v_func.project(s);
         let phi_ns = self.v_func.project(ns);
