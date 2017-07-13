@@ -3,6 +3,8 @@ use self::libc::{c_double, c_int, size_t};
 
 use super::Projection;
 use ndarray::Array1;
+use geometry::RegularSpace;
+use geometry::dimensions::Continuous;
 
 
 #[link(name="tiles", kind="static")]
@@ -16,6 +18,7 @@ extern {
 pub struct SuttonTiles {
     n_tilings: i32,
     memory_size: i32,
+
     int_array: [i32; 1],
 }
 
@@ -41,10 +44,10 @@ impl SuttonTiles {
     }
 }
 
-impl Projection for SuttonTiles {
+impl Projection<RegularSpace<Continuous>> for SuttonTiles {
     // TODO: Rework how we handle cases where we need a sparse vector. There's
     // no point dealing with memory_size of floats!
-    fn project(&self, input: &[f64]) -> Array1<f64> {
+    fn project(&self, input: &Vec<f64>) -> Array1<f64> {
         let mut p = Array1::<f64>::zeros(self.memory_size as usize);
 
         for i in self.load_tiles(input, &self.int_array) {
@@ -56,5 +59,11 @@ impl Projection for SuttonTiles {
 
     fn dim(&self) -> usize {
         self.memory_size as usize
+    }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        self.dim() == other.dim() &&
+            self.n_tilings == other.n_tilings &&
+            self.memory_size == other.memory_size
     }
 }

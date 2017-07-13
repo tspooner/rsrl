@@ -1,7 +1,7 @@
 use super::Projection;
 use ndarray::Array1;
 use geometry::{Space, RegularSpace};
-use geometry::dimensions::{Dimension, Partitioned};
+use geometry::dimensions::{Dimension, Continuous, Partitioned};
 
 
 pub struct UniformGrid {
@@ -30,8 +30,8 @@ impl UniformGrid {
     }
 }
 
-impl Projection for UniformGrid {
-    fn project(&self, input: &[f64]) -> Array1<f64> {
+impl Projection<RegularSpace<Continuous>> for UniformGrid {
+    fn project(&self, input: &Vec<f64>) -> Array1<f64> {
         let mut p = Array1::<f64>::zeros(self.n_features);
         p[self.hash(input)] = 1.0;
 
@@ -40,5 +40,9 @@ impl Projection for UniformGrid {
 
     fn dim(&self) -> usize {
         self.n_features
+    }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        self.dim() == other.dim()
     }
 }

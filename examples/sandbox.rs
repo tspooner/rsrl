@@ -1,7 +1,10 @@
 extern crate rsrl;
 
 use rsrl::{run, Parameter, SerialExperiment, Evaluation};
-use rsrl::fa::linear::RBFNetwork;
+
+use rsrl::fa::Linear;
+use rsrl::fa::projection::RBFNetwork;
+
 use rsrl::agents::control::td::QSigma;
 use rsrl::domains::{Domain, MountainCar};
 use rsrl::policies::{Greedy, EpsilonGreedy};
@@ -14,7 +17,9 @@ fn main() {
         let aspace = domain.action_space();
         let n_actions: usize = aspace.span().into();
 
-        let q_func = RBFNetwork::new(domain.state_space().partitioned(8), n_actions);
+        let pr = RBFNetwork::from_space(domain.state_space().partitioned(8));
+        let q_func = Linear::new(pr, n_actions);
+
         let policy = EpsilonGreedy::new(aspace, Parameter::exponential(0.9, 0.01, 0.99));
 
         QSigma::new(q_func, policy, 0.1, 0.99, 0.1, 2)

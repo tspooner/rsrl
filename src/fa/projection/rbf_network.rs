@@ -2,7 +2,7 @@ use super::Projection;
 use utils::cartesian_product;
 use ndarray::{Axis, ArrayView, Array1, Array2};
 use geometry::{Span, Space, RegularSpace};
-use geometry::dimensions::Partitioned;
+use geometry::dimensions::{Continuous, Partitioned};
 
 
 pub struct RBFNetwork {
@@ -12,8 +12,8 @@ pub struct RBFNetwork {
 
 impl RBFNetwork {
     pub fn new(mu: Array2<f64>, gamma: Array1<f64>) -> Self {
-        if mu.rows() != gamma.len() {
-            panic!("");
+        if mu.cols() != gamma.len() {
+            panic!("Dimensions of mu ({:?}) and gamma ({:?}) must agree.", mu.shape(), gamma.shape());
         }
 
         RBFNetwork {
@@ -36,7 +36,8 @@ impl RBFNetwork {
             .iter().cloned()
             .flat_map(|e| e).collect();
 
-        let mu = Array2::from_shape_vec((n_features, input_space.dim()), flat_combs).unwrap();
+        let mu = Array2::from_shape_vec((n_features, input_space.dim()),
+                                        flat_combs).unwrap();
         let gamma = input_space.iter().map(|d| {
             let s = d.partition_width();
             -1.0 / (s * s)
@@ -46,8 +47,8 @@ impl RBFNetwork {
     }
 }
 
-impl Projection for RBFNetwork {
-    fn project(&self, input: &[f64]) -> Array1<f64> {
+impl Projection<RegularSpace<Continuous>> for RBFNetwork {
+    fn project(&self, input: &Vec<f64>) -> Array1<f64> {
         let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
         let e = (&d * &d * &self.gamma).mapv(|v| v.exp()).sum(Axis(1));
         let z = e.sum(Axis(0));
@@ -57,5 +58,11 @@ impl Projection for RBFNetwork {
 
     fn dim(&self) -> usize {
         self.mu.rows()
+    }
+
+    fn equivalent(&self, other: &Self) -> bool {
+        self.mu == other.mu &&
+            self.gamma == other.gamma &&
+            self.dim() == other.dim()
     }
 }

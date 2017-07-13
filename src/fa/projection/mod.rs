@@ -1,9 +1,11 @@
 use ndarray::Array1;
+use geometry::Space;
 
 
-pub trait Projection {
-    fn project(&self, input: &[f64]) -> Array1<f64>;
+pub trait Projection<S: Space> {
+    fn project(&self, input: &S::Repr) -> Array1<f64>;
     fn dim(&self) -> usize;
+    fn equivalent(&self, other: &Self) -> bool;
 }
 
 mod sutton_tc;

@@ -1,7 +1,9 @@
 use fa::Function;
 use super::Projection;
 use ndarray::Array1;
+use geometry::RegularSpace;
 use geometry::kernels::Kernel;
+use geometry::dimensions::Continuous;
 
 
 /// Represents the location and kernel associated with a basis function.
@@ -38,8 +40,8 @@ impl BasisNetwork {
     }
 }
 
-impl Projection for BasisNetwork {
-    fn project(&self, input: &[f64]) -> Array1<f64> {
+impl Projection<RegularSpace<Continuous>> for BasisNetwork {
+    fn project(&self, input: &Vec<f64>) -> Array1<f64> {
         Array1::from_shape_fn((self.bases.len(),), |i| {
             self.bases[i].evaluate(input)
         })
@@ -47,5 +49,9 @@ impl Projection for BasisNetwork {
 
     fn dim(&self) -> usize {
         self.bases.len()
+    }
+
+    fn equivalent(&self, _: &Self) -> bool {
+        unimplemented!()
     }
 }

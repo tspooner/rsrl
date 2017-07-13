@@ -102,10 +102,6 @@ impl Parameterised<Vec<f64>, Vec<f64>> for SuttonTiles {
 }
 
 
-// TODO: Implement Linear - problem is that phi will be a function of the state
-//       and action for this implementation of tile coding.
-
-
 impl VFunction<RegularSpace<Continuous>> for SuttonTiles {}
 
 

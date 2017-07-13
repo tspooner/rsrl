@@ -1,5 +1,5 @@
 use Parameter;
-use fa::{VFunction, QFunction, Linear};
+use fa::{VFunction, QFunction, Projection};
 use agents::ControlAgent;
 use domains::Transition;
 use geometry::{Space, ActionSpace};
@@ -51,8 +51,8 @@ impl<S: Space, Q, V, P> GreedyGQ<S, Q, V, P>
 }
 
 impl<S: Space, Q, V, P> ControlAgent<S, ActionSpace> for GreedyGQ<S, Q, V, P>
-    where Q: QFunction<S> + Linear<S>,
-          V: VFunction<S> + Linear<S>,
+    where Q: QFunction<S> + Projection<S>,
+          V: VFunction<S> + Projection<S>,
           P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
@@ -67,8 +67,8 @@ impl<S: Space, Q, V, P> ControlAgent<S, ActionSpace> for GreedyGQ<S, Q, V, P>
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let phi_s = self.q_func.phi(s);
-        let phi_ns = self.q_func.phi(ns);
+        let phi_s = self.q_func.project(s);
+        let phi_ns = self.q_func.project(ns);
 
         let td_error = t.reward +
             self.q_func.evaluate_action_phi(&(self.gamma.value()*&phi_ns - &phi_s), a);

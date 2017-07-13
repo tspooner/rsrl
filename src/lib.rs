@@ -30,4 +30,3 @@ pub mod fa;
 pub mod geometry;
 pub mod logging;
 pub mod policies;
-pub mod projection;
