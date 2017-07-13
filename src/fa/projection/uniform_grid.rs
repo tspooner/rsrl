@@ -46,3 +46,81 @@ impl Projection<RegularSpace<Continuous>> for UniformGrid {
         self.dim() == other.dim()
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::{Projection, UniformGrid};
+    use geometry::RegularSpace;
+    use geometry::dimensions::Partitioned;
+
+
+    #[test]
+    fn test_1d() {
+        let mut ds = RegularSpace::new();
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+
+        let mut t = UniformGrid::new(ds);
+
+        assert_eq!(t.dim(), 10);
+
+        for i in 0..10 {
+            let out = t.project(&vec![i as u32 as f64]).to_vec();
+
+            let mut expected = vec![0.0; 10];
+            expected[i] = 1.0;
+
+            assert_eq!(out, expected);
+        }
+    }
+
+    #[test]
+    fn test_2d() {
+        let mut ds = RegularSpace::new();
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+
+        let mut t = UniformGrid::new(ds);
+
+        assert_eq!(t.dim(), 100);
+
+        for i in 0..10 {
+            for j in 0..10 {
+                let out =
+                    t.project(&vec![i as u32 as f64, j as u32 as f64]).to_vec();
+
+                let mut expected = vec![0.0; 100];
+                expected[j*10 + i] = 1.0;
+
+                assert_eq!(out, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn test_3d() {
+        let mut ds = RegularSpace::new();
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
+
+        let mut t = UniformGrid::new(ds);
+
+        assert_eq!(t.dim(), 1000);
+
+        for i in 0..10 {
+            for j in 0..10 {
+                for k in 0..10 {
+                    let out = t.project(&vec![i as u32 as f64,
+                                              j as u32 as f64,
+                                              k as u32 as f64]).to_vec();
+
+                    let mut expected = vec![0.0; 1000];
+                    expected[k*100 + j*10 + i] = 1.0;
+
+                    assert_eq!(out, expected);
+                }
+            }
+        }
+    }
+}
