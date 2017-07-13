@@ -19,7 +19,6 @@ impl<I: ?Sized, O, T> Function<I, O> for Box<T>
 /// An interface for dealing with adaptive functions.
 pub trait Parameterised<I: ?Sized, E> {
     fn update(&mut self, input: &I, error: E);
-    fn equivalent(&self, other: &Self) -> bool;
 }
 
 impl<I: ?Sized, E, T> Parameterised<I, E> for Box<T>
@@ -28,16 +27,6 @@ impl<I: ?Sized, E, T> Parameterised<I, E> for Box<T>
     fn update(&mut self, input: &I, error: E) {
         (**self).update(input, error)
     }
-
-    fn equivalent(&self, other: &Self) -> bool {
-        (**self).equivalent(other)
-    }
-}
-
-
-/// An interface for linearly parameterised functions.
-pub trait Linear<S: Space> {
-    fn phi(&self, input: &S::Repr) -> Array1<f64>;
 }
 
 
@@ -147,29 +136,12 @@ impl<S: Space, T> QFunction<S> for Box<T>
 }
 
 
-mod fgroup;
 mod table;
-mod uniform_grid;
-mod rbf_network;
-mod basis_network;
-// mod leaf;
-mod sutton_tiles;
+pub use self::table::Table;
 
-pub mod exact {
-    pub use fa::table::*;
-}
 
-pub mod linear {
-    pub use fa::uniform_grid::*;
-    pub use fa::rbf_network::*;
-    pub use fa::basis_network::*;
-    pub use fa::sutton_tiles::*;
-}
+pub mod projection;
+pub use self::projection::Projection;
 
-pub mod non_linear {
-    // pub use fa::leaf::*;
-}
-
-pub mod misc {
-    pub use fa::fgroup::VFunctionGroup;
-}
+mod linear;
+pub use self::linear::Linear;

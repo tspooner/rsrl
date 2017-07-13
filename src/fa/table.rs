@@ -12,7 +12,7 @@ use std::collections::HashMap;
 ///
 /// ```
 /// use rsrl::fa::{Function, Parameterised};
-/// use rsrl::fa::exact::Table;
+/// use rsrl::fa::Table;
 ///
 /// let f = {
 ///     let mut t = Table::<(u32, u32), f64>::new();
@@ -55,6 +55,4 @@ impl<I, E> Parameterised<I, E> for Table<I, E>
     fn update(&mut self, input: &I, error: E) {
         *self.0.entry(*input).or_insert(E::default()) += error;
     }
-
-    fn equivalent(&self, _: &Self) -> bool { true }
 }
