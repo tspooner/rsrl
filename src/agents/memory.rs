@@ -34,11 +34,11 @@ impl Trace {
 
     pub fn update(&mut self, phi: &Array1<f64>) {
         match self {
-            &mut Trace::Accumulating { ref mut eligibility, lambda } =>
+            &mut Trace::Accumulating { ref mut eligibility, .. } =>
             {
                 *eligibility += phi;
             },
-            &mut Trace::Replacing { ref mut eligibility, lambda } =>
+            &mut Trace::Replacing { ref mut eligibility, .. } =>
             {
                 eligibility.zip_mut_with(phi, |val, &p| {
                     *val = f64::min(1.0, *val + p);
