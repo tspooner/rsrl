@@ -135,7 +135,7 @@ impl Domain for Acrobat {
     }
 
     fn is_terminal(&self) -> bool {
-        self.theta1.cos() + (self.theta1 + self.theta2).cos() > -1.0
+        self.theta1.cos() + (self.theta1 + self.theta2).cos() < -1.0
     }
 
     fn reward(&self,
@@ -158,5 +158,31 @@ impl Domain for Acrobat {
 
     fn action_space(&self) -> ActionSpace {
         ActionSpace::new(Discrete::new(3))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use domains::{Observation, Domain};
+
+    #[test]
+    fn test_initial_observation() {
+        let m = Acrobat::default();
+
+        match m.emit() {
+            Observation::Full { ref state, .. } => {
+                assert_eq!(state[0], 0.0);
+                assert_eq!(state[1], 0.0);
+                assert_eq!(state[2], 0.0);
+                assert_eq!(state[3], 0.0);
+            }
+            _ => panic!("Should yield a fully observable state."),
+        }
+    }
+
+    #[test]
+    fn test_is_terminal() {
+        assert!(!Acrobat::default().is_terminal());
     }
 }
