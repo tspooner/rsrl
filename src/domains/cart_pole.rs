@@ -23,7 +23,7 @@ const LIMITS_THETA: (f64, f64) = (-TWELVE_DEGREES, TWELVE_DEGREES);
 const LIMITS_THETA_DOT: (f64, f64) = (-2.0, 2.0);
 
 const REWARD_STEP: f64 = 0.0;
-const REWARD_FAIL: f64 = -1.0;
+const REWARD_TERMINAL: f64 = -1.0;
 
 const ALL_ACTIONS: [f64; 2] = [-1.0 * CART_FORCE, 1.0 * CART_FORCE];
 
@@ -118,7 +118,7 @@ impl Domain for CartPole {
               to: &Observation<Self::StateSpace, Self::ActionSpace>)
               -> f64 {
         match to {
-            &Observation::Terminal(_) => REWARD_FAIL,
+            &Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,
         }
     }
