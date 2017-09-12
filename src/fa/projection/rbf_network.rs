@@ -50,8 +50,8 @@ impl RBFNetwork {
 impl Projection<RegularSpace<Continuous>> for RBFNetwork {
     fn project(&self, input: &Vec<f64>) -> Array1<f64> {
         let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
-        let e = (&d * &d * &self.gamma).mapv(|v| v.exp()).sum(Axis(1));
-        let z = e.sum(Axis(0));
+        let e = (&d * &d * &self.gamma).mapv(|v| v.exp()).sum_axis(Axis(1));
+        let z = e.sum_axis(Axis(0));
 
         e / z
     }
