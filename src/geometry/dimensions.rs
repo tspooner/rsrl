@@ -22,6 +22,9 @@ pub trait Dimension
     /// Sample a random value contained by this dimension.
     fn sample(&self, rng: &mut ThreadRng) -> Self::Value;
 
+    /// Map a compatible input into a valid value of this dimension.
+    fn convert(&self, val: f64) -> Self::Value;
+
     /// Returns the total span of this dimension.
     fn span(&self) -> Span;
 }
@@ -63,6 +66,8 @@ impl Dimension for Null {
         ()
     }
 
+    fn convert(&self, _: f64) -> Self::Value { () }
+
     fn span(&self) -> Span {
         Span::Null
     }
@@ -85,6 +90,8 @@ impl Dimension for Infinite {
     fn sample(&self, _: &mut ThreadRng) -> f64 {
         unimplemented!()
     }
+
+    fn convert(&self, val: f64) -> Self::Value { val }
 
     fn span(&self) -> Span {
         Span::Infinite
@@ -117,6 +124,10 @@ impl Dimension for Continuous {
 
     fn sample(&self, rng: &mut ThreadRng) -> f64 {
         self.range.ind_sample(rng)
+    }
+
+    fn convert(&self, val: f64) -> Self::Value {
+        clip!(self.lb, val, self.ub)
     }
 
     fn span(&self) -> Span {
@@ -315,6 +326,10 @@ impl Dimension for Partitioned {
         self.to_partition(self.range.ind_sample(rng))
     }
 
+    fn convert(&self, val: f64) -> Self::Value {
+        self.to_partition(val)
+    }
+
     fn span(&self) -> Span {
         Span::Finite(self.density)
     }
@@ -496,6 +511,8 @@ impl Dimension for Discrete {
         self.range.ind_sample(rng)
     }
 
+    fn convert(&self, val: f64) -> Self::Value { val as usize }
+
     fn span(&self) -> Span {
         Span::Finite(self.size)
     }
@@ -621,8 +638,12 @@ impl fmt::Debug for Discrete {
 impl<D: Dimension> Dimension for Box<D> {
     type Value = D::Value;
 
-    fn sample(&self, rng: &mut ThreadRng) -> D::Value {
+    fn sample(&self, rng: &mut ThreadRng) -> Self::Value {
         (**self).sample(rng)
+    }
+
+    fn convert(&self, val: f64) -> Self::Value {
+        (**self).convert(val)
     }
 
     fn span(&self) -> Span {
@@ -633,8 +654,12 @@ impl<D: Dimension> Dimension for Box<D> {
 impl<'a, D: Dimension> Dimension for &'a D {
     type Value = D::Value;
 
-    fn sample(&self, rng: &mut ThreadRng) -> D::Value {
+    fn sample(&self, rng: &mut ThreadRng) -> Self::Value {
         (**self).sample(rng)
+    }
+
+    fn convert(&self, val: f64) -> Self::Value {
+        (**self).convert(val)
     }
 
     fn span(&self) -> Span {
