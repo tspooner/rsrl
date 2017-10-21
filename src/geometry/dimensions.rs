@@ -756,7 +756,6 @@ mod tests {
             for _ in 0..100 {
                 let s = d.sample(&mut rng);
                 assert!(s < density);
-                assert!(s >= 0);
             }
 
             assert_tokens(&d, &[
@@ -788,7 +787,6 @@ mod tests {
             for _ in 0..100 {
                 let s = d.sample(&mut rng);
                 assert!(s < size);
-                assert!(s >= 0);
             }
 
             assert_tokens(&d, &[

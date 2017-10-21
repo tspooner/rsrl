@@ -60,7 +60,7 @@ mod tests {
         let mut ds = RegularSpace::new();
         ds = ds.push(Partitioned::new(0.0, 10.0, 10));
 
-        let mut t = UniformGrid::new(ds);
+        let t = UniformGrid::new(ds);
 
         assert_eq!(t.dim(), 10);
 
@@ -80,7 +80,7 @@ mod tests {
         ds = ds.push(Partitioned::new(0.0, 10.0, 10));
         ds = ds.push(Partitioned::new(0.0, 10.0, 10));
 
-        let mut t = UniformGrid::new(ds);
+        let t = UniformGrid::new(ds);
 
         assert_eq!(t.dim(), 100);
 
@@ -104,7 +104,7 @@ mod tests {
         ds = ds.push(Partitioned::new(0.0, 10.0, 10));
         ds = ds.push(Partitioned::new(0.0, 10.0, 10));
 
-        let mut t = UniformGrid::new(ds);
+        let t = UniformGrid::new(ds);
 
         assert_eq!(t.dim(), 1000);
 
