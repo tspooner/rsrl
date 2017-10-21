@@ -5,6 +5,7 @@ use geometry::{Span, Space, RegularSpace};
 use geometry::dimensions::{Continuous, Partitioned};
 
 
+#[derive(Serialize, Deserialize)]
 pub struct RBFNetwork {
     mu: Array2<f64>,
     gamma: Array1<f64>,

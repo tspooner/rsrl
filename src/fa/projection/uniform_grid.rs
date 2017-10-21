@@ -4,6 +4,7 @@ use geometry::{Space, RegularSpace};
 use geometry::dimensions::{Dimension, Continuous, Partitioned};
 
 
+#[derive(Serialize, Deserialize)]
 pub struct UniformGrid {
     n_features: usize,
     input_space: RegularSpace<Partitioned>,
