@@ -15,10 +15,11 @@ libc = "0.2"
 rand = "0.3"
 slog = "2.0"
 time = "0.1"
-serde = "0.9"
-serde_json = "0.9"
-serde_derive = "0.9"
+serde = "1.0"
+serde_json = "1.0"
+serde_test = "1.0"
+serde_derive = "1.0"
 rusty-machine = "0.5"
 
-ndarray = { version = "0.9", features = ["blas", "serde"] }
+ndarray = { version = "0.10", features = ["blas", "serde-1"] }
 blas-sys = { version = "0.6", default-features = false, features = ["openblas"] }

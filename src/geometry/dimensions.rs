@@ -1,3 +1,4 @@
+use std::cmp;
 use std::f64;
 use std::fmt;
 use std::ops::Range;
@@ -5,6 +6,9 @@ use super::span::Span;
 
 use rand::ThreadRng;
 use rand::distributions::{Range as RngRange, IndependentSample};
+
+use serde::{Serialize, Deserialize, Deserializer, de};
+use serde::de::Visitor;
 
 
 // XXX: Address concern about [low, high) convention.
@@ -36,7 +40,7 @@ pub trait BoundedDimension: Dimension
     fn ub(&self) -> &Self::ValueBound;
 
     /// Returns true iff `val` is within the dimension's bounds.
-    fn contains(&self, val: &Self::ValueBound) -> bool;
+    fn contains(&self, val: Self::ValueBound) -> bool;
 }
 
 /// Dimension type with bounds and a finite set of values.
@@ -49,7 +53,7 @@ pub trait FiniteDimension: BoundedDimension
 
 
 /// A null dimension.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Null;
 
 impl Dimension for Null {
@@ -66,7 +70,7 @@ impl Dimension for Null {
 
 
 /// An infinite dimension.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Infinite;
 
 impl Infinite {
@@ -89,10 +93,12 @@ impl Dimension for Infinite {
 
 
 /// A continous dimension.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
 pub struct Continuous {
     lb: f64,
     ub: f64,
+
+    #[serde(skip_serializing)]
     range: RngRange<f64>,
 }
 
@@ -129,8 +135,107 @@ impl BoundedDimension for Continuous {
         &self.ub
     }
 
-    fn contains(&self, val: &Self::ValueBound) -> bool {
-        (val >= self.lb()) && (val < self.ub())
+    fn contains(&self, val: Self::ValueBound) -> bool {
+        (val >= self.lb) && (val < self.ub)
+    }
+}
+
+impl<'de> Deserialize<'de> for Continuous {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        enum Field { Lb, Ub };
+        const FIELDS: &'static [&'static str] = &["lb", "ub"];
+
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+                where D: Deserializer<'de>
+            {
+                struct FieldVisitor;
+
+                impl<'de> Visitor<'de> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("`lb` or `ub`")
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                        where E: de::Error
+                    {
+                        match value {
+                            "lb" => Ok(Field::Lb),
+                            "ub" => Ok(Field::Ub),
+                            _ => Err(de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+
+        struct ContinuousVisitor;
+
+        impl<'de> Visitor<'de> for ContinuousVisitor {
+            type Value = Continuous;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Continuous")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Continuous, V::Error>
+                where V: de::SeqAccess<'de>
+            {
+                let lb = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let ub = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+
+                Ok(Continuous::new(lb, ub))
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Continuous, V::Error>
+                where V: de::MapAccess<'de>
+            {
+                let mut lb = None;
+                let mut ub = None;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Lb => {
+                            if lb.is_some() {
+                                return Err(de::Error::duplicate_field("lb"));
+                            }
+
+                            lb = Some(map.next_value()?);
+                        }
+                        Field::Ub => {
+                            if ub.is_some() {
+                                return Err(de::Error::duplicate_field("ub"));
+                            }
+
+                            ub = Some(map.next_value()?);
+                        }
+                    }
+                }
+
+                let lb = lb.ok_or_else(|| de::Error::missing_field("lb"))?;
+                let ub = ub.ok_or_else(|| de::Error::missing_field("ub"))?;
+
+                Ok(Continuous::new(lb, ub))
+            }
+        }
+
+        deserializer.deserialize_struct("Continuous",
+                                        FIELDS,
+                                        ContinuousVisitor)
+    }
+}
+
+impl cmp::PartialEq for Continuous {
+    fn eq(&self, other: &Continuous) -> bool {
+        self.lb.eq(&other.lb) && self.ub.eq(&other.ub)
     }
 }
 
@@ -145,12 +250,13 @@ impl fmt::Debug for Continuous {
 
 
 /// A finite, uniformly partitioned continous dimension.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
 pub struct Partitioned {
     lb: f64,
     ub: f64,
     density: usize,
 
+    #[serde(skip_serializing)]
     range: RngRange<f64>,
 }
 
@@ -225,14 +331,128 @@ impl BoundedDimension for Partitioned {
         &self.ub
     }
 
-    fn contains(&self, val: &Self::ValueBound) -> bool {
-        (val >= self.lb()) && (val < self.ub())
+    fn contains(&self, val: Self::ValueBound) -> bool {
+        (val >= self.lb) && (val < self.ub)
     }
 }
 
 impl FiniteDimension for Partitioned {
     fn range(&self) -> Range<Self::Value> {
         0..(self.density + 1)
+    }
+}
+
+impl<'de> Deserialize<'de> for Partitioned {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        enum Field { Lb, Ub, Density };
+        const FIELDS: &'static [&'static str] = &["lb", "ub", "density"];
+
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+                where D: Deserializer<'de>
+            {
+                struct FieldVisitor;
+
+                impl<'de> Visitor<'de> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("`lb`, `ub` or `density`")
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                        where E: de::Error
+                    {
+                        match value {
+                            "lb" => Ok(Field::Lb),
+                            "ub" => Ok(Field::Ub),
+                            "density" => Ok(Field::Density),
+                            _ => Err(de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+
+        struct PartitionedVisitor;
+
+        impl<'de> Visitor<'de> for PartitionedVisitor {
+            type Value = Partitioned;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Partitioned")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Partitioned, V::Error>
+                where V: de::SeqAccess<'de>
+            {
+                let lb = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let ub = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                let density = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+
+                Ok(Partitioned::new(lb, ub, density))
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Partitioned, V::Error>
+                where V: de::MapAccess<'de>
+            {
+                let mut lb = None;
+                let mut ub = None;
+                let mut density = None;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Lb => {
+                            if lb.is_some() {
+                                return Err(de::Error::duplicate_field("lb"));
+                            }
+
+                            lb = Some(map.next_value()?);
+                        }
+                        Field::Ub => {
+                            if ub.is_some() {
+                                return Err(de::Error::duplicate_field("ub"));
+                            }
+
+                            ub = Some(map.next_value()?);
+                        }
+                        Field::Density => {
+                            if density.is_some() {
+                                return Err(de::Error::duplicate_field("density"));
+                            }
+
+                            density = Some(map.next_value()?);
+                        }
+                    }
+                }
+
+                let lb = lb.ok_or_else(|| de::Error::missing_field("lb"))?;
+                let ub = ub.ok_or_else(|| de::Error::missing_field("ub"))?;
+                let density = density
+                    .ok_or_else(|| de::Error::missing_field("density"))?;
+
+                Ok(Partitioned::new(lb, ub, density))
+            }
+        }
+
+        deserializer.deserialize_struct("Partitioned",
+                                        FIELDS,
+                                        PartitionedVisitor)
+    }
+}
+
+impl cmp::PartialEq for Partitioned {
+    fn eq(&self, other: &Partitioned) -> bool {
+        self.lb.eq(&other.lb) &&
+            self.ub.eq(&other.ub) &&
+            self.density.eq(&other.density)
     }
 }
 
@@ -248,18 +468,22 @@ impl fmt::Debug for Partitioned {
 
 
 /// A finite discrete dimension.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
 pub struct Discrete {
-    lb: usize,
+    size: usize,
+
+    #[serde(skip_serializing)]
     ub: usize,
+
+    #[serde(skip_serializing)]
     range: RngRange<usize>,
 }
 
 impl Discrete {
     pub fn new(size: usize) -> Discrete {
         Discrete {
-            lb: 0,
             ub: size - 1,
+            size: size,
             range: RngRange::new(0, size),
         }
     }
@@ -273,7 +497,7 @@ impl Dimension for Discrete {
     }
 
     fn span(&self) -> Span {
-        Span::Finite(self.ub + 1)
+        Span::Finite(self.size)
     }
 }
 
@@ -281,29 +505,114 @@ impl BoundedDimension for Discrete {
     type ValueBound = usize;
 
     fn lb(&self) -> &usize {
-        &self.lb
+        &0
     }
 
     fn ub(&self) -> &usize {
         &self.ub
     }
 
-    fn contains(&self, val: &Self::Value) -> bool {
-        *val < self.ub
+    fn contains(&self, val: Self::Value) -> bool {
+        val < self.size
     }
 }
 
 impl FiniteDimension for Discrete {
     fn range(&self) -> Range<Self::Value> {
-        0..(self.ub + 1)
+        0..self.size
+    }
+}
+
+impl<'de> Deserialize<'de> for Discrete {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        enum Field { Size };
+        const FIELDS: &'static [&'static str] = &["size"];
+
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+                where D: Deserializer<'de>
+            {
+                struct FieldVisitor;
+
+                impl<'de> Visitor<'de> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("`size`")
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                        where E: de::Error
+                    {
+                        match value {
+                            "size" => Ok(Field::Size),
+                            _ => Err(de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+
+        struct DiscreteVisitor;
+
+        impl<'de> Visitor<'de> for DiscreteVisitor {
+            type Value = Discrete;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Discrete")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Discrete, V::Error>
+                where V: de::SeqAccess<'de>
+            {
+                let size = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+
+                Ok(Discrete::new(size))
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Discrete, V::Error>
+                where V: de::MapAccess<'de>
+            {
+                let mut size = None;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Size => {
+                            if size.is_some() {
+                                return Err(de::Error::duplicate_field("size"));
+                            }
+
+                            size = Some(map.next_value()?);
+                        }
+                    }
+                }
+
+                Ok(Discrete::new(
+                    size.ok_or_else(|| de::Error::missing_field("size"))?))
+            }
+        }
+
+        deserializer.deserialize_struct("Discrete",
+                                        FIELDS,
+                                        DiscreteVisitor)
+    }
+}
+
+impl cmp::PartialEq for Discrete {
+    fn eq(&self, other: &Discrete) -> bool {
+        self.size.eq(&other.size)
     }
 }
 
 impl fmt::Debug for Discrete {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Discrete")
-            .field("lb", &self.lb)
-            .field("ub", &self.ub)
+            .field("size", &self.size)
             .finish()
     }
 }
@@ -342,6 +651,7 @@ mod tests {
 
     use rand::thread_rng;
     use geometry::Span;
+    use serde_test::{Token, assert_tokens};
 
     #[test]
     fn test_null() {
@@ -350,6 +660,10 @@ mod tests {
 
         assert_eq!(d.sample(&mut rng), ());
         assert_eq!(d.span(), Span::Null);
+
+        assert_tokens(&d, &[
+            Token::UnitStruct { name: "Null" }
+        ]);
     }
 
     #[test]
@@ -357,6 +671,10 @@ mod tests {
         let d = Infinite;
 
         assert_eq!(d.span(), Span::Infinite);
+
+        assert_tokens(&d, &[
+            Token::UnitStruct { name: "Infinite" }
+        ]);
     }
 
     #[test]
@@ -376,16 +694,25 @@ mod tests {
 
             assert_eq!(d.span(), Span::Infinite);
 
-            assert!(!d.contains(&ub));
-            assert!(d.contains(&lb));
-            assert!(d.contains(&((lb + ub) / 2.0)));
+            assert!(!d.contains(ub));
+            assert!(d.contains(lb));
+            assert!(d.contains(((lb + ub) / 2.0)));
 
             for _ in 0..100 {
                 let s = d.sample(&mut rng);
                 assert!(s < ub);
                 assert!(s >= lb);
-                assert!(d.contains(&s));
+                assert!(d.contains(s));
             }
+
+            assert_tokens(&d, &[
+                Token::Struct { name: "Continuous", len: 2 },
+                Token::Str("lb"),
+                Token::F64(lb),
+                Token::Str("ub"),
+                Token::F64(ub),
+                Token::StructEnd,
+            ]);
         }
     }
 
@@ -397,15 +724,26 @@ mod tests {
 
             assert_eq!(d.span(), Span::Finite(density));
 
-            assert!(!d.contains(&ub));
-            assert!(d.contains(&lb));
-            assert!(d.contains(&((lb + ub) / 2.0)));
+            assert!(!d.contains(ub));
+            assert!(d.contains(lb));
+            assert!(d.contains(((lb + ub) / 2.0)));
 
             for _ in 0..100 {
                 let s = d.sample(&mut rng);
                 assert!(s < density);
                 assert!(s >= 0);
             }
+
+            assert_tokens(&d, &[
+                Token::Struct { name: "Partitioned", len: 3 },
+                Token::Str("lb"),
+                Token::F64(lb),
+                Token::Str("ub"),
+                Token::F64(ub),
+                Token::Str("density"),
+                Token::U64(density as u64),
+                Token::StructEnd,
+            ]);
         }
     }
 
@@ -417,15 +755,23 @@ mod tests {
 
             assert_eq!(d.span(), Span::Finite(size));
 
-            assert!(!d.contains(&(size - 1)));
-            assert!(d.contains(&0));
-            assert!(d.contains(&(size - 2)));
+            assert!(!d.contains(size));
+
+            assert!(d.contains(0));
+            assert!(d.contains((size - 1)));
 
             for _ in 0..100 {
                 let s = d.sample(&mut rng);
                 assert!(s < size);
                 assert!(s >= 0);
             }
+
+            assert_tokens(&d, &[
+                Token::Struct { name: "Discrete", len: 1 },
+                Token::Str("size"),
+                Token::U64(size as u64),
+                Token::StructEnd,
+            ]);
         }
     }
 }

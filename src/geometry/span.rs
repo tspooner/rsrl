@@ -1,7 +1,7 @@
 use std::ops::Mul;
 
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum Span {
     Null,
     Finite(usize),
