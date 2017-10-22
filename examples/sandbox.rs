@@ -40,7 +40,7 @@ fn main() {
     };
 
     // Training:
-    let training_result = {
+    let _training_result = {
         let e = SerialExperiment::new(&mut agent,
                                       Box::new(MountainCar::default),
                                       1000);

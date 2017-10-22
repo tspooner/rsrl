@@ -19,7 +19,7 @@ pub trait Space {
 pub type ActionSpace = UnitarySpace<dimensions::Discrete>;
 
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct NullSpace;
 
 impl Space for NullSpace {
@@ -39,7 +39,7 @@ impl Space for NullSpace {
 }
 
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct UnitarySpace<D: Dimension>(D);
 
 impl<D: Dimension> UnitarySpace<D> {
@@ -65,7 +65,7 @@ impl<D: Dimension> Space for UnitarySpace<D> {
 }
 
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct PairSpace<D1, D2>((D1, D2))
     where D1: Dimension,
           D2: Dimension;
@@ -100,7 +100,7 @@ impl PairSpace<dimensions::Continuous, dimensions::Continuous> {
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct RegularSpace<D: Dimension> {
     dimensions: Vec<D>,
     span: Span,

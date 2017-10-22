@@ -15,6 +15,7 @@ extern {
 }
 
 
+#[derive(Serialize, Deserialize)]
 pub struct SuttonTiles {
     n_tilings: i32,
     memory_size: i32,

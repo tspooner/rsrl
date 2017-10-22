@@ -10,6 +10,11 @@ extern crate slog_async;
 #[feature(blas)]
 extern crate ndarray;
 
+extern crate serde;
+extern crate serde_json;
+extern crate serde_test;
+#[macro_use] extern crate serde_derive;
+
 // extern crate futures;
 extern crate rand;
 
