@@ -1,28 +1,39 @@
-extern crate time;
+use slog::*;
+use slog_term;
+use slog_async;
+
+use std::fs::File;
+use std::fmt::Debug;
 
 
-use log;
-use log::{LogRecord, LogLevel, LogMetadata, SetLoggerError, LogLevelFilter};
+pub fn stdout() -> Fuse<slog_async::Async> {
+    let decorator = slog_term::TermDecorator::new().build();
+    let drain = slog_term::FullFormat::new(decorator).build().fuse();
 
-pub struct DefaultLogger;
-
-impl DefaultLogger {
-    pub fn init() -> Result<(), SetLoggerError> {
-        log::set_logger(|max_log_level| {
-            max_log_level.set(LogLevelFilter::Info);
-            Box::new(DefaultLogger)
-        })
-    }
+    slog_async::Async::new(drain).build().fuse()
 }
 
-impl log::Log for DefaultLogger {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
-        metadata.level() <= LogLevel::Info
-    }
+pub fn file(file: File) -> Fuse<slog_async::Async> {
+    let decorator = slog_term::PlainDecorator::new(file);
+    let drain = slog_term::FullFormat::new(decorator).build().fuse();
 
-    fn log(&self, record: &LogRecord) {
-        if self.enabled(record.metadata()) {
-            println!("[{}] {}", time::now().ctime(), record.args());
-        }
-    }
+    slog_async::Async::new(drain).build().fuse()
+}
+
+pub fn combine<D1, D2>(drain1: D1, drain2: D2) -> Fuse<Duplicate<D1, D2>>
+    where D1: Drain,
+          D1::Ok: Debug,
+          D1::Err: Debug,
+          D2: Drain,
+          D2::Ok: Debug,
+          D2::Err: Debug
+{
+    Duplicate::new(drain1, drain2).fuse()
+}
+
+pub fn root<D: 'static>(drain: D) -> Logger
+    where D: SendSyncUnwindSafeDrain<Err = Never, Ok = ()> +
+             SendSyncRefUnwindSafeDrain<Ok = (), Err = Never>
+{
+    Logger::root(drain, o!())
 }

@@ -116,4 +116,3 @@ impl<S: Space, V> PredictionAgent<S> for TDC<S, V>
         self.gamma = self.gamma.step();
     }
 }
-

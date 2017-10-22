@@ -2,10 +2,9 @@
 // extern crate test;
 
 #[macro_use]
-extern crate log;
-
-#[macro_use]
 extern crate slog;
+extern crate slog_term;
+extern crate slog_async;
 
 #[macro_use]
 #[feature(blas)]
