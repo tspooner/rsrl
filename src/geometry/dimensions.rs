@@ -1,4 +1,5 @@
 use std::f64;
+use std::fmt;
 use std::ops::Range;
 use super::span::Span;
 
@@ -16,6 +17,9 @@ pub trait Dimension
 
     /// Sample a random value contained by this dimension.
     fn sample(&self, rng: &mut ThreadRng) -> Self::Value;
+
+    /// Map a compatible input into a valid value of this dimension.
+    fn convert(&self, val: f64) -> Self::Value;
 
     /// Returns the total span of this dimension.
     fn span(&self) -> Span;
@@ -48,7 +52,7 @@ pub trait FiniteDimension: BoundedDimension
 
 
 /// A null dimension.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Null;
 
 impl Dimension for Null {
@@ -58,6 +62,8 @@ impl Dimension for Null {
         ()
     }
 
+    fn convert(&self, _: f64) -> Self::Value { () }
+
     fn span(&self) -> Span {
         Span::Null
     }
@@ -65,7 +71,7 @@ impl Dimension for Null {
 
 
 /// An infinite dimension.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Infinite;
 
 impl Infinite {
@@ -80,6 +86,8 @@ impl Dimension for Infinite {
     fn sample(&self, _: &mut ThreadRng) -> f64 {
         unimplemented!()
     }
+
+    fn convert(&self, val: f64) -> Self::Value { val }
 
     fn span(&self) -> Span {
         Span::Infinite
@@ -112,6 +120,10 @@ impl Dimension for Continuous {
         self.range.ind_sample(rng)
     }
 
+    fn convert(&self, val: f64) -> Self::Value {
+        clip!(self.lb, val, self.ub)
+    }
+
     fn span(&self) -> Span {
         Span::Infinite
     }
@@ -130,6 +142,15 @@ impl BoundedDimension for Continuous {
 
     fn contains(&self, val: &Self::ValueBound) -> bool {
         (val >= self.lb()) && (val < self.ub())
+    }
+}
+
+impl fmt::Debug for Continuous {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Continuous")
+            .field("lb", &self.lb)
+            .field("ub", &self.ub)
+            .finish()
     }
 }
 
@@ -199,6 +220,10 @@ impl Dimension for Partitioned {
         self.to_partition(self.range.ind_sample(rng))
     }
 
+    fn convert(&self, val: f64) -> Self::Value {
+        self.to_partition(val)
+    }
+
     fn span(&self) -> Span {
         Span::Finite(self.density)
     }
@@ -226,9 +251,19 @@ impl FiniteDimension for Partitioned {
     }
 }
 
+impl fmt::Debug for Partitioned {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Partitioned")
+            .field("lb", &self.lb)
+            .field("ub", &self.ub)
+            .field("density", &self.density)
+            .finish()
+    }
+}
+
 
 /// A finite discrete dimension.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Discrete {
     lb: usize,
     ub: usize,
@@ -251,6 +286,8 @@ impl Dimension for Discrete {
     fn sample(&self, rng: &mut ThreadRng) -> usize {
         self.range.ind_sample(rng)
     }
+
+    fn convert(&self, val: f64) -> Self::Value { val as usize }
 
     fn span(&self) -> Span {
         Span::Finite(self.ub + 1)
@@ -279,12 +316,25 @@ impl FiniteDimension for Discrete {
     }
 }
 
+impl fmt::Debug for Discrete {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Discrete")
+            .field("lb", &self.lb)
+            .field("ub", &self.ub)
+            .finish()
+    }
+}
+
 
 impl<D: Dimension> Dimension for Box<D> {
     type Value = D::Value;
 
-    fn sample(&self, rng: &mut ThreadRng) -> D::Value {
+    fn sample(&self, rng: &mut ThreadRng) -> Self::Value {
         (**self).sample(rng)
+    }
+
+    fn convert(&self, val: f64) -> Self::Value {
+        (**self).convert(val)
     }
 
     fn span(&self) -> Span {
@@ -295,8 +345,12 @@ impl<D: Dimension> Dimension for Box<D> {
 impl<'a, D: Dimension> Dimension for &'a D {
     type Value = D::Value;
 
-    fn sample(&self, rng: &mut ThreadRng) -> D::Value {
+    fn sample(&self, rng: &mut ThreadRng) -> Self::Value {
         (**self).sample(rng)
+    }
+
+    fn convert(&self, val: f64) -> Self::Value {
+        (**self).convert(val)
     }
 
     fn span(&self) -> Span {

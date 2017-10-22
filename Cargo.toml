@@ -11,11 +11,11 @@ gcc = "0.3"
 
 [dependencies]
 log = "0.3"
-blas = "0.15"
+blas = "0.18"
 libc = "0.2"
 rand = "0.3"
 slog = "2.0"
 time = "0.1"
-ndarray = "0.9"
+ndarray = "0.10"
 slog-term = "2.2"
 slog-async = "2.1"

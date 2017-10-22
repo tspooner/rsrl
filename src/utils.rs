@@ -6,7 +6,8 @@ use std::cmp::min;
 
 pub fn dot(x: &[f64], y: &[f64]) -> f64 {
     let n: i32 = min(x.len() as i32, y.len() as i32);
-    ddot(n, x, 1, y, 1)
+
+    unsafe { ddot(n, x, 1, y, 1) }
 }
 
 

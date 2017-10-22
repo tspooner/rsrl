@@ -1,26 +1,21 @@
 use Parameter;
-use fa::{VFunction, Linear};
+use fa::{VFunction, Projection, Linear};
 use agents::PredictionAgent;
 use geometry::Space;
-use std::marker::PhantomData;
 
 
-pub struct GTD2<S: Space, V: VFunction<S> + Linear<S>>
+pub struct GTD2<S: Space, P: Projection<S>>
 {
-    v_func: V,
-    a_func: V,
+    v_func: Linear<S, P>,
+    a_func: Linear<S, P>,
 
     alpha: Parameter,
     beta: Parameter,
     gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S: Space, V> GTD2<S, V>
-    where V: VFunction<S> + Linear<S>
-{
-    pub fn new<T1, T2, T3>(v_func: V, a_func: V,
+impl<S: Space, P: Projection<S>> GTD2<S, P> {
+    pub fn new<T1, T2, T3>(v_func: Linear<S, P>, a_func: Linear<S, P>,
                            alpha: T1, beta: T2, gamma: T3) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>,
@@ -37,18 +32,16 @@ impl<S: Space, V> GTD2<S, V>
             alpha: alpha.into(),
             beta: beta.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
 impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
-    where V: VFunction<S> + Linear<S>
+    where V: VFunction<S> + Projection<S>
 {
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let phi_s = self.v_func.phi(s);
-        let phi_ns = self.v_func.phi(ns);
+        let phi_s = self.v_func.project(s);
+        let phi_ns = self.v_func.project(ns);
 
         let td_error = r + self.gamma*self.v_func.evaluate_phi(&phi_ns) -
             self.v_func.evaluate_phi(&phi_s);
@@ -68,22 +61,18 @@ impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
 }
 
 
-pub struct TDC<S: Space, V: VFunction<S> + Linear<S>>
+pub struct TDC<S: Space, P: Projection<S>>
 {
-    v_func: V,
-    a_func: V,
+    v_func: Linear<S, P>,
+    a_func: Linear<S, P>,
 
     alpha: Parameter,
     beta: Parameter,
     gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S: Space, V> TDC<S, V>
-    where V: VFunction<S> + Linear<S>
-{
-    pub fn new<T1, T2, T3>(v_func: V, a_func: V,
+impl<S: Space, P: Projection<S>> TDC<S, P> {
+    pub fn new<T1, T2, T3>(v_func: Linear<S, P>, a_func: Linear<S, P>,
                            alpha: T1, beta: T2, gamma: T3) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>,
@@ -100,18 +89,16 @@ impl<S: Space, V> TDC<S, V>
             alpha: alpha.into(),
             beta: beta.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
 impl<S: Space, V> PredictionAgent<S> for TDC<S, V>
-    where V: VFunction<S> + Linear<S>
+    where V: VFunction<S> + Projection<S>
 {
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let phi_s = self.v_func.phi(s);
-        let phi_ns = self.v_func.phi(ns);
+        let phi_s = self.v_func.project(s);
+        let phi_ns = self.v_func.project(ns);
 
         let td_error = r + self.gamma*self.v_func.evaluate_phi(&phi_ns) -
             self.v_func.evaluate_phi(&phi_s);
