@@ -217,23 +217,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
 }
 
 
-struct BackupEntry<S: Space> {
-    pub s1: S::Repr,
-    pub a1: usize,
-    pub s2: S::Repr,
-    pub a2: usize,
-
-    pub q1: f64,
-    pub q2: f64,
-    pub delta: f64,
-
-    pub sigma: f64,
-    pub pi: f64,
-    pub mu: f64,
-}
-
-
-/// General multi-step temporal-difference learning algorithm.
+/// General multi-step temporal-difference learning algorithm (off-policy).
 ///
 /// The sigma parameter varies the degree of sampling, yielding classical
 /// learning algorithms as special cases:
@@ -306,6 +290,21 @@ impl<S: Space, Q, P> QSigma<S, Q, P>
     }
 }
 
+struct BackupEntry<S: Space> {
+    pub s1: S::Repr,
+    pub a1: usize,
+    pub s2: S::Repr,
+    pub a2: usize,
+
+    pub q1: f64,
+    pub q2: f64,
+    pub delta: f64,
+
+    pub sigma: f64,
+    pub pi: f64,
+    pub mu: f64,
+}
+
 impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
     where Q: QFunction<S>,
           P: Policy
@@ -332,7 +331,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
 
         let sigma = { self.sigma = self.sigma.step(); self.sigma.value() };
         let td_error =
-            t.reward + self.gamma*(sigma*nq + (1.0-sigma)*exp_nqs) - q;
+            t.reward + self.gamma*(sigma*nq + (1.0 - sigma)*exp_nqs) - q;
 
         // Update backup sequence:
         self.backup.push_back(BackupEntry {
@@ -358,10 +357,9 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
 
     fn handle_terminal(&mut self, _: &S::Repr) {
         // TODO: Handle terminal update according to Sutton's pseudocode.
-        //       It's likely that this will require a change to the interface :(
+        //       It's likely that this will require a change to the interface
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
-        self.sigma = self.sigma.step();
 
         self.policy.handle_terminal();
     }
