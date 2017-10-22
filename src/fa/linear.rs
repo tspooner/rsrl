@@ -5,6 +5,7 @@ use ndarray::{ArrayView, Array1, Array2};
 use geometry::Space;
 
 
+#[derive(Serialize, Deserialize)]
 pub struct Linear<S: Space, P: Projection<S>> {
     projector: P,
     weights: Array2<f64>,

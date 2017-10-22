@@ -5,4 +5,5 @@ mod spaces;
 pub mod dimensions;
 pub use self::spaces::*;
 
-pub mod kernels;
+extern crate rusty_machine;
+pub use self::rusty_machine::learning::toolkit::kernel as kernels;
