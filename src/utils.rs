@@ -1,16 +1,14 @@
 extern crate blas_sys;
 use self::blas_sys::c::cblas_ddot;
+use std::cmp::min;
 
 use std::f64;
-use std::cmp::min;
 
 
 pub fn dot(x: &[f64], y: &[f64]) -> f64 {
     let n: i32 = min(x.len() as i32, y.len() as i32);
 
-    unsafe {
-        cblas_ddot(n, x.as_ptr(), 1, y.as_ptr(), 1)
-    }
+    unsafe { cblas_ddot(n, x.as_ptr(), 1, y.as_ptr(), 1) }
 }
 
 
@@ -43,25 +41,27 @@ pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
 
 pub fn cartesian_product<T: Clone>(lists: &Vec<Vec<T>>) -> Vec<Vec<T>> {
     fn partial_cartesian<T: Clone>(u: Vec<Vec<T>>, v: &Vec<T>) -> Vec<Vec<T>> {
-        u.into_iter().flat_map(|xs| {
-            v.iter().cloned().map(|y| {
-                let mut vec = xs.clone();
-                vec.push(y);
-                vec
-            }).collect::<Vec<_>>()
-        }).collect()
+        u.into_iter()
+            .flat_map(|xs| {
+                v.iter()
+                    .cloned()
+                    .map(|y| {
+                        let mut vec = xs.clone();
+                        vec.push(y);
+                        vec
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect()
     }
 
     match lists.split_first() {
         Some((head, tail)) => {
-            let init: Vec<Vec<T>> =
-                head.iter().cloned().map(|n| vec![n]).collect();
+            let init: Vec<Vec<T>> = head.iter().cloned().map(|n| vec![n]).collect();
 
-            tail.iter().cloned().fold(init, |vec, list| {
-                partial_cartesian(vec, &list)
-            })
-        },
-        None => vec![]
+            tail.iter().cloned().fold(init, |vec, list| partial_cartesian(vec, &list))
+        }
+        None => vec![],
     }
 }
 
@@ -88,10 +88,7 @@ mod tests {
 
     #[test]
     fn test_cartesian_product() {
-        let to_combine = vec![
-            vec![0.0, 1.0, 2.0],
-            vec![7.0, 8.0, 9.0]
-        ];
+        let to_combine = vec![vec![0.0, 1.0, 2.0], vec![7.0, 8.0, 9.0]];
 
         let combs = cartesian_product(&to_combine);
 

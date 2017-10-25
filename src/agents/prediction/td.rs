@@ -1,14 +1,13 @@
 use Parameter;
-use fa::{VFunction, Projection, Linear};
 use agents::PredictionAgent;
 use agents::memory::Trace;
+use fa::{VFunction, Projection, Linear};
 use geometry::Space;
 
 use std::marker::PhantomData;
 
 
-pub struct TD<S: Space, V: VFunction<S>>
-{
+pub struct TD<S: Space, V: VFunction<S>> {
     v_func: V,
 
     alpha: Parameter,
@@ -42,8 +41,8 @@ impl<S: Space, V> PredictionAgent<S> for TD<S, V>
         let v = self.v_func.evaluate(s);
         let nv = self.v_func.evaluate(ns);
 
-        let td_error = r + self.gamma*nv - v;
-        self.v_func.update(&s, self.alpha*td_error);
+        let td_error = r + self.gamma * nv - v;
+        self.v_func.update(&s, self.alpha * td_error);
 
         Some(td_error)
     }
@@ -55,8 +54,7 @@ impl<S: Space, V> PredictionAgent<S> for TD<S, V>
 }
 
 
-pub struct TDLambda<S: Space, P: Projection<S>>
-{
+pub struct TDLambda<S: Space, P: Projection<S>> {
     trace: Trace,
     v_func: Linear<S, P>,
 
@@ -65,8 +63,7 @@ pub struct TDLambda<S: Space, P: Projection<S>>
 }
 
 impl<S: Space, P: Projection<S>> TDLambda<S, P> {
-    pub fn new<T1, T2>(trace: Trace, v_func: Linear<S, P>,
-                       alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(trace: Trace, v_func: Linear<S, P>, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
@@ -88,10 +85,10 @@ impl<S: Space, P: Projection<S>> PredictionAgent<S> for TDLambda<S, P> {
         self.trace.decay(self.gamma.value());
         self.trace.update(&phi_s);
 
-        let td_error = r + self.gamma*self.v_func.evaluate_phi(&phi_ns) -
-            self.v_func.evaluate_phi(&phi_s);
+        let td_error = r + self.gamma * self.v_func.evaluate_phi(&phi_ns) -
+                       self.v_func.evaluate_phi(&phi_s);
 
-        self.v_func.update_phi(self.trace.get(), self.alpha*td_error);
+        self.v_func.update_phi(self.trace.get(), self.alpha * td_error);
 
         Some(td_error)
     }

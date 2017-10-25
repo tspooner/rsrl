@@ -1,21 +1,19 @@
 use Parameter;
-use fa::QFunction;
-use utils::dot;
 use agents::ControlAgent;
 use domains::Transition;
+use fa::QFunction;
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
-
-use std::marker::PhantomData;
 use std::collections::VecDeque;
+use std::marker::PhantomData;
+use utils::dot;
 
 
 /// Watkins' classical off policy temporal difference control algorithm.
 ///
 /// C. J. C. H. Watkins and P. Dayan, “Q-learning,” Mach. Learn., vol. 8, no. 3–4, pp. 279–292,
 /// 1992.
-pub struct QLearning<S: Space, Q: QFunction<S>, P: Policy>
-{
+pub struct QLearning<S: Space, Q: QFunction<S>, P: Policy> {
     q_func: Q,
     policy: P,
 
@@ -29,8 +27,7 @@ impl<S: Space, Q, P> QLearning<S, Q, P>
     where Q: QFunction<S>,
           P: Policy
 {
-    pub fn new<T1, T2>(q_func: Q, policy: P,
-                       alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
@@ -67,9 +64,9 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
         let a = t.action;
         let na = Greedy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
+        let td_error = t.reward + self.gamma * nqs[na] - qs[a];
 
-        self.q_func.update_action(s, a, self.alpha*td_error);
+        self.q_func.update_action(s, a, self.alpha * td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -82,23 +79,21 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
 
 
 /// Classical on policy temporal difference control algorithm.
-pub struct SARSA<S: Space, Q: QFunction<S>, P: Policy>
-{
+pub struct SARSA<S: Space, Q: QFunction<S>, P: Policy> {
     q_func: Q,
     policy: P,
 
     alpha: Parameter,
     gamma: Parameter,
 
-    phantom: PhantomData<S>
+    phantom: PhantomData<S>,
 }
 
 impl<S: Space, Q, P> SARSA<S, Q, P>
     where Q: QFunction<S>,
           P: Policy
 {
-    pub fn new<T1, T2>(q_func: Q, policy: P,
-                       alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
@@ -135,9 +130,9 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
         let a = t.action;
         let na = self.policy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
+        let td_error = t.reward + self.gamma * nqs[na] - qs[a];
 
-        self.q_func.update_action(s, a, self.alpha*td_error);
+        self.q_func.update_action(s, a, self.alpha * td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -150,23 +145,21 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
 
 
 /// Expected SARSA.
-pub struct ExpectedSARSA<S: Space, Q: QFunction<S>, P: Policy>
-{
+pub struct ExpectedSARSA<S: Space, Q: QFunction<S>, P: Policy> {
     q_func: Q,
     policy: P,
 
     alpha: Parameter,
     gamma: Parameter,
 
-    phantom: PhantomData<S>
+    phantom: PhantomData<S>,
 }
 
 impl<S: Space, Q, P> ExpectedSARSA<S, Q, P>
     where Q: QFunction<S>,
           P: Policy
 {
-    pub fn new<T1, T2>(q_func: Q, policy: P,
-                       alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
@@ -203,9 +196,9 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
         let a = t.action;
 
         let exp_nqs = dot(&nqs, &self.policy.probabilities(nqs.as_slice()));
-        let td_error = t.reward + self.gamma*exp_nqs - qs[a];
+        let td_error = t.reward + self.gamma * exp_nqs - qs[a];
 
-        self.q_func.update_action(s, a, self.alpha*td_error);
+        self.q_func.update_action(s, a, self.alpha * td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -227,8 +220,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
 ///
 /// De Asis, Kristopher, et al. "Multi-step Reinforcement Learning: A Unifying
 /// Algorithm." arXiv preprint arXiv:1703.01327 (2017).
-pub struct QSigma<S: Space, Q: QFunction<S>, P: Policy>
-{
+pub struct QSigma<S: Space, Q: QFunction<S>, P: Policy> {
     q_func: Q,
     policy: P,
 
@@ -244,12 +236,16 @@ impl<S: Space, Q, P> QSigma<S, Q, P>
     where Q: QFunction<S>,
           P: Policy
 {
-    pub fn new<T1, T2, T3>(q_func: Q, policy: P,
-                           alpha: T1, gamma: T2,
-                           sigma: T3, n_steps: usize) -> Self
+    pub fn new<T1, T2, T3>(q_func: Q,
+                           policy: P,
+                           alpha: T1,
+                           gamma: T2,
+                           sigma: T3,
+                           n_steps: usize)
+                           -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>,
-              T3: Into<Parameter>,
+              T3: Into<Parameter>
     {
         QSigma {
             q_func: q_func,
@@ -271,20 +267,21 @@ impl<S: Space, Q, P> QSigma<S, Q, P>
             let df = (1..k).fold(1.0, |acc, i| {
                 let b = &self.backup[i];
 
-                acc * gamma*((1.0 - b.sigma)*b.pi + b.sigma)
+                acc * gamma * ((1.0 - b.sigma) * b.pi + b.sigma)
             });
 
-            acc + self.backup[k].delta*df
+            acc + self.backup[k].delta * df
         });
 
         let isr = (1..self.n_steps).fold(1.0, |acc, k| {
             let b = &self.backup[k];
 
-            acc * (b.sigma*b.mu/b.pi + 1.0 - b.sigma)
+            acc * (b.sigma * b.mu / b.pi + 1.0 - b.sigma)
         });
 
-        self.q_func.update_action(&self.backup[0].s1, self.backup[0].a1,
-                                  self.alpha*isr*td_error);
+        self.q_func.update_action(&self.backup[0].s1,
+                                  self.backup[0].a1,
+                                  self.alpha * isr * td_error);
 
         self.backup.pop_front();
     }
@@ -329,9 +326,11 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
         let na = self.policy.sample(nqs.as_slice());
         let nq = nqs[na];
 
-        let sigma = { self.sigma = self.sigma.step(); self.sigma.value() };
-        let td_error =
-            t.reward + self.gamma*(sigma*nq + (1.0 - sigma)*exp_nqs) - q;
+        let sigma = {
+            self.sigma = self.sigma.step();
+            self.sigma.value()
+        };
+        let td_error = t.reward + self.gamma * (sigma * nq + (1.0 - sigma) * exp_nqs) - q;
 
         // Update backup sequence:
         self.backup.push_back(BackupEntry {

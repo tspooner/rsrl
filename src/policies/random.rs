@@ -1,7 +1,8 @@
-use rand::{thread_rng, ThreadRng};
+
 
 use super::Policy;
 use geometry::{Space, ActionSpace};
+use rand::{thread_rng, ThreadRng};
 
 
 pub struct Random {

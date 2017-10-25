@@ -1,8 +1,8 @@
-use std::f64;
-use rand::{Rng, thread_rng, ThreadRng};
-
-use {Parameter};
 use super::Policy;
+
+use Parameter;
+use rand::{Rng, thread_rng, ThreadRng};
+use std::f64;
 
 
 pub struct Boltzmann {

@@ -1,8 +1,8 @@
-use std::marker::PhantomData;
 use super::{Function, Parameterised, VFunction, QFunction, Projection};
-use utils::dot;
-use ndarray::{ArrayView, Array1, Array2};
 use geometry::Space;
+use ndarray::{ArrayView, Array1, Array2};
+use std::marker::PhantomData;
+use utils::dot;
 
 
 #[derive(Serialize, Deserialize)]
@@ -100,8 +100,8 @@ impl<S: Space, P: Projection<S>> QFunction<S> for Linear<S, P> {
 
     fn update_phi(&mut self, phi: &Array1<f64>, errors: Vec<f64>) {
         let phi_view = phi.view().into_shape((self.weights.rows(), 1)).unwrap();
-        let error_matrix =
-            ArrayView::from_shape((1, self.weights.cols()), errors.as_slice()).unwrap();
+        let error_matrix = ArrayView::from_shape((1, self.weights.cols()), errors.as_slice())
+            .unwrap();
 
         self.weights += &phi_view.dot(&error_matrix);
     }

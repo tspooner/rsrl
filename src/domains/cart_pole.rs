@@ -25,7 +25,7 @@ const LIMITS_THETA_DOT: (f64, f64) = (-2.0, 2.0);
 const REWARD_STEP: f64 = 0.0;
 const REWARD_FAIL: f64 = -1.0;
 
-const ALL_ACTIONS: [f64; 2] = [-1.0*CART_FORCE, 1.0*CART_FORCE];
+const ALL_ACTIONS: [f64; 2] = [-1.0 * CART_FORCE, 1.0 * CART_FORCE];
 
 
 pub struct CartPole {
@@ -51,19 +51,22 @@ impl CartPole {
         let cos_theta = self.theta.cos();
         let sin_theta = self.theta.sin();
 
-        let z = (a + POLE_MOMENT*self.theta_dot*self.theta_dot*sin_theta) / TOTAL_MASS;
+        let z = (a + POLE_MOMENT * self.theta_dot * self.theta_dot * sin_theta) / TOTAL_MASS;
 
-        let theta_acc =
-            (G*sin_theta - cos_theta*z) /
-            (POLE_COM * (FOUR_THIRDS - POLE_MASS*cos_theta*cos_theta / TOTAL_MASS));
+        let theta_acc = (G * sin_theta - cos_theta * z) /
+                        (POLE_COM * (FOUR_THIRDS - POLE_MASS * cos_theta * cos_theta / TOTAL_MASS));
 
-        let x_acc = z - POLE_MOMENT*theta_acc*cos_theta / TOTAL_MASS;
+        let x_acc = z - POLE_MOMENT * theta_acc * cos_theta / TOTAL_MASS;
 
-        self.x = clip!(LIMITS_X.0, self.x + TAU*self.x_dot, LIMITS_X.1);
-        self.x_dot = clip!(LIMITS_X_DOT.0, self.x_dot + TAU*x_acc, LIMITS_X_DOT.1);
+        self.x = clip!(LIMITS_X.0, self.x + TAU * self.x_dot, LIMITS_X.1);
+        self.x_dot = clip!(LIMITS_X_DOT.0, self.x_dot + TAU * x_acc, LIMITS_X_DOT.1);
 
-        self.theta = clip!(LIMITS_THETA.0, self.theta + TAU*self.theta_dot, LIMITS_THETA.1);
-        self.theta_dot = clip!(LIMITS_THETA_DOT.0, self.theta_dot + TAU*theta_acc, LIMITS_THETA_DOT.1);
+        self.theta = clip!(LIMITS_THETA.0,
+                           self.theta + TAU * self.theta_dot,
+                           LIMITS_THETA.1);
+        self.theta_dot = clip!(LIMITS_THETA_DOT.0,
+                               self.theta_dot + TAU * theta_acc,
+                               LIMITS_THETA_DOT.1);
     }
 }
 
@@ -106,14 +109,14 @@ impl Domain for CartPole {
     }
 
     fn is_terminal(&self) -> bool {
-        self.x <= LIMITS_X.0 || self.x >= LIMITS_X.1 ||
-        self.theta <= LIMITS_THETA.0 || self.theta >= LIMITS_THETA.1
+        self.x <= LIMITS_X.0 || self.x >= LIMITS_X.1 || self.theta <= LIMITS_THETA.0 ||
+        self.theta >= LIMITS_THETA.1
     }
 
     fn reward(&self,
               _: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
-    {
+              to: &Observation<Self::StateSpace, Self::ActionSpace>)
+              -> f64 {
         match to {
             &Observation::Terminal(_) => REWARD_FAIL,
             _ => REWARD_STEP,

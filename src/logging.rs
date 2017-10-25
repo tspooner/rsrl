@@ -1,9 +1,8 @@
 use slog::*;
-use slog_term;
 use slog_async;
-
-use std::fs::File;
+use slog_term;
 use std::fmt::Debug;
+use std::fs::File;
 
 
 pub fn stdout() -> Fuse<slog_async::Async> {

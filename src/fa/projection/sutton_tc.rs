@@ -2,16 +2,20 @@ extern crate libc;
 use self::libc::{c_double, c_int, size_t};
 
 use super::Projection;
-use ndarray::Array1;
 use geometry::RegularSpace;
 use geometry::dimensions::Continuous;
+use ndarray::Array1;
 
 
 #[link(name="tiles", kind="static")]
-extern {
-    fn tiles(tile_indices: *mut size_t, nt: c_int, memory: c_int,
-             floats: *const c_double, nf: c_int,
-             ints: *const c_int, ni: c_int);
+extern "C" {
+    fn tiles(tile_indices: *mut size_t,
+             nt: c_int,
+             memory: c_int,
+             floats: *const c_double,
+             nf: c_int,
+             ints: *const c_int,
+             ni: c_int);
 }
 
 
@@ -36,9 +40,13 @@ impl SuttonTiles {
         let mut ti = vec![0; self.n_tilings as usize];
 
         unsafe {
-            tiles(ti.as_mut_ptr(), self.n_tilings, self.memory_size,
-                  floats.as_ptr(), floats.len() as c_int,
-                  ints.as_ptr(), ints.len() as c_int);
+            tiles(ti.as_mut_ptr(),
+                  self.n_tilings,
+                  self.memory_size,
+                  floats.as_ptr(),
+                  floats.len() as c_int,
+                  ints.as_ptr(),
+                  ints.len() as c_int);
         }
 
         ti
@@ -63,8 +71,7 @@ impl Projection<RegularSpace<Continuous>> for SuttonTiles {
     }
 
     fn equivalent(&self, other: &Self) -> bool {
-        self.dim() == other.dim() &&
-            self.n_tilings == other.n_tilings &&
-            self.memory_size == other.memory_size
+        self.dim() == other.dim() && self.n_tilings == other.n_tilings &&
+        self.memory_size == other.memory_size
     }
 }

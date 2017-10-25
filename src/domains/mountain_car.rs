@@ -28,10 +28,7 @@ pub struct MountainCar {
 
 impl MountainCar {
     fn new(x: f64, v: f64) -> MountainCar {
-        MountainCar {
-            x: x,
-            v: v
-        }
+        MountainCar { x: x, v: v }
     }
 
     fn dv(x: f64, a: f64) -> f64 {
@@ -64,7 +61,7 @@ impl Domain for MountainCar {
         } else {
             Observation::Full {
                 state: s,
-                actions: vec![0, 1, 2]
+                actions: vec![0, 1, 2],
             }
         }
     }
@@ -90,8 +87,8 @@ impl Domain for MountainCar {
 
     fn reward(&self,
               _: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
-    {
+              to: &Observation<Self::StateSpace, Self::ActionSpace>)
+              -> f64 {
         match to {
             &Observation::Terminal(_) => REWARD_GOAL,
             _ => REWARD_STEP,
@@ -137,8 +134,8 @@ mod tests {
         assert!(MountainCar::new(X_MAX, 0.0).is_terminal());
         assert!(MountainCar::new(X_MAX, 0.05).is_terminal());
 
-        assert!(!MountainCar::new(X_MAX-0.0001*X_MAX, 0.0).is_terminal());
-        assert!(MountainCar::new(X_MAX+0.0001*X_MAX, 0.0).is_terminal());
+        assert!(!MountainCar::new(X_MAX - 0.0001 * X_MAX, 0.0).is_terminal());
+        assert!(MountainCar::new(X_MAX + 0.0001 * X_MAX, 0.0).is_terminal());
     }
 
     #[test]

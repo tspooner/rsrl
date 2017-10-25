@@ -21,8 +21,8 @@ impl<S: Space, A: Space> Observation<S, A> {
 
         match self {
             &Full { ref state, .. } |
-                &Partial { ref state, .. } |
-                &Terminal(ref state) => state
+            &Partial { ref state, .. } |
+            &Terminal(ref state) => state,
         }
     }
 }
@@ -41,13 +41,15 @@ pub trait Domain {
     type ActionSpace: Space;
 
     fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace>;
-    fn step(&mut self, a: <dimensions::Discrete as Dimension>::Value)
-        -> Transition<Self::StateSpace, Self::ActionSpace>;
+    fn step(&mut self,
+            a: <dimensions::Discrete as Dimension>::Value)
+            -> Transition<Self::StateSpace, Self::ActionSpace>;
 
     fn is_terminal(&self) -> bool;
     fn reward(&self,
               from: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64;
+              to: &Observation<Self::StateSpace, Self::ActionSpace>)
+              -> f64;
 
     fn state_space(&self) -> Self::StateSpace;
     fn action_space(&self) -> Self::ActionSpace;

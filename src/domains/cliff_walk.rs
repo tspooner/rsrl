@@ -1,15 +1,13 @@
 use super::{Observation, Transition, Domain};
 use super::grid_world::{Motion, GridWorld};
+use geometry::{ActionSpace, PairSpace};
+use geometry::dimensions::Discrete;
 
 use ndarray::Array2;
-use geometry::{ActionSpace, PairSpace};
-use geometry::dimensions::{Discrete};
 
 
-const ALL_ACTIONS: [Motion; 4] = [
-    Motion::North(1), Motion::East(1),
-    Motion::South(1), Motion::West(1)
-];
+const ALL_ACTIONS: [Motion; 4] =
+    [Motion::North(1), Motion::East(1), Motion::South(1), Motion::West(1)];
 
 
 pub struct CliffWalk {
@@ -46,7 +44,7 @@ impl Domain for CliffWalk {
         } else {
             Observation::Full {
                 state: self.loc,
-                actions: vec![0, 1, 2, 3]
+                actions: vec![0, 1, 2, 3],
             }
         }
     }
@@ -68,16 +66,16 @@ impl Domain for CliffWalk {
 
     fn reward(&self,
               from: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
-    {
+              to: &Observation<Self::StateSpace, Self::ActionSpace>)
+              -> f64 {
         match to {
             &Observation::Terminal(_) => {
-                if to.state().0 == self.gw.width()-1 {
+                if to.state().0 == self.gw.width() - 1 {
                     50.0
                 } else {
                     -50.0
                 }
-            },
+            }
             _ => {
                 if from.state() == to.state() {
                     -1.0

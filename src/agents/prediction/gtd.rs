@@ -1,11 +1,10 @@
 use Parameter;
-use fa::{VFunction, Projection, Linear};
 use agents::PredictionAgent;
+use fa::{VFunction, Projection, Linear};
 use geometry::Space;
 
 
-pub struct GTD2<S: Space, P: Projection<S>>
-{
+pub struct GTD2<S: Space, P: Projection<S>> {
     v_func: Linear<S, P>,
     a_func: Linear<S, P>,
 
@@ -15,8 +14,12 @@ pub struct GTD2<S: Space, P: Projection<S>>
 }
 
 impl<S: Space, P: Projection<S>> GTD2<S, P> {
-    pub fn new<T1, T2, T3>(v_func: Linear<S, P>, a_func: Linear<S, P>,
-                           alpha: T1, beta: T2, gamma: T3) -> Self
+    pub fn new<T1, T2, T3>(v_func: Linear<S, P>,
+                           a_func: Linear<S, P>,
+                           alpha: T1,
+                           beta: T2,
+                           gamma: T3)
+                           -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>,
               T3: Into<Parameter>
@@ -43,12 +46,13 @@ impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
         let phi_s = self.v_func.project(s);
         let phi_ns = self.v_func.project(ns);
 
-        let td_error = r + self.gamma*self.v_func.evaluate_phi(&phi_ns) -
-            self.v_func.evaluate_phi(&phi_s);
+        let td_error = r + self.gamma * self.v_func.evaluate_phi(&phi_ns) -
+                       self.v_func.evaluate_phi(&phi_s);
         let td_estimate = self.a_func.evaluate_phi(&phi_s);
 
-        self.v_func.update_phi(&(&phi_s - &(self.gamma.value()*&phi_ns)), self.alpha*td_estimate);
-        self.a_func.update_phi(&phi_s, self.beta*(td_error - td_estimate));
+        self.v_func.update_phi(&(&phi_s - &(self.gamma.value() * &phi_ns)),
+                               self.alpha * td_estimate);
+        self.a_func.update_phi(&phi_s, self.beta * (td_error - td_estimate));
 
         Some(td_error)
     }
@@ -61,8 +65,7 @@ impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
 }
 
 
-pub struct TDC<S: Space, P: Projection<S>>
-{
+pub struct TDC<S: Space, P: Projection<S>> {
     v_func: Linear<S, P>,
     a_func: Linear<S, P>,
 
@@ -72,8 +75,12 @@ pub struct TDC<S: Space, P: Projection<S>>
 }
 
 impl<S: Space, P: Projection<S>> TDC<S, P> {
-    pub fn new<T1, T2, T3>(v_func: Linear<S, P>, a_func: Linear<S, P>,
-                           alpha: T1, beta: T2, gamma: T3) -> Self
+    pub fn new<T1, T2, T3>(v_func: Linear<S, P>,
+                           a_func: Linear<S, P>,
+                           alpha: T1,
+                           beta: T2,
+                           gamma: T3)
+                           -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>,
               T3: Into<Parameter>
@@ -100,12 +107,14 @@ impl<S: Space, V> PredictionAgent<S> for TDC<S, V>
         let phi_s = self.v_func.project(s);
         let phi_ns = self.v_func.project(ns);
 
-        let td_error = r + self.gamma*self.v_func.evaluate_phi(&phi_ns) -
-            self.v_func.evaluate_phi(&phi_s);
+        let td_error = r + self.gamma * self.v_func.evaluate_phi(&phi_ns) -
+                       self.v_func.evaluate_phi(&phi_s);
         let td_estimate = self.a_func.evaluate_phi(&phi_s);
 
-        self.v_func.update_phi(&(&(td_error*&phi_s) - &(self.gamma.value()*td_estimate*&phi_ns)), self.alpha.value());
-        self.a_func.update_phi(&phi_s, self.beta*(td_error - td_estimate));
+        self.v_func
+            .update_phi(&(&(td_error * &phi_s) - &(self.gamma.value() * td_estimate * &phi_ns)),
+                        self.alpha.value());
+        self.a_func.update_phi(&phi_s, self.beta * (td_error - td_estimate));
 
         Some(td_error)
     }

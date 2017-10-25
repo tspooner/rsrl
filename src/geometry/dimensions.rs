@@ -1,7 +1,3 @@
-use std::cmp;
-use std::f64;
-use std::fmt;
-use std::ops::Range;
 use super::span::Span;
 
 use rand::ThreadRng;
@@ -9,13 +5,16 @@ use rand::distributions::{Range as RngRange, IndependentSample};
 
 use serde::{Serialize, Deserialize, Deserializer, de};
 use serde::de::Visitor;
+use std::cmp;
+use std::f64;
+use std::fmt;
+use std::ops::Range;
 
 
 // XXX: Address concern about [low, high) convention.
 
 /// The basic dimension type.
-pub trait Dimension
-{
+pub trait Dimension {
     /// The corresponding primitive type.
     type Value: Clone;
 
@@ -66,7 +65,9 @@ impl Dimension for Null {
         ()
     }
 
-    fn convert(&self, _: f64) -> Self::Value { () }
+    fn convert(&self, _: f64) -> Self::Value {
+        ()
+    }
 
     fn span(&self) -> Span {
         Span::Null
@@ -91,7 +92,9 @@ impl Dimension for Infinite {
         unimplemented!()
     }
 
-    fn convert(&self, val: f64) -> Self::Value { val }
+    fn convert(&self, val: f64) -> Self::Value {
+        val
+    }
 
     fn span(&self) -> Span {
         Span::Infinite
@@ -155,7 +158,10 @@ impl<'de> Deserialize<'de> for Continuous {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: Deserializer<'de>
     {
-        enum Field { Lb, Ub };
+        enum Field {
+            Lb,
+            Ub,
+        };
         const FIELDS: &'static [&'static str] = &["lb", "ub"];
 
         impl<'de> Deserialize<'de> for Field {
@@ -238,9 +244,7 @@ impl<'de> Deserialize<'de> for Continuous {
             }
         }
 
-        deserializer.deserialize_struct("Continuous",
-                                        FIELDS,
-                                        ContinuousVisitor)
+        deserializer.deserialize_struct("Continuous", FIELDS, ContinuousVisitor)
     }
 }
 
@@ -307,7 +311,7 @@ impl Partitioned {
         let w = (self.ub - self.lb) / self.density as f64;
         let hw = w / 2.0;
 
-        (0..self.density).map(|i| self.lb + w*(i as f64) - hw).collect()
+        (0..self.density).map(|i| self.lb + w * (i as f64) - hw).collect()
     }
 
     pub fn partition_width(&self) -> f64 {
@@ -361,7 +365,11 @@ impl<'de> Deserialize<'de> for Partitioned {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: Deserializer<'de>
     {
-        enum Field { Lb, Ub, Density };
+        enum Field {
+            Lb,
+            Ub,
+            Density,
+        };
         const FIELDS: &'static [&'static str] = &["lb", "ub", "density"];
 
         impl<'de> Deserialize<'de> for Field {
@@ -450,24 +458,19 @@ impl<'de> Deserialize<'de> for Partitioned {
 
                 let lb = lb.ok_or_else(|| de::Error::missing_field("lb"))?;
                 let ub = ub.ok_or_else(|| de::Error::missing_field("ub"))?;
-                let density = density
-                    .ok_or_else(|| de::Error::missing_field("density"))?;
+                let density = density.ok_or_else(|| de::Error::missing_field("density"))?;
 
                 Ok(Partitioned::new(lb, ub, density))
             }
         }
 
-        deserializer.deserialize_struct("Partitioned",
-                                        FIELDS,
-                                        PartitionedVisitor)
+        deserializer.deserialize_struct("Partitioned", FIELDS, PartitionedVisitor)
     }
 }
 
 impl cmp::PartialEq for Partitioned {
     fn eq(&self, other: &Partitioned) -> bool {
-        self.lb.eq(&other.lb) &&
-            self.ub.eq(&other.ub) &&
-            self.density.eq(&other.density)
+        self.lb.eq(&other.lb) && self.ub.eq(&other.ub) && self.density.eq(&other.density)
     }
 }
 
@@ -511,7 +514,9 @@ impl Dimension for Discrete {
         self.range.ind_sample(rng)
     }
 
-    fn convert(&self, val: f64) -> Self::Value { val as usize }
+    fn convert(&self, val: f64) -> Self::Value {
+        val as usize
+    }
 
     fn span(&self) -> Span {
         Span::Finite(self.size)
@@ -544,7 +549,9 @@ impl<'de> Deserialize<'de> for Discrete {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: Deserializer<'de>
     {
-        enum Field { Size };
+        enum Field {
+            Size,
+        };
         const FIELDS: &'static [&'static str] = &["size"];
 
         impl<'de> Deserialize<'de> for Field {
@@ -609,14 +616,11 @@ impl<'de> Deserialize<'de> for Discrete {
                     }
                 }
 
-                Ok(Discrete::new(
-                    size.ok_or_else(|| de::Error::missing_field("size"))?))
+                Ok(Discrete::new(size.ok_or_else(|| de::Error::missing_field("size"))?))
             }
         }
 
-        deserializer.deserialize_struct("Discrete",
-                                        FIELDS,
-                                        DiscreteVisitor)
+        deserializer.deserialize_struct("Discrete", FIELDS, DiscreteVisitor)
     }
 }
 
@@ -673,9 +677,9 @@ impl<'a, D: Dimension> Dimension for &'a D {
 mod tests {
     use super::{Dimension, BoundedDimension, FiniteDimension};
     use super::{Null, Infinite, Continuous, Partitioned, Discrete};
+    use geometry::Span;
 
     use rand::thread_rng;
-    use geometry::Span;
     use serde_test::{Token, assert_tokens};
 
     #[test]
@@ -686,9 +690,7 @@ mod tests {
         assert_eq!(d.sample(&mut rng), ());
         assert_eq!(d.span(), Span::Null);
 
-        assert_tokens(&d, &[
-            Token::UnitStruct { name: "Null" }
-        ]);
+        assert_tokens(&d, &[Token::UnitStruct { name: "Null" }]);
     }
 
     #[test]
@@ -697,9 +699,7 @@ mod tests {
 
         assert_eq!(d.span(), Span::Infinite);
 
-        assert_tokens(&d, &[
-            Token::UnitStruct { name: "Infinite" }
-        ]);
+        assert_tokens(&d, &[Token::UnitStruct { name: "Infinite" }]);
     }
 
     #[test]
@@ -730,14 +730,16 @@ mod tests {
                 assert!(d.contains(s));
             }
 
-            assert_tokens(&d, &[
-                Token::Struct { name: "Continuous", len: 2 },
-                Token::Str("lb"),
-                Token::F64(lb),
-                Token::Str("ub"),
-                Token::F64(ub),
-                Token::StructEnd,
-            ]);
+            assert_tokens(&d,
+                          &[Token::Struct {
+                                name: "Continuous",
+                                len: 2,
+                            },
+                            Token::Str("lb"),
+                            Token::F64(lb),
+                            Token::Str("ub"),
+                            Token::F64(ub),
+                            Token::StructEnd]);
         }
     }
 
@@ -758,16 +760,18 @@ mod tests {
                 assert!(s < density);
             }
 
-            assert_tokens(&d, &[
-                Token::Struct { name: "Partitioned", len: 3 },
-                Token::Str("lb"),
-                Token::F64(lb),
-                Token::Str("ub"),
-                Token::F64(ub),
-                Token::Str("density"),
-                Token::U64(density as u64),
-                Token::StructEnd,
-            ]);
+            assert_tokens(&d,
+                          &[Token::Struct {
+                                name: "Partitioned",
+                                len: 3,
+                            },
+                            Token::Str("lb"),
+                            Token::F64(lb),
+                            Token::Str("ub"),
+                            Token::F64(ub),
+                            Token::Str("density"),
+                            Token::U64(density as u64),
+                            Token::StructEnd]);
         }
     }
 
@@ -789,12 +793,14 @@ mod tests {
                 assert!(s < size);
             }
 
-            assert_tokens(&d, &[
-                Token::Struct { name: "Discrete", len: 1 },
-                Token::Str("size"),
-                Token::U64(size as u64),
-                Token::StructEnd,
-            ]);
+            assert_tokens(&d,
+                          &[Token::Struct {
+                                name: "Discrete",
+                                len: 1,
+                            },
+                            Token::Str("size"),
+                            Token::U64(size as u64),
+                            Token::StructEnd]);
         }
     }
 }

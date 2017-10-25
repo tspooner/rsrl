@@ -1,5 +1,5 @@
-use ndarray::Array1;
 use geometry::Space;
+use ndarray::Array1;
 
 /// An interface for dealing with functions that may be evaluated.
 pub trait Function<I: ?Sized, O> {
@@ -31,9 +31,8 @@ impl<I: ?Sized, E, T> Parameterised<I, E> for Box<T>
 
 
 /// An interface for value functions.
-pub trait VFunction<S: Space>:
-    Function<S::Repr, f64> + Parameterised<S::Repr, f64>
-{
+pub trait VFunction<S: Space>
+    : Function<S::Repr, f64> + Parameterised<S::Repr, f64> {
     fn evaluate_phi(&self, _: &Array1<f64>) -> f64 {
         unimplemented!()
     }
@@ -57,9 +56,8 @@ impl<S: Space, T> VFunction<S> for Box<T>
 
 
 /// An interface for action-value functions.
-pub trait QFunction<S: Space>:
-    Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, Vec<f64>>
-{
+pub trait QFunction<S: Space>
+    : Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, Vec<f64>> {
     fn evaluate_action(&self, input: &S::Repr, action: usize) -> f64;
     fn update_action(&mut self, input: &S::Repr, action: usize, error: f64);
 
@@ -83,27 +81,27 @@ pub trait QFunction<S: Space>:
     //       for each action. I can't see this being needed anytime soon so
     //       for now we will just have a single entry point for computing phi.
     // fn phi(&self, input: &S::Repr) -> Array2<f64> {
-        // unimplemented!()
+    // unimplemented!()
     // }
 
     // fn phi_action(&self, input: &S::Repr, _: usize) -> Array1<f64>{
-        // unimplemented!()
+    // unimplemented!()
     // }
 
     // fn evaluate_phi(&self, phi: &Array2<f64>) -> f64 {
-        // unimplemented!();
+    // unimplemented!();
     // }
 
     // fn evaluate_action_phi(&self, phi: &Array1<f64>, action: usize) -> f64 {
-        // unimplemented!();
+    // unimplemented!();
     // }
 
     // fn update_phi(&mut self, phi: &Array2<f64>, error: f64) -> f64 {
-        // unimplemented!();
+    // unimplemented!();
     // }
 
     // fn update_action_phi(&mut self, phi: &Array1<f64>, action: usize, error: f64) -> f64 {
-        // unimplemented!();
+    // unimplemented!();
     // }
 }
 

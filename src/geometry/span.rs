@@ -30,7 +30,7 @@ impl Into<usize> for Span {
     fn into(self) -> usize {
         match self {
             Span::Finite(e) => e,
-            _ => panic!("Span type has no integer representation.")
+            _ => panic!("Span type has no integer representation."),
         }
     }
 }

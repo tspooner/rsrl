@@ -1,12 +1,11 @@
 use Parameter;
-use fa::VFunction;
 use agents::PredictionAgent;
+use fa::VFunction;
 use geometry::Space;
 use std::marker::PhantomData;
 
 
-pub struct EveryVisitMC<S: Space, V: VFunction<S>>
-{
+pub struct EveryVisitMC<S: Space, V: VFunction<S>> {
     v_func: V,
     observations: Vec<(S::Repr, f64)>,
 
@@ -38,10 +37,10 @@ impl<S: Space, V> EveryVisitMC<S, V>
         let mut sum = 0.0;
 
         for (s, r) in self.observations.drain(0..).rev() {
-            sum = r + self.gamma*sum;
+            sum = r + self.gamma * sum;
 
             let v_est = self.v_func.evaluate(&s);
-            self.v_func.update(&s, self.alpha*(sum - v_est));
+            self.v_func.update(&s, self.alpha * (sum - v_est));
         }
     }
 }

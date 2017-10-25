@@ -1,7 +1,7 @@
 use super::Projection;
-use ndarray::Array1;
 use geometry::{Space, RegularSpace};
 use geometry::dimensions::{Dimension, Continuous, Partitioned};
+use ndarray::Array1;
 
 
 #[derive(Serialize, Deserialize)]
@@ -87,11 +87,10 @@ mod tests {
 
         for i in 0..10 {
             for j in 0..10 {
-                let out =
-                    t.project(&vec![i as u32 as f64, j as u32 as f64]).to_vec();
+                let out = t.project(&vec![i as u32 as f64, j as u32 as f64]).to_vec();
 
                 let mut expected = vec![0.0; 100];
-                expected[j*10 + i] = 1.0;
+                expected[j * 10 + i] = 1.0;
 
                 assert_eq!(out, expected);
             }
@@ -112,12 +111,11 @@ mod tests {
         for i in 0..10 {
             for j in 0..10 {
                 for k in 0..10 {
-                    let out = t.project(&vec![i as u32 as f64,
-                                              j as u32 as f64,
-                                              k as u32 as f64]).to_vec();
+                    let out = t.project(&vec![i as u32 as f64, j as u32 as f64, k as u32 as f64])
+                        .to_vec();
 
                     let mut expected = vec![0.0; 1000];
-                    expected[k*100 + j*10 + i] = 1.0;
+                    expected[k * 100 + j * 10 + i] = 1.0;
 
                     assert_eq!(out, expected);
                 }

@@ -1,10 +1,11 @@
-use std::iter::FromIterator;
-use std::slice::Iter;
-use rand::ThreadRng;
+
 
 use super::Span;
 use super::dimensions;
 use super::dimensions::{Dimension, Partitioned};
+use rand::ThreadRng;
+use std::iter::FromIterator;
+use std::slice::Iter;
 
 
 pub trait Space {
@@ -151,7 +152,8 @@ impl RegularSpace<dimensions::Continuous> {
 
 impl RegularSpace<dimensions::Partitioned> {
     pub fn centres(&self) -> Vec<Vec<f64>> {
-        self.dimensions.iter()
+        self.dimensions
+            .iter()
             .map(|d| d.centres())
             .collect()
     }
@@ -180,53 +182,53 @@ impl<D: Dimension> IntoIterator for RegularSpace<D> {
 
 
 // pub struct HeterogeneousSpace {
-    // dimensions: Vec<Dimension>,
-    // span: Span
+// dimensions: Vec<Dimension>,
+// span: Span
 // }
 
 // impl HeterogeneousSpace {
-    // pub fn new() -> Self {
-     // HeterogeneousSpace {
-            // dimensions: vec![],
-            // span: Span::Null
-        // }
-    // }
+// pub fn new() -> Self {
+// HeterogeneousSpace {
+// dimensions: vec![],
+// span: Span::Null
+// }
+// }
 
-    // pub fn push(mut self, d: D) -> Self {
-        // self.span = self.span * d.span();
-        // self.dimensions.push(d);
-        // self
-    // }
+// pub fn push(mut self, d: D) -> Self {
+// self.span = self.span * d.span();
+// self.dimensions.push(d);
+// self
+// }
 
-    // pub fn iter(&self) -> Iter<Dimension> {
-        // self.dimensions.iter()
-    // }
+// pub fn iter(&self) -> Iter<Dimension> {
+// self.dimensions.iter()
+// }
 // }
 
 // impl<D: Dimension> Space for HeterogeneousSpace<D> {
-    // type Repr = Vec<D::Value>;
+// type Repr = Vec<D::Value>;
 
-    // fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
-        // self.dimensions.iter().map(|d| d.sample(rng)).collect()
-    // }
+// fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
+// self.dimensions.iter().map(|d| d.sample(rng)).collect()
+// }
 
-    // fn dim(&self) -> usize {
-        // self.dimensions.len()
-    // }
+// fn dim(&self) -> usize {
+// self.dimensions.len()
+// }
 
-    // fn span(&self) -> Span {
-        // self.span
-    // }
+// fn span(&self) -> Span {
+// self.span
+// }
 // }
 
 
 #[cfg(test)]
 mod tests {
     use super::{Space, NullSpace, UnitarySpace, PairSpace, RegularSpace};
-
-    use rand::thread_rng;
     use geometry::Span;
     use geometry::dimensions::*;
+
+    use rand::thread_rng;
 
     #[test]
     fn test_null_space() {

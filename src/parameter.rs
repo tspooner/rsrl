@@ -1,5 +1,5 @@
-use std::f64;
 use std::cmp::max;
+use std::f64;
 use std::ops::{Add, Sub, Mul, Div};
 
 
@@ -17,7 +17,7 @@ pub enum Parameter {
         floor: f64,
         count: u32,
         exponent: f64,
-    }
+    },
 }
 
 impl Parameter {
@@ -47,13 +47,13 @@ impl Parameter {
         match self {
             &Parameter::Fixed(v) => v,
 
-            &Parameter::Exponential {
-                init: i, floor: f, count: c, decay: d
-            } => f64::max(i * d.powf(c as f64), f),
+            &Parameter::Exponential { init: i, floor: f, count: c, decay: d } => {
+                f64::max(i * d.powf(c as f64), f)
+            }
 
-            &Parameter::Polynomial {
-                init: i, floor: f, count: c, exponent: e
-            } => f64::max(i / (c as f64).powf(e), f),
+            &Parameter::Polynomial { init: i, floor: f, count: c, exponent: e } => {
+                f64::max(i / (c as f64).powf(e), f)
+            }
         }
     }
 
@@ -64,44 +64,44 @@ impl Parameter {
     pub fn step(self) -> Parameter {
         match self {
             Parameter::Fixed(_) => self,
-            Parameter::Exponential {
-                init: i, floor: f, count: c, decay: d
-            } => Parameter::Exponential {
-                init: i,
-                floor: f,
-                count: c.saturating_add(1),
-                decay: d,
-            },
-            Parameter::Polynomial {
-                init: i, floor: f, count: c, exponent: e
-            } => Parameter::Polynomial {
-                init: i,
-                floor: f,
-                count: c.saturating_add(1),
-                exponent: e,
-            },
+            Parameter::Exponential { init: i, floor: f, count: c, decay: d } => {
+                Parameter::Exponential {
+                    init: i,
+                    floor: f,
+                    count: c.saturating_add(1),
+                    decay: d,
+                }
+            }
+            Parameter::Polynomial { init: i, floor: f, count: c, exponent: e } => {
+                Parameter::Polynomial {
+                    init: i,
+                    floor: f,
+                    count: c.saturating_add(1),
+                    exponent: e,
+                }
+            }
         }
     }
 
     pub fn back(self) -> Parameter {
         match self {
             Parameter::Fixed(_) => self,
-            Parameter::Exponential {
-                init: i, floor: f, count: c, decay: d
-            } => Parameter::Exponential {
-                init: i,
-                floor: f,
-                count: c.saturating_sub(1),
-                decay: d,
-            },
-            Parameter::Polynomial {
-                init: i, floor: f, count: c, exponent: e
-            } => Parameter::Polynomial {
-                init: i,
-                floor: f,
-                count: max(1, c.saturating_sub(1)),
-                exponent: e,
-            },
+            Parameter::Exponential { init: i, floor: f, count: c, decay: d } => {
+                Parameter::Exponential {
+                    init: i,
+                    floor: f,
+                    count: c.saturating_sub(1),
+                    decay: d,
+                }
+            }
+            Parameter::Polynomial { init: i, floor: f, count: c, exponent: e } => {
+                Parameter::Polynomial {
+                    init: i,
+                    floor: f,
+                    count: max(1, c.saturating_sub(1)),
+                    exponent: e,
+                }
+            }
         }
     }
 }

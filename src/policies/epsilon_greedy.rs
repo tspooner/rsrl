@@ -1,8 +1,8 @@
-use rand::{Rng, thread_rng, ThreadRng};
-
-use {Parameter};
 use super::{Policy, Greedy, Random};
+
+use Parameter;
 use geometry::ActionSpace;
+use rand::{Rng, thread_rng, ThreadRng};
 
 
 pub struct EpsilonGreedy {
@@ -37,9 +37,11 @@ impl Policy for EpsilonGreedy {
     fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> {
         let pr = self.epsilon / qs.len() as f64;
 
-        self.greedy.probabilities(qs).iter().map(|p| {
-            pr + p*(1.0 - self.epsilon)
-        }).collect()
+        self.greedy
+            .probabilities(qs)
+            .iter()
+            .map(|p| pr + p * (1.0 - self.epsilon))
+            .collect()
     }
 
     fn handle_terminal(&mut self) {
@@ -53,9 +55,9 @@ impl Policy for EpsilonGreedy {
 
 #[cfg(test)]
 mod tests {
-    use policies::{Policy, EpsilonGreedy};
     use geometry::ActionSpace;
     use geometry::dimensions::Discrete;
+    use policies::{Policy, EpsilonGreedy};
 
     fn action_space(n_actions: usize) -> ActionSpace {
         ActionSpace::new(Discrete::new(n_actions))
@@ -72,7 +74,7 @@ mod tests {
         for _ in 0..50000 {
             match p.sample(&qs) {
                 0 => n0 += 1.0,
-                _ => n1 += 1.0
+                _ => n1 += 1.0,
             }
         }
 

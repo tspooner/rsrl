@@ -2,15 +2,15 @@ extern crate rsrl;
 
 use rsrl::{run, Parameter, SerialExperiment, Evaluation};
 
-use rsrl::fa::Linear;
-use rsrl::fa::projection::RBFNetwork;
-
 use rsrl::agents::control::td::QSigma;
 use rsrl::domains::{Domain, MountainCar};
-use rsrl::policies::{Greedy, EpsilonGreedy};
+
+use rsrl::fa::Linear;
+use rsrl::fa::projection::RBFNetwork;
 use rsrl::geometry::Space;
 
 use rsrl::logging;
+use rsrl::policies::{Greedy, EpsilonGreedy};
 use std::fs::OpenOptions;
 
 
@@ -23,8 +23,7 @@ fn main() {
         .open(log_path)
         .unwrap();
 
-    let logger = logging::root(
-        logging::combine(logging::stdout(), logging::file(file)));
+    let logger = logging::root(logging::combine(logging::stdout(), logging::file(file)));
 
     let domain = MountainCar::default();
     let mut agent = {
@@ -41,9 +40,7 @@ fn main() {
 
     // Training:
     let _training_result = {
-        let e = SerialExperiment::new(&mut agent,
-                                      Box::new(MountainCar::default),
-                                      1000);
+        let e = SerialExperiment::new(&mut agent, Box::new(MountainCar::default), 1000);
 
         run(e, 1500, Some(logger))
     };

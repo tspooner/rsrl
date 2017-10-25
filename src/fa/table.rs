@@ -1,8 +1,8 @@
 use super::{Function, Parameterised};
+use std::collections::HashMap;
+use std::hash::Hash;
 
 use std::ops::AddAssign;
-use std::hash::Hash;
-use std::collections::HashMap;
 
 /// Generic tabular function representation.
 ///
