@@ -54,16 +54,10 @@ impl SuttonTiles {
 }
 
 impl Projection<RegularSpace<Continuous>> for SuttonTiles {
-    // TODO: Rework how we handle cases where we need a sparse vector. There's
-    // no point dealing with memory_size of floats!
-    fn project(&self, input: &Vec<f64>) -> Array1<f64> {
-        let mut p = Array1::<f64>::zeros(self.memory_size as usize);
-
+    fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
         for i in self.load_tiles(input, &self.int_array) {
-            p[i] = 1.0;
+            phi[i] = 1.0;
         }
-
-        p
     }
 
     fn dim(&self) -> usize {

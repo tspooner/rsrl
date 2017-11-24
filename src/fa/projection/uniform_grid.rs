@@ -32,11 +32,8 @@ impl UniformGrid {
 }
 
 impl Projection<RegularSpace<Continuous>> for UniformGrid {
-    fn project(&self, input: &Vec<f64>) -> Array1<f64> {
-        let mut p = Array1::<f64>::zeros(self.n_features);
-        p[self.hash(input)] = 1.0;
-
-        p
+    fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
+        phi[self.hash(input)] = 1.0;
     }
 
     fn dim(&self) -> usize {

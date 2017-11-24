@@ -43,6 +43,12 @@ impl Projection<RegularSpace<Continuous>> for BasisNetwork {
         Array1::from_shape_fn((self.bases.len(),), |i| self.bases[i].evaluate(input))
     }
 
+    fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
+        for i in 0..self.bases.len() {
+            phi[i] = self.bases[i].evaluate(input);
+        }
+    }
+
     fn dim(&self) -> usize {
         self.bases.len()
     }

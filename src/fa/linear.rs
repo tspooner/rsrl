@@ -116,6 +116,10 @@ impl<S: Space, P: Projection<S>> Projection<S> for Linear<S, P> {
         self.projector.project(input)
     }
 
+    fn project_onto(&self, input: &S::Repr, phi: &mut Array1<f64>) {
+        self.projector.project_onto(input, phi);
+    }
+
     fn dim(&self) -> usize {
         self.projector.dim()
     }
