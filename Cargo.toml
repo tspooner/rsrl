@@ -22,8 +22,10 @@ serde_test = "1.0"
 serde_derive = "1.0"
 
 slog = "2.0"
-slog-term = "2.2"
+slog-term = "2.3"
 slog-async = "2.1"
 
+blas = "0.19"
+openblas-src = "0.5"
+
 ndarray = { version = "0.10", features = ["blas", "serde-1"] }
-blas-sys = { version = "0.6", default-features = false, features = ["openblas"] }
