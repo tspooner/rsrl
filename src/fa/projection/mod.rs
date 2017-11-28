@@ -15,12 +15,15 @@ pub trait Projection<S: Space> {
     fn equivalent(&self, other: &Self) -> bool;
 }
 
-mod sutton_tc;
-mod rbf_network;
-mod uniform_grid;
 mod basis_network;
-
 pub use self::basis_network::*;
+
+mod rbf_network;
 pub use self::rbf_network::*;
-pub use self::sutton_tc::*;
+
+mod tchs;
+mod tile_coding;
+pub use self::tile_coding::*;
+
+mod uniform_grid;
 pub use self::uniform_grid::*;
