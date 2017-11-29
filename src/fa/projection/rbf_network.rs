@@ -58,7 +58,7 @@ impl Projection<RegularSpace<Continuous>> for RBFNetwork {
         let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
         let p = (&d*&d*&self.gamma).mapv(|v| v.exp()).sum_axis(Axis(1));
 
-        phi.scaled_add(p.scalar_sum(), &p)
+        phi.scaled_add(1.0/p.scalar_sum(), &p)
     }
 
     fn dim(&self) -> usize {
