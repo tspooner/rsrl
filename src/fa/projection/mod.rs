@@ -15,13 +15,24 @@ pub trait Projection<S: Space> {
     fn equivalent(&self, other: &Self) -> bool;
 }
 
+pub trait SparseProjection<S: Space>: Projection<S> {
+    fn project_onto_sparse(&self, input: &S::Repr, indices: &mut Array1<usize>);
+    fn project_sparse(&self, input: &S::Repr) -> Array1<usize> {
+        let mut indices: Array1<usize> = Array1::zeros((self.dim_activation(),));
+        self.project_onto_sparse(input, &mut indices);
+
+        indices
+    }
+
+    fn dim_activation(&self) -> usize;
+}
+
 mod basis_network;
 pub use self::basis_network::*;
 
 mod rbf_network;
 pub use self::rbf_network::*;
 
-mod tchs;
 mod tile_coding;
 pub use self::tile_coding::*;
 

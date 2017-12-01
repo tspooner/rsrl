@@ -137,9 +137,8 @@ impl<S: Space, T> QFunction<S> for Box<T>
 mod table;
 pub use self::table::Table;
 
-
 pub mod projection;
-pub use self::projection::Projection;
+pub use self::projection::{Projection, SparseProjection};
 
 mod linear;
-pub use self::linear::Linear;
+pub use self::linear::{Linear, SparseLinear};

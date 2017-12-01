@@ -4,14 +4,9 @@ version = "0.0.0"
 authors = ["Tom Spooner <t.spooner@liverpool.ac.uk>"]
 license = "MIT"
 readme = "README.md"
-build = "build.rs"
-
-[build-dependencies]
-gcc = "0.3"
 
 [dependencies]
 log = "0.3"
-libc = "0.2"
 rand = "0.3"
 rusty-machine = "0.5"
 
@@ -28,3 +23,6 @@ blas = "0.19"
 openblas-src = "0.5"
 
 ndarray = { version = "0.10", features = ["blas", "serde-1"] }
+
+[dev-dependencies]
+fxhash = "0.2"
