@@ -25,4 +25,4 @@ openblas-src = "0.5"
 ndarray = { version = "0.10", features = ["blas", "serde-1"] }
 
 [dev-dependencies]
-fxhash = "0.2"
+seahash = "3.0"

@@ -194,9 +194,8 @@ impl<S: Space, P: SparseProjection<S>> VFunction<S> for SparseLinear<S, P> {}
 
 impl<S: Space, P: SparseProjection<S>> QFunction<S> for SparseLinear<S, P> {
     fn evaluate_action(&self, input: &S::Repr, action: usize) -> f64 {
-        let phi = self.projector.project(input);
-
-        self.evaluate_action_phi(&phi, action)
+        self.projector.project_sparse(input).fold(0.0f64,
+                                                  |acc, i| acc + self.weights.column(action)[*i])
     }
 
     fn update_action(&mut self, input: &S::Repr, action: usize, error: f64) {
