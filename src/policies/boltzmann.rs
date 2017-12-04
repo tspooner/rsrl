@@ -75,11 +75,11 @@ mod tests {
         let mut p = Boltzmann::new(1.0);
         let mut counts = arr1(&vec![0.0, 0.0]);
 
-        for _ in 0..20000 {
+        for _ in 0..50000 {
             counts[p.sample(&vec![0.0, 1.0])] += 1.0;
         }
 
-        assert!((counts/20000.0).all_close(&arr1(&vec![1.0/(1.0+E), E/(1.0+E)]), 1e-2));
+        assert!((counts/50000.0).all_close(&arr1(&vec![1.0/(1.0+E), E/(1.0+E)]), 1e-2));
     }
 
     #[test]

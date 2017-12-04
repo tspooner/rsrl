@@ -87,7 +87,7 @@ impl<D1: Dimension, D2: Dimension> Space for PairSpace<D1, D2> {
     }
 
     fn span(&self) -> Span {
-        (self.0).0.span() * (self.0).1.span()
+        (self.0).0.span()*(self.0).1.span()
     }
 }
 
@@ -225,7 +225,7 @@ mod tests {
     use super::{Space, NullSpace, UnitarySpace, PairSpace, RegularSpace};
     use geometry::Span;
     use geometry::dimensions::*;
-
+    use ndarray::arr1;
     use rand::thread_rng;
 
     #[test]
@@ -236,5 +236,51 @@ mod tests {
         assert_eq!(ns.sample(&mut rng), ());
         assert_eq!(ns.dim(), 0);
         assert_eq!(ns.span(), Span::Null);
+    }
+
+    #[test]
+    fn test_unitary_space() {
+        let d = Discrete::new(2);
+        let us = UnitarySpace::new(d);
+        let mut rng = thread_rng();
+
+        let mut counts = arr1(&vec![0.0; 2]);
+        for _ in 0..5000 {
+            let sample = us.sample(&mut rng);
+            counts[sample] += 1.0;
+
+            assert!(sample == 0 || sample == 1);
+        }
+
+        assert!((counts/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+        assert_eq!(us.dim(), 1);
+        assert_eq!(us.span(), d.span());
+    }
+
+    #[test]
+    fn test_pair_space() {
+        let d1 = Discrete::new(2);
+        let d2 = Discrete::new(2);
+        let ps = PairSpace::new(d1, d2);
+
+        let mut rng = thread_rng();
+
+        let mut c1 = arr1(&vec![0.0; 2]);
+        let mut c2 = arr1(&vec![0.0; 2]);
+        for _ in 0..5000 {
+            let sample = ps.sample(&mut rng);
+
+            c1[sample.0] += 1.0;
+            c2[sample.1] += 1.0;
+
+            assert!(sample.0 == 0 || sample.0 == 1);
+            assert!(sample.1 == 0 || sample.1 == 1);
+        }
+
+        assert!((c1/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+        assert!((c2/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+
+        assert_eq!(ps.dim(), 2);
+        assert_eq!(ps.span(), d1.span()*d2.span());
     }
 }
