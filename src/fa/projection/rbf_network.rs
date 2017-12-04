@@ -8,7 +8,7 @@ use utils::cartesian_product;
 #[derive(Serialize, Deserialize)]
 pub struct RBFNetwork {
     mu: Array2<f64>,
-    gamma: Array1<f64>,
+    beta: Array1<f64>,
 }
 
 impl RBFNetwork {
@@ -21,7 +21,7 @@ impl RBFNetwork {
 
         RBFNetwork {
             mu: mu,
-            gamma: 1.0 / sigma.map(|v| v*v),
+            beta: 0.5 / sigma.map(|v| v*v),
         }
     }
 
@@ -43,12 +43,17 @@ impl RBFNetwork {
 
         RBFNetwork::new(mu, sigma)
     }
+
+    pub fn kernel(&self, input: &[f64]) -> Array1<f64> {
+        let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
+
+        (&d*&d*&self.beta).mapv(|v| (-v.abs()).exp()).sum_axis(Axis(1))
+    }
 }
 
 impl Projection<RegularSpace<Continuous>> for RBFNetwork {
     fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
-        let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
-        let p = (&d*&d*&self.gamma).mapv(|v| v.exp()).sum_axis(Axis(1));
+        let p = self.kernel(input);
 
         phi.scaled_add(1.0/p.scalar_sum(), &p)
     }
@@ -62,7 +67,7 @@ impl Projection<RegularSpace<Continuous>> for RBFNetwork {
     }
 
     fn equivalent(&self, other: &Self) -> bool {
-        self.mu == other.mu && self.gamma == other.gamma && self.size() == other.size()
+        self.mu == other.mu && self.beta == other.beta && self.size() == other.size()
     }
 }
 
@@ -84,5 +89,52 @@ mod tests {
     fn test_dimensionality() {
         assert_eq!(RBFNetwork::new(arr2(&[[0.0], [0.5], [1.0]]), arr1(&[0.25])).dim(), 1);
         assert_eq!(RBFNetwork::new(arr2(&[[0.0, 0.5, 1.0]; 10]), arr1(&[0.1, 0.2, 0.3])).dim(), 3);
+    }
+
+    #[test]
+    fn test_kernel_relevance() {
+        let rbf = RBFNetwork::new(arr2(&[[0.0]]), arr1(&[0.25]));
+        let mut phi = rbf.kernel(&vec![0.0]);
+
+        for i in 1..10 {
+            let phi_new = rbf.kernel(&vec![i as f64 / 10.0]);
+            assert!(phi_new[0] < phi[0]);
+
+            phi = phi_new
+        }
+    }
+
+    #[test]
+    fn test_kernel_isotropy() {
+        let rbf = RBFNetwork::new(arr2(&[[0.0]]), arr1(&[0.25]));
+        let phi = rbf.kernel(&vec![0.0]);
+
+        for i in 1..10 {
+            let phi_left = rbf.kernel(&vec![-i as f64 / 10.0]);
+            let phi_right = rbf.kernel(&vec![i as f64 / 10.0]);
+
+            assert!(phi_left[0] < phi[0]);
+            assert!(phi_right[0] < phi[0]);
+            assert_eq!(phi_left, phi_right);
+        }
+    }
+
+    #[test]
+    fn test_projection_1d() {
+        let rbf = RBFNetwork::new(arr2(&[[0.0], [0.5], [1.0]]), arr1(&[0.25]));
+        let phi = rbf.project(&vec![0.25]);
+
+        assert!(phi.all_close(&arr1(&[0.49546264, 0.49546264, 0.00907471]), 1e-6));
+        assert_eq!(phi.scalar_sum(), 1.0);
+    }
+
+    #[test]
+    fn test_projection_2d() {
+        let rbf = RBFNetwork::new(arr2(&[[0.0, -10.0], [0.5, -8.0], [1.0, -6.0]]),
+                                  arr1(&[0.25, 2.0]));
+        let phi = rbf.project(&vec![0.67, -7.0]);
+
+        assert!(phi.all_close(&arr1(&[0.10579518, 0.50344131, 0.3907635]), 1e-6));
+        assert_eq!(phi.scalar_sum(), 1.0);
     }
 }

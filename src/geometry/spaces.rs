@@ -1,5 +1,3 @@
-
-
 use super::Span;
 use super::dimensions;
 use super::dimensions::{Dimension, Partitioned};
