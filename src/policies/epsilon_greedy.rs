@@ -57,22 +57,21 @@ mod tests {
     use super::{Policy, EpsilonGreedy, Parameter};
 
     #[test]
-    #[ignore]
     fn test_sampling() {
         let mut p = EpsilonGreedy::new(0.5);
         let qs = vec![1.0, 0.0];
 
         let mut n0: f64 = 0.0;
         let mut n1: f64 = 0.0;
-        for _ in 0..50000 {
+        for _ in 0..20000 {
             match p.sample(&qs) {
                 0 => n0 += 1.0,
                 _ => n1 += 1.0,
             }
         }
 
-        assert!((0.75 - n0 / 50000.0).abs() < 0.01);
-        assert!((0.25 - n1 / 50000.0).abs() < 0.01);
+        assert!((0.75 - n0 / 20000.0).abs() < 0.01);
+        assert!((0.25 - n1 / 20000.0).abs() < 0.01);
     }
 
     #[test]
