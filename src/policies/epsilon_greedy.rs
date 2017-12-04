@@ -1,6 +1,5 @@
-use super::{Policy, Greedy, Random};
-
 use Parameter;
+use super::{Policy, Greedy, Random};
 use geometry::ActionSpace;
 use rand::{Rng, thread_rng, ThreadRng};
 
@@ -14,10 +13,10 @@ pub struct EpsilonGreedy {
 }
 
 impl EpsilonGreedy {
-    pub fn new<T: Into<Parameter>>(action_space: ActionSpace, epsilon: T) -> Self {
+    pub fn new<T: Into<Parameter>>(epsilon: T) -> Self {
         EpsilonGreedy {
             greedy: Greedy,
-            random: Random::new(action_space),
+            random: Random::new(),
 
             epsilon: epsilon.into(),
             rng: thread_rng(),
@@ -55,18 +54,12 @@ impl Policy for EpsilonGreedy {
 
 #[cfg(test)]
 mod tests {
-    use geometry::ActionSpace;
-    use geometry::dimensions::Discrete;
-    use policies::{Policy, EpsilonGreedy};
-
-    fn action_space(n_actions: usize) -> ActionSpace {
-        ActionSpace::new(Discrete::new(n_actions))
-    }
+    use super::{Policy, EpsilonGreedy, Parameter};
 
     #[test]
     #[ignore]
     fn test_sampling() {
-        let mut p = EpsilonGreedy::new(action_space(2), 0.5);
+        let mut p = EpsilonGreedy::new(0.5);
         let qs = vec![1.0, 0.0];
 
         let mut n0: f64 = 0.0;
@@ -84,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_probabilites() {
-        let mut p = EpsilonGreedy::new(action_space(5), 0.5);
+        let mut p = EpsilonGreedy::new(0.5);
 
         assert_eq!(p.probabilities(&[1.0, 0.0, 0.0, 0.0, 0.0]),
                    vec![0.6, 0.1, 0.1, 0.1, 0.1]);
@@ -95,9 +88,22 @@ mod tests {
         assert_eq!(p.probabilities(&[1.0, 0.0, 0.0, 0.0, 1.0]),
                    vec![0.35, 0.1, 0.1, 0.1, 0.35]);
 
-        let mut p = EpsilonGreedy::new(action_space(4), 1.0);
+        let mut p = EpsilonGreedy::new(1.0);
 
         assert_eq!(p.probabilities(&[-1.0, 0.0, 0.0, 0.0]),
                    vec![0.25, 0.25, 0.25, 0.25]);
+    }
+
+    #[test]
+    fn test_terminal() {
+        let mut epsilon = Parameter::exponential(100.0, 1.0, 0.9);
+        let mut p = EpsilonGreedy::new(epsilon);
+
+        for _ in 0..100 {
+            epsilon = epsilon.step();
+            p.handle_terminal();
+
+            assert_eq!(epsilon.value(), p.epsilon.value());
+        }
     }
 }

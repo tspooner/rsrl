@@ -25,7 +25,7 @@ fn main() {
 
         let pr = RBFNetwork::from_space(domain.state_space().partitioned(8));
         let q_func = Linear::new(pr, n_actions);
-        let policy = EpsilonGreedy::new(aspace, Parameter::exponential(0.99, 0.05, 0.99));
+        let policy = EpsilonGreedy::new(Parameter::exponential(0.99, 0.05, 0.99));
 
         ExpectedSARSA::new(q_func, policy, 0.2, 0.99)
     };
