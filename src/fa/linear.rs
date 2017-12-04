@@ -18,7 +18,7 @@ pub struct DenseLinear<S: Space, P: Projection<S>> {
 
 impl<S: Space, P: Projection<S>> DenseLinear<S, P> {
     pub fn new(projector: P, n_outputs: usize) -> Self {
-        let n_features = projector.dim();
+        let n_features = projector.size();
 
         Self {
             projector: projector,
@@ -124,6 +124,10 @@ impl<S: Space, P: Projection<S>> Projection<S> for DenseLinear<S, P> {
         self.projector.dim()
     }
 
+    fn size(&self) -> usize {
+        self.projector.size()
+    }
+
     fn equivalent(&self, other: &Self) -> bool {
         self.projector.equivalent(&other.projector)
     }
@@ -140,7 +144,7 @@ pub struct SparseLinear<S: Space, P: SparseProjection<S>> {
 
 impl<S: Space, P: SparseProjection<S>> SparseLinear<S, P> {
     pub fn new(projector: P, n_outputs: usize) -> Self {
-        let n_features = projector.dim();
+        let n_features = projector.size();
 
         Self {
             projector: projector,
@@ -170,7 +174,7 @@ impl<S: Space, P: SparseProjection<S>> Function<S::Repr, Vec<f64>> for SparseLin
 
 impl<S: Space, P: SparseProjection<S>> Parameterised<S::Repr, f64> for SparseLinear<S, P> {
     fn update(&mut self, input: &S::Repr, error: f64) {
-        let scaled_error = error / self.projector.dim_activation() as f64;
+        let scaled_error = error / self.projector.sparsity() as f64;
 
         for i in self.projector.project_sparse(input).iter() {
             self.weights.column_mut(0)[*i] += scaled_error;
@@ -181,7 +185,7 @@ impl<S: Space, P: SparseProjection<S>> Parameterised<S::Repr, f64> for SparseLin
 impl<S: Space, P: SparseProjection<S>> Parameterised<S::Repr, Vec<f64>> for SparseLinear<S, P> {
     fn update(&mut self, input: &S::Repr, errors: Vec<f64>) {
         for c in 0..self.weights.cols() {
-            let scaled_error = errors[c] / self.projector.dim_activation() as f64;
+            let scaled_error = errors[c] / self.projector.sparsity() as f64;
 
             for i in self.projector.project_sparse(input).iter() {
                 self.weights.column_mut(c)[*i] += scaled_error;
@@ -199,7 +203,7 @@ impl<S: Space, P: SparseProjection<S>> QFunction<S> for SparseLinear<S, P> {
     }
 
     fn update_action(&mut self, input: &S::Repr, action: usize, error: f64) {
-        let scaled_error = error / self.projector.dim_activation() as f64;
+        let scaled_error = error / self.projector.sparsity() as f64;
 
         for i in self.projector.project_sparse(input).iter() {
             self.weights.column_mut(action)[*i] += scaled_error;

@@ -37,11 +37,15 @@ impl Projection<RegularSpace<Continuous>> for UniformGrid {
     }
 
     fn dim(&self) -> usize {
+        self.input_space.dim()
+    }
+
+    fn size(&self) -> usize {
         self.n_features
     }
 
     fn equivalent(&self, other: &Self) -> bool {
-        self.dim() == other.dim()
+        self.dim() == other.dim() && self.size() == other.size()
     }
 }
 
@@ -60,7 +64,7 @@ mod tests {
 
         let t = UniformGrid::new(ds);
 
-        assert_eq!(t.dim(), 10);
+        assert_eq!(t.size(), 10);
 
         for i in 0..10 {
             let out = t.project(&vec![i as u32 as f64]).to_vec();
@@ -80,7 +84,7 @@ mod tests {
 
         let t = UniformGrid::new(ds);
 
-        assert_eq!(t.dim(), 100);
+        assert_eq!(t.size(), 100);
 
         for i in 0..10 {
             for j in 0..10 {
@@ -103,7 +107,7 @@ mod tests {
 
         let t = UniformGrid::new(ds);
 
-        assert_eq!(t.dim(), 1000);
+        assert_eq!(t.size(), 1000);
 
         for i in 0..10 {
             for j in 0..10 {

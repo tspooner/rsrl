@@ -30,11 +30,15 @@ impl<H: BuildHasher> Projection<RegularSpace<Continuous>> for TileCoding<H> {
     }
 
     fn dim(&self) -> usize {
+        unimplemented!()
+    }
+
+    fn size(&self) -> usize {
         self.memory_size as usize
     }
 
     fn equivalent(&self, other: &Self) -> bool {
-        self.dim() == other.dim() && self.n_tilings == other.n_tilings &&
+        self.size() == other.size() && self.n_tilings == other.n_tilings &&
         self.memory_size == other.memory_size
     }
 }
@@ -57,7 +61,7 @@ impl<H: BuildHasher> SparseProjection<RegularSpace<Continuous>> for TileCoding<H
         }
     }
 
-    fn dim_activation(&self) -> usize {
+    fn sparsity(&self) -> usize {
         self.n_tilings
     }
 }

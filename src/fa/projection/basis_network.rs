@@ -50,6 +50,10 @@ impl Projection<RegularSpace<Continuous>> for BasisNetwork {
     }
 
     fn dim(&self) -> usize {
+        unimplemented!()
+    }
+
+    fn size(&self) -> usize {
         self.bases.len()
     }
 
