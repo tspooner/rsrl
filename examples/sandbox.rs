@@ -1,49 +1,43 @@
 extern crate rsrl;
+extern crate seahash;
 
-use rsrl::{run, Parameter, SerialExperiment, Evaluation};
-
-use rsrl::agents::control::td::QSigma;
+use rsrl::{run, logging, Parameter, SerialExperiment, Evaluation};
+use rsrl::agents::control::td::ExpectedSARSA;
 use rsrl::domains::{Domain, MountainCar};
-
-use rsrl::fa::Linear;
-use rsrl::fa::projection::RBFNetwork;
+use rsrl::fa::{Linear, SparseLinear};
+use rsrl::fa::projection::TileCoding;
 use rsrl::geometry::Space;
+use rsrl::policies::EpsilonGreedy;
 
-use rsrl::logging;
-use rsrl::policies::{Greedy, EpsilonGreedy};
-use std::fs::OpenOptions;
+use std::hash::BuildHasherDefault;
+
+
+type SeahashBuildHasher = BuildHasherDefault<seahash::SeaHasher>;
 
 
 fn main() {
-    let log_path = "/tmp/log_example.log";
-    let file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(log_path)
-        .unwrap();
-
-    let logger = logging::root(logging::combine(logging::stdout(), logging::file(file)));
+    let logger = logging::root(logging::stdout());
 
     let domain = MountainCar::default();
     let mut agent = {
         let aspace = domain.action_space();
         let n_actions: usize = aspace.span().into();
 
-        let pr = RBFNetwork::from_space(domain.state_space().partitioned(8));
-        let q_func = Linear::new(pr, n_actions);
+        let pr = TileCoding::new(SeahashBuildHasher::default(), 10, 10000);
+        let q_func = SparseLinear::new(pr, n_actions);
+        let policy = EpsilonGreedy::new(aspace, Parameter::exponential(0.05, 0.05, 0.99));
 
-        let policy = EpsilonGreedy::new(aspace, Parameter::exponential(0.9, 0.01, 0.99));
-
-        QSigma::new(q_func, policy, 0.05, 0.99, 0.2, 2)
+        ExpectedSARSA::new(q_func, policy, 0.1, 0.99)
     };
 
     // Training:
     let _training_result = {
         let e = SerialExperiment::new(&mut agent, Box::new(MountainCar::default), 1000);
 
-        run(e, 1500, Some(logger))
+        run(e, 1000, Some(logger))
     };
+
+    // println!("{:?}", agent.q_func.weights);
 
     // Testing:
     let testing_result =
