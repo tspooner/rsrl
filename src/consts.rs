@@ -1,6 +1,10 @@
 use std::f64;
 
 
+// Physical constants:
+pub const G: f64 = 9.8;
+
+
 // Fractions
 pub const FOUR_THIRDS: f64 = 4.0 / 3.0;
 

@@ -1,26 +1,28 @@
 use super::{Observation, Transition, Domain};
 
 use std::f64::consts::PI;
-use consts::PI_OVER_2;
+use consts::{G, PI_OVER_2};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 
 
-const G: f64 = 9.8;
-
+// Link masses:
 const M1: f64 = 1.0;
 const M2: f64 = 1.0;
 
+// Link lengths:
 const L1: f64 = 1.0;
 const L2: f64 = 1.0;
 
+// Link centre of masses:
 const LC1: f64 = 0.5;
 const LC2: f64 = 0.5;
 
+// Link moment of intertias:
 const I1: f64 = 1.0;
 const I2: f64 = 1.0;
 
-const DT: f64 = 0.05;
+const DT: f64 = 0.2;
 
 const LIMITS_THETA1: (f64, f64) = (-PI, PI);
 const LIMITS_THETA2: (f64, f64) = (-PI, PI);
@@ -61,9 +63,9 @@ impl Acrobat {
         let ddtheta = (ddtheta.0 * DT / 4.0, ddtheta.1 * DT / 4.0);
 
         self.theta1 =
-            clip!(LIMITS_THETA1.0, self.theta1 + self.dtheta1, LIMITS_THETA1.1);
+            wrap!(LIMITS_THETA1.0, self.theta1 + self.dtheta1, LIMITS_THETA1.1);
         self.theta2 =
-            clip!(LIMITS_THETA2.0, self.theta2 + self.dtheta2, LIMITS_THETA2.1);
+            wrap!(LIMITS_THETA2.0, self.theta2 + self.dtheta2, LIMITS_THETA2.1);
 
         self.dtheta1 =
             clip!(LIMITS_DTHETA1.0, self.dtheta1 + ddtheta.0, LIMITS_DTHETA1.1);
