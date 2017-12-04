@@ -1,6 +1,6 @@
 # RSRL ([api](https://tspooner.github.io/rsrl))
 
-[![Build Status](https://travis-ci.org/tspooner/rsrl.svg?branch=master)](https://travis-ci.org/tspooner/rsrl) [![Coverage Status](https://coveralls.io/repos/github/tspooner/rsrl/badge.svg?branch=master)](https://coveralls.io/github/tspooner/rsrl?branch=master) [![Issue Count](https://codeclimate.com/github/tspooner/rsrl/badges/gpa.svg)](https://codeclimate.com/github/tspooner/rsrl)
+[![Build Status](https://travis-ci.org/tspooner/rsrl.svg?branch=master)](https://travis-ci.org/tspooner/rsrl) [![Coverage Status](https://coveralls.io/repos/github/tspooner/rsrl/badge.svg?branch=master)](https://coveralls.io/github/tspooner/rsrl?branch=master) [![Maintainability](https://api.codeclimate.com/v1/badges/73c07446e47a8b460ac7/maintainability)](https://codeclimate.com/github/tspooner/rsrl/maintainability)
 
 ## Summary
 
