@@ -8,10 +8,10 @@ use std::marker::PhantomData;
 
 
 pub struct TD<S: Space, V: VFunction<S>> {
-    v_func: V,
+    pub v_func: V,
 
-    alpha: Parameter,
-    gamma: Parameter,
+    pub alpha: Parameter,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
@@ -55,11 +55,11 @@ impl<S: Space, V> PredictionAgent<S> for TD<S, V>
 
 
 pub struct TDLambda<S: Space, P: Projection<S>> {
+    pub v_func: Linear<S, P>,
     trace: Trace,
-    v_func: Linear<S, P>,
 
-    alpha: Parameter,
-    gamma: Parameter,
+    pub alpha: Parameter,
+    pub gamma: Parameter,
 }
 
 impl<S: Space, P: Projection<S>> TDLambda<S, P> {
@@ -68,8 +68,8 @@ impl<S: Space, P: Projection<S>> TDLambda<S, P> {
               T2: Into<Parameter>
     {
         TDLambda {
-            trace: trace,
             v_func: v_func,
+            trace: trace,
 
             alpha: alpha.into(),
             gamma: gamma.into(),

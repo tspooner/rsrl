@@ -5,12 +5,12 @@ use geometry::Space;
 
 
 pub struct GTD2<S: Space, P: Projection<S>> {
-    v_func: Linear<S, P>,
-    a_func: Linear<S, P>,
+    pub v_func: Linear<S, P>,
+    pub a_func: Linear<S, P>,
 
-    alpha: Parameter,
-    beta: Parameter,
-    gamma: Parameter,
+    pub alpha: Parameter,
+    pub beta: Parameter,
+    pub gamma: Parameter,
 }
 
 impl<S: Space, P: Projection<S>> GTD2<S, P> {
@@ -66,12 +66,12 @@ impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
 
 
 pub struct TDC<S: Space, P: Projection<S>> {
-    v_func: Linear<S, P>,
-    a_func: Linear<S, P>,
+    pub v_func: Linear<S, P>,
+    pub a_func: Linear<S, P>,
 
-    alpha: Parameter,
-    beta: Parameter,
-    gamma: Parameter,
+    pub alpha: Parameter,
+    pub beta: Parameter,
+    pub gamma: Parameter,
 }
 
 impl<S: Space, P: Projection<S>> TDC<S, P> {

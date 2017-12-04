@@ -14,11 +14,11 @@ use utils::dot;
 /// C. J. C. H. Watkins and P. Dayan, “Q-learning,” Mach. Learn., vol. 8, no. 3–4, pp. 279–292,
 /// 1992.
 pub struct QLearning<S: Space, Q: QFunction<S>, P: Policy> {
-    q_func: Q,
-    policy: P,
+    pub q_func: Q,
+    pub policy: P,
 
-    alpha: Parameter,
-    gamma: Parameter,
+    pub alpha: Parameter,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
@@ -80,11 +80,11 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
 
 /// Classical on policy temporal difference control algorithm.
 pub struct SARSA<S: Space, Q: QFunction<S>, P: Policy> {
-    q_func: Q,
-    policy: P,
+    pub q_func: Q,
+    pub policy: P,
 
-    alpha: Parameter,
-    gamma: Parameter,
+    pub alpha: Parameter,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
@@ -146,11 +146,11 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
 
 /// Expected SARSA.
 pub struct ExpectedSARSA<S: Space, Q: QFunction<S>, P: Policy> {
-    q_func: Q,
-    policy: P,
+    pub q_func: Q,
+    pub policy: P,
 
-    alpha: Parameter,
-    gamma: Parameter,
+    pub alpha: Parameter,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
@@ -221,14 +221,15 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
 /// De Asis, Kristopher, et al. "Multi-step Reinforcement Learning: A Unifying
 /// Algorithm." arXiv preprint arXiv:1703.01327 (2017).
 pub struct QSigma<S: Space, Q: QFunction<S>, P: Policy> {
-    q_func: Q,
-    policy: P,
+    pub q_func: Q,
+    pub policy: P,
 
-    alpha: Parameter,
-    gamma: Parameter,
-    sigma: Parameter,
+    pub alpha: Parameter,
+    pub gamma: Parameter,
+    pub sigma: Parameter,
 
-    n_steps: usize,
+    pub n_steps: usize,
+
     backup: VecDeque<BackupEntry<S>>,
 }
 
@@ -256,6 +257,7 @@ impl<S: Space, Q, P> QSigma<S, Q, P>
             sigma: sigma.into(),
 
             n_steps: n_steps,
+
             backup: VecDeque::new(),
         }
     }

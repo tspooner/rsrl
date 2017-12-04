@@ -13,13 +13,13 @@ pub struct ActorCritic<S: Space, Q, C, P>
           C: PredictionAgent<S>,
           P: Policy
 {
-    actor: Q,
-    critic: C,
+    pub actor: Q,
+    pub critic: C,
 
-    policy: P,
+    pub policy: P,
 
-    beta: Parameter,
-    gamma: Parameter,
+    pub beta: Parameter,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }

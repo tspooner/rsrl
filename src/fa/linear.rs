@@ -10,8 +10,8 @@ pub type Linear<S, P> = DenseLinear<S, P>;
 
 #[derive(Serialize, Deserialize)]
 pub struct DenseLinear<S: Space, P: Projection<S>> {
-    projector: P,
-    weights: Array2<f64>,
+    pub projector: P,
+    pub weights: Array2<f64>,
 
     phantom: PhantomData<S>,
 }
@@ -132,8 +132,8 @@ impl<S: Space, P: Projection<S>> Projection<S> for DenseLinear<S, P> {
 
 #[derive(Serialize, Deserialize)]
 pub struct SparseLinear<S: Space, P: SparseProjection<S>> {
-    projector: P,
-    weights: Array2<f64>,
+    pub projector: P,
+    pub weights: Array2<f64>,
 
     phantom: PhantomData<S>,
 }

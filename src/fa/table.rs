@@ -24,7 +24,7 @@ use std::ops::AddAssign;
 /// assert_eq!(f.evaluate(&(0, 1)), 1.0);
 /// ```
 #[derive(Clone, Serialize, Deserialize)]
-pub struct Table<K: Hash + Eq, V>(HashMap<K, V>);
+pub struct Table<K: Hash + Eq, V>(pub HashMap<K, V>);
 
 impl<K: Hash + Eq, V> Table<K, V> {
     pub fn new() -> Self {

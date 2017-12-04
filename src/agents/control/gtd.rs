@@ -12,14 +12,14 @@ use std::marker::PhantomData;
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function approximation."
 /// Proceedings of the 27th International Conference on Machine Learning (ICML-10). 2010.
 pub struct GreedyGQ<S: Space, M: Projection<S>, P: Policy> {
-    q_func: Linear<S, M>,
-    v_func: Linear<S, M>,
+    pub q_func: Linear<S, M>,
+    pub v_func: Linear<S, M>,
 
-    policy: P,
+    pub policy: P,
 
-    alpha: Parameter,
-    beta: Parameter,
-    gamma: Parameter,
+    pub alpha: Parameter,
+    pub beta: Parameter,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }

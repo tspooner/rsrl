@@ -6,11 +6,11 @@ use std::marker::PhantomData;
 
 
 pub struct EveryVisitMC<S: Space, V: VFunction<S>> {
-    v_func: V,
+    pub v_func: V,
     observations: Vec<(S::Repr, f64)>,
 
-    alpha: Parameter,
-    gamma: Parameter,
+    pub alpha: Parameter,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }

@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 
 #[derive(Clone)]
-pub struct VFunctionGroup<S, V: VFunction<S>>(Vec<V>, PhantomData<S>)
+pub struct VFunctionGroup<S, V: VFunction<S>>(pub Vec<V>, PhantomData<S>)
     where S: Space;
 
 impl<S, V: VFunction<S>> VFunctionGroup<S, V>
