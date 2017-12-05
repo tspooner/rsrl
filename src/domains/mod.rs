@@ -56,11 +56,17 @@ pub trait Domain {
 }
 
 
+mod ode;
+use self::ode::*;
+
 mod mountain_car;
 pub use self::mountain_car::MountainCar;
 
 mod cart_pole;
 pub use self::cart_pole::CartPole;
+
+mod acrobat;
+pub use self::acrobat::Acrobat;
 
 mod grid_world;
 mod cliff_walk;
