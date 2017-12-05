@@ -1,6 +1,7 @@
-use super::{Observation, Transition, Domain};
+use super::{Observation, Transition, Domain, runge_kutta4};
 
 use consts::{G, TWELVE_DEGREES, FOUR_THIRDS};
+use ndarray::{arr1, Array1, NdIndex, Ix1};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 
@@ -17,9 +18,9 @@ const POLE_MOMENT: f64 = POLE_COM * POLE_MASS;
 const TOTAL_MASS: f64 = CART_MASS + POLE_MASS;
 
 const LIMITS_X: (f64, f64) = (-2.4, 2.4);
-const LIMITS_X_DOT: (f64, f64) = (-6.0, 6.0);
+const LIMITS_DX: (f64, f64) = (-6.0, 6.0);
 const LIMITS_THETA: (f64, f64) = (-TWELVE_DEGREES, TWELVE_DEGREES);
-const LIMITS_THETA_DOT: (f64, f64) = (-2.0, 2.0);
+const LIMITS_DTHETA: (f64, f64) = (-2.0, 2.0);
 
 const REWARD_STEP: f64 = 0.0;
 const REWARD_TERMINAL: f64 = -1.0;
@@ -27,45 +28,69 @@ const REWARD_TERMINAL: f64 = -1.0;
 const ALL_ACTIONS: [f64; 2] = [-1.0 * CART_FORCE, 1.0 * CART_FORCE];
 
 
+#[derive(Debug, Clone, Copy)]
+enum StateIndex {
+    X = 0,
+    DX = 1,
+    THETA = 2,
+    DTHETA = 3,
+}
+
+unsafe impl NdIndex<Ix1> for StateIndex {
+    #[inline]
+    fn index_checked(&self, dim: &Ix1, strides: &Ix1) -> Option<isize> {
+        (*self as usize).index_checked(dim, strides)
+    }
+
+    #[inline(always)]
+    fn index_unchecked(&self, strides: &Ix1) -> isize {
+        (*self as usize).index_unchecked(strides)
+    }
+}
+
+
 pub struct CartPole {
-    x: f64,
-    x_dot: f64,
-    theta: f64,
-    theta_dot: f64,
+    state: Array1<f64>,
 }
 
 impl CartPole {
-    fn new(x: f64, x_dot: f64, theta: f64, theta_dot: f64) -> CartPole {
+    fn new(x: f64, dx: f64, theta: f64, dtheta: f64) -> CartPole {
         CartPole {
-            x: x,
-            x_dot: x_dot,
-            theta: theta,
-            theta_dot: theta_dot,
+            state: arr1(&vec![x, dx, theta, dtheta])
         }
     }
 
     fn update_state(&mut self, a: usize) {
-        let a = ALL_ACTIONS[a];
+        let fx = |_x, y| CartPole::grad(ALL_ACTIONS[a], y);
+        let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), TAU);
 
-        let cos_theta = self.theta.cos();
-        let sin_theta = self.theta.sin();
+        ns[StateIndex::X] = clip!(LIMITS_X.0, ns[StateIndex::X], LIMITS_X.1);
+        ns[StateIndex::DX] = clip!(LIMITS_DX.0, ns[StateIndex::DX], LIMITS_DX.1);
 
-        let z = (a + POLE_MOMENT * self.theta_dot * self.theta_dot * sin_theta) / TOTAL_MASS;
+        ns[StateIndex::THETA] = clip!(LIMITS_THETA.0, ns[StateIndex::THETA], LIMITS_THETA.1);
+        ns[StateIndex::DTHETA] = clip!(LIMITS_DTHETA.0, ns[StateIndex::DTHETA], LIMITS_DTHETA.1);
 
-        let theta_acc = (G * sin_theta - cos_theta * z) /
-                        (POLE_COM * (FOUR_THIRDS - POLE_MASS * cos_theta * cos_theta / TOTAL_MASS));
+        self.state = ns;
+    }
 
-        let x_acc = z - POLE_MOMENT * theta_acc * cos_theta / TOTAL_MASS;
+    fn grad(force: f64, state: Array1<f64>) -> Array1<f64> {
+        let x = state[StateIndex::X];
+        let dx = state[StateIndex::DX];
+        let theta = state[StateIndex::THETA];
+        let dtheta = state[StateIndex::DTHETA];
 
-        self.x = clip!(LIMITS_X.0, self.x + TAU * self.x_dot, LIMITS_X.1);
-        self.x_dot = clip!(LIMITS_X_DOT.0, self.x_dot + TAU * x_acc, LIMITS_X_DOT.1);
+        let cos_theta = theta.cos();
+        let sin_theta = theta.sin();
 
-        self.theta = wrap!(LIMITS_THETA.0,
-                           self.theta + TAU * self.theta_dot,
-                           LIMITS_THETA.1);
-        self.theta_dot = clip!(LIMITS_THETA_DOT.0,
-                               self.theta_dot + TAU * theta_acc,
-                               LIMITS_THETA_DOT.1);
+        let z = (force + POLE_MOMENT*dtheta*dtheta*sin_theta) / TOTAL_MASS;
+
+        let numer = G*sin_theta - cos_theta*z;
+        let denom = FOUR_THIRDS*POLE_COM - POLE_MOMENT*cos_theta*cos_theta;
+
+        let ddtheta = numer/denom;
+        let ddx = z - POLE_COM*ddtheta*cos_theta;
+
+        arr1(&vec![dx, ddx, dtheta, ddtheta])
     }
 }
 
@@ -80,13 +105,11 @@ impl Domain for CartPole {
     type ActionSpace = ActionSpace;
 
     fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
-        let s = vec![self.x, self.x_dot, self.theta, self.theta_dot];
-
         if self.is_terminal() {
-            Observation::Terminal(s)
+            Observation::Terminal(self.state.to_vec())
         } else {
             Observation::Full {
-                state: s,
+                state: self.state.to_vec(),
                 actions: vec![0, 1],
             }
         }
@@ -108,8 +131,10 @@ impl Domain for CartPole {
     }
 
     fn is_terminal(&self) -> bool {
-        self.x <= LIMITS_X.0 || self.x >= LIMITS_X.1 || self.theta <= LIMITS_THETA.0 ||
-        self.theta >= LIMITS_THETA.1
+        let x = self.state[StateIndex::X];
+        let theta = self.state[StateIndex::THETA];
+
+        x <= LIMITS_X.0 || x >= LIMITS_X.1 || theta <= LIMITS_THETA.0 || theta >= LIMITS_THETA.1
     }
 
     fn reward(&self,
@@ -125,9 +150,9 @@ impl Domain for CartPole {
     fn state_space(&self) -> Self::StateSpace {
         Self::StateSpace::new()
             .push(Continuous::new(LIMITS_X.0, LIMITS_X.1))
-            .push(Continuous::new(LIMITS_X_DOT.0, LIMITS_X_DOT.1))
+            .push(Continuous::new(LIMITS_DX.0, LIMITS_DX.1))
             .push(Continuous::new(LIMITS_THETA.0, LIMITS_THETA.1))
-            .push(Continuous::new(LIMITS_THETA_DOT.0, LIMITS_THETA_DOT.1))
+            .push(Continuous::new(LIMITS_DTHETA.0, LIMITS_DTHETA.1))
     }
 
     fn action_space(&self) -> ActionSpace {

@@ -56,6 +56,9 @@ pub trait Domain {
 }
 
 
+mod ode;
+use self::ode::*;
+
 mod mountain_car;
 pub use self::mountain_car::MountainCar;
 

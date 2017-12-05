@@ -3,7 +3,7 @@ extern crate seahash;
 
 use rsrl::{run, logging, Parameter, SerialExperiment, Evaluation};
 use rsrl::agents::control::td::ExpectedSARSA;
-use rsrl::domains::{Domain, MountainCar};
+use rsrl::domains::{Domain, Acrobat};
 use rsrl::fa::{Linear, SparseLinear};
 use rsrl::fa::projection::RBFNetwork;
 use rsrl::geometry::Space;
@@ -18,7 +18,7 @@ type SeahashBuildHasher = BuildHasherDefault<seahash::SeaHasher>;
 fn main() {
     let logger = logging::root(logging::stdout());
 
-    let domain = MountainCar::default();
+    let domain = Acrobat::default();
     let mut agent = {
         let aspace = domain.action_space();
         let n_actions: usize = aspace.span().into();
@@ -32,7 +32,7 @@ fn main() {
 
     // Training:
     let _training_result = {
-        let e = SerialExperiment::new(&mut agent, Box::new(MountainCar::default), 1000);
+        let e = SerialExperiment::new(&mut agent, Box::new(Acrobat::default), 1000);
 
         run(e, 1000, Some(logger))
     };
@@ -41,7 +41,7 @@ fn main() {
 
     // Testing:
     let testing_result =
-        Evaluation::new(&mut agent, Box::new(MountainCar::default)).next().unwrap();
+        Evaluation::new(&mut agent, Box::new(Acrobat::default)).next().unwrap();
 
 
     println!("Solution \u{21D2} {} steps | reward {}",

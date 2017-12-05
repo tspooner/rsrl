@@ -1,7 +1,8 @@
-use super::{Observation, Transition, Domain};
+use super::{Observation, Transition, Domain, runge_kutta4};
 
 use std::f64::consts::PI;
 use consts::{G, PI_OVER_2};
+use ndarray::{arr1, Array1, NdIndex, Ix1};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 
@@ -36,47 +37,60 @@ const TORQUE: f64 = 1.0;
 const ALL_ACTIONS: [f64; 3] = [-TORQUE, 0.0, TORQUE];
 
 
-pub struct Acrobat {
-    theta1: f64,
-    theta2: f64,
+#[derive(Debug, Clone, Copy)]
+enum StateIndex {
+    THETA1 = 0,
+    THETA2 = 1,
+    DTHETA1 = 2,
+    DTHETA2 = 3,
+}
 
-    dtheta1: f64,
-    dtheta2: f64,
+unsafe impl NdIndex<Ix1> for StateIndex {
+    #[inline]
+    fn index_checked(&self, dim: &Ix1, strides: &Ix1) -> Option<isize> {
+        (*self as usize).index_checked(dim, strides)
+    }
+
+    #[inline(always)]
+    fn index_unchecked(&self, strides: &Ix1) -> isize {
+        (*self as usize).index_unchecked(strides)
+    }
+}
+
+
+pub struct Acrobat {
+    state: Array1<f64>,
 }
 
 impl Acrobat {
     fn new(theta1: f64, theta2: f64, dtheta1: f64, dtheta2: f64) -> Acrobat {
         Acrobat {
-            theta1: theta1,
-            theta2: theta2,
-
-            dtheta1: dtheta1,
-            dtheta2: dtheta2,
+            state: arr1(&vec![theta1, theta2, dtheta1, dtheta2])
         }
     }
 
     fn update_state(&mut self, a: usize) {
-        let torque = ALL_ACTIONS[a];
+        let fx = |_x, y| Acrobat::grad(ALL_ACTIONS[a], y);
+        let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), DT);
 
-        let ddtheta = Acrobat::grad(torque, self.theta1, self.theta2,
-                                    self.dtheta1, self.dtheta2);
-        let ddtheta = (ddtheta.0 * DT / 4.0, ddtheta.1 * DT / 4.0);
+        ns[StateIndex::THETA1] = wrap!(LIMITS_THETA1.0, ns[StateIndex::THETA1], LIMITS_THETA1.1);
+        ns[StateIndex::THETA2] = wrap!(LIMITS_THETA2.0, ns[StateIndex::THETA2], LIMITS_THETA2.1);
 
-        self.theta1 =
-            wrap!(LIMITS_THETA1.0, self.theta1 + self.dtheta1, LIMITS_THETA1.1);
-        self.theta2 =
-            wrap!(LIMITS_THETA2.0, self.theta2 + self.dtheta2, LIMITS_THETA2.1);
+        ns[StateIndex::DTHETA1] =
+            clip!(LIMITS_DTHETA1.0, ns[StateIndex::DTHETA1], LIMITS_DTHETA1.1);
+        ns[StateIndex::DTHETA2] =
+            clip!(LIMITS_DTHETA2.0, ns[StateIndex::DTHETA2], LIMITS_DTHETA2.1);
 
-        self.dtheta1 =
-            clip!(LIMITS_DTHETA1.0, self.dtheta1 + ddtheta.0, LIMITS_DTHETA1.1);
-        self.dtheta2 =
-            clip!(LIMITS_DTHETA2.0, self.dtheta2 + ddtheta.1, LIMITS_DTHETA2.1);
+        self.state = ns;
     }
 
-    fn grad(torque: f64, theta1: f64, theta2: f64,
-            dtheta1: f64, dtheta2: f64) -> (f64, f64)
-    {
-        let sin_t2 = theta2.sin();
+    fn grad(torque: f64, state: Array1<f64>) -> Array1<f64> {
+        let theta1 = state[StateIndex::THETA1];
+        let theta2 = state[StateIndex::THETA2];
+        let dtheta1 = state[StateIndex::DTHETA1];
+        let dtheta2 = state[StateIndex::DTHETA2];
+
+        let sin_t2 = theta1.sin();
         let cos_t2 = theta2.cos();
 
         let d1 =
@@ -94,7 +108,7 @@ impl Acrobat {
             (M2*LC2*LC2 + I2 - d2*d2/d1);
         let ddtheta1 = -(d2*ddtheta2 + phi1) / d1;
 
-        (ddtheta1, ddtheta2)
+        arr1(&vec![dtheta1, dtheta2, ddtheta1, ddtheta2])
     }
 }
 
@@ -109,13 +123,11 @@ impl Domain for Acrobat {
     type ActionSpace = ActionSpace;
 
     fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
-        let s = vec![self.theta1, self.theta2, self.dtheta1, self.dtheta2];
-
         if self.is_terminal() {
-            Observation::Terminal(s)
+            Observation::Terminal(self.state.to_vec())
         } else {
             Observation::Full {
-                state: s,
+                state: self.state.to_vec(),
                 actions: vec![0, 1, 2],
             }
         }
@@ -137,7 +149,10 @@ impl Domain for Acrobat {
     }
 
     fn is_terminal(&self) -> bool {
-        self.theta1.cos() + (self.theta1 + self.theta2).cos() < -1.0
+        let theta1 = self.state[StateIndex::THETA1];
+        let theta2 = self.state[StateIndex::THETA2];
+
+        theta1.cos() + (theta1 + theta2).cos() < -1.0
     }
 
     fn reward(&self,
