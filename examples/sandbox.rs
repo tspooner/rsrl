@@ -37,8 +37,6 @@ fn main() {
         run(e, 1000, Some(logger))
     };
 
-    // println!("{:?}", agent.q_func.weights);
-
     // Testing:
     let testing_result =
         Evaluation::new(&mut agent, Box::new(Acrobat::default)).next().unwrap();
