@@ -1,8 +1,4 @@
-// #![feature(test)]
-// extern crate test;
-
-#[macro_use]
-extern crate slog;
+#[macro_use] extern crate slog;
 extern crate slog_term;
 extern crate slog_async;
 
@@ -13,17 +9,19 @@ extern crate ndarray;
 extern crate serde;
 extern crate serde_json;
 extern crate serde_test;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde_derive;
 
 // extern crate futures;
 extern crate rand;
+
+#[macro_use] extern crate itertools;
+use itertools::Itertools;
 
 mod utils;
 mod consts;
 mod macros;
 
-mod parameter;
+pub mod parameter;
 pub use self::parameter::Parameter;
 
 mod experiment;

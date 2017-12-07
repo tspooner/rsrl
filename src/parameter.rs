@@ -9,15 +9,25 @@ pub enum Parameter {
     Exponential {
         init: f64,
         floor: f64,
+        tau: f64,
+
         count: u32,
-        decay: f64,
     },
     Polynomial {
         init: f64,
         floor: f64,
+        tau: f64,
+
         count: u32,
-        exponent: f64,
     },
+    // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.384.9576&rep=rep1&type=pdf
+    GHC {
+        init: f64,
+        floor: f64,
+        tau: f64,
+
+        count: u32
+    }
 }
 
 impl Parameter {
@@ -25,21 +35,33 @@ impl Parameter {
         Parameter::Fixed(value)
     }
 
-    pub fn exponential(init: f64, floor: f64, decay: f64) -> Parameter {
+    pub fn exponential(init: f64, floor: f64, tau: f64) -> Parameter {
         Parameter::Exponential {
             init: init,
             floor: floor,
+            tau: tau,
+
             count: 0,
-            decay: decay,
         }
     }
 
-    pub fn polynomial(init: f64, floor: f64, exponent: f64) -> Parameter {
+    pub fn polynomial(init: f64, floor: f64, tau: f64) -> Parameter {
         Parameter::Polynomial {
             init: init,
             floor: floor,
-            count: 1,
-            exponent: exponent,
+            tau: tau,
+
+            count: 0,
+        }
+    }
+
+    pub fn ghc(init: f64, floor: f64, tau: f64) -> Parameter {
+        Parameter::GHC {
+            init: init,
+            floor: floor,
+            tau: tau,
+
+            count: 0,
         }
     }
 
@@ -47,13 +69,17 @@ impl Parameter {
         match self {
             &Parameter::Fixed(v) => v,
 
-            &Parameter::Exponential { init: i, floor: f, count: c, decay: d } => {
-                f64::max(i * d.powf(c as f64), f)
+            &Parameter::Exponential { init: i, floor: f, count: c, tau: t } => {
+                f64::max(i*t.powf(c as f64), f)
             }
 
-            &Parameter::Polynomial { init: i, floor: f, count: c, exponent: e } => {
-                f64::max(i / (c as f64).powf(e), f)
-            }
+            &Parameter::Polynomial { init: i, floor: f, count: c, tau: t } => {
+                f64::max(i/(c as f64 + 1.0).powf(t), f)
+            },
+
+            &Parameter::GHC { init: i, floor: f, count: c, tau: t } => {
+                f64::max(i*t/(t+c as f64 - 1.0), f)
+            },
         }
     }
 
@@ -64,44 +90,66 @@ impl Parameter {
     pub fn step(self) -> Parameter {
         match self {
             Parameter::Fixed(_) => self,
-            Parameter::Exponential { init: i, floor: f, count: c, decay: d } => {
+            Parameter::Exponential { init: i, floor: f, count: c, tau: t } => {
                 Parameter::Exponential {
                     init: i,
                     floor: f,
+                    tau: t,
+
                     count: c.saturating_add(1),
-                    decay: d,
                 }
             }
-            Parameter::Polynomial { init: i, floor: f, count: c, exponent: e } => {
+            Parameter::Polynomial { init: i, floor: f, count: c, tau: t } => {
                 Parameter::Polynomial {
                     init: i,
                     floor: f,
+                    tau: t,
+
                     count: c.saturating_add(1),
-                    exponent: e,
                 }
-            }
+            },
+            Parameter::GHC { init: i, floor: f, count: c, tau: t } => {
+                Parameter::GHC {
+                    init: i,
+                    floor: f,
+                    tau: t,
+
+                    count: c.saturating_add(1),
+                }
+            },
         }
     }
 
     pub fn back(self) -> Parameter {
         match self {
             Parameter::Fixed(_) => self,
-            Parameter::Exponential { init: i, floor: f, count: c, decay: d } => {
+            Parameter::Exponential { init: i, floor: f, count: c, tau: t } => {
                 Parameter::Exponential {
                     init: i,
                     floor: f,
+                    tau: t,
+
                     count: c.saturating_sub(1),
-                    decay: d,
                 }
             }
-            Parameter::Polynomial { init: i, floor: f, count: c, exponent: e } => {
+            Parameter::Polynomial { init: i, floor: f, count: c, tau: t } => {
                 Parameter::Polynomial {
                     init: i,
                     floor: f,
-                    count: max(1, c.saturating_sub(1)),
-                    exponent: e,
+                    tau: t,
+
+                    count: c.saturating_sub(1),
                 }
-            }
+            },
+            Parameter::GHC { init: i, floor: f, count: c, tau: t } => {
+                Parameter::GHC {
+                    init: i,
+                    floor: f,
+                    tau: t,
+
+                    count: c.saturating_sub(1),
+                }
+            },
         }
     }
 }

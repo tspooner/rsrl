@@ -7,7 +7,7 @@ use policies::{Policy, Greedy};
 use std::marker::PhantomData;
 
 
-/// Greedy GQ control algorithm
+/// Greedy GQ control algorithm.
 ///
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function approximation."
 /// Proceedings of the 27th International Conference on Machine Learning (ICML-10). 2010.

@@ -1,6 +1,5 @@
 use Parameter;
 use super::{Policy, Greedy, Random};
-use geometry::ActionSpace;
 use rand::{Rng, thread_rng, ThreadRng};
 
 

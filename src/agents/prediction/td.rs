@@ -55,8 +55,9 @@ impl<S: Space, V> PredictionAgent<S> for TD<S, V>
 
 
 pub struct TDLambda<S: Space, P: Projection<S>> {
-    pub v_func: Linear<S, P>,
     trace: Trace,
+
+    pub v_func: Linear<S, P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -68,8 +69,9 @@ impl<S: Space, P: Projection<S>> TDLambda<S, P> {
               T2: Into<Parameter>
     {
         TDLambda {
-            v_func: v_func,
             trace: trace,
+
+            v_func: v_func,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
@@ -100,3 +102,13 @@ impl<S: Space, P: Projection<S>> PredictionAgent<S> for TDLambda<S, P> {
         self.trace.decay(0.0);
     }
 }
+
+
+// TODO:
+// ETD(lambda) - https://arxiv.org/pdf/1503.04269.pdf
+// HTD(lambda) - https://arxiv.org/pdf/1602.08771.pdf
+// PTD(lambda) - http://proceedings.mlr.press/v32/sutton14.pdf
+// True online TD(lambda) - http://proceedings.mlr.press/v32/seijen14.pdf
+// True online ETD(lambda) - https://arxiv.org/pdf/1602.08771.pdf
+// True online ETD(beta, lambda) - https://arxiv.org/pdf/1602.08771.pdf
+// True online HTD(lambda) - https://arxiv.org/pdf/1602.08771.pdf

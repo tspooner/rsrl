@@ -365,3 +365,6 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
         self.policy.handle_terminal();
     }
 }
+
+// TODO:
+// PQ(lambda) - http://proceedings.mlr.press/v32/sutton14.pdf

@@ -33,13 +33,18 @@ pub trait BoundedDimension: Dimension
     where Self::Value: PartialOrd
 {
     /// The upper/lower bound type; not necessarily equal to `Dimension::Value`.
-    type ValueBound: PartialOrd;
+    type ValueBound: PartialOrd + Copy;
 
     /// Returns a reference to the dimension's lower value bound (inclusive).
     fn lb(&self) -> &Self::ValueBound;
 
     /// Returns a reference to the dimension's upper value bound (exclusive).
     fn ub(&self) -> &Self::ValueBound;
+
+    /// Returns an owned tuple of the lower and upper bounds on the dimension.
+    fn limits(&self) -> (Self::ValueBound, Self::ValueBound) {
+        (*self.lb(), *self.ub())
+    }
 
     /// Returns true iff `val` is within the dimension's bounds.
     fn contains(&self, val: Self::ValueBound) -> bool;

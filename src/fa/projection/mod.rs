@@ -34,6 +34,9 @@ pub use self::basis_network::*;
 mod rbf_network;
 pub use self::rbf_network::*;
 
+mod fourier;
+pub use self::fourier::*;
+
 mod tile_coding;
 pub use self::tile_coding::*;
 

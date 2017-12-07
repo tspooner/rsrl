@@ -11,6 +11,9 @@ pub enum Trace {
         lambda: Parameter,
         eligibility: Array1<f64>,
     },
+    Null {
+        eligibility: Array1<f64>
+    }
     // TODO: Dutch traces (need to be able to share alpha parameter)
 }
 
@@ -18,7 +21,8 @@ impl Trace {
     pub fn get(&self) -> &Array1<f64> {
         match self {
             &Trace::Accumulating { ref eligibility, .. } |
-            &Trace::Replacing { ref eligibility, .. } => eligibility,
+            &Trace::Replacing { ref eligibility, .. } |
+            &Trace::Null { ref eligibility } => eligibility,
         }
     }
 
@@ -27,7 +31,8 @@ impl Trace {
             &mut Trace::Accumulating { ref mut eligibility, lambda } |
             &mut Trace::Replacing { ref mut eligibility, lambda } => {
                 *eligibility *= rate * lambda;
-            }
+            },
+            &mut Trace::Null { ref mut eligibility } => *eligibility *= rate,
         }
     }
 
@@ -38,7 +43,8 @@ impl Trace {
             }
             &mut Trace::Replacing { ref mut eligibility, .. } => {
                 eligibility.zip_mut_with(phi, |val, &p| { *val = f64::min(1.0, *val + p); });
-            }
+            },
+            &mut Trace::Null { ref mut eligibility } => *eligibility = phi.to_owned(),
         }
     }
 }
