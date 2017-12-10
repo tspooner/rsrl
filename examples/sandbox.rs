@@ -5,7 +5,7 @@ use rsrl::{run, logging, Parameter, SerialExperiment, Evaluation};
 use rsrl::agents::control::td::ExpectedSARSA;
 use rsrl::domains::{Domain, Acrobat};
 use rsrl::fa::{Linear, SparseLinear};
-use rsrl::fa::projection::RBFNetwork;
+use rsrl::fa::projection::Fourier;
 use rsrl::geometry::Space;
 use rsrl::policies::EpsilonGreedy;
 
@@ -23,7 +23,7 @@ fn main() {
         let aspace = domain.action_space();
         let n_actions: usize = aspace.span().into();
 
-        let pr = RBFNetwork::from_space(domain.state_space().partitioned(8));
+        let pr = Fourier::from_space(3, domain.state_space());
         let q_func = Linear::new(pr, n_actions);
         let policy = EpsilonGreedy::new(Parameter::exponential(0.99, 0.05, 0.99));
 

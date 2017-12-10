@@ -1,5 +1,3 @@
-
-
 use agents::ControlAgent;
 use domains::{Domain, Observation};
 use geometry::{Space, ActionSpace};

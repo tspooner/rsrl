@@ -14,9 +14,6 @@ extern crate serde_test;
 // extern crate futures;
 extern crate rand;
 
-#[macro_use] extern crate itertools;
-use itertools::Itertools;
-
 mod utils;
 mod consts;
 mod macros;
