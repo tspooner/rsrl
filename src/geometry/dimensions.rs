@@ -5,9 +5,7 @@ use rand::distributions::{Range as RngRange, IndependentSample};
 
 use serde::{Serialize, Deserialize, Deserializer, de};
 use serde::de::Visitor;
-use std::cmp;
-use std::f64;
-use std::fmt;
+use std::{cmp, f64, fmt};
 use std::ops::Range;
 
 
@@ -26,6 +24,11 @@ pub trait Dimension {
 
     /// Returns the total span of this dimension.
     fn span(&self) -> Span;
+
+    /// Returns the name of the dimension.
+    fn name(&self) -> Option<String> {
+        None
+    }
 }
 
 /// Dimension type with saturating upper/lower bounds.

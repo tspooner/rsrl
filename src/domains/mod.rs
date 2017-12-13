@@ -68,6 +68,9 @@ pub use self::cart_pole::CartPole;
 mod acrobat;
 pub use self::acrobat::Acrobat;
 
+mod hiv;
+pub use self::hiv::HIVTreatment;
+
 mod grid_world;
 mod cliff_walk;
 pub use self::cliff_walk::CliffWalk;

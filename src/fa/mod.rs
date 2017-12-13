@@ -141,4 +141,6 @@ pub mod projection;
 pub use self::projection::{Projection, SparseProjection};
 
 mod linear;
-pub use self::linear::{Linear, SparseLinear};
+pub use self::linear::{DenseLinear, SparseLinear};
+
+pub type Linear<S, P> = DenseLinear<S, P>;

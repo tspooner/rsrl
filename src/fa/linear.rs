@@ -5,9 +5,6 @@ use std::marker::PhantomData;
 use utils::dot;
 
 
-pub type Linear<S, P> = DenseLinear<S, P>;
-
-
 #[derive(Serialize, Deserialize)]
 pub struct DenseLinear<S: Space, P: Projection<S>> {
     pub projector: P,
