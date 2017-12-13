@@ -214,6 +214,75 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
 }
 
 
+pub struct SARSALambda<S: Space, Q: QFunction<S> + Projection<S>, P: Policy> {
+    trace: Trace,
+
+    pub q_func: Q,
+    pub policy: P,
+
+    pub alpha: Parameter,
+    pub gamma: Parameter,
+
+    phantom: PhantomData<S>,
+}
+
+impl<S: Space, Q, P> SARSALambda<S, Q, P>
+    where Q: QFunction<S> + Projection<S>,
+          P: Policy
+{
+    pub fn new<T1, T2>(trace: Trace, q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>
+    {
+        SARSALambda {
+            trace: trace,
+
+            q_func: q_func,
+            policy: policy,
+
+            alpha: alpha.into(),
+            gamma: gamma.into(),
+
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSALambda<S, Q, P>
+    where Q: QFunction<S> + Projection<S>,
+          P: Policy
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+        let phi_s = self.q_func.project(t.from.state());
+        let nqs = self.q_func.evaluate_phi(&self.q_func.project(t.to.state()));
+
+        let a = t.action;
+        let na = self.policy.sample(nqs.as_slice());
+
+        let td_error = t.reward + self.gamma*nqs[na] - self.q_func.evaluate_action_phi(&phi_s, a);
+
+        self.trace.decay(self.gamma.value());
+        self.trace.update(&phi_s);
+        self.q_func.update_action_phi(self.trace.get(), a, self.alpha*td_error);
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
+
+        self.policy.handle_terminal();
+    }
+}
+
+
 /// Expected SARSA.
 pub struct ExpectedSARSA<S: Space, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
