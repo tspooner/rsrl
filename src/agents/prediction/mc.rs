@@ -37,10 +37,10 @@ impl<S: Space, V> EveryVisitMC<S, V>
         let mut sum = 0.0;
 
         for (s, r) in self.observations.drain(0..).rev() {
-            sum = r + self.gamma * sum;
+            sum = r + self.gamma*sum;
 
             let v_est = self.v_func.evaluate(&s);
-            self.v_func.update(&s, self.alpha * (sum - v_est));
+            self.v_func.update(&s, self.alpha*(sum - v_est));
         }
     }
 }

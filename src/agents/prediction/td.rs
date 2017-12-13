@@ -41,8 +41,8 @@ impl<S: Space, V> PredictionAgent<S> for TD<S, V>
         let v = self.v_func.evaluate(s);
         let nv = self.v_func.evaluate(ns);
 
-        let td_error = r + self.gamma * nv - v;
-        self.v_func.update(&s, self.alpha * td_error);
+        let td_error = r + self.gamma*nv - v;
+        self.v_func.update(&s, self.alpha*td_error);
 
         Some(td_error)
     }
@@ -87,10 +87,10 @@ impl<S: Space, P: Projection<S>> PredictionAgent<S> for TDLambda<S, P> {
         self.trace.decay(self.gamma.value());
         self.trace.update(&phi_s);
 
-        let td_error = r + self.gamma * self.v_func.evaluate_phi(&phi_ns) -
+        let td_error = r + self.gamma*self.v_func.evaluate_phi(&phi_ns) -
                        self.v_func.evaluate_phi(&phi_s);
 
-        self.v_func.update_phi(self.trace.get(), self.alpha * td_error);
+        self.v_func.update_phi(self.trace.get(), self.alpha*td_error);
 
         Some(td_error)
     }

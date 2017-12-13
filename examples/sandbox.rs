@@ -30,10 +30,10 @@ fn main() {
     let _training_result = {
         let e = SerialExperiment::new(&mut agent, Box::new(HIVTreatment::default), 200);
 
-        run(e, 200, Some(logger))
+        run(e, 1000, Some(logger))
     };
 
-    serde_json::to_writer_pretty(File::create("/tmp/q.json").unwrap(), &agent.q_func);
+    serde_json::to_writer_pretty(File::create("/tmp/q.json").unwrap(), &agent.q_func).unwrap();
 
     // Testing:
     let testing_result =

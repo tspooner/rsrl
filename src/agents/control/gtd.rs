@@ -72,14 +72,14 @@ impl<S: Space, M: Projection<S>, P: Policy> ControlAgent<S, ActionSpace> for Gre
         let phi_ns = self.q_func.project(ns);
 
         let td_error = t.reward +
-                       self.q_func.evaluate_action_phi(&(self.gamma.value() * &phi_ns - &phi_s), a);
+                       self.q_func.evaluate_action_phi(&(self.gamma.value()*&phi_ns - &phi_s), a);
         let td_estimate: f64 = self.v_func.evaluate(s);
 
-        let update_q = td_error * &phi_s - self.gamma * td_estimate * phi_ns;
-        let update_v = (td_error - td_estimate) * phi_s;
+        let update_q = td_error*&phi_s - self.gamma*td_estimate*phi_ns;
+        let update_v = (td_error - td_estimate)*phi_s;
 
         self.q_func.update_action_phi(&update_q, a, self.alpha.value());
-        VFunction::update_phi(&mut self.v_func, &update_v, self.alpha * self.beta);
+        VFunction::update_phi(&mut self.v_func, &update_v, self.alpha*self.beta);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {

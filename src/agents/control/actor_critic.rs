@@ -65,7 +65,7 @@ impl<S: Space, Q, C, P> ControlAgent<S, ActionSpace> for ActorCritic<S, Q, C, P>
 
         let td_error = self.critic.handle_transition(s, ns, t.reward).unwrap();
 
-        self.actor.update_action(s, t.action, self.beta * td_error);
+        self.actor.update_action(s, t.action, self.beta*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {

@@ -1,7 +1,8 @@
 use Parameter;
 use agents::ControlAgent;
+use agents::memory::Trace;
 use domains::Transition;
-use fa::QFunction;
+use fa::{QFunction, Projection};
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
 use std::collections::VecDeque;
@@ -64,9 +65,78 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
         let a = t.action;
         let na = Greedy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma * nqs[na] - qs[a];
+        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
 
-        self.q_func.update_action(s, a, self.alpha * td_error);
+        self.q_func.update_action(s, a, self.alpha*td_error);
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
+
+        self.policy.handle_terminal();
+    }
+}
+
+
+pub struct QLambda<S: Space, Q: QFunction<S> + Projection<S>, P: Policy> {
+    trace: Trace,
+
+    pub q_func: Q,
+    pub policy: P,
+
+    pub alpha: Parameter,
+    pub gamma: Parameter,
+
+    phantom: PhantomData<S>,
+}
+
+impl<S: Space, Q, P> QLambda<S, Q, P>
+    where Q: QFunction<S> + Projection<S>,
+          P: Policy
+{
+    pub fn new<T1, T2>(trace: Trace, q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
+        where T1: Into<Parameter>,
+              T2: Into<Parameter>
+    {
+        QLambda {
+            trace: trace,
+
+            q_func: q_func,
+            policy: policy,
+
+            alpha: alpha.into(),
+            gamma: gamma.into(),
+
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLambda<S, Q, P>
+    where Q: QFunction<S> + Projection<S>,
+          P: Policy
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+        let phi_s = self.q_func.project(t.from.state());
+        let nqs = self.q_func.evaluate_phi(&self.q_func.project(t.to.state()));
+
+        let a = t.action;
+        let na = Greedy.sample(nqs.as_slice());
+
+        let td_error = t.reward + self.gamma*nqs[na] - self.q_func.evaluate_action_phi(&phi_s, a);
+
+        self.trace.decay(self.gamma.value());
+        self.trace.update(&phi_s);
+        self.q_func.update_action_phi(self.trace.get(), a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -130,9 +200,9 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
         let a = t.action;
         let na = self.policy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma * nqs[na] - qs[a];
+        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
 
-        self.q_func.update_action(s, a, self.alpha * td_error);
+        self.q_func.update_action(s, a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -196,9 +266,9 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
         let a = t.action;
 
         let exp_nqs = dot(&nqs, &self.policy.probabilities(nqs.as_slice()));
-        let td_error = t.reward + self.gamma * exp_nqs - qs[a];
+        let td_error = t.reward + self.gamma*exp_nqs - qs[a];
 
-        self.q_func.update_action(s, a, self.alpha * td_error);
+        self.q_func.update_action(s, a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -269,21 +339,21 @@ impl<S: Space, Q, P> QSigma<S, Q, P>
             let df = (1..k).fold(1.0, |acc, i| {
                 let b = &self.backup[i];
 
-                acc * gamma * ((1.0 - b.sigma) * b.pi + b.sigma)
+                acc*gamma*((1.0 - b.sigma)*b.pi + b.sigma)
             });
 
-            acc + self.backup[k].delta * df
+            acc + self.backup[k].delta*df
         });
 
         let isr = (1..self.n_steps).fold(1.0, |acc, k| {
             let b = &self.backup[k];
 
-            acc * (b.sigma * b.mu / b.pi + 1.0 - b.sigma)
+            acc*(b.sigma*b.mu / b.pi + 1.0 - b.sigma)
         });
 
         self.q_func.update_action(&self.backup[0].s1,
                                   self.backup[0].a1,
-                                  self.alpha * isr * td_error);
+                                  self.alpha*isr*td_error);
 
         self.backup.pop_front();
     }
@@ -332,7 +402,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
             self.sigma = self.sigma.step();
             self.sigma.value()
         };
-        let td_error = t.reward + self.gamma * (sigma * nq + (1.0 - sigma) * exp_nqs) - q;
+        let td_error = t.reward + self.gamma*(sigma*nq + (1.0 - sigma)*exp_nqs) - q;
 
         // Update backup sequence:
         self.backup.push_back(BackupEntry {
