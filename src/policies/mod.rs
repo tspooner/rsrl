@@ -17,4 +17,4 @@ mod epsilon_greedy;
 pub use self::epsilon_greedy::EpsilonGreedy;
 
 mod boltzmann;
-pub use self::boltzmann::Boltzmann;
+pub use self::boltzmann::{Boltzmann, TruncatedBoltzmann};

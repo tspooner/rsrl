@@ -3,7 +3,6 @@ extern crate openblas_src;
 
 use self::blas::ddot;
 use std::cmp::min;
-
 use std::f64;
 
 

@@ -20,8 +20,8 @@ impl Boltzmann {
 }
 
 impl Policy for Boltzmann {
-    fn sample(&mut self, s: &[f64]) -> usize {
-        let ps = self.probabilities(s);
+    fn sample(&mut self, qs: &[f64]) -> usize {
+        let ps = self.probabilities(qs);
 
         let r = self.rng.next_f64();
         match ps.iter().position(|p| *p > r) {
@@ -31,9 +31,11 @@ impl Policy for Boltzmann {
     }
 
     fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> {
+        let tau = self.tau.value();
+
         let mut z = 0.0;
         let ws: Vec<f64> = qs.iter().map(|q| {
-            let v = (q / self.tau.value()).exp();
+            let v = (q / tau).exp();
             z += v;
 
             v
@@ -44,6 +46,55 @@ impl Policy for Boltzmann {
 
     fn handle_terminal(&mut self) {
         self.tau = self.tau.step();
+    }
+}
+
+
+pub struct TruncatedBoltzmann {
+    c: Parameter,
+    rng: ThreadRng,
+}
+
+impl TruncatedBoltzmann {
+    pub fn new<T: Into<Parameter>>(c: T) -> Self {
+        TruncatedBoltzmann {
+            c: c.into(),
+            rng: thread_rng(),
+        }
+    }
+
+    fn kappa(c: f64, x: f64) -> f64 {
+        c / (1.0 + (-x).exp())
+    }
+}
+
+impl Policy for TruncatedBoltzmann {
+    fn sample(&mut self, qs: &[f64]) -> usize {
+        let ps = self.probabilities(qs);
+
+        let r = self.rng.next_f64();
+        match ps.iter().position(|p| *p > r) {
+            Some(index) => index,
+            None => ps.len() - 1,
+        }
+    }
+
+    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> {
+        let c = self.c.value();
+
+        let mut z = 0.0;
+        let ws: Vec<f64> = qs.iter().map(|q| {
+            let v = TruncatedBoltzmann::kappa(c, *q).exp();
+            z += v;
+
+            v
+        }).collect();
+
+        ws.iter().map(|w| w / z).collect()
+    }
+
+    fn handle_terminal(&mut self) {
+        self.c = self.c.step();
     }
 }
 
