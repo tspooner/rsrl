@@ -135,7 +135,7 @@ impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
 
     fn next(&mut self) -> Option<Episode> {
         let mut domain = (self.domain_factory)();
-        let mut a = self.agent.pi(domain.emit().state());
+        let mut a = self.agent.mu(domain.emit().state());
 
         let mut e = Episode {
             steps: 1,
@@ -160,7 +160,7 @@ impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
                 break;
 
             } else {
-                a = self.agent.pi(&t.to.state());
+                a = self.agent.mu(&t.to.state());
             }
         }
 

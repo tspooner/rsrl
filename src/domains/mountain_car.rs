@@ -21,6 +21,31 @@ const REWARD_GOAL: f64 = 0.0;
 const ALL_ACTIONS: [f64; 3] = [-1.0, 0.0, 1.0];
 
 
+/// Classic mountain car testing domain.
+///
+/// This problem involves an under-powered car which must ascend a steep hill. Since gravity is
+/// stronger than the car's engine, even at full throttle, the car cannot simply accelerate up the
+/// steep slope. The car is situated in a valley and must learn to leverage potential energy by
+/// driving up the opposite hill before the car is able to make it to the goal at the top of the
+/// rightmost hill.[^1]
+///
+/// [^1]: See [https://en.wikipedia.org/wiki/Mountain_car_problem](https://en.wikipedia.org/wiki/Mountain_car_problem)
+///
+/// # Technical details
+/// The **state** is represented by a `Vec` with components:
+///
+/// | Index | Name     | Min   | Max   |
+/// | ----- | -------- | ----- | ----- |
+/// | 0     | Position | -1.2  | 0.6   |
+/// | 1     | Velocity | -0.07 | 0.07  |
+///
+///
+/// # References
+/// - Moore, A. W. (1990). Efficient memory-based learning for robot control.
+/// - Singh, S. P., & Sutton, R. S. (1996). Reinforcement learning with replacing eligibility
+/// traces. Recent Advances in Reinforcement Learning, 123-158.
+/// - Sutton, R. S., & Barto, A. G. (1998). Reinforcement learning: An introduction (Vol. 1, No.
+/// 1). Cambridge: MIT press.
 pub struct MountainCar {
     x: f64,
     v: f64,

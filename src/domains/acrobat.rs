@@ -58,6 +58,10 @@ unsafe impl NdIndex<Ix1> for StateIndex {
 }
 
 
+/// Classic double pendulum control domain.
+///
+/// The acrobot is a 2-link pendulum environment in which only the second joint actuated. The goal
+/// is to swing the end-effector to a distance equal to the length of one link above the base.
 pub struct Acrobat {
     state: Array1<f64>,
 }

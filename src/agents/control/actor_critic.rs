@@ -13,7 +13,7 @@ pub struct ActorCritic<S: Space, Q, C, P>
           C: PredictionAgent<S>,
           P: Policy
 {
-    pub actor: Q,
+    pub q_func: Q, // actor
     pub critic: C,
 
     pub policy: P,
@@ -29,12 +29,12 @@ impl<S: Space, Q, C, P> ActorCritic<S, Q, C, P>
           C: PredictionAgent<S>,
           P: Policy
 {
-    pub fn new<T1, T2>(actor: Q, critic: C, policy: P, beta: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(q_func: Q, critic: C, policy: P, beta: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
         ActorCritic {
-            actor: actor,
+            q_func: q_func,
             critic: critic,
 
             policy: policy,
@@ -53,11 +53,15 @@ impl<S: Space, Q, C, P> ControlAgent<S, ActionSpace> for ActorCritic<S, Q, C, P>
           P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.actor.evaluate(s).as_slice())
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        p.sample(self.actor.evaluate(s).as_slice())
+        p.sample(self.q_func.evaluate(s).as_slice())
     }
 
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
@@ -65,7 +69,7 @@ impl<S: Space, Q, C, P> ControlAgent<S, ActionSpace> for ActorCritic<S, Q, C, P>
 
         let td_error = self.critic.handle_transition(s, ns, t.reward).unwrap();
 
-        self.actor.update_action(s, t.action, self.beta*td_error);
+        self.q_func.update_action(s, t.action, self.beta*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {

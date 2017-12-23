@@ -10,10 +10,12 @@ use std::marker::PhantomData;
 use utils::dot;
 
 
-/// Watkins' classical off policy temporal difference control algorithm.
+/// Watkins' Q-learning.
 ///
-/// C. J. C. H. Watkins and P. Dayan, “Q-learning,” Mach. Learn., vol. 8, no. 3–4, pp. 279–292,
-/// 1992.
+/// # References
+/// - Watkins, C. J. C. H. (1989). Learning from Delayed Rewards. Ph.D. thesis, Cambridge
+/// University.
+/// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning, 8:279–292.
 pub struct QLearning<S: Space, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
@@ -49,6 +51,10 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
           P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
@@ -79,6 +85,12 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
 }
 
 
+/// Watkins' Q-learning with eligibility traces.
+///
+/// # References
+/// - Watkins, C. J. C. H. (1989). Learning from Delayed Rewards. Ph.D. thesis, Cambridge
+/// University.
+/// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning, 8:279–292.
 pub struct QLambda<S: Space, Q: QFunction<S> + Projection<S>, P: Policy> {
     trace: Trace,
 
@@ -118,6 +130,10 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLambda<S, Q, P>
           P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
@@ -148,7 +164,13 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLambda<S, Q, P>
 }
 
 
-/// Classical on policy temporal difference control algorithm.
+/// On-policy variant of Watkins' Q-learning (aka "modified Q-learning").
+///
+/// # References
+/// - Rummery, G. A. (1995). Problem Solving with Reinforcement Learning. Ph.D thesis, Cambridge
+/// University.
+/// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing eligibility traces.
+/// Machine Learning 22:123–158.
 pub struct SARSA<S: Space, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
@@ -187,6 +209,10 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        self.pi(s)
+    }
+
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
@@ -214,6 +240,13 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
 }
 
 
+/// On-policy variant of Watkins' Q-learning with eligibility traces (aka "modified Q-learning").
+///
+/// # References
+/// - Rummery, G. A. (1995). Problem Solving with Reinforcement Learning. Ph.D thesis, Cambridge
+/// University.
+/// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing eligibility traces.
+/// Machine Learning 22:123–158.
 pub struct SARSALambda<S: Space, Q: QFunction<S> + Projection<S>, P: Policy> {
     trace: Trace,
 
@@ -256,6 +289,10 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSALambda<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        self.pi(s)
+    }
+
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
@@ -283,7 +320,14 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSALambda<S, Q, P>
 }
 
 
-/// Expected SARSA.
+/// Action probability-weighted variant of SARSA (aka "summation Q-learning").
+///
+/// # References
+/// - Rummery, G. A. (1995). Problem Solving with Reinforcement Learning. Ph.D thesis, Cambridge
+/// University.
+/// - van Seijen, H., van Hasselt, H., Whiteson, S., Wiering, M. (2009). A theoretical and
+/// empirical analysis of Expected Sarsa. In Proceedings of the IEEE Symposium on Adaptive Dynamic
+/// Programming and Reinforcement Learning, pp. 177–184.
 pub struct ExpectedSARSA<S: Space, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
@@ -322,6 +366,10 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        self.pi(s)
+    }
+
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
@@ -349,16 +397,19 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
 }
 
 
-/// General multi-step temporal-difference learning algorithm (off-policy).
+/// General multi-step temporal-difference learning algorithm.
 ///
-/// The sigma parameter varies the degree of sampling, yielding classical
-/// learning algorithms as special cases:
+/// # Parameters
+/// - `sigma` varies the degree of sampling, yielding classical learning algorithms as special
+/// cases:
+///     * `0` - `ExpectedSARSA` | `TreeBackup`
+///     * `1` - `SARSA`
 ///
-/// * `0` - `ExpectedSARSA` | `TreeBackup`
-/// * `1` - `SARSA`
-///
-/// De Asis, Kristopher, et al. "Multi-step Reinforcement Learning: A Unifying
-/// Algorithm." arXiv preprint arXiv:1703.01327 (2017).
+/// # References
+/// - Sutton, R. S. and Barto, A. G. (2017). Reinforcement Learning: An Introduction (2nd ed.).
+/// Manuscript in preparation.
+/// - De Asis, K., Hernandez-Garcia, J. F., Holland, G. Z., & Sutton, R. S. (2017). Multi-step
+/// Reinforcement Learning: A Unifying Algorithm. arXiv preprint arXiv:1703.01327.
 pub struct QSigma<S: Space, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
@@ -448,6 +499,10 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
           P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 

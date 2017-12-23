@@ -53,6 +53,10 @@ impl<S: Space, M: Projection<S>, P: Policy> GreedyGQ<S, M, P> {
 
 impl<S: Space, M: Projection<S>, P: Policy> ControlAgent<S, ActionSpace> for GreedyGQ<S, M, P> {
     fn pi(&mut self, s: &S::Repr) -> usize {
+        self.evaluate_policy(&mut Greedy, s)
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
         let qs: Vec<f64> = self.q_func.evaluate(s);
 
         self.policy.sample(qs.as_slice())
