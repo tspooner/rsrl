@@ -62,6 +62,8 @@ unsafe impl NdIndex<Ix1> for StateIndex {
 ///
 /// The acrobot is a 2-link pendulum environment in which only the second joint actuated. The goal
 /// is to swing the end-effector to a distance equal to the length of one link above the base.
+///
+/// See [https://www.math24.net/double-pendulum/](https://www.math24.net/double-pendulum/)
 pub struct Acrobat {
     state: Array1<f64>,
 }
