@@ -1,10 +1,9 @@
 extern crate rsrl;
-extern crate serde_json;
+#[macro_use] extern crate slog;
 
-use std::fs::File;
 use rsrl::{run, logging, Parameter, SerialExperiment, Evaluation};
-use rsrl::agents::control::td::ExpectedSARSA;
-use rsrl::domains::{Domain, HIVTreatment};
+use rsrl::agents::control::gtd::GreedyGQ;
+use rsrl::domains::{Domain, MountainCar};
 use rsrl::fa::Linear;
 use rsrl::fa::projection::Fourier;
 use rsrl::geometry::Space;
@@ -14,33 +13,32 @@ use rsrl::policies::EpsilonGreedy;
 fn main() {
     let logger = logging::root(logging::stdout());
 
-    let domain = HIVTreatment::default();
+    let domain = MountainCar::default();
     let mut agent = {
-        let aspace = domain.action_space();
-        let n_actions: usize = aspace.span().into();
+        let n_actions = domain.action_space().span().into();
 
-        let pr = Fourier::from_space(3, domain.state_space());
-        let q_func = Linear::new(pr, n_actions);
+        // Build the linear value functions using a fourier basis projection.
+        let v_func = Linear::new(Fourier::from_space(3, domain.state_space()), 1);
+        let q_func = Linear::new(Fourier::from_space(3, domain.state_space()), n_actions);
+
+        // Build a stochastic behaviour policy with exponentially decaying epsilon.
         let policy = EpsilonGreedy::new(Parameter::exponential(0.99, 0.05, 0.99));
 
-        ExpectedSARSA::new(q_func, policy, 0.2, 0.99)
+        GreedyGQ::new(q_func, v_func, policy, 1e-2, 1e-5, 0.99)
     };
 
-    // Training:
+    // Training phase:
     let _training_result = {
-        let e = SerialExperiment::new(&mut agent, Box::new(HIVTreatment::default), 200);
+        // Build a serial learning experiment with a maximum of 1000 steps per episode.
+        let e = SerialExperiment::new(&mut agent, Box::new(MountainCar::default), 1000);
 
-        run(e, 1000, Some(logger))
+        // Realise 5000 episodes of the experiment generator.
+        run(e, 5000, Some(logger.clone()))
     };
 
-    serde_json::to_writer_pretty(File::create("/tmp/q.json").unwrap(), &agent.q_func).unwrap();
-
-    // Testing:
+    // Testing phase:
     let testing_result =
-        Evaluation::new(&mut agent, Box::new(HIVTreatment::default)).next().unwrap();
+        Evaluation::new(&mut agent, Box::new(MountainCar::default)).next().unwrap();
 
-
-    println!("Solution \u{21D2} {} steps | reward {}",
-             testing_result.steps,
-             testing_result.reward);
+    info!(logger, "solution"; testing_result);
 }
