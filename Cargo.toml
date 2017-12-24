@@ -1,9 +1,21 @@
 [package]
 name = "rsrl"
-version = "0.0.0"
+description = "A fast, extensible reinforcement learning framework in Rust"
+
+version = "0.1.0"
 authors = ["Tom Spooner <t.spooner@liverpool.ac.uk>"]
+
 license = "MIT"
 readme = "README.md"
+
+keywords = ["learning", "reinforcement", "rl", "ai"]
+
+repository = "https://github.com/tspooner/rsrl"
+documentation = "https://tspooner.github.io/rsrl/rsrl/index.html"
+
+[badges]
+travis-ci = { repository = "tspooner/rsrl", branch = "master" }
+coveralls = { repository = "tspooner/rsrl", branch = "master", service = "github" }
 
 [dependencies]
 log = "0.3"
