@@ -61,3 +61,36 @@ impl Projection<RegularSpace<Continuous>> for BasisNetwork {
         unimplemented!()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use fa::Function;
+    use super::{BasisFunction, BasisNetwork};
+    use geometry::kernels::{Kernel, Exponential, SquaredExp};
+
+    #[test]
+    fn test_consistency_exp() {
+        let loc = vec![0.0];
+
+        let k = Exponential::new(2.0, 1.0);
+        let f = BasisFunction::new(loc.clone(), Box::new(k));
+
+        assert_eq!(f.evaluate(&vec![1.0]), k.kernel(&loc, &vec![1.0]));
+        assert_eq!(f.evaluate(&vec![2.0]), k.kernel(&loc, &vec![2.0]));
+        assert_eq!(f.evaluate(&vec![-1.0]), k.kernel(&loc, &vec![-1.0]));
+        assert_eq!(f.evaluate(&vec![-2.0]), k.kernel(&loc, &vec![-2.0]));
+    }
+
+    #[test]
+    fn test_consistency_sq_exp() {
+        let loc = vec![0.0];
+
+        let k = SquaredExp::new(2.0, 1.0);
+        let f = BasisFunction::new(loc.clone(), Box::new(k));
+
+        assert_eq!(f.evaluate(&vec![1.0]), k.kernel(&loc, &vec![1.0]));
+        assert_eq!(f.evaluate(&vec![2.0]), k.kernel(&loc, &vec![2.0]));
+        assert_eq!(f.evaluate(&vec![-1.0]), k.kernel(&loc, &vec![-1.0]));
+        assert_eq!(f.evaluate(&vec![-2.0]), k.kernel(&loc, &vec![-2.0]));
+    }
+}
