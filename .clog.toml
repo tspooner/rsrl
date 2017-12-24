@@ -1,0 +1,6 @@
+[clog]
+repository = "https://github.com/tspooner/rsrl"
+link-style = "github"
+infile = "changelog.md.bak"
+outfile = "changelog.md"
+output-format = "markdown"
