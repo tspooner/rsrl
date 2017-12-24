@@ -255,8 +255,7 @@ mod tests {
 
     #[test]
     fn test_unitary_space() {
-        let d = Discrete::new(2);
-        let us = UnitarySpace::new(d);
+        let us = UnitarySpace::new(Discrete::new(2));
         let mut rng = thread_rng();
 
         let mut counts = arr1(&vec![0.0; 2]);
@@ -269,14 +268,12 @@ mod tests {
 
         assert!((counts/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
         assert_eq!(us.dim(), 1);
-        assert_eq!(us.span(), d.span());
+        assert_eq!(us.span(), Span::Finite(2));
     }
 
     #[test]
     fn test_pair_space() {
-        let d1 = Discrete::new(2);
-        let d2 = Discrete::new(2);
-        let ps = PairSpace::new(d1, d2);
+        let ps = PairSpace::new(Discrete::new(2), Discrete::new(2));
 
         let mut rng = thread_rng();
 
@@ -296,6 +293,31 @@ mod tests {
         assert!((c2/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
 
         assert_eq!(ps.dim(), 2);
-        assert_eq!(ps.span(), d1.span()*d2.span());
+        assert_eq!(ps.span(), Span::Finite(4));
+    }
+
+    #[test]
+    fn test_regular_space() {
+        let space = RegularSpace::new(vec![Discrete::new(2); 2]);
+
+        let mut rng = thread_rng();
+
+        let mut c1 = arr1(&vec![0.0; 2]);
+        let mut c2 = arr1(&vec![0.0; 2]);
+        for _ in 0..5000 {
+            let sample = space.sample(&mut rng);
+
+            c1[sample[0]] += 1.0;
+            c2[sample[1]] += 1.0;
+
+            assert!(sample[0] == 0 || sample[0] == 1);
+            assert!(sample[1] == 0 || sample[1] == 1);
+        }
+
+        assert!((c1/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+        assert!((c2/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+
+        assert_eq!(space.dim(), 2);
+        assert_eq!(space.span(), Span::Finite(4));
     }
 }
