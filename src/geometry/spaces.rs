@@ -1,6 +1,5 @@
 use super::Span;
-use super::dimensions;
-use super::dimensions::{Dimension, Partitioned};
+use super::dimensions::{self, Dimension, Partitioned};
 use rand::ThreadRng;
 use std::iter::FromIterator;
 use std::slice::Iter;
@@ -47,6 +46,12 @@ impl<D: Dimension> UnitarySpace<D> {
     }
 }
 
+impl UnitarySpace<dimensions::Continuous> {
+    pub fn partitioned(self, density: usize) -> UnitarySpace<Partitioned> {
+        UnitarySpace(Partitioned::from_continuous(self.0, density))
+    }
+}
+
 impl<D: Dimension> Space for UnitarySpace<D> {
     type Repr = D::Value;
 
@@ -75,6 +80,13 @@ impl<D1: Dimension, D2: Dimension> PairSpace<D1, D2> {
     }
 }
 
+impl PairSpace<dimensions::Continuous, dimensions::Continuous> {
+    pub fn partitioned(self, density: usize) -> PairSpace<Partitioned, Partitioned> {
+        PairSpace((Partitioned::from_continuous((self.0).0, density),
+                   Partitioned::from_continuous((self.0).1, density)))
+    }
+}
+
 impl<D1: Dimension, D2: Dimension> Space for PairSpace<D1, D2> {
     type Repr = (D1::Value, D2::Value);
 
@@ -88,13 +100,6 @@ impl<D1: Dimension, D2: Dimension> Space for PairSpace<D1, D2> {
 
     fn span(&self) -> Span {
         (self.0).0.span()*(self.0).1.span()
-    }
-}
-
-impl PairSpace<dimensions::Continuous, dimensions::Continuous> {
-    pub fn partitioned(self, density: usize) -> PairSpace<Partitioned, Partitioned> {
-        PairSpace((Partitioned::from_continuous((self.0).0, density),
-                   Partitioned::from_continuous((self.0).1, density)))
     }
 }
 
@@ -124,22 +129,6 @@ impl<D: Dimension> RegularSpace<D> {
     }
 }
 
-impl<D: Dimension> Space for RegularSpace<D> {
-    type Repr = Vec<D::Value>;
-
-    fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
-        self.dimensions.iter().map(|d| d.sample(rng)).collect()
-    }
-
-    fn dim(&self) -> usize {
-        self.dimensions.len()
-    }
-
-    fn span(&self) -> Span {
-        self.span
-    }
-}
-
 impl RegularSpace<dimensions::Continuous> {
     pub fn partitioned(self, density: usize) -> RegularSpace<Partitioned> {
         self.into_iter()
@@ -154,6 +143,22 @@ impl RegularSpace<dimensions::Partitioned> {
             .iter()
             .map(|d| d.centres())
             .collect()
+    }
+}
+
+impl<D: Dimension> Space for RegularSpace<D> {
+    type Repr = Vec<D::Value>;
+
+    fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
+        self.dimensions.iter().map(|d| d.sample(rng)).collect()
+    }
+
+    fn dim(&self) -> usize {
+        self.dimensions.len()
+    }
+
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
