@@ -111,7 +111,17 @@ pub struct RegularSpace<D: Dimension> {
 }
 
 impl<D: Dimension> RegularSpace<D> {
-    pub fn new() -> Self {
+    pub fn new(dimensions: Vec<D>) -> Self {
+        let mut s = Self::empty();
+
+        for d in dimensions {
+            s = s.push(d);
+        }
+
+        s
+    }
+
+    pub fn empty() -> Self {
         RegularSpace {
             dimensions: vec![],
             span: Span::Null,
@@ -164,7 +174,7 @@ impl<D: Dimension> Space for RegularSpace<D> {
 
 impl<D: Dimension> FromIterator<D> for RegularSpace<D> {
     fn from_iter<I: IntoIterator<Item = D>>(iter: I) -> Self {
-        let mut s = Self::new();
+        let mut s = Self::empty();
 
         for i in iter {
             s = s.push(i);
