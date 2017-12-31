@@ -1,7 +1,6 @@
-extern crate blas;
-extern crate openblas_src;
+#![allow(dead_code)]
 
-use self::blas::ddot;
+use blas::ddot;
 use std::cmp::min;
 use std::f64;
 

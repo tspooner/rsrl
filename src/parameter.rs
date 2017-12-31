@@ -1,4 +1,3 @@
-use std::cmp::max;
 use std::f64;
 use std::ops::{Add, Sub, Mul, Div};
 

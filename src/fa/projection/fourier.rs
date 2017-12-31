@@ -1,5 +1,4 @@
 use std::f64::consts::PI;
-use std::ops::Div;
 use super::Projection;
 use geometry::RegularSpace;
 use geometry::norms::{l1, l2};

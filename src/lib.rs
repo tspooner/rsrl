@@ -2,9 +2,10 @@
 extern crate slog_term;
 extern crate slog_async;
 
-#[macro_use]
-#[feature(blas)]
-extern crate ndarray;
+extern crate blas;
+extern crate openblas_src;
+
+#[macro_use] extern crate ndarray;
 
 extern crate serde;
 extern crate serde_json;

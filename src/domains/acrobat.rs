@@ -13,7 +13,7 @@ const M2: f64 = 1.0;
 
 // Link lengths:
 const L1: f64 = 1.0;
-const L2: f64 = 1.0;
+#[allow(dead_code)] const L2: f64 = 1.0;
 
 // Link centre of masses:
 const LC1: f64 = 0.5;

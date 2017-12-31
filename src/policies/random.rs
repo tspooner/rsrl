@@ -1,5 +1,4 @@
 use super::Policy;
-use geometry::{Space, ActionSpace};
 use rand::{thread_rng, ThreadRng};
 use rand::distributions::{Range, IndependentSample};
 

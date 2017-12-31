@@ -16,7 +16,7 @@ pub struct Episode {
 }
 
 impl KV for Episode {
-    fn serialize(&self, record: &Record, serializer: &mut Serializer) -> LogResult {
+    fn serialize(&self, _: &Record, serializer: &mut Serializer) -> LogResult {
         serializer.emit_u64("steps", self.steps)?;
         serializer.emit_f64("reward", self.reward)?;
 
@@ -37,7 +37,7 @@ pub fn run<T>(runner: T, n_episodes: usize, logger: Option<Logger>) -> Vec<Episo
                 .inspect(|&(ref res, i)| {
                     info!(logger, "episode {}", i; res);
                 })
-                .map(|(res, i)| res)
+                .map(|(res, _)| res)
                 .collect()
         }
 

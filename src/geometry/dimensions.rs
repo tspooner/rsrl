@@ -3,7 +3,7 @@ use super::span::Span;
 use rand::ThreadRng;
 use rand::distributions::{Range as RngRange, IndependentSample};
 
-use serde::{Serialize, Deserialize, Deserializer, de};
+use serde::{Deserialize, Deserializer, de};
 use serde::de::Visitor;
 use std::{cmp, f64, fmt};
 use std::ops::Range;

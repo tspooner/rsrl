@@ -74,7 +74,6 @@ impl CartPole {
     }
 
     fn grad(force: f64, state: Array1<f64>) -> Array1<f64> {
-        let x = state[StateIndex::X];
         let dx = state[StateIndex::DX];
         let theta = state[StateIndex::THETA];
         let dtheta = state[StateIndex::DTHETA];
