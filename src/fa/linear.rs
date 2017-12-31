@@ -207,3 +207,43 @@ impl<S: Space, P: SparseProjection<S>> QFunction<S> for SparseLinear<S, P> {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    extern crate seahash;
+
+    use super::*;
+    use std::hash::BuildHasherDefault;
+    use fa::projection::TileCoding;
+
+    type SHBuilder = BuildHasherDefault<seahash::SeaHasher>;
+
+    #[test]
+    fn test_dense_update_eval() {
+        let p = TileCoding::new(SHBuilder::default(), 4, 100);
+        let mut f = DenseLinear::new(p.clone(), 1);
+
+        let input = vec![5.0];
+
+        f.update(&input, 50.0);
+        let out: f64 = f.evaluate(&input);
+
+        assert_eq!(out, 50.0);
+    }
+
+    #[test]
+    fn test_dense_eval_phi() {
+        let p = TileCoding::new(SHBuilder::default(), 4, 100);
+        let f = DenseLinear::new(p.clone(), 1);
+
+        let input = vec![5.0];
+
+        let out: f64 = f.evaluate(&input);
+        let out_alt_v: f64 = VFunction::evaluate_phi(&f, &p.project(&input));
+        let out_alt_q: Vec<f64> = QFunction::evaluate_phi(&f, &p.project(&input));
+
+        assert_eq!(out, out_alt_v);
+        assert_eq!(vec![out], out_alt_q);
+    }
+}
