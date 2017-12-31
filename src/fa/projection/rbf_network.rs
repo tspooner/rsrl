@@ -1,11 +1,12 @@
 use super::Projection;
 use geometry::{Span, Space, RegularSpace};
+use geometry::norms::l1;
 use geometry::dimensions::{Continuous, Partitioned};
 use ndarray::{Axis, ArrayView, Array1, Array2};
 use utils::cartesian_product;
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct RBFNetwork {
     mu: Array2<f64>,
     beta: Array1<f64>,
@@ -54,8 +55,9 @@ impl RBFNetwork {
 impl Projection<RegularSpace<Continuous>> for RBFNetwork {
     fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
         let p = self.kernel(input);
+        let z = l1(p.as_slice().unwrap());
 
-        phi.scaled_add(1.0/p.scalar_sum(), &p)
+        phi.scaled_add(1.0/z, &p);
     }
 
     fn dim(&self) -> usize {

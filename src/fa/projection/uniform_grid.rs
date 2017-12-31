@@ -59,9 +59,7 @@ mod tests {
 
     #[test]
     fn test_1d() {
-        let mut ds = RegularSpace::new();
-        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
-
+        let ds = RegularSpace::new(vec![Partitioned::new(0.0, 10.0, 10)]);
         let t = UniformGrid::new(ds);
 
         assert_eq!(t.size(), 10);
@@ -78,10 +76,7 @@ mod tests {
 
     #[test]
     fn test_2d() {
-        let mut ds = RegularSpace::new();
-        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
-        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
-
+        let ds = RegularSpace::new(vec![Partitioned::new(0.0, 10.0, 10); 2]);
         let t = UniformGrid::new(ds);
 
         assert_eq!(t.size(), 100);
@@ -100,11 +95,7 @@ mod tests {
 
     #[test]
     fn test_3d() {
-        let mut ds = RegularSpace::new();
-        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
-        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
-        ds = ds.push(Partitioned::new(0.0, 10.0, 10));
-
+        let ds = RegularSpace::new(vec![Partitioned::new(0.0, 10.0, 10); 3]);
         let t = UniformGrid::new(ds);
 
         assert_eq!(t.size(), 1000);

@@ -1,3 +1,5 @@
+pub mod norms;
+
 mod span;
 pub use self::span::Span;
 

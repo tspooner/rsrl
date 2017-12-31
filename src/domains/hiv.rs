@@ -180,7 +180,7 @@ impl Domain for HIVTreatment {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        Self::StateSpace::new()
+        Self::StateSpace::empty()
             .push(Continuous::new(LIMITS.0, LIMITS.1))
             .push(Continuous::new(LIMITS.0, LIMITS.1))
             .push(Continuous::new(LIMITS.0, LIMITS.1))
