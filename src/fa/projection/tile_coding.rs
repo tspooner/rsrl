@@ -1,15 +1,17 @@
 use std::hash::{Hasher, BuildHasher};
 use super::{Projection, SparseProjection};
 use geometry::RegularSpace;
+use geometry::norms::l2;
 use geometry::dimensions::Continuous;
 use ndarray::Array1;
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TileCoding<H: BuildHasher> {
     hasher_builder: H,
     n_tilings: usize,
     memory_size: usize,
+    activation: f64,
 }
 
 impl<H: BuildHasher> TileCoding<H> {
@@ -18,6 +20,7 @@ impl<H: BuildHasher> TileCoding<H> {
             hasher_builder: hasher_builder,
             n_tilings: n_tilings,
             memory_size: memory_size,
+            activation: 1.0/l2(&vec![1.0; n_tilings]),
         }
     }
 }
@@ -25,7 +28,7 @@ impl<H: BuildHasher> TileCoding<H> {
 impl<H: BuildHasher> Projection<RegularSpace<Continuous>> for TileCoding<H> {
     fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
         for t in self.project_sparse(input).iter() {
-            phi[*t] = 1.0;
+            phi[*t] = self.activation;
         }
     }
 
