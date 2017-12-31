@@ -36,15 +36,15 @@ mod tests {
 
         let mut n0: f64 = 0.0;
         let mut n1: f64 = 0.0;
-        for _ in 0..20000 {
+        for _ in 0..10000 {
             match p.sample(&qs) {
                 0 => n0 += 1.0,
                 _ => n1 += 1.0,
             }
         }
 
-        assert!((0.50 - n0 / 20000.0).abs() < 0.01);
-        assert!((0.50 - n1 / 20000.0).abs() < 0.01);
+        assert!((0.50 - n0 / 10000.0).abs() < 0.05);
+        assert!((0.50 - n1 / 10000.0).abs() < 0.05);
     }
 
     #[test]
