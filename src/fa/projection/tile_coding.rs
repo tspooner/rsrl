@@ -1,7 +1,7 @@
 use std::hash::{Hasher, BuildHasher};
 use super::{Projection, SparseProjection};
 use geometry::RegularSpace;
-use geometry::norms::l2;
+use geometry::norms::l1;
 use geometry::dimensions::Continuous;
 use ndarray::Array1;
 
@@ -20,7 +20,7 @@ impl<H: BuildHasher> TileCoding<H> {
             hasher_builder: hasher_builder,
             n_tilings: n_tilings,
             memory_size: memory_size,
-            activation: 1.0/l2(&vec![1.0; n_tilings]),
+            activation: 1.0/l1(&vec![1.0; n_tilings]),
         }
     }
 }
