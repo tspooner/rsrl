@@ -46,7 +46,7 @@ fn main() {
         // Build a stochastic behaviour policy with exponentially decaying epsilon.
         let policy = EpsilonGreedy::new(Parameter::exponential(0.99, 0.05, 0.99));
 
-        GreedyGQ::new(q_func, v_func, policy, 1e-2, 1e-5, 0.99)
+        GreedyGQ::new(q_func, v_func, policy, 1e-1, 1e-3, 0.99)
     };
 
     // Training phase:
@@ -55,7 +55,7 @@ fn main() {
         let e = SerialExperiment::new(&mut agent, Box::new(MountainCar::default), 1000);
 
         // Realise 5000 episodes of the experiment generator.
-        run(e, 5000, Some(logger.clone()))
+        run(e, 1000, Some(logger.clone()))
     };
 
     // Testing phase:
