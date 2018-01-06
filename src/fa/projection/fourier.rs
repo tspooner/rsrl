@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
-use super::Projection;
+use super::{Projector, Projection};
 use geometry::RegularSpace;
-use geometry::norms::{l1, l2};
+use geometry::norms::l2;
 use geometry::dimensions::{BoundedDimension, Continuous};
 use ndarray::Array1;
 use utils::cartesian_product;
@@ -48,22 +48,17 @@ impl Fourier {
     }
 }
 
-impl Projection<RegularSpace<Continuous>> for Fourier {
-    fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
+impl Projector<RegularSpace<Continuous>> for Fourier {
+    fn project(&self, input: &Vec<f64>) -> Projection {
         let scaled_state = input.iter().enumerate().map(|(i, v)| {
             (v - self.limits[i].0) / (self.limits[i].1 - self.limits[i].0)
         }).collect::<Vec<f64>>();
 
-        for (i, cfs) in self.coefficients.iter().enumerate() {
+        Projection::Dense(Array1::from_iter(self.coefficients.iter().map(|cfs| {
             let cx = scaled_state.iter().zip(cfs).fold(0.0, |acc, (v, c)| acc + *c*v);
 
-            phi[i] = (PI*cx).cos();
-        }
-
-        let z = l1(phi.as_slice().unwrap());
-        if z.abs() > 1e-6 {
-            phi.mapv_inplace(|v| v/z);
-        }
+            (PI*cx).cos()
+        })))
     }
 
     fn dim(&self) -> usize {
@@ -72,6 +67,10 @@ impl Projection<RegularSpace<Continuous>> for Fourier {
 
     fn size(&self) -> usize {
         self.coefficients.len()
+    }
+
+    fn activation(&self) -> usize {
+        self.size()
     }
 
     fn equivalent(&self, other: &Self) -> bool {

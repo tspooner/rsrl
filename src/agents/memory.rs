@@ -18,11 +18,11 @@ pub enum Trace {
 }
 
 impl Trace {
-    pub fn get(&self) -> &Array1<f64> {
+    pub fn get(&self) -> Array1<f64> {
         match self {
             &Trace::Accumulating { ref eligibility, .. } |
             &Trace::Replacing { ref eligibility, .. } |
-            &Trace::Null { ref eligibility } => eligibility,
+            &Trace::Null { ref eligibility } => eligibility.clone(),
         }
     }
 

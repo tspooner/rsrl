@@ -1,4 +1,4 @@
-use super::Projection;
+use super::{Projector, Projection};
 use geometry::{Space, RegularSpace};
 use geometry::dimensions::{Dimension, Continuous, Partitioned};
 use ndarray::Array1;
@@ -31,9 +31,9 @@ impl UniformGrid {
     }
 }
 
-impl Projection<RegularSpace<Continuous>> for UniformGrid {
-    fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
-        phi[self.hash(input)] = 1.0;
+impl Projector<RegularSpace<Continuous>> for UniformGrid {
+    fn project(&self, input: &Vec<f64>) -> Projection {
+        Projection::Sparse(Array1::from_vec(vec![self.hash(input)]))
     }
 
     fn dim(&self) -> usize {
@@ -44,6 +44,10 @@ impl Projection<RegularSpace<Continuous>> for UniformGrid {
         self.n_features
     }
 
+    fn activation(&self) -> usize {
+        1
+    }
+
     fn equivalent(&self, other: &Self) -> bool {
         self.dim() == other.dim() && self.size() == other.size()
     }
@@ -52,7 +56,7 @@ impl Projection<RegularSpace<Continuous>> for UniformGrid {
 
 #[cfg(test)]
 mod tests {
-    use super::{Projection, UniformGrid};
+    use super::{Projector, UniformGrid};
     use geometry::RegularSpace;
     use geometry::dimensions::Partitioned;
 

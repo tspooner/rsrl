@@ -1,6 +1,5 @@
-use super::Projection;
+use super::{Projector, Projection};
 use geometry::{Span, Space, RegularSpace};
-use geometry::norms::l1;
 use geometry::dimensions::{Continuous, Partitioned};
 use ndarray::{Axis, ArrayView, Array1, Array2};
 use utils::cartesian_product;
@@ -52,12 +51,9 @@ impl RBFNetwork {
     }
 }
 
-impl Projection<RegularSpace<Continuous>> for RBFNetwork {
-    fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
-        let p = self.kernel(input);
-        let z = l1(p.as_slice().unwrap());
-
-        phi.scaled_add(1.0/z, &p);
+impl Projector<RegularSpace<Continuous>> for RBFNetwork {
+    fn project(&self, input: &Vec<f64>) -> Projection {
+        Projection::Dense(self.kernel(input))
     }
 
     fn dim(&self) -> usize {
@@ -66,6 +62,10 @@ impl Projection<RegularSpace<Continuous>> for RBFNetwork {
 
     fn size(&self) -> usize {
         self.mu.rows()
+    }
+
+    fn activation(&self) -> usize {
+        self.size()
     }
 
     fn equivalent(&self, other: &Self) -> bool {
