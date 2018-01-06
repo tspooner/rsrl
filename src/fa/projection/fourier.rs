@@ -97,8 +97,8 @@ mod tests {
     fn test_symmetry() {
         let f = Fourier::new(1, vec![(0.0, 1.0)]);
 
-        assert_eq!(f.project(&vec![-1.0]), f.project(&vec![1.0]));
-        assert_eq!(f.project(&vec![-0.5]), f.project(&vec![0.5]));
+        assert_eq!(f.project_expanded(&vec![-1.0]), f.project_expanded(&vec![1.0]));
+        assert_eq!(f.project_expanded(&vec![-0.5]), f.project_expanded(&vec![0.5]));
     }
 
     #[test]
@@ -108,16 +108,16 @@ mod tests {
         assert_eq!(f.dim(), 1);
         assert_eq!(f.size(), 1);
 
-        assert!(f.project(&vec![-1.0]).all_close(&arr1(&vec![-1.0]), 1e-6));
-        assert!(f.project(&vec![-0.5]).all_close(&arr1(&vec![0.0]), 1e-6));
-        assert!(f.project(&vec![0.0]).all_close(&arr1(&vec![1.0]), 1e-6));
-        assert!(f.project(&vec![0.5]).all_close(&arr1(&vec![0.0]), 1e-6));
-        assert!(f.project(&vec![1.0]).all_close(&arr1(&vec![-1.0]), 1e-6));
+        assert!(f.project_expanded(&vec![-1.0]).all_close(&arr1(&vec![-1.0]), 1e-6));
+        assert!(f.project_expanded(&vec![-0.5]).all_close(&arr1(&vec![0.0]), 1e-6));
+        assert!(f.project_expanded(&vec![0.0]).all_close(&arr1(&vec![1.0]), 1e-6));
+        assert!(f.project_expanded(&vec![0.5]).all_close(&arr1(&vec![0.0]), 1e-6));
+        assert!(f.project_expanded(&vec![1.0]).all_close(&arr1(&vec![-1.0]), 1e-6));
 
-        assert!(f.project(&vec![-2.0/3.0]).all_close(&arr1(&vec![-1.0]), 1e-6));
-        assert!(f.project(&vec![-1.0/3.0]).all_close(&arr1(&vec![1.0]), 1e-6));
-        assert!(f.project(&vec![1.0/3.0]).all_close(&arr1(&vec![1.0]), 1e-6));
-        assert!(f.project(&vec![2.0/3.0]).all_close(&arr1(&vec![-1.0]), 1e-6));
+        assert!(f.project_expanded(&vec![-2.0/3.0]).all_close(&arr1(&vec![-1.0]), 1e-6));
+        assert!(f.project_expanded(&vec![-1.0/3.0]).all_close(&arr1(&vec![1.0]), 1e-6));
+        assert!(f.project_expanded(&vec![1.0/3.0]).all_close(&arr1(&vec![1.0]), 1e-6));
+        assert!(f.project_expanded(&vec![2.0/3.0]).all_close(&arr1(&vec![-1.0]), 1e-6));
     }
 
     #[test]
@@ -128,17 +128,17 @@ mod tests {
         assert_eq!(f2.dim(), f1.dim());
         assert_eq!(f2.size(), f2.size());
 
-        assert_eq!(f2.project(&vec![-1.0]), f1.project(&vec![-1.0]));
-        assert_eq!(f2.project(&vec![-0.5]), f1.project(&vec![-0.5]));
-        assert_eq!(f2.project(&vec![0.0]), f1.project(&vec![0.0]));
-        assert_eq!(f2.project(&vec![0.5]), f1.project(&vec![0.5]));
-        assert_eq!(f2.project(&vec![1.0]), f1.project(&vec![1.0]));
+        assert_eq!(f2.project_expanded(&vec![-1.0]), f1.project_expanded(&vec![-1.0]));
+        assert_eq!(f2.project_expanded(&vec![-0.5]), f1.project_expanded(&vec![-0.5]));
+        assert_eq!(f2.project_expanded(&vec![0.0]), f1.project_expanded(&vec![0.0]));
+        assert_eq!(f2.project_expanded(&vec![0.5]), f1.project_expanded(&vec![0.5]));
+        assert_eq!(f2.project_expanded(&vec![1.0]), f1.project_expanded(&vec![1.0]));
 
 
-        assert_eq!(f2.project(&vec![-2.0/3.0]), f1.project(&vec![-2.0/3.0]));
-        assert_eq!(f2.project(&vec![-1.0/3.0]), f1.project(&vec![-1.0/3.0]));
-        assert_eq!(f2.project(&vec![1.0/3.0]), f1.project(&vec![1.0/3.0]));
-        assert_eq!(f2.project(&vec![2.0/3.0]), f1.project(&vec![2.0/3.0]));
+        assert_eq!(f2.project_expanded(&vec![-2.0/3.0]), f1.project_expanded(&vec![-2.0/3.0]));
+        assert_eq!(f2.project_expanded(&vec![-1.0/3.0]), f1.project_expanded(&vec![-1.0/3.0]));
+        assert_eq!(f2.project_expanded(&vec![1.0/3.0]), f1.project_expanded(&vec![1.0/3.0]));
+        assert_eq!(f2.project_expanded(&vec![2.0/3.0]), f1.project_expanded(&vec![2.0/3.0]));
     }
 
     #[test]
@@ -148,13 +148,13 @@ mod tests {
         assert_eq!(f.dim(), 2);
         assert_eq!(f.size(), 3);
 
-        assert!(f.project(&vec![0.0, 5.0]).all_close(&arr1(&vec![1.0/3.0; 3]), 1e-6));
-        assert!(f.project(&vec![0.5, 5.0]).all_close(&arr1(&vec![4.24042024e-17, 3.07486821e-1, 6.92513179e-1]), 1e-6));
-        assert!(f.project(&vec![0.0, 5.5]).all_close(&arr1(&vec![6.92513179e-1, 3.07486821e-1, 4.24042024e-17]), 1e-6));
-        assert!(f.project(&vec![0.5, 5.5]).all_close(&arr1(&vec![1.01093534e-16, -1.0, 1.01093534e-16]), 1e-6));
-        assert!(f.project(&vec![1.0, 5.5]).all_close(&arr1(&vec![-5.04567213e-1, -4.95432787e-1, 3.08958311e-17]), 1e-6));
-        assert!(f.project(&vec![0.5, 6.0]).all_close(&arr1(&vec![3.08958311e-17, -4.95432787e-1, -5.04567213e-1]), 1e-6));
-        assert!(f.project(&vec![1.0, 6.0]).all_close(&arr1(&vec![-0.44125654, -0.11748691, -0.44125654]), 1e-6));
+        assert!(f.project_expanded(&vec![0.0, 5.0]).all_close(&arr1(&vec![1.0/3.0; 3]), 1e-6));
+        assert!(f.project_expanded(&vec![0.5, 5.0]).all_close(&arr1(&vec![4.24042024e-17, 3.07486821e-1, 6.92513179e-1]), 1e-6));
+        assert!(f.project_expanded(&vec![0.0, 5.5]).all_close(&arr1(&vec![6.92513179e-1, 3.07486821e-1, 4.24042024e-17]), 1e-6));
+        assert!(f.project_expanded(&vec![0.5, 5.5]).all_close(&arr1(&vec![1.01093534e-16, -1.0, 1.01093534e-16]), 1e-6));
+        assert!(f.project_expanded(&vec![1.0, 5.5]).all_close(&arr1(&vec![-5.04567213e-1, -4.95432787e-1, 3.08958311e-17]), 1e-6));
+        assert!(f.project_expanded(&vec![0.5, 6.0]).all_close(&arr1(&vec![3.08958311e-17, -4.95432787e-1, -5.04567213e-1]), 1e-6));
+        assert!(f.project_expanded(&vec![1.0, 6.0]).all_close(&arr1(&vec![-0.44125654, -0.11748691, -0.44125654]), 1e-6));
     }
 
     #[test]
@@ -164,17 +164,17 @@ mod tests {
         assert_eq!(f.dim(), 2);
         assert_eq!(f.size(), 5);
 
-        assert!(f.project(&vec![0.0, 5.0]).all_close(&arr1(&vec![0.2; 5]), 1e-6));
-        assert!(f.project(&vec![0.5, 5.0]).all_close(&arr1(&vec![2.58110397e-17, 6.95831686e-2,
+        assert!(f.project_expanded(&vec![0.0, 5.0]).all_close(&arr1(&vec![0.2; 5]), 1e-6));
+        assert!(f.project_expanded(&vec![0.5, 5.0]).all_close(&arr1(&vec![2.58110397e-17, 6.95831686e-2,
                                                                  1.87164340e-1, 3.21726225e-1,
                                                                  4.21526267e-1]), 1e-6));
-        assert!(f.project(&vec![0.5, 5.5]).all_close(&arr1(&vec![3.76070090e-17, -3.13998939e-1,
+        assert!(f.project_expanded(&vec![0.5, 5.5]).all_close(&arr1(&vec![3.76070090e-17, -3.13998939e-1,
                                                                  -3.72002121e-1, -3.13998939e-1,
                                                                  3.76070090e-17]), 1e-6));
-        assert!(f.project(&vec![0.5, 6.0]).all_close(&arr1(&vec![1.58656439e-17, -2.44984612e-1,
+        assert!(f.project_expanded(&vec![0.5, 6.0]).all_close(&arr1(&vec![1.58656439e-17, -2.44984612e-1,
                                                                  -2.54414913e-1, -2.41494847e-1,
                                                                  -2.59105628e-1]), 1e-6));
-        assert!(f.project(&vec![1.0, 6.0]).all_close(&arr1(&vec![-0.31048999, -0.1481752,
+        assert!(f.project_expanded(&vec![1.0, 6.0]).all_close(&arr1(&vec![-0.31048999, -0.1481752,
                                                                  -0.08266962, -0.1481752,
                                                                  -0.31048999]), 1e-6));
     }

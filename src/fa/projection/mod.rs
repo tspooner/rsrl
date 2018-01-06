@@ -43,8 +43,13 @@ pub trait Projector<S: Space> {
     fn equivalent(&self, other: &Self) -> bool;
 
     fn expand_projection(&self, projection: Projection) -> Array1<f64> {
+        let z = match projection.z() {
+            val if val.abs() < 1e-6 => 1.0,
+            val => val,
+        };
+
         match projection {
-            Projection::Dense(phi) => phi,
+            Projection::Dense(phi) => phi/z,
             Projection::Sparse(sparse_phi) => {
                 let mut phi = Array1::zeros((self.size(),));
 
@@ -52,7 +57,7 @@ pub trait Projector<S: Space> {
                     phi[*idx] = 1.0;
                 }
 
-                phi
+                phi/z
             },
         }
     }

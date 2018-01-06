@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn test_projection_1d() {
         let rbf = RBFNetwork::new(arr2(&[[0.0], [0.5], [1.0]]), arr1(&[0.25]));
-        let phi = rbf.project(&vec![0.25]);
+        let phi = rbf.project_expanded(&vec![0.25]);
 
         assert!(phi.all_close(&arr1(&[0.49546264, 0.49546264, 0.00907471]), 1e-6));
         assert_eq!(phi.scalar_sum(), 1.0);
@@ -134,7 +134,7 @@ mod tests {
     fn test_projection_2d() {
         let rbf = RBFNetwork::new(arr2(&[[0.0, -10.0], [0.5, -8.0], [1.0, -6.0]]),
                                   arr1(&[0.25, 2.0]));
-        let phi = rbf.project(&vec![0.67, -7.0]);
+        let phi = rbf.project_expanded(&vec![0.67, -7.0]);
 
         assert!(phi.all_close(&arr1(&[0.10579518, 0.50344131, 0.3907635]), 1e-6));
         assert_eq!(phi.scalar_sum(), 1.0);
