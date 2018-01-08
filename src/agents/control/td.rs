@@ -2,7 +2,7 @@ use Parameter;
 use agents::ControlAgent;
 use agents::memory::Trace;
 use domains::Transition;
-use fa::{QFunction, Projection};
+use fa::{Function, QFunction, Projector, Projection, Linear};
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
 use std::collections::VecDeque;
@@ -91,10 +91,10 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
 /// - Watkins, C. J. C. H. (1989). Learning from Delayed Rewards. Ph.D. thesis, Cambridge
 /// University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning, 8:279–292.
-pub struct QLambda<S: Space, Q: QFunction<S> + Projection<S>, P: Policy> {
+pub struct QLambda<S: Space, M: Projector<S>, P: Policy> {
     trace: Trace,
 
-    pub q_func: Q,
+    pub q_func: Linear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -103,11 +103,11 @@ pub struct QLambda<S: Space, Q: QFunction<S> + Projection<S>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, Q, P> QLambda<S, Q, P>
-    where Q: QFunction<S> + Projection<S>,
+impl<S: Space, M, P> QLambda<S, M, P>
+    where M: Projector<S>,
           P: Policy
 {
-    pub fn new<T1, T2>(trace: Trace, q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(trace: Trace, q_func: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
@@ -125,34 +125,44 @@ impl<S: Space, Q, P> QLambda<S, Q, P>
     }
 }
 
-impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLambda<S, Q, P>
-    where Q: QFunction<S> + Projection<S>,
+impl<S: Space, M, P> ControlAgent<S, ActionSpace> for QLambda<S, M, P>
+    where M: Projector<S>,
           P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
+        let qs: Vec<f64> = self.q_func.evaluate(s);
+
+        Greedy.sample(&qs)
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
+        let qs: Vec<f64> = self.q_func.evaluate(s);
+
+        self.policy.sample(&qs)
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        p.sample(self.q_func.evaluate(s).as_slice())
+        let qs: Vec<f64> = self.q_func.evaluate(s);
+
+        p.sample(&qs)
     }
 
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
-        let phi_s = self.q_func.project(t.from.state());
-        let nqs = self.q_func.evaluate_phi(&self.q_func.project(t.to.state()));
-
         let a = t.action;
+        let (s, ns) = (t.from.state(), t.to.state());
+
+        let phi_s = self.q_func.projector.project(s);
+        let phi_ns = self.q_func.projector.project(ns);
+
+        let nqs = self.q_func.evaluate_phi(&phi_ns);
         let na = Greedy.sample(nqs.as_slice());
 
         let td_error = t.reward + self.gamma*nqs[na] - self.q_func.evaluate_action_phi(&phi_s, a);
 
         self.trace.decay(self.gamma.value());
-        self.trace.update(&phi_s);
-        self.q_func.update_action_phi(self.trace.get(), a, self.alpha*td_error);
+        self.trace.update(&self.q_func.projector.expand_projection(phi_s));
+
+        self.q_func.update_action_phi(&Projection::Dense(self.trace.get()), a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -247,10 +257,10 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
 /// University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing eligibility traces.
 /// Machine Learning 22:123–158.
-pub struct SARSALambda<S: Space, Q: QFunction<S> + Projection<S>, P: Policy> {
+pub struct SARSALambda<S: Space, M: Projector<S>, P: Policy> {
     trace: Trace,
 
-    pub q_func: Q,
+    pub q_func: Linear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -259,11 +269,11 @@ pub struct SARSALambda<S: Space, Q: QFunction<S> + Projection<S>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, Q, P> SARSALambda<S, Q, P>
-    where Q: QFunction<S> + Projection<S>,
+impl<S: Space, M, P> SARSALambda<S, M, P>
+    where M: Projector<S>,
           P: Policy
 {
-    pub fn new<T1, T2>(trace: Trace, q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(trace: Trace, q_func: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
@@ -281,12 +291,14 @@ impl<S: Space, Q, P> SARSALambda<S, Q, P>
     }
 }
 
-impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSALambda<S, Q, P>
-    where Q: QFunction<S> + Projection<S>,
+impl<S: Space, M, P> ControlAgent<S, ActionSpace> for SARSALambda<S, M, P>
+    where M: Projector<S>,
           P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
+        let qs: Vec<f64> = self.q_func.evaluate(s);
+
+        self.policy.sample(&qs)
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
@@ -294,21 +306,27 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSALambda<S, Q, P>
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        p.sample(self.q_func.evaluate(s).as_slice())
+        let qs: Vec<f64> = self.q_func.evaluate(s);
+
+        p.sample(&qs)
     }
 
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
-        let phi_s = self.q_func.project(t.from.state());
-        let nqs = self.q_func.evaluate_phi(&self.q_func.project(t.to.state()));
-
         let a = t.action;
+        let (s, ns) = (t.from.state(), t.to.state());
+
+        let phi_s = self.q_func.projector.project(s);
+        let phi_ns = self.q_func.projector.project(ns);
+
+        let nqs = self.q_func.evaluate_phi(&phi_ns);
         let na = self.policy.sample(nqs.as_slice());
 
         let td_error = t.reward + self.gamma*nqs[na] - self.q_func.evaluate_action_phi(&phi_s, a);
 
         self.trace.decay(self.gamma.value());
-        self.trace.update(&phi_s);
-        self.q_func.update_action_phi(self.trace.get(), a, self.alpha*td_error);
+        self.trace.update(&self.q_func.projector.expand_projection(phi_s));
+
+        self.q_func.update_action_phi(&Projection::Dense(self.trace.get()), a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {

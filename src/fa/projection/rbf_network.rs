@@ -1,6 +1,5 @@
-use super::Projection;
+use super::{Projector, Projection};
 use geometry::{Span, Space, RegularSpace};
-use geometry::norms::l1;
 use geometry::dimensions::{Continuous, Partitioned};
 use ndarray::{Axis, ArrayView, Array1, Array2};
 use utils::cartesian_product;
@@ -52,12 +51,9 @@ impl RBFNetwork {
     }
 }
 
-impl Projection<RegularSpace<Continuous>> for RBFNetwork {
-    fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
-        let p = self.kernel(input);
-        let z = l1(p.as_slice().unwrap());
-
-        phi.scaled_add(1.0/z, &p);
+impl Projector<RegularSpace<Continuous>> for RBFNetwork {
+    fn project(&self, input: &Vec<f64>) -> Projection {
+        Projection::Dense(self.kernel(input))
     }
 
     fn dim(&self) -> usize {
@@ -66,6 +62,10 @@ impl Projection<RegularSpace<Continuous>> for RBFNetwork {
 
     fn size(&self) -> usize {
         self.mu.rows()
+    }
+
+    fn activation(&self) -> usize {
+        self.size()
     }
 
     fn equivalent(&self, other: &Self) -> bool {
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn test_projection_1d() {
         let rbf = RBFNetwork::new(arr2(&[[0.0], [0.5], [1.0]]), arr1(&[0.25]));
-        let phi = rbf.project(&vec![0.25]);
+        let phi = rbf.project_expanded(&vec![0.25]);
 
         assert!(phi.all_close(&arr1(&[0.49546264, 0.49546264, 0.00907471]), 1e-6));
         assert_eq!(phi.scalar_sum(), 1.0);
@@ -134,7 +134,7 @@ mod tests {
     fn test_projection_2d() {
         let rbf = RBFNetwork::new(arr2(&[[0.0, -10.0], [0.5, -8.0], [1.0, -6.0]]),
                                   arr1(&[0.25, 2.0]));
-        let phi = rbf.project(&vec![0.67, -7.0]);
+        let phi = rbf.project_expanded(&vec![0.67, -7.0]);
 
         assert!(phi.all_close(&arr1(&[0.10579518, 0.50344131, 0.3907635]), 1e-6));
         assert_eq!(phi.scalar_sum(), 1.0);

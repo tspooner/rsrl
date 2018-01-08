@@ -1,4 +1,4 @@
-use super::Projection;
+use super::{Projector, Projection};
 use fa::Function;
 use geometry::RegularSpace;
 use geometry::dimensions::Continuous;
@@ -38,15 +38,11 @@ impl BasisNetwork {
     }
 }
 
-impl Projection<RegularSpace<Continuous>> for BasisNetwork {
-    fn project(&self, input: &Vec<f64>) -> Array1<f64> {
-        Array1::from_shape_fn((self.bases.len(),), |i| self.bases[i].evaluate(input))
-    }
+impl Projector<RegularSpace<Continuous>> for BasisNetwork {
+    fn project(&self, input: &Vec<f64>) -> Projection {
+        let phi = Array1::from_shape_fn((self.bases.len(),), |i| self.bases[i].evaluate(input));
 
-    fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
-        for i in 0..self.bases.len() {
-            phi[i] = self.bases[i].evaluate(input);
-        }
+        Projection::Dense(phi)
     }
 
     fn dim(&self) -> usize {
@@ -55,6 +51,10 @@ impl Projection<RegularSpace<Continuous>> for BasisNetwork {
 
     fn size(&self) -> usize {
         self.bases.len()
+    }
+
+    fn activation(&self) -> usize {
+        self.size()
     }
 
     fn equivalent(&self, _: &Self) -> bool {

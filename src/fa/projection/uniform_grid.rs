@@ -1,4 +1,4 @@
-use super::Projection;
+use super::{Projector, Projection};
 use geometry::{Space, RegularSpace};
 use geometry::dimensions::{Dimension, Continuous, Partitioned};
 use ndarray::Array1;
@@ -31,9 +31,9 @@ impl UniformGrid {
     }
 }
 
-impl Projection<RegularSpace<Continuous>> for UniformGrid {
-    fn project_onto(&self, input: &Vec<f64>, phi: &mut Array1<f64>) {
-        phi[self.hash(input)] = 1.0;
+impl Projector<RegularSpace<Continuous>> for UniformGrid {
+    fn project(&self, input: &Vec<f64>) -> Projection {
+        Projection::Sparse(Array1::from_vec(vec![self.hash(input)]))
     }
 
     fn dim(&self) -> usize {
@@ -44,6 +44,10 @@ impl Projection<RegularSpace<Continuous>> for UniformGrid {
         self.n_features
     }
 
+    fn activation(&self) -> usize {
+        1
+    }
+
     fn equivalent(&self, other: &Self) -> bool {
         self.dim() == other.dim() && self.size() == other.size()
     }
@@ -52,10 +56,23 @@ impl Projection<RegularSpace<Continuous>> for UniformGrid {
 
 #[cfg(test)]
 mod tests {
-    use super::{Projection, UniformGrid};
+    use super::{Projector, Projection, UniformGrid};
+    use ndarray::arr1;
     use geometry::RegularSpace;
     use geometry::dimensions::Partitioned;
 
+
+    #[test]
+    fn test_is_sparse() {
+        let ds = RegularSpace::new(vec![Partitioned::new(0.0, 10.0, 10)]);
+        let t = UniformGrid::new(ds);
+        let out = t.project(&vec![0.0]);
+
+        match out {
+            Projection::Sparse(_) => assert!(true),
+            Projection::Dense(_) => assert!(false)
+        }
+    }
 
     #[test]
     fn test_1d() {
@@ -65,12 +82,21 @@ mod tests {
         assert_eq!(t.size(), 10);
 
         for i in 0..10 {
-            let out = t.project(&vec![i as u32 as f64]).to_vec();
+            let out = t.project(&vec![i as u32 as f64]);
+            let expected_bin = i;
 
-            let mut expected = vec![0.0; 10];
-            expected[i] = 1.0;
+            match out {
+                Projection::Sparse(ref idx) => {
+                    assert_eq!(idx.len(), 1);
+                    assert_eq!(idx[0], expected_bin);
+                },
+                _ => assert!(false)
+            }
 
-            assert_eq!(out, expected);
+            let mut dense = arr1(&vec![0.0; 10]);
+            dense[expected_bin] = 1.0;
+
+            assert_eq!(t.expand_projection(out), dense);
         }
     }
 
@@ -83,12 +109,21 @@ mod tests {
 
         for i in 0..10 {
             for j in 0..10 {
-                let out = t.project(&vec![i as u32 as f64, j as u32 as f64]).to_vec();
+                let out = t.project(&vec![i as u32 as f64, j as u32 as f64]);
+                let expected_bin = j*10 + i;
 
-                let mut expected = vec![0.0; 100];
-                expected[j * 10 + i] = 1.0;
+                match out {
+                    Projection::Sparse(ref idx) => {
+                        assert_eq!(idx.len(), 1);
+                        assert_eq!(idx[0], expected_bin);
+                    },
+                    _ => assert!(false)
+                }
 
-                assert_eq!(out, expected);
+                let mut dense = arr1(&vec![0.0; 100]);
+                dense[expected_bin] = 1.0;
+
+                assert_eq!(t.expand_projection(out), dense);
             }
         }
     }
@@ -103,13 +138,21 @@ mod tests {
         for i in 0..10 {
             for j in 0..10 {
                 for k in 0..10 {
-                    let out = t.project(&vec![i as u32 as f64, j as u32 as f64, k as u32 as f64])
-                        .to_vec();
+                    let out = t.project(&vec![i as u32 as f64, j as u32 as f64, k as u32 as f64]);
+                    let expected_bin = k*100 + j*10 + i;
 
-                    let mut expected = vec![0.0; 1000];
-                    expected[k * 100 + j * 10 + i] = 1.0;
+                    match out {
+                        Projection::Sparse(ref idx) => {
+                            assert_eq!(idx.len(), 1);
+                            assert_eq!(idx[0], expected_bin);
+                        },
+                        _ => assert!(false)
+                    }
 
-                    assert_eq!(out, expected);
+                    let mut dense = arr1(&vec![0.0; 1000]);
+                    dense[expected_bin] = 1.0;
+
+                    assert_eq!(t.expand_projection(out), dense);
                 }
             }
         }

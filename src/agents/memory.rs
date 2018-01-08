@@ -1,7 +1,6 @@
 use Parameter;
 use ndarray::Array1;
 
-
 pub enum Trace {
     Accumulating {
         lambda: Parameter,
@@ -18,11 +17,11 @@ pub enum Trace {
 }
 
 impl Trace {
-    pub fn get(&self) -> &Array1<f64> {
+    pub fn get(&self) -> Array1<f64> {
         match self {
             &Trace::Accumulating { ref eligibility, .. } |
             &Trace::Replacing { ref eligibility, .. } |
-            &Trace::Null { ref eligibility } => eligibility,
+            &Trace::Null { ref eligibility } => eligibility.clone(),
         }
     }
 
@@ -62,19 +61,19 @@ mod tests {
             eligibility: arr1(&[0.0f64; 10]),
         };
 
-        assert_eq!(trace.get(), &arr1(&[0.0f64; 10]));
+        assert_eq!(trace.get(), arr1(&[0.0f64; 10]));
 
         trace.decay(1.0);
-        assert_eq!(trace.get(), &arr1(&[0.0f64; 10]));
+        assert_eq!(trace.get(), arr1(&[0.0f64; 10]));
 
         trace.update(&arr1(&[1.0f64; 10]));
-        assert_eq!(trace.get(), &arr1(&[1.0f64; 10]));
+        assert_eq!(trace.get(), arr1(&[1.0f64; 10]));
 
         trace.decay(1.0);
-        assert_eq!(trace.get(), &arr1(&[0.95f64; 10]));
+        assert_eq!(trace.get(), arr1(&[0.95f64; 10]));
 
         trace.update(&arr1(&[1.0f64; 10]));
-        assert_eq!(trace.get(), &arr1(&[1.95f64; 10]));
+        assert_eq!(trace.get(), arr1(&[1.95f64; 10]));
     }
 
     #[test]
@@ -84,18 +83,18 @@ mod tests {
             eligibility: arr1(&[0.0f64; 10]),
         };
 
-        assert_eq!(trace.get(), &arr1(&[0.0f64; 10]));
+        assert_eq!(trace.get(), arr1(&[0.0f64; 10]));
 
         trace.decay(1.0);
-        assert_eq!(trace.get(), &arr1(&[0.0f64; 10]));
+        assert_eq!(trace.get(), arr1(&[0.0f64; 10]));
 
         trace.update(&arr1(&[1.0f64; 10]));
-        assert_eq!(trace.get(), &arr1(&[1.0f64; 10]));
+        assert_eq!(trace.get(), arr1(&[1.0f64; 10]));
 
         trace.decay(1.0);
-        assert_eq!(trace.get(), &arr1(&[0.95f64; 10]));
+        assert_eq!(trace.get(), arr1(&[0.95f64; 10]));
 
         trace.update(&arr1(&[1.0f64; 10]));
-        assert_eq!(trace.get(), &arr1(&[1.0f64; 10]));
+        assert_eq!(trace.get(), arr1(&[1.0f64; 10]));
     }
 }
