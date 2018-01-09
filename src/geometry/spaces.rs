@@ -5,18 +5,29 @@ use std::iter::FromIterator;
 use std::slice::Iter;
 
 
+/// Trait for defining geometric spaces.
 pub trait Space {
+    /// The data representation of the space.
     type Repr: Clone;
 
+    /// Generate a random sample from the space.
     fn sample(&self, rng: &mut ThreadRng) -> Self::Repr;
 
+    /// Return the number of dimensions in the space.
     fn dim(&self) -> usize;
+
+    /// Return the number of linear combinations of values in the space.
     fn span(&self) -> Span;
 }
 
+/// Geometric space for agent actions.
+///
+/// Currently the only supported representation for actions. In future we will need to handle
+/// continuous actions.
 pub type ActionSpace = UnitarySpace<dimensions::Discrete>;
 
 
+/// An empty space.
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct EmptySpace;
 
@@ -37,6 +48,7 @@ impl Space for EmptySpace {
 }
 
 
+/// 1-dimensional space.
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct UnitarySpace<D: Dimension>(D);
 
@@ -69,6 +81,7 @@ impl<D: Dimension> Space for UnitarySpace<D> {
 }
 
 
+/// 2-dimensional homogeneous space.
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct PairSpace<D1, D2>((D1, D2))
     where D1: Dimension,
@@ -104,6 +117,7 @@ impl<D1: Dimension, D2: Dimension> Space for PairSpace<D1, D2> {
 }
 
 
+/// N-dimensional homogeneous space.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct RegularSpace<D: Dimension> {
     dimensions: Vec<D>,
