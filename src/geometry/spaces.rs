@@ -18,9 +18,9 @@ pub type ActionSpace = UnitarySpace<dimensions::Discrete>;
 
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
-pub struct NullSpace;
+pub struct EmptySpace;
 
-impl Space for NullSpace {
+impl Space for EmptySpace {
     type Repr = ();
 
     fn sample(&self, _: &mut ThreadRng) -> Self::Repr {
@@ -237,7 +237,7 @@ impl<D: Dimension> IntoIterator for RegularSpace<D> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Space, NullSpace, UnitarySpace, PairSpace, RegularSpace};
+    use super::{Space, EmptySpace, UnitarySpace, PairSpace, RegularSpace};
     use geometry::Span;
     use geometry::dimensions::*;
     use ndarray::arr1;
@@ -245,7 +245,7 @@ mod tests {
 
     #[test]
     fn test_null_space() {
-        let ns = NullSpace;
+        let ns = EmptySpace;
         let mut rng = thread_rng();
 
         assert_eq!(ns.sample(&mut rng), ());
