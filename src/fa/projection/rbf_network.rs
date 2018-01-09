@@ -5,6 +5,7 @@ use ndarray::{Axis, ArrayView, Array1, Array2};
 use utils::cartesian_product;
 
 
+/// Radial basis function network projector.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct RBFNetwork {
     mu: Array2<f64>,

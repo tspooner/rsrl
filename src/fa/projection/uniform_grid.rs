@@ -4,6 +4,7 @@ use geometry::dimensions::{Dimension, Continuous, Partitioned};
 use ndarray::Array1;
 
 
+/// Fixed uniform basis projector.
 #[derive(Serialize, Deserialize)]
 pub struct UniformGrid {
     n_features: usize,

@@ -11,6 +11,7 @@ use utils::cartesian_product;
 // TODO: Add builder which allows use to configure whether to use coefficient scaling or not.
 
 
+/// Fourier basis projector.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Fourier {
     order: u8,

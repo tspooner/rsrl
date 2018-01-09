@@ -28,6 +28,7 @@ impl Function<[f64], f64> for BasisFunction {
 }
 
 
+/// Heterogeneous basis network projector for arbitrary combinations of basis functions.
 pub struct BasisNetwork {
     bases: Vec<BasisFunction>,
 }

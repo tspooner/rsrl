@@ -5,6 +5,7 @@ use geometry::dimensions::Continuous;
 use ndarray::Array1;
 
 
+/// Generalised tile coding scheme with hashing.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct TileCoding<H: BuildHasher> {
     hasher_builder: H,

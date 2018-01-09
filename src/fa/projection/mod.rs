@@ -3,13 +3,18 @@ use geometry::norms::l1;
 use ndarray::Array1;
 
 
+/// Projected feature vector representation.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum Projection {
+    /// Dense, floating-point activation vector.
     Dense(Array1<f64>),
+
+    /// Sparse, index-based activation vector.
     Sparse(Array1<usize>),
 }
 
 impl Projection {
+    /// Compute the l1 normalisation constant of the projection.
     pub fn z(&self) -> f64 {
         match self {
             &Projection::Dense(ref phi) => l1(phi.as_slice().unwrap()),
@@ -31,17 +36,29 @@ impl Into<Projection> for Array1<usize> {
 }
 
 
+/// Trait for basis projectors.
 pub trait Projector<S: Space> {
+    /// Project data from an input space onto the basis.
     fn project(&self, input: &S::Repr) -> Projection;
+
+    /// Return the number of dimensions in the basis space.
+    fn dim(&self) -> usize;
+
+    /// Return the number of features in the basis space.
+    fn size(&self) -> usize;
+
+    /// Return the maximum number of active features in the basis space.
+    fn activation(&self) -> usize;
+
+    /// Check for equivalence with another projector of the same type.
+    fn equivalent(&self, other: &Self) -> bool;
+
+    /// Project data from an input space onto the basis and convert into a raw, dense vector.
     fn project_expanded(&self, input: &S::Repr) -> Array1<f64> {
         self.expand_projection(self.project(input))
     }
 
-    fn dim(&self) -> usize;
-    fn size(&self) -> usize;
-    fn activation(&self) -> usize;
-    fn equivalent(&self, other: &Self) -> bool;
-
+    /// Expand and normalise a given projection, and convert into a raw, dense vector.
     fn expand_projection(&self, projection: Projection) -> Array1<f64> {
         let z = match projection.z() {
             val if val.abs() < 1e-6 => 1.0,
