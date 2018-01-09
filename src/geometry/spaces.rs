@@ -1,6 +1,7 @@
 use super::Span;
 use super::dimensions::{self, Dimension, Partitioned};
 use rand::ThreadRng;
+use std::ops::{Add, AddAssign};
 use std::iter::FromIterator;
 use std::slice::Iter;
 
@@ -143,8 +144,9 @@ impl<D: Dimension> RegularSpace<D> {
     }
 
     pub fn push(mut self, d: D) -> Self {
-        self.span = self.span * d.span();
+        self.span = self.span*d.span();
         self.dimensions.push(d);
+
         self
     }
 
@@ -188,13 +190,7 @@ impl<D: Dimension> Space for RegularSpace<D> {
 
 impl<D: Dimension> FromIterator<D> for RegularSpace<D> {
     fn from_iter<I: IntoIterator<Item = D>>(iter: I) -> Self {
-        let mut s = Self::empty();
-
-        for i in iter {
-            s = s.push(i);
-        }
-
-        s
+        Self::new(iter.into_iter().collect())
     }
 }
 
@@ -207,46 +203,36 @@ impl<D: Dimension> IntoIterator for RegularSpace<D> {
     }
 }
 
+impl<D: Dimension> Add<D> for RegularSpace<D> {
+    type Output = Self;
 
-// pub struct HeterogeneousSpace {
-// dimensions: Vec<Dimension>,
-// span: Span
-// }
+    fn add(self, rhs: D) -> Self::Output {
+        self.push(rhs)
+    }
+}
 
-// impl HeterogeneousSpace {
-// pub fn new() -> Self {
-// HeterogeneousSpace {
-// dimensions: vec![],
-// span: Span::Null
-// }
-// }
+impl<D: Dimension> Add<RegularSpace<D>> for RegularSpace<D> {
+    type Output = Self;
 
-// pub fn push(mut self, d: D) -> Self {
-// self.span = self.span * d.span();
-// self.dimensions.push(d);
-// self
-// }
+    fn add(self, rhs: RegularSpace<D>) -> Self::Output {
+        FromIterator::from_iter(self.into_iter().chain(rhs.into_iter()))
+    }
+}
 
-// pub fn iter(&self) -> Iter<Dimension> {
-// self.dimensions.iter()
-// }
-// }
+impl<D: Dimension> AddAssign<D> for RegularSpace<D> {
+    fn add_assign(&mut self, rhs: D) {
+        self.span = self.span*rhs.span();
+        self.dimensions.push(rhs);
+    }
+}
 
-// impl<D: Dimension> Space for HeterogeneousSpace<D> {
-// type Repr = Vec<D::Value>;
-
-// fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
-// self.dimensions.iter().map(|d| d.sample(rng)).collect()
-// }
-
-// fn dim(&self) -> usize {
-// self.dimensions.len()
-// }
-
-// fn span(&self) -> Span {
-// self.span
-// }
-// }
+impl<D: Dimension> AddAssign<RegularSpace<D>> for RegularSpace<D> {
+    fn add_assign(&mut self, rhs: RegularSpace<D>) {
+        for d in rhs.dimensions {
+            self.dimensions.push(d);
+        }
+    }
+}
 
 
 #[cfg(test)]
@@ -333,5 +319,23 @@ mod tests {
 
         assert_eq!(space.dim(), 2);
         assert_eq!(space.span(), Span::Finite(4));
+    }
+
+    #[test]
+    fn test_regular_space_sugar() {
+        let mut sa = RegularSpace::new(vec![Discrete::new(2); 2]);
+        let mut sb = RegularSpace::empty() + Discrete::new(2) + Discrete::new(2);
+
+        assert_eq!(sa.dim(), sb.dim());
+        assert_eq!(sa.span(), sb.span());
+
+        sa += Discrete::new(3);
+        sb += Discrete::new(3);
+
+        assert_eq!(sa.dim(), 3);
+        assert_eq!(sa.dim(), sb.dim());
+
+        assert_eq!(sa.span(), Span::Finite(4)*Span::Finite(3));
+        assert_eq!(sa.span(), sb.span());
     }
 }
