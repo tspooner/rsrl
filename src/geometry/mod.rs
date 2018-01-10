@@ -1,3 +1,5 @@
+//! Geometry module.
+
 pub mod norms;
 
 mod span;

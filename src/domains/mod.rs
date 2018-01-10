@@ -1,3 +1,5 @@
+//! Learning benchmark domains module.
+
 use geometry::Space;
 use geometry::dimensions;
 use geometry::dimensions::Dimension;

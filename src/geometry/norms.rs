@@ -1,3 +1,5 @@
+//! Normalisation utilities module.
+
 /// Computes the L1 norm.
 #[inline]
 pub fn l1(x: &[f64]) -> f64 {

@@ -1,3 +1,5 @@
+//! Function approximation module.
+
 use geometry::Space;
 
 /// An interface for dealing with functions that may be evaluated.

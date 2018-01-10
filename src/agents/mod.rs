@@ -1,3 +1,5 @@
+//! Learning agents module.
+
 pub mod memory;
 
 pub mod control;

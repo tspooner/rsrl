@@ -1,3 +1,5 @@
+//! Control agents module.
+
 use domains::Transition;
 use geometry::Space;
 use policies::Policy;

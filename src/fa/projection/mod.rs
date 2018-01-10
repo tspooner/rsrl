@@ -1,3 +1,5 @@
+//! Linear basis projection module.
+
 use geometry::Space;
 use geometry::norms::l1;
 use ndarray::Array1;

@@ -1,3 +1,5 @@
+//! Dimension representations module.
+
 use super::span::Span;
 
 use rand::ThreadRng;

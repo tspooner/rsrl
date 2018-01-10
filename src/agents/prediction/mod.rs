@@ -1,3 +1,5 @@
+//! Prediction agents module.
+
 use geometry::Space;
 
 

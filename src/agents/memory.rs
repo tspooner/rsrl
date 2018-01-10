@@ -1,3 +1,5 @@
+//! Agent memory representation module.
+
 use Parameter;
 use ndarray::Array1;
 
