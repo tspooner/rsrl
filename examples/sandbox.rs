@@ -18,27 +18,31 @@ fn main() {
         let n_actions = domain.action_space().span().into();
 
         // Build the linear value functions using a fourier basis projection.
-        let v_func = Linear::new(Fourier::from_space(3, domain.state_space()), 1);
-        let q_func = Linear::new(Fourier::from_space(3, domain.state_space()), n_actions);
+        let bases = Fourier::from_space(3, domain.state_space());
+        let v_func = Linear::new(bases.clone(), 1);
+        let q_func = Linear::new(bases, n_actions);
 
-        // Build a stochastic behaviour policy with exponentially decaying epsilon.
-        let policy = EpsilonGreedy::new(Parameter::exponential(0.99, 0.05, 0.99));
+        // Build a stochastic behaviour policy with exponential epsilon.
+        let eps = Parameter::exponential(0.99, 0.05, 0.99);
+        let policy = EpsilonGreedy::new(eps);
 
         GreedyGQ::new(q_func, v_func, policy, 1e-1, 1e-3, 0.99)
     };
 
+    let domain_builder = Box::new(MountainCar::default);
+
     // Training phase:
     let _training_result = {
-        // Build a serial learning experiment with a maximum of 1000 steps per episode.
-        let e = SerialExperiment::new(&mut agent, Box::new(MountainCar::default), 1000);
+        // Start a serial learning experiment up to 1000 steps per episode.
+        let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
 
-        // Realise 5000 episodes of the experiment generator.
+        // Realise 1000 episodes of the experiment generator.
         run(e, 1000, Some(logger.clone()))
     };
 
     // Testing phase:
     let testing_result =
-        Evaluation::new(&mut agent, Box::new(MountainCar::default)).next().unwrap();
+        Evaluation::new(&mut agent, domain_builder).next().unwrap();
 
     info!(logger, "solution"; testing_result);
 }

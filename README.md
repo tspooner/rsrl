@@ -1,23 +1,31 @@
 # RSRL ([api](https://tspooner.github.io/rsrl))
 
-[![Build Status](https://travis-ci.org/tspooner/rsrl.svg?branch=master)](https://travis-ci.org/tspooner/rsrl) [![Coverage Status](https://coveralls.io/repos/github/tspooner/rsrl/badge.svg?branch=master)](https://coveralls.io/github/tspooner/rsrl?branch=master)
+[![Crates.io](https://img.shields.io/crates/v/rustc-serialize.svg)]()
+[![Build Status](https://travis-ci.org/tspooner/rsrl.svg?branch=master)](https://travis-ci.org/tspooner/rsrl)
+[![Coverage Status](https://coveralls.io/repos/github/tspooner/rsrl/badge.svg?branch=master)](https://coveralls.io/github/tspooner/rsrl?branch=master)
 
-## Summary
-The ``rsrl`` crate provides generic constructs for running reinforcement
-learning (RL) experiments. The main objective of the project is to provide a
-simple, extensible framework to investigate new algorithms and methods for
-solving learning problems. It aims to combine _speed_, _safety_ and _ease of
-use_.
+> Reinforcement learning should be _fast_, _safe_ and _easy to use_.
 
+## Overview
 
-## Example
-The [examples](https://github.com/tspooner/rsrl/tree/master/examples) directory
-will be helpful here.
+``rsrl`` provides generic constructs for running reinforcement learning (RL)
+experiments by providing a simple, extensible framework and efficient
+implementations of existing methods for rapid prototyping.
 
-See below for a simple example script which makes use of the
-[GreedyGQ](http://old.sztaki.hu/~szcsaba/papers/ICML10_controlGQ.pdf) algorithm
-with using a fourier basis function approximator to represent the action-value
-function applied to the canonical mountain car problem.
+## Installation
+```toml
+[dependencies]
+rsrl = "0.2"
+```
+
+## Usage
+The code below shows how one could use `rsrl` to evaluate a
+[GreedyGQ](http://old.sztaki.hu/~szcsaba/papers/ICML10_controlGQ.pdf) agent
+using a Fourier basis function approximator to solve the canonical mountain car
+problem.
+
+> See [examples/](https://github.com/tspooner/rsrl/tree/master/examples) for
+> more...
 
 ```Rust
 extern crate rsrl;
@@ -40,28 +48,41 @@ fn main() {
         let n_actions = domain.action_space().span().into();
 
         // Build the linear value functions using a fourier basis projection.
-        let v_func = Linear::new(Fourier::from_space(3, domain.state_space()), 1);
-        let q_func = Linear::new(Fourier::from_space(3, domain.state_space()), n_actions);
+        let bases = Fourier::from_space(3, domain.state_space());
+        let v_func = Linear::new(bases.clone(), 1);
+        let q_func = Linear::new(bases, n_actions);
 
-        // Build a stochastic behaviour policy with exponentially decaying epsilon.
-        let policy = EpsilonGreedy::new(Parameter::exponential(0.99, 0.05, 0.99));
+        // Build a stochastic behaviour policy with exponential epsilon.
+        let eps = Parameter::exponential(0.99, 0.05, 0.99);
+        let policy = EpsilonGreedy::new(eps);
 
         GreedyGQ::new(q_func, v_func, policy, 1e-1, 1e-3, 0.99)
     };
 
+    let domain_builder = Box::new(MountainCar::default);
+
     // Training phase:
     let _training_result = {
-        // Build a serial learning experiment with a maximum of 1000 steps per episode.
-        let e = SerialExperiment::new(&mut agent, Box::new(MountainCar::default), 1000);
+        // Start a serial learning experiment up to 1000 steps per episode.
+        let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
 
-        // Realise 5000 episodes of the experiment generator.
+        // Realise 1000 episodes of the experiment generator.
         run(e, 1000, Some(logger.clone()))
     };
 
     // Testing phase:
     let testing_result =
-        Evaluation::new(&mut agent, Box::new(MountainCar::default)).next().unwrap();
+        Evaluation::new(&mut agent, domain_builder).next().unwrap();
 
     info!(logger, "solution"; testing_result);
 }
 ```
+
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to
+discuss what you would like to change.
+
+Please make sure to update tests as appropriate.
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
