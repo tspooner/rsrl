@@ -110,3 +110,6 @@ pub use self::hiv::HIVTreatment;
 mod grid_world;
 mod cliff_walk;
 pub use self::cliff_walk::CliffWalk;
+
+mod openai;
+pub use self::openai::OpenAIGym;

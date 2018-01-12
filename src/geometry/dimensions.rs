@@ -8,6 +8,7 @@ use rand::distributions::{Range as RngRange, IndependentSample};
 use serde::{Deserialize, Deserializer, de};
 use serde::de::Visitor;
 use std::{cmp, f64, fmt};
+use std::fmt::Debug;
 use std::ops::Range;
 
 
@@ -16,7 +17,7 @@ use std::ops::Range;
 /// The basic dimension type.
 pub trait Dimension {
     /// The corresponding primitive type.
-    type Value: Clone;
+    type Value: Debug + Clone;
 
     /// Sample a random value contained by this dimension.
     fn sample(&self, rng: &mut ThreadRng) -> Self::Value;
