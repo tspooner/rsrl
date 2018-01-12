@@ -1,6 +1,7 @@
 use super::Span;
 use super::dimensions::{self, Dimension, Partitioned};
 use rand::ThreadRng;
+use std::fmt::Debug;
 use std::iter::FromIterator;
 use std::slice::Iter;
 
@@ -8,7 +9,7 @@ use std::slice::Iter;
 /// Trait for defining geometric spaces.
 pub trait Space {
     /// The data representation of the space.
-    type Repr: Clone;
+    type Repr: Debug + Clone;
 
     /// Generate a random sample from the space.
     fn sample(&self, rng: &mut ThreadRng) -> Self::Repr;
