@@ -19,11 +19,11 @@ pub mod utils;
 mod consts;
 mod macros;
 
-pub mod parameter;
-pub use self::parameter::Parameter;
-
 mod experiment;
 pub use self::experiment::*;
+
+mod parameter;
+pub use self::parameter::Parameter;
 
 pub mod agents;
 pub mod domains;
