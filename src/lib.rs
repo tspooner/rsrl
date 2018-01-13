@@ -15,7 +15,7 @@ extern crate serde_test;
 // extern crate futures;
 extern crate rand;
 
-mod utils;
+pub mod utils;
 mod consts;
 mod macros;
 

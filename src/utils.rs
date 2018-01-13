@@ -45,9 +45,12 @@ pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
 /// # Example
 ///
 /// ```
+/// use rsrl::utils::partial_cartesian;
+///
 /// let partial_product = vec![vec![1, 4], vec![1, 5], vec![2, 4], vec![2, 5]];
-/// let items = &[6, 7];
-/// let next_product = partial_cartesian(partial_product, items);
+/// let items = vec![6, 7];
+/// let next_product = partial_cartesian(partial_product, &items);
+///
 /// assert_eq!(next_product, vec![vec![1, 4, 6],
 ///                               vec![1, 4, 7],
 ///                               vec![1, 5, 6],
@@ -75,8 +78,11 @@ pub fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &Vec<T>) -> Vec<Vec<T>> {
 /// # Example
 ///
 /// ```
-/// let lists: &[&[_]] = &[&[1, 2], &[4, 5], &[6, 7]];
-/// let product = cartesian_product(lists);
+/// use rsrl::utils::cartesian_product;
+///
+/// let lists = vec![vec![1, 2], vec![4, 5], vec![6, 7]];
+/// let product = cartesian_product(&lists);
+///
 /// assert_eq!(product, vec![vec![1, 4, 6],
 ///                          vec![1, 4, 7],
 ///                          vec![1, 5, 6],
