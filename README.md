@@ -82,7 +82,7 @@ fn main() {
 Pull requests are welcome. For major changes, please open an issue first to
 discuss what you would like to change.
 
-Please make sure to update tests as appropriate.
+Please make sure to update tests as appropriate and adhere to the angularjs commit message conventions (see [here](https://gist.github.com/stephenparish/9941e89d80e2bc58a153)).
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
