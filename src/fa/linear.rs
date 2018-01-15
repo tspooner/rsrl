@@ -87,7 +87,7 @@ impl<S: Space, P: Projector<S>> QFunction<S> for Linear<S, P> {
 
     fn evaluate_phi(&self, phi: &Projection) -> Vec<f64> {
         match phi {
-            &Projection::Dense(ref dense_phi) => (self.weights.t().dot(dense_phi)).into_raw_vec(),
+            &Projection::Dense(ref dense_phi) => (self.weights.t().dot(&(dense_phi/phi.z()))).into_raw_vec(),
             &Projection::Sparse(ref sparse_phi) =>
                 (0..self.weights.cols()).map(|c| {
                     sparse_phi.iter().fold(0.0, |acc, idx| acc + self.weights[(*idx, c)])
