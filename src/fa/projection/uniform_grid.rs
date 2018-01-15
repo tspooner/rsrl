@@ -5,7 +5,7 @@ use ndarray::Array1;
 
 
 /// Fixed uniform basis projector.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct UniformGrid {
     n_features: usize,
     input_space: RegularSpace<Partitioned>,
