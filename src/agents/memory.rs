@@ -3,71 +3,54 @@
 use Parameter;
 use ndarray::Array1;
 
-pub enum Trace {
-    Accumulating {
-        lambda: Parameter,
-        eligibility: Array1<f64>,
-    },
-    Replacing {
-        lambda: Parameter,
-        eligibility: Array1<f64>,
-    },
-    Null {
-        eligibility: Array1<f64>
-    }
-    // TODO: Dutch traces (need to be able to share alpha parameter)
+
+pub enum TraceType {
+    Accumulating,
+    Replacing,
+}
+
+
+pub struct Trace {
+    pub trace_type: TraceType,
+
+    pub lambda: Parameter,
+    pub eligibility: Array1<f64>,
 }
 
 impl Trace {
-    pub fn accumulating<T: Into<Parameter>>(lambda: T, activation: usize) -> Trace {
-        Trace::Accumulating {
+    pub fn new<T: Into<Parameter>>(trace_type: TraceType, lambda: T, activation: usize) -> Trace {
+        Trace {
+            trace_type: trace_type,
+
             lambda: lambda.into(),
             eligibility: Array1::zeros((activation,)),
         }
+    }
+
+    pub fn accumulating<T: Into<Parameter>>(lambda: T, activation: usize) -> Trace {
+        Trace::new(TraceType::Accumulating, lambda, activation)
     }
 
     pub fn replacing<T: Into<Parameter>>(lambda: T, activation: usize) -> Trace {
-        Trace::Replacing {
-            lambda: lambda.into(),
-            eligibility: Array1::zeros((activation,)),
-        }
-    }
-
-    pub fn null(activation: usize) -> Trace {
-        Trace::Null {
-            eligibility: Array1::zeros((activation,)),
-        }
+        Trace::new(TraceType::Replacing, lambda, activation)
     }
 
     pub fn get(&self) -> Array1<f64> {
-        match self {
-            &Trace::Accumulating { ref eligibility, .. } |
-            &Trace::Replacing { ref eligibility, .. } |
-            &Trace::Null { ref eligibility } => eligibility.clone(),
-        }
+        self.eligibility.clone()
     }
 
     pub fn decay(&mut self, rate: f64) {
-        match self {
-            &mut Trace::Accumulating { ref mut eligibility, lambda } |
-            &mut Trace::Replacing { ref mut eligibility, lambda } => {
-                *eligibility *= rate*lambda;
-            },
-            &mut Trace::Null { ref mut eligibility } => *eligibility *= rate,
-        }
+        self.eligibility *= rate;
     }
 
-    pub fn update(&mut self, phi: &Array1<f64>) {
-        match self {
-            &mut Trace::Accumulating { ref mut eligibility, .. } => {
-                *eligibility += phi;
-            }
-            &mut Trace::Replacing { ref mut eligibility, .. } => {
-                eligibility.zip_mut_with(phi, |val, &p| {
-                    *val = f64::max(-1.0, f64::min(1.0, *val + p));
+    pub fn update(&mut self, activation: &Array1<f64>) {
+        match self.trace_type {
+            TraceType::Accumulating => self.eligibility += activation,
+            TraceType::Replacing => {
+                self.eligibility.zip_mut_with(activation, |val, &a| {
+                    *val = f64::max(-1.0, f64::min(1.0, *val + a));
                 });
             },
-            &mut Trace::Null { ref mut eligibility } => *eligibility = phi.to_owned(),
         }
     }
 }
@@ -80,20 +63,19 @@ mod tests {
 
     #[test]
     fn test_accumulating() {
-        let mut trace = Trace::Accumulating {
-            lambda: 0.95.into(),
-            eligibility: arr1(&[0.0f64; 10]),
-        };
+        let mut trace = Trace::accumulating(0.95, 10);
 
         assert_eq!(trace.get(), arr1(&[0.0f64; 10]));
 
-        trace.decay(1.0);
+        let l = trace.lambda.value();
+        trace.decay(l);
         assert_eq!(trace.get(), arr1(&[0.0f64; 10]));
 
         trace.update(&arr1(&[1.0f64; 10]));
         assert_eq!(trace.get(), arr1(&[1.0f64; 10]));
 
-        trace.decay(1.0);
+        let l = trace.lambda.value();
+        trace.decay(l);
         assert_eq!(trace.get(), arr1(&[0.95f64; 10]));
 
         trace.update(&arr1(&[1.0f64; 10]));
@@ -102,20 +84,19 @@ mod tests {
 
     #[test]
     fn test_replacing() {
-        let mut trace = Trace::Replacing {
-            lambda: 0.95.into(),
-            eligibility: arr1(&[0.0f64; 10]),
-        };
+        let mut trace = Trace::replacing(0.95, 10);
 
         assert_eq!(trace.get(), arr1(&[0.0f64; 10]));
 
-        trace.decay(1.0);
+        let l = trace.lambda.value();
+        trace.decay(l);
         assert_eq!(trace.get(), arr1(&[0.0f64; 10]));
 
         trace.update(&arr1(&[1.0f64; 10]));
         assert_eq!(trace.get(), arr1(&[1.0f64; 10]));
 
-        trace.decay(1.0);
+        let l = trace.lambda.value();
+        trace.decay(l);
         assert_eq!(trace.get(), arr1(&[0.95f64; 10]));
 
         trace.update(&arr1(&[1.0f64; 10]));

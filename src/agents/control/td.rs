@@ -154,13 +154,15 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for QLambda<S, M, P>
         let phi_s = self.q_func.projector.project(s);
         let phi_ns = self.q_func.projector.project(ns);
 
+        let qs = self.q_func.evaluate_phi(&phi_s);
         let nqs = self.q_func.evaluate_phi(&phi_ns);
         let na = Greedy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - self.q_func.evaluate_action_phi(&phi_s, a);
+        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
 
-        if a == Greedy.sample(&self.q_func.evaluate_phi(&phi_s)) {
-            self.trace.decay(self.gamma.value());
+        if a == Greedy.sample(&qs) {
+            let rate = self.trace.lambda.value()*self.gamma.value();
+            self.trace.decay(rate);
         } else {
             self.trace.decay(0.0);
         }
@@ -328,8 +330,10 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for SARSALambda<S, M, P>
 
         let td_error = t.reward + self.gamma*nqs[na] - self.q_func.evaluate_action_phi(&phi_s, a);
 
-        self.trace.decay(self.gamma.value());
+        let rate = self.trace.lambda.value()*self.gamma.value();
+        self.trace.decay(rate);
         self.trace.update(&self.q_func.projector.expand_projection(phi_s));
+
         self.q_func.update_action_phi(&Projection::Dense(self.trace.get()), a, self.alpha*td_error);
     }
 

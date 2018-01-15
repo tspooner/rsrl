@@ -87,7 +87,8 @@ impl<S: Space, P: Projector<S>> PredictionAgent<S> for TDLambda<S, P> {
         let td_error = r + self.gamma*self.v_func.evaluate_phi(&phi_ns) -
             self.v_func.evaluate_phi(&phi_s);
 
-        self.trace.decay(self.gamma.value());
+        let rate = self.trace.lambda.value()*self.gamma.value();
+        self.trace.decay(rate);
         self.trace.update(&self.v_func.projector.expand_projection(phi_s));
 
         self.v_func.update_phi(&Projection::Dense(self.trace.get()), self.alpha*td_error);
