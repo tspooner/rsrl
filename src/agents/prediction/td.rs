@@ -81,7 +81,7 @@ impl<S: Space, P: Projector<S>> TDLambda<S, P> {
 
 impl<S: Space, P: Projector<S>> PredictionAgent<S> for TDLambda<S, P> {
     fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.v_func.evaluate(s)
+        self.fa_theta.evaluate(s)
     }
 
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {

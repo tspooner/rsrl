@@ -43,7 +43,7 @@ impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
     where V: VFunction<S> + Projector<S>
 {
     fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.v_func.evaluate(s)
+        self.fa_theta.evaluate(s)
     }
 
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
@@ -114,7 +114,7 @@ impl<S: Space, V> PredictionAgent<S> for TDC<S, V>
     where V: VFunction<S> + Projector<S>
 {
     fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.v_func.evaluate(s)
+        self.fa_theta.evaluate(s)
     }
 
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
