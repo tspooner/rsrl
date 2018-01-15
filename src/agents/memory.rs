@@ -19,6 +19,26 @@ pub enum Trace {
 }
 
 impl Trace {
+    pub fn accumulating<T: Into<Parameter>>(lambda: T, activation: usize) -> Trace {
+        Trace::Accumulating {
+            lambda: lambda.into(),
+            eligibility: Array1::zeros((activation,)),
+        }
+    }
+
+    pub fn replacing<T: Into<Parameter>>(lambda: T, activation: usize) -> Trace {
+        Trace::Replacing {
+            lambda: lambda.into(),
+            eligibility: Array1::zeros((activation,)),
+        }
+    }
+
+    pub fn null(activation: usize) -> Trace {
+        Trace::Null {
+            eligibility: Array1::zeros((activation,)),
+        }
+    }
+
     pub fn get(&self) -> Array1<f64> {
         match self {
             &Trace::Accumulating { ref eligibility, .. } |
@@ -31,7 +51,7 @@ impl Trace {
         match self {
             &mut Trace::Accumulating { ref mut eligibility, lambda } |
             &mut Trace::Replacing { ref mut eligibility, lambda } => {
-                *eligibility *= rate * lambda;
+                *eligibility *= rate*lambda;
             },
             &mut Trace::Null { ref mut eligibility } => *eligibility *= rate,
         }
@@ -43,7 +63,9 @@ impl Trace {
                 *eligibility += phi;
             }
             &mut Trace::Replacing { ref mut eligibility, .. } => {
-                eligibility.zip_mut_with(phi, |val, &p| { *val = f64::min(1.0, *val + p); });
+                eligibility.zip_mut_with(phi, |val, &p| {
+                    *val = f64::max(-1.0, f64::min(1.0, *val + p));
+                });
             },
             &mut Trace::Null { ref mut eligibility } => *eligibility = phi.to_owned(),
         }
