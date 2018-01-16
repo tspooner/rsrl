@@ -6,6 +6,7 @@ extern crate blas;
 extern crate openblas_src;
 
 #[macro_use] extern crate ndarray;
+extern crate ndarray_linalg;
 
 extern crate serde;
 extern crate serde_json;
