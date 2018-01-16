@@ -9,9 +9,7 @@ pub trait Function<I: ?Sized, O> {
     fn evaluate(&self, input: &I) -> O;
 }
 
-impl<I: ?Sized, O, T> Function<I, O> for Box<T>
-    where T: Function<I, O>
-{
+impl<I: ?Sized, O, T> Function<I, O> for Box<T> where T: Function<I, O> {
     fn evaluate(&self, input: &I) -> O {
         (**self).evaluate(input)
     }
@@ -23,11 +21,9 @@ pub trait Parameterised<I: ?Sized, U> {
     fn update(&mut self, input: &I, update: U);
 }
 
-impl<I: ?Sized, U, T> Parameterised<I, U> for Box<T>
-    where T: Parameterised<I, U>
-{
-    fn update(&mut self, input: &I, update: U) {
-        (**self).update(input, update)
+impl<I: ?Sized, E, T> Parameterised<I, E> for Box<T> where T: Parameterised<I, E> {
+    fn update(&mut self, input: &I, error: E) {
+        (**self).update(input, error)
     }
 }
 
@@ -45,9 +41,7 @@ pub trait VFunction<S: Space>: Function<S::Repr, f64> + Parameterised<S::Repr, f
     }
 }
 
-impl<S: Space, T> VFunction<S> for Box<T>
-    where T: VFunction<S>
-{
+impl<S: Space, T> VFunction<S> for Box<T> where T: VFunction<S> {
     fn evaluate_phi(&self, phi: &Projection) -> f64 {
         (**self).evaluate_phi(phi)
     }
@@ -84,8 +78,7 @@ pub trait QFunction<S: Space>: Function<S::Repr, Vec<f64>> + Parameterised<S::Re
     }
 }
 
-impl<S: Space, T> QFunction<S> for Box<T> where T: QFunction<S>
-{
+impl<S: Space, T> QFunction<S> for Box<T> where T: QFunction<S> {
     fn evaluate_action(&self, input: &S::Repr, action: usize) -> f64 {
         (**self).evaluate_action(input, action)
     }
