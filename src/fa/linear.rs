@@ -1,7 +1,7 @@
 use Matrix;
 use super::{Function, Parameterised, VFunction, QFunction, Projector, Projection};
 use geometry::Space;
-use ndarray::{ArrayView};
+use ndarray::ArrayView;
 use std::marker::PhantomData;
 
 
@@ -23,6 +23,14 @@ impl<S: Space, P: Projector<S>> Linear<S, P> {
 
             phantom: PhantomData,
         }
+    }
+
+    pub fn assign(&mut self, values: Matrix<f64>) {
+        self.weights = values;
+    }
+
+    pub fn assign_cols(&mut self, values: Matrix<f64>) {
+        self.weights = values.broadcast(self.weights.dim()).unwrap().to_owned();
     }
 }
 

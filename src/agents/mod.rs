@@ -9,6 +9,11 @@ pub use self::control::ControlAgent;
 pub use self::prediction::PredictionAgent;
 
 
+pub trait BatchAgent {
+    fn consolidate(&mut self);
+}
+
+
 // TODO
 // Proximal gradient-descent methods:
 // https://arxiv.org/pdf/1210.4893.pdf
