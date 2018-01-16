@@ -37,7 +37,7 @@ blas = "0.19"
 openblas-src = "0.5"
 
 ndarray = { version = "0.11", features = ["blas", "serde-1"] }
-ndarray-linalg = "0.7"
+ndarray-linalg = "0.9"
 
 [dev-dependencies]
 seahash = "3.0"
