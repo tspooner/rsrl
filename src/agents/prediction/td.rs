@@ -1,7 +1,7 @@
 use Parameter;
 use agents::PredictionAgent;
 use agents::memory::Trace;
-use fa::{VFunction, Projector, Projection, Linear};
+use fa::{Function, VFunction, Projector, Projection, Linear};
 use geometry::Space;
 
 use std::marker::PhantomData;
@@ -16,9 +16,7 @@ pub struct TD<S: Space, V: VFunction<S>> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, V> TD<S, V>
-    where V: VFunction<S>
-{
+impl<S: Space, V: VFunction<S>> TD<S, V> {
     pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
@@ -34,9 +32,11 @@ impl<S: Space, V> TD<S, V>
     }
 }
 
-impl<S: Space, V> PredictionAgent<S> for TD<S, V>
-    where V: VFunction<S>
-{
+impl<S: Space, V: VFunction<S>> PredictionAgent<S> for TD<S, V> {
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.v_func.evaluate(s)
+    }
+
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
         let v = self.v_func.evaluate(s);
         let nv = self.v_func.evaluate(ns);
@@ -80,6 +80,10 @@ impl<S: Space, P: Projector<S>> TDLambda<S, P> {
 }
 
 impl<S: Space, P: Projector<S>> PredictionAgent<S> for TDLambda<S, P> {
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.v_func.evaluate(s)
+    }
+
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
         let phi_s = self.fa_theta.projector.project(s);
         let phi_ns = self.fa_theta.projector.project(ns);

@@ -1,6 +1,6 @@
 use Parameter;
 use agents::PredictionAgent;
-use fa::{VFunction, Projector, Projection, Linear};
+use fa::{Function, VFunction, Projector, Projection, Linear};
 use geometry::Space;
 
 
@@ -42,6 +42,10 @@ impl<S: Space, P: Projector<S>> GTD2<S, P> {
 impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
     where V: VFunction<S> + Projector<S>
 {
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.v_func.evaluate(s)
+    }
+
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
         let phi_s = self.fa_theta.projector.project(s);
         let phi_ns = self.fa_theta.projector.project(ns);
@@ -109,6 +113,10 @@ impl<S: Space, P: Projector<S>> TDC<S, P> {
 impl<S: Space, V> PredictionAgent<S> for TDC<S, V>
     where V: VFunction<S> + Projector<S>
 {
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.v_func.evaluate(s)
+    }
+
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
         let phi_s = self.fa_theta.projector.project(s);
         let phi_ns = self.fa_theta.projector.project(ns);

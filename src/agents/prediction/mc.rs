@@ -48,6 +48,10 @@ impl<S: Space, V> EveryVisitMC<S, V>
 impl<S: Space, V> PredictionAgent<S> for EveryVisitMC<S, V>
     where V: VFunction<S>
 {
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.v_func.evaluate(s)
+    }
+
     fn handle_transition(&mut self, s: &S::Repr, _: &S::Repr, r: f64) -> Option<f64> {
         self.observations.push((s.clone(), r));
 
