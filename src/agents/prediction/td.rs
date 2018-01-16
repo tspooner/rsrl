@@ -1,5 +1,5 @@
 use Parameter;
-use agents::PredictionAgent;
+use agents::{Agent, Predictor, TDPredictor};
 use agents::memory::Trace;
 use fa::{Function, VFunction, Projector, Projection, Linear};
 use geometry::Space;
@@ -32,24 +32,37 @@ impl<S: Space, V: VFunction<S>> TD<S, V> {
     }
 }
 
-impl<S: Space, V: VFunction<S>> PredictionAgent<S> for TD<S, V> {
-    fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.v_func.evaluate(s)
-    }
+impl<S: Space, V: VFunction<S>> Agent<S> for TD<S, V> {
+    type Sample = (S::Repr, S::Repr, f64);
 
-    fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let v = self.v_func.evaluate(s);
-        let nv = self.v_func.evaluate(ns);
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        let td_error = self.compute_error(sample);
 
-        let td_error = r + self.gamma*nv - v;
-        self.v_func.update(&s, self.alpha*td_error);
-
-        Some(td_error)
+        self.handle_error(&sample, td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, V: VFunction<S>> Predictor<S> for TD<S, V> {
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.v_func.evaluate(s)
+    }
+}
+
+impl<S: Space, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
+    fn handle_error(&mut self, sample: &Self::Sample, error: f64) {
+        self.v_func.update(&sample.0, self.alpha*error);
+    }
+
+    fn compute_error(&self, sample: &Self::Sample) -> f64 {
+        let v = self.v_func.evaluate(&sample.0);
+        let nv = self.v_func.evaluate(&sample.1);
+
+        sample.2 + self.gamma*nv - v
     }
 }
 
@@ -77,27 +90,34 @@ impl<S: Space, P: Projector<S>> TDLambda<S, P> {
             gamma: gamma.into(),
         }
     }
-}
 
-impl<S: Space, P: Projector<S>> PredictionAgent<S> for TDLambda<S, P> {
-    fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.fa_theta.evaluate(s)
+    fn compute_error_with_phi(&self, phi_s: &Projection, phi_ns: &Projection, reward: f64) -> f64 {
+        let v: f64 = self.fa_theta.evaluate_phi(phi_s);
+        let nv: f64 = self.fa_theta.evaluate_phi(phi_ns);
+
+        reward + self.gamma*nv - v
     }
 
-    fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let phi_s = self.fa_theta.projector.project(s);
-        let phi_ns = self.fa_theta.projector.project(ns);
-
+    fn handle_error_with_phi(&mut self, phi_s: Projection, error: f64) {
         let rate = self.trace.lambda.value()*self.gamma.value();
-        let td_error = r + self.gamma*self.fa_theta.evaluate_phi(&phi_ns) -
-            self.fa_theta.evaluate_phi(&phi_s);
 
         self.trace.decay(rate);
         self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
 
-        self.fa_theta.update_phi(&Projection::Dense(self.trace.get()), self.alpha*td_error);
+        self.fa_theta.update_phi(&Projection::Dense(self.trace.get()), self.alpha*error);
+    }
+}
 
-        Some(td_error)
+impl<S: Space, P: Projector<S>> Agent<S> for TDLambda<S, P> {
+    type Sample = (S::Repr, S::Repr, f64);
+
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
+        let phi_ns = self.fa_theta.projector.project(&sample.1);
+
+        let td_error = self.compute_error_with_phi(&phi_s, &phi_ns, sample.2);
+
+        self.handle_error_with_phi(phi_s, td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -105,6 +125,27 @@ impl<S: Space, P: Projector<S>> PredictionAgent<S> for TDLambda<S, P> {
         self.gamma = self.gamma.step();
 
         self.trace.decay(0.0);
+    }
+}
+
+impl<S: Space, P: Projector<S>> Predictor<S> for TDLambda<S, P> {
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.fa_theta.evaluate(s)
+    }
+}
+
+impl<S: Space, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {
+    fn handle_error(&mut self, sample: &Self::Sample, error: f64) {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
+
+        self.handle_error_with_phi(phi_s, error);
+    }
+
+    fn compute_error(&self, sample: &Self::Sample) -> f64 {
+        let v: f64 = self.fa_theta.evaluate(&sample.0);
+        let nv: f64 = self.fa_theta.evaluate(&sample.1);
+
+        sample.2 + self.gamma*nv - v
     }
 }
 

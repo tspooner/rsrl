@@ -5,12 +5,27 @@ pub mod memory;
 pub mod control;
 pub mod prediction;
 
-pub use self::control::ControlAgent;
-pub use self::prediction::PredictionAgent;
+use geometry::Space;
+pub use self::control::Controller;
+pub use self::prediction::{Predictor, TDPredictor};
 
 
-pub trait BatchAgent {
+pub trait Agent<S: Space> {
+    type Sample;
+
+    fn handle_sample(&mut self, sample: &Self::Sample);
+    fn handle_terminal(&mut self, s: &S::Repr);
+}
+
+
+pub trait BatchAgent<S: Space>: Agent<S> {
     fn consolidate(&mut self);
+
+    fn handle_batch(&mut self, batch: &Vec<Self::Sample>) {
+        for sample in batch.iter() {
+            self.handle_sample(sample);
+        }
+    }
 }
 
 

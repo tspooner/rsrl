@@ -1,5 +1,5 @@
 use Parameter;
-use agents::PredictionAgent;
+use agents::{Agent, Predictor};
 use fa::VFunction;
 use geometry::Space;
 use std::marker::PhantomData;
@@ -45,17 +45,13 @@ impl<S: Space, V> EveryVisitMC<S, V>
     }
 }
 
-impl<S: Space, V> PredictionAgent<S> for EveryVisitMC<S, V>
+impl<S: Space, V> Agent<S> for EveryVisitMC<S, V>
     where V: VFunction<S>
 {
-    fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.v_func.evaluate(s)
-    }
+    type Sample = (S::Repr, S::Repr, f64);
 
-    fn handle_transition(&mut self, s: &S::Repr, _: &S::Repr, r: f64) -> Option<f64> {
-        self.observations.push((s.clone(), r));
-
-        None
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        self.observations.push((sample.0.clone(), sample.2.clone()));
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -63,5 +59,13 @@ impl<S: Space, V> PredictionAgent<S> for EveryVisitMC<S, V>
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, V> Predictor<S> for EveryVisitMC<S, V>
+    where V: VFunction<S>
+{
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.v_func.evaluate(s)
     }
 }

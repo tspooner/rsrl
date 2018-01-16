@@ -1,7 +1,10 @@
 use Parameter;
-use agents::PredictionAgent;
+use agents::{Agent, Predictor, TDPredictor};
 use fa::{Function, VFunction, Projector, Projection, Linear};
 use geometry::Space;
+
+
+// TODO: Implement TDPredictor for all agents here.
 
 
 pub struct GTD2<S: Space, P: Projector<S>> {
@@ -39,18 +42,14 @@ impl<S: Space, P: Projector<S>> GTD2<S, P> {
     }
 }
 
-impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
-    where V: VFunction<S> + Projector<S>
-{
-    fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.fa_theta.evaluate(s)
-    }
+impl<S: Space, V: VFunction<S> + Projector<S>> Agent<S> for GTD2<S, V> {
+    type Sample = (S::Repr, S::Repr, f64);
 
-    fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let phi_s = self.fa_theta.projector.project(s);
-        let phi_ns = self.fa_theta.projector.project(ns);
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
+        let phi_ns = self.fa_theta.projector.project(&sample.1);
 
-        let td_error = r + self.gamma*self.fa_theta.evaluate_phi(&phi_ns) -
+        let td_error = sample.2 + self.gamma*self.fa_theta.evaluate_phi(&phi_ns) -
             self.fa_theta.evaluate_phi(&phi_s);
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 
@@ -63,14 +62,20 @@ impl<S: Space, V> PredictionAgent<S> for GTD2<S, V>
 
             self.fa_theta.update_phi(&Projection::Dense(update), self.alpha*td_estimate);
         }
-
-        Some(td_error)
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, V> Predictor<S> for GTD2<S, V>
+    where V: VFunction<S> + Projector<S>
+{
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.fa_theta.evaluate(s)
     }
 }
 
@@ -110,18 +115,14 @@ impl<S: Space, P: Projector<S>> TDC<S, P> {
     }
 }
 
-impl<S: Space, V> PredictionAgent<S> for TDC<S, V>
-    where V: VFunction<S> + Projector<S>
-{
-    fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.fa_theta.evaluate(s)
-    }
+impl<S: Space, V: VFunction<S> + Projector<S>> Agent<S> for TDC<S, V> {
+    type Sample = (S::Repr, S::Repr, f64);
 
-    fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let phi_s = self.fa_theta.projector.project(s);
-        let phi_ns = self.fa_theta.projector.project(ns);
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
+        let phi_ns = self.fa_theta.projector.project(&sample.1);
 
-        let td_error = r + self.gamma*self.fa_theta.evaluate_phi(&phi_ns) -
+        let td_error = sample.2 + self.gamma*self.fa_theta.evaluate_phi(&phi_ns) -
             self.fa_theta.evaluate_phi(&phi_s);
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 
@@ -134,14 +135,20 @@ impl<S: Space, V> PredictionAgent<S> for TDC<S, V>
 
             self.fa_theta.update_phi(&Projection::Dense(update), self.alpha.value());
         }
-
-        Some(td_error)
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, V> Predictor<S> for TDC<S, V>
+    where V: VFunction<S> + Projector<S>
+{
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.fa_theta.evaluate(s)
     }
 }
 

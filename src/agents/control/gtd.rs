@@ -1,5 +1,5 @@
 use Parameter;
-use agents::ControlAgent;
+use agents::{Agent, Controller};
 use domains::Transition;
 use fa::{Function, VFunction, QFunction, Projector, Projection, Linear};
 use geometry::{Space, ActionSpace};
@@ -51,24 +51,10 @@ impl<S: Space, M: Projector<S>, P: Policy> GreedyGQ<S, M, P> {
     }
 }
 
-impl<S: Space, M: Projector<S>, P: Policy> ControlAgent<S, ActionSpace> for GreedyGQ<S, M, P> {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        self.evaluate_policy(&mut Greedy, s)
-    }
+impl<S: Space, M: Projector<S>, P: Policy> Agent<S> for GreedyGQ<S, M, P> {
+    type Sample = Transition<S, ActionSpace>;
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.fa_theta.evaluate(s);
-
-        self.policy.sample(qs.as_slice())
-    }
-
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.fa_theta.evaluate(s);
-
-        p.sample(qs.as_slice())
-    }
-
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -98,5 +84,23 @@ impl<S: Space, M: Projector<S>, P: Policy> ControlAgent<S, ActionSpace> for Gree
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for GreedyGQ<S, M, P> {
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.evaluate_policy(&mut Greedy, s)
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+
+        self.policy.sample(qs.as_slice())
+    }
+
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+
+        p.sample(qs.as_slice())
     }
 }

@@ -1,7 +1,7 @@
 use Parameter;
 use fa::{Function, Projector, Linear};
 use utils:: argmaxima;
-use agents::{BatchAgent, PredictionAgent};
+use agents::{Agent, BatchAgent, Predictor};
 use agents::memory::Trace;
 use ndarray::{Array1, Array2};
 use geometry::Space;
@@ -40,7 +40,27 @@ impl<S: Space, P: Projector<S>> LSTD<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S>> BatchAgent for LSTD<S, P> {
+impl<S: Space, P: Projector<S>> Agent<S> for LSTD<S, P> {
+    type Sample = (S::Repr, S::Repr, f64);
+
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        let phi_s = self.beta.projector.project_expanded(&sample.0);
+        let phi_ns = self.beta.projector.project_expanded(&sample.1);
+
+        let pd = &phi_s - &(self.gamma.value()*phi_ns);
+
+        self.a += &phi_s.broadcast((1, phi_s.dim())).unwrap().dot(&pd);
+        self.b.scaled_add(sample.2, &phi_s);
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.consolidate();
+
+        self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Projector<S>> BatchAgent<S> for LSTD<S, P> {
     fn consolidate(&mut self) {
         let d = (self.b.dim(), 1);
 
@@ -48,28 +68,9 @@ impl<S: Space, P: Projector<S>> BatchAgent for LSTD<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S>> PredictionAgent<S> for LSTD<S, P>
-{
+impl<S: Space, P: Projector<S>> Predictor<S> for LSTD<S, P> {
     fn evaluate(&self, s: &S::Repr) -> f64 {
         self.beta.evaluate(s)
-    }
-
-    fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let phi_s = self.beta.projector.project_expanded(s);
-        let phi_ns = self.beta.projector.project_expanded(ns);
-
-        let pd = &phi_s - &(self.gamma.value()*phi_ns);
-
-        self.a += &phi_s.broadcast((1, phi_s.dim())).unwrap().dot(&pd);
-        self.b.scaled_add(r, &phi_s);
-
-        None
-    }
-
-    fn handle_terminal(&mut self, _: &S::Repr) {
-        self.consolidate();
-
-        self.gamma = self.gamma.step();
     }
 }
 
@@ -105,7 +106,30 @@ impl<S: Space, P: Projector<S>> LSTDLambda<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S>> BatchAgent for LSTDLambda<S, P> {
+impl<S: Space, P: Projector<S>> Agent<S> for LSTDLambda<S, P> {
+    type Sample = (S::Repr, S::Repr, f64);
+
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        let phi_s = self.beta.projector.project_expanded(&sample.0);
+        let phi_ns = self.beta.projector.project_expanded(&sample.1);
+
+        let pd = &phi_s - &(self.gamma.value()*&phi_ns);
+
+        self.a += self.trace.get().dot(&pd);
+        self.b.scaled_add(sample.2, &phi_s);
+
+        self.trace.decay(self.gamma.value());
+        self.trace.update(&phi_ns);
+    }
+
+    fn handle_terminal(&mut self, _: &S::Repr) {
+        self.consolidate();
+
+        self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Projector<S>> BatchAgent<S> for LSTDLambda<S, P> {
     fn consolidate(&mut self) {
         let d = (self.b.dim(), 1);
 
@@ -113,31 +137,9 @@ impl<S: Space, P: Projector<S>> BatchAgent for LSTDLambda<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S>> PredictionAgent<S> for LSTDLambda<S, P>
-{
+impl<S: Space, P: Projector<S>> Predictor<S> for LSTDLambda<S, P> {
     fn evaluate(&self, s: &S::Repr) -> f64 {
         self.beta.evaluate(s)
-    }
-
-    fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let phi_s = self.beta.projector.project_expanded(s);
-        let phi_ns = self.beta.projector.project_expanded(ns);
-
-        let pd = &phi_s - &(self.gamma.value()*&phi_ns);
-
-        self.a += self.trace.get().dot(&pd);
-        self.b.scaled_add(r, &phi_s);
-
-        self.trace.decay(self.gamma.value());
-        self.trace.update(&phi_ns);
-
-        None
-    }
-
-    fn handle_terminal(&mut self, _: &S::Repr) {
-        self.consolidate();
-
-        self.gamma = self.gamma.step();
     }
 }
 
@@ -179,18 +181,15 @@ impl<S: Space, P: Projector<S>> iLSTD<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S>> PredictionAgent<S> for iLSTD<S, P>
-{
-    fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.fa.evaluate(s)
-    }
+impl<S: Space, P: Projector<S>> Agent<S> for iLSTD<S, P> {
+    type Sample = (S::Repr, S::Repr, f64);
 
-    fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let phi_s = self.fa.projector.project_expanded(s);
-        let phi_ns = self.fa.projector.project_expanded(ns);
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        let phi_s = self.fa.projector.project_expanded(&sample.0);
+        let phi_ns = self.fa.projector.project_expanded(&sample.1);
 
         let da = &phi_s*&(&phi_s - &(self.gamma.value()*phi_ns));
-        let db = r*phi_s;
+        let db = sample.2*phi_s;
 
         self.a.zip_mut_with(&da, |y, &x| *y = *y + x);
         self.mu.zip_mut_with(&(db - &da*&self.fa.weights), |y, &x| *y = *y + x);
@@ -209,11 +208,15 @@ impl<S: Space, P: Projector<S>> PredictionAgent<S> for iLSTD<S, P>
             //       just using the first idx for the mu update (maybe even just a mean).
             self.mu.scaled_add(-update, &self.a.column(i));
         }
-
-        None
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Projector<S>> Predictor<S> for iLSTD<S, P> {
+    fn evaluate(&self, s: &S::Repr) -> f64 {
+        self.fa.evaluate(s)
     }
 }
