@@ -1,5 +1,5 @@
 use Parameter;
-use agents::ControlAgent;
+use agents::{Agent, Controller};
 use agents::memory::Trace;
 use domains::Transition;
 use fa::{Function, QFunction, Projector, Projection, Linear};
@@ -46,23 +46,13 @@ impl<S: Space, Q, P> QLearning<S, Q, P>
     }
 }
 
-impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
+impl<S: Space, Q, P> Agent for QLearning<S, Q, P>
     where Q: QFunction<S>,
           P: Policy
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
-    }
+    type Sample = Transition<S, ActionSpace>;
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        p.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
@@ -76,11 +66,28 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
         self.q_func.update_action(s, a, self.alpha*td_error);
     }
 
-    fn handle_terminal(&mut self, _: &S::Repr) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, Q, P> Controller<S, ActionSpace> for QLearning<S, Q, P>
+    where Q: QFunction<S>,
+          P: Policy
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
     }
 }
 
@@ -125,29 +132,10 @@ impl<S: Space, M, P> QLambda<S, M, P>
     }
 }
 
-impl<S: Space, M, P> ControlAgent<S, ActionSpace> for QLambda<S, M, P>
-    where M: Projector<S>,
-          P: Policy
-{
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+impl<S: Space, M: Projector<S>, P: Policy> Agent for QLambda<S, M, P> {
+    type Sample = Transition<S, ActionSpace>;
 
-        Greedy.sample(&qs)
-    }
-
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.fa_theta.evaluate(s);
-
-        self.policy.sample(&qs)
-    }
-
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.fa_theta.evaluate(s);
-
-        p.sample(&qs)
-    }
-
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -172,12 +160,32 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for QLambda<S, M, P>
             &Projection::Dense(self.trace.get()), a, td_error*self.alpha);
     }
 
-    fn handle_terminal(&mut self, _: &S::Repr) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
         self.trace.decay(0.0);
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for QLambda<S, M, P> {
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+
+        Greedy.sample(&qs)
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+
+        self.policy.sample(&qs)
+    }
+
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+
+        p.sample(&qs)
     }
 }
 
@@ -219,23 +227,13 @@ impl<S: Space, Q, P> SARSA<S, Q, P>
     }
 }
 
-impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
+impl<S: Space, Q, P> Agent for SARSA<S, Q, P>
     where Q: QFunction<S>,
           P: Policy
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
-    }
+    type Sample = Transition<S, ActionSpace>;
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.pi(s)
-    }
-
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        p.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
@@ -249,11 +247,28 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
         self.q_func.update_action(s, a, self.alpha*td_error);
     }
 
-    fn handle_terminal(&mut self, _: &S::Repr) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, Q, P> Controller<S, ActionSpace> for SARSA<S, Q, P>
+    where Q: QFunction<S>,
+          P: Policy
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        self.pi(s)
+    }
+
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
     }
 }
 
@@ -299,27 +314,10 @@ impl<S: Space, M, P> SARSALambda<S, M, P>
     }
 }
 
-impl<S: Space, M, P> ControlAgent<S, ActionSpace> for SARSALambda<S, M, P>
-    where M: Projector<S>,
-          P: Policy
-{
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+impl<S: Space, M: Projector<S>, P: Policy> Agent for SARSALambda<S, M, P> {
+    type Sample = Transition<S, ActionSpace>;
 
-        self.policy.sample(&qs)
-    }
-
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.pi(s)
-    }
-
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.fa_theta.evaluate(s);
-
-        p.sample(&qs)
-    }
-
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -340,12 +338,30 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for SARSALambda<S, M, P>
             &Projection::Dense(self.trace.get()), a, self.alpha*td_error);
     }
 
-    fn handle_terminal(&mut self, _: &S::Repr) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
         self.trace.decay(0.0);
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for SARSALambda<S, M, P> {
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+
+        self.policy.sample(&qs)
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        self.pi(s)
+    }
+
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+
+        p.sample(&qs)
     }
 }
 
@@ -388,23 +404,13 @@ impl<S: Space, Q, P> ExpectedSARSA<S, Q, P>
     }
 }
 
-impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
+impl<S: Space, Q, P> Agent for ExpectedSARSA<S, Q, P>
     where Q: QFunction<S>,
           P: Policy
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
-    }
+    type Sample = Transition<S, ActionSpace>;
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.pi(s)
-    }
-
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        p.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s);
@@ -418,11 +424,28 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for ExpectedSARSA<S, Q, P>
         self.q_func.update_action(s, a, self.alpha*td_error);
     }
 
-    fn handle_terminal(&mut self, _: &S::Repr) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, Q, P> Controller<S, ActionSpace> for ExpectedSARSA<S, Q, P>
+    where Q: QFunction<S>,
+          P: Policy
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        self.pi(s)
+    }
+
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
     }
 }
 
@@ -516,23 +539,13 @@ struct BackupEntry<S: Space> {
     pub mu: f64,
 }
 
-impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
+impl<S: Space, Q, P> Agent for QSigma<S, Q, P>
     where Q: QFunction<S>,
           P: Policy
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
-    }
+    type Sample = Transition<S, ActionSpace>;
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        p.sample(self.q_func.evaluate(s).as_slice())
-    }
-
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let nqs = self.q_func.evaluate(ns);
@@ -570,13 +583,30 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
         }
     }
 
-    fn handle_terminal(&mut self, _: &S::Repr) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         // TODO: Handle terminal update according to Sutton's pseudocode.
         //       It's likely that this will require a change to the interface
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, Q, P> Controller<S, ActionSpace> for QSigma<S, Q, P>
+    where Q: QFunction<S>,
+          P: Policy
+{
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn mu(&mut self, s: &S::Repr) -> usize {
+        self.policy.sample(self.q_func.evaluate(s).as_slice())
+    }
+
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+        p.sample(self.q_func.evaluate(s).as_slice())
     }
 }
 

@@ -1,16 +1,12 @@
 //! Control agents module.
 
+use super::Agent;
 use domains::Transition;
 use geometry::Space;
 use policies::Policy;
 
-pub trait ControlAgent<S: Space, A: Space> {
-    /// Handle a transition between one state, `s`, and another, `s'`, given an action, `a`.
-    fn handle_transition(&mut self, t: &Transition<S, A>);
 
-    /// Handle the terminal state of an episode.
-    fn handle_terminal(&mut self, s: &S::Repr);
-
+pub trait Controller<S: Space, A: Space>: Agent<Sample=Transition<S, A>> {
     /// Sample the target policy for a given state `s`.
     fn pi(&mut self, s: &S::Repr) -> usize;
 

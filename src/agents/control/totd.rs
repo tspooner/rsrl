@@ -1,5 +1,5 @@
 use Parameter;
-use agents::ControlAgent;
+use agents::{Agent, Controller};
 use agents::memory::Trace;
 use domains::Transition;
 use fa::{Function, QFunction, Projector, Projection, Linear};
@@ -50,10 +50,7 @@ impl<S: Space, M, P> TOQLambda<S, M, P>
     }
 }
 
-impl<S: Space, M, P> ControlAgent<S, ActionSpace> for TOQLambda<S, M, P>
-    where M: Projector<S>,
-          P: Policy,
-{
+impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for TOQLambda<S, M, P> {
     fn pi(&mut self, s: &S::Repr) -> usize {
         let qs: Vec<f64> = self.q_func.evaluate(s);
 
@@ -69,8 +66,12 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for TOQLambda<S, M, P>
 
         p.sample(&qs)
     }
+}
 
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+impl<S: Space, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
+    type Sample = Transition<S, ActionSpace>;
+
+    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -104,7 +105,7 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for TOQLambda<S, M, P>
         self.q_old = nqs[na];
     }
 
-    fn handle_terminal(&mut self, _: &S::Repr) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -156,10 +157,7 @@ impl<S: Space, M, P> TOSARSALambda<S, M, P>
     }
 }
 
-impl<S: Space, M, P> ControlAgent<S, ActionSpace> for TOSARSALambda<S, M, P>
-    where M: Projector<S>,
-          P: Policy,
-{
+impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for TOSARSALambda<S, M, P> {
     fn pi(&mut self, s: &S::Repr) -> usize {
         let qs: Vec<f64> = self.q_func.evaluate(s);
 
@@ -175,8 +173,12 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for TOSARSALambda<S, M, P>
 
         p.sample(&qs)
     }
+}
 
-    fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
+impl<S: Space, M: Projector<S>, P: Policy> Agent for TOSARSALambda<S, M, P> {
+    type Sample = Transition<S, ActionSpace>;
+
+    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -205,7 +207,7 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for TOSARSALambda<S, M, P>
         self.q_old = nqs[na];
     }
 
-    fn handle_terminal(&mut self, _: &S::Repr) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 

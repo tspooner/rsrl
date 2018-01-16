@@ -1,4 +1,4 @@
-use agents::ControlAgent;
+use agents::Controller;
 use domains::{Domain, Observation};
 use geometry::{Space, ActionSpace};
 use policies::Greedy;
@@ -55,7 +55,7 @@ pub struct Evaluation<'a, A: 'a, D> {
 }
 
 impl<'a, S: Space, A, D> Evaluation<'a, A, D>
-    where A: ControlAgent<S, ActionSpace>,
+    where A: Controller<S, ActionSpace>,
           D: Domain<StateSpace = S, ActionSpace = ActionSpace>
 {
     pub fn new(agent: &'a mut A, domain_factory: Box<Fn() -> D>) -> Evaluation<'a, A, D> {
@@ -69,7 +69,7 @@ impl<'a, S: Space, A, D> Evaluation<'a, A, D>
 }
 
 impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
-    where A: ControlAgent<S, ActionSpace>,
+    where A: Controller<S, ActionSpace>,
           D: Domain<StateSpace = S, ActionSpace = ActionSpace>
 {
     type Item = Episode;
@@ -90,8 +90,8 @@ impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
             e.reward += t.reward;
 
             a = match t.to {
-                Observation::Terminal(ref s) => {
-                    self.agent.handle_terminal(s);
+                Observation::Terminal(_) => {
+                    self.agent.handle_terminal(&t);
                     break;
                 }
                 _ => self.agent.evaluate_policy(&mut self.greedy, &t.to.state()),
@@ -112,7 +112,7 @@ pub struct SerialExperiment<'a, A: 'a, D> {
 }
 
 impl<'a, S: Space, A, D> SerialExperiment<'a, A, D>
-    where A: ControlAgent<S, ActionSpace>,
+    where A: Controller<S, ActionSpace>,
           D: Domain<StateSpace = S, ActionSpace = ActionSpace>
 {
     pub fn new(agent: &'a mut A,
@@ -128,7 +128,7 @@ impl<'a, S: Space, A, D> SerialExperiment<'a, A, D>
 }
 
 impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
-    where A: ControlAgent<S, ActionSpace>,
+    where A: Controller<S, ActionSpace>,
           D: Domain<StateSpace = S, ActionSpace = ActionSpace>
 {
     type Item = Episode;
@@ -148,15 +148,15 @@ impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
             e.steps = j;
             e.reward += t.reward;
 
-            self.agent.handle_transition(&t);
+            self.agent.handle_sample(&t);
 
             // TODO: Clean this mess up!
-            if let Observation::Terminal(ref s) = t.to {
-                self.agent.handle_terminal(s);
+            if let Observation::Terminal(_) = t.to {
+                self.agent.handle_terminal(&t);
                 break;
 
             } else if j >= self.step_limit {
-                self.agent.handle_terminal(&t.to.state());
+                self.agent.handle_terminal(&t);
                 break;
 
             } else {
