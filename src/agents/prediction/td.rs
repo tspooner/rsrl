@@ -54,15 +54,15 @@ impl<S: Space, V: VFunction<S>> Predictor<S> for TD<S, V> {
 }
 
 impl<S: Space, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
-    fn handle_error(&mut self, sample: &Self::Sample, error: f64) {
-        self.v_func.update(&sample.0, self.alpha*error);
-    }
-
     fn compute_error(&self, sample: &Self::Sample) -> f64 {
         let v = self.v_func.evaluate(&sample.0);
         let nv = self.v_func.evaluate(&sample.1);
 
         sample.2 + self.gamma*nv - v
+    }
+
+    fn handle_error(&mut self, sample: &Self::Sample, error: f64) {
+        self.v_func.update(&sample.0, self.alpha*error);
     }
 }
 
@@ -98,13 +98,13 @@ impl<S: Space, P: Projector<S>> TDLambda<S, P> {
         reward + self.gamma*nv - v
     }
 
-    fn handle_error_with_phi(&mut self, phi_s: Projection, error: f64) {
+    fn handle_error_with_phi(&mut self, phi_s: Projection, td_error: f64) {
         let rate = self.trace.lambda.value()*self.gamma.value();
 
         self.trace.decay(rate);
         self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
 
-        self.fa_theta.update_phi(&Projection::Dense(self.trace.get()), self.alpha*error);
+        self.fa_theta.update_phi(&Projection::Dense(self.trace.get()), self.alpha*td_error);
     }
 }
 
@@ -135,17 +135,17 @@ impl<S: Space, P: Projector<S>> Predictor<S> for TDLambda<S, P> {
 }
 
 impl<S: Space, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {
-    fn handle_error(&mut self, sample: &Self::Sample, error: f64) {
+    fn compute_error(&self, sample: &Self::Sample) -> f64 {
         let phi_s = self.fa_theta.projector.project(&sample.0);
+        let phi_ns = self.fa_theta.projector.project(&sample.1);
 
-        self.handle_error_with_phi(phi_s, error);
+        self.compute_error_with_phi(&phi_s, &phi_ns, sample.2)
     }
 
-    fn compute_error(&self, sample: &Self::Sample) -> f64 {
-        let v: f64 = self.fa_theta.evaluate(&sample.0);
-        let nv: f64 = self.fa_theta.evaluate(&sample.1);
+    fn handle_error(&mut self, sample: &Self::Sample, td_error: f64) {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
 
-        sample.2 + self.gamma*nv - v
+        self.handle_error_with_phi(phi_s, td_error);
     }
 }
 

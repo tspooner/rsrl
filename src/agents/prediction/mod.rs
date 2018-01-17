@@ -9,8 +9,8 @@ pub trait Predictor<S: Space>: Agent<S, Sample=(S::Repr, S::Repr, f64)> {
 }
 
 pub trait TDPredictor<S: Space>: Predictor<S> {
-    fn handle_error(&mut self, sample: &Self::Sample, error: f64);
     fn compute_error(&self, sample: &Self::Sample) -> f64;
+    fn handle_error(&mut self, sample: &Self::Sample, td_error: f64);
 }
 
 
