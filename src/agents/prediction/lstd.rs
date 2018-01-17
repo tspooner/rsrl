@@ -1,6 +1,6 @@
 use Parameter;
 use fa::{Function, Projector, Linear};
-use utils:: argmaxima;
+use utils::argmaxima;
 use agents::{Agent, BatchAgent, Predictor};
 use agents::memory::Trace;
 use ndarray::{Array1, Array2};
@@ -11,26 +11,25 @@ use std::marker::PhantomData;
 
 // TODO: Implement regularized LSTD "http://mlg.eng.cam.ac.uk/hoffmanm/papers/hoffman:2012b.pdf
 
-pub struct LSTD<S: Space, P: Projector<S>>
-{
+pub struct LSTD<S: Space, P: Projector<S>> {
     a: Array2<f64>,
     b: Array1<f64>,
 
-    beta: Linear<S, P>,
-    gamma: Parameter,
+    pub fa: Linear<S, P>,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
 
 impl<S: Space, P: Projector<S>> LSTD<S, P> {
-    pub fn new<T: Into<Parameter>>(beta: Linear<S, P>, gamma: T) -> Self {
-        let n_features = beta.projector.dim();
+    pub fn new<T: Into<Parameter>>(fa: Linear<S, P>, gamma: T) -> Self {
+        let n_features = fa.projector.dim();
 
         LSTD {
             a: Array2::zeros((n_features, n_features)),
             b: Array1::zeros((n_features,)),
 
-            beta: beta,
+            fa: fa,
             gamma: gamma.into(),
 
             phantom: PhantomData,
@@ -42,8 +41,8 @@ impl<S: Space, P: Projector<S>> Agent<S> for LSTD<S, P> {
     type Sample = (S::Repr, S::Repr, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
-        let phi_s = self.beta.projector.project_expanded(&sample.0);
-        let phi_ns = self.beta.projector.project_expanded(&sample.1);
+        let phi_s = self.fa.projector.project_expanded(&sample.0);
+        let phi_ns = self.fa.projector.project_expanded(&sample.1);
 
         let pd = &phi_s - &(self.gamma.value()*phi_ns);
 
@@ -62,33 +61,32 @@ impl<S: Space, P: Projector<S>> BatchAgent<S> for LSTD<S, P> {
     fn consolidate(&mut self) {
         let d = (self.b.dim(), 1);
 
-        self.beta.assign(self.a.solve_into(self.b.clone()).unwrap().into_shape(d).unwrap());
+        self.fa.assign(self.a.solve_into(self.b.clone()).unwrap().into_shape(d).unwrap());
     }
 }
 
 impl<S: Space, P: Projector<S>> Predictor<S> for LSTD<S, P> {
     fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.beta.evaluate(s)
+        self.fa.evaluate(s)
     }
 }
 
 
-pub struct LSTDLambda<S: Space, P: Projector<S>>
-{
+pub struct LSTDLambda<S: Space, P: Projector<S>> {
     trace: Trace,
 
     a: Array2<f64>,
     b: Array1<f64>,
 
-    beta: Linear<S, P>,
-    gamma: Parameter,
+    pub fa: Linear<S, P>,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
 
 impl<S: Space, P: Projector<S>> LSTDLambda<S, P> {
-    pub fn new<T: Into<Parameter>>(trace: Trace, beta: Linear<S, P>, gamma: T) -> Self {
-        let n_features = beta.projector.dim();
+    pub fn new<T: Into<Parameter>>(trace: Trace, fa: Linear<S, P>, gamma: T) -> Self {
+        let n_features = fa.projector.dim();
 
         LSTDLambda {
             trace: trace,
@@ -96,7 +94,7 @@ impl<S: Space, P: Projector<S>> LSTDLambda<S, P> {
             a: Array2::zeros((n_features, n_features)),
             b: Array1::zeros((n_features,)),
 
-            beta: beta,
+            fa: fa,
             gamma: gamma.into(),
 
             phantom: PhantomData,
@@ -108,8 +106,8 @@ impl<S: Space, P: Projector<S>> Agent<S> for LSTDLambda<S, P> {
     type Sample = (S::Repr, S::Repr, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
-        let phi_s = self.beta.projector.project_expanded(&sample.0);
-        let phi_ns = self.beta.projector.project_expanded(&sample.1);
+        let phi_s = self.fa.projector.project_expanded(&sample.0);
+        let phi_ns = self.fa.projector.project_expanded(&sample.1);
 
         let pd = &phi_s - &(self.gamma.value()*&phi_ns);
 
@@ -131,28 +129,27 @@ impl<S: Space, P: Projector<S>> BatchAgent<S> for LSTDLambda<S, P> {
     fn consolidate(&mut self) {
         let d = (self.b.dim(), 1);
 
-        self.beta.assign(self.a.solve_into(self.b.clone()).unwrap().into_shape(d).unwrap());
+        self.fa.assign(self.a.solve_into(self.b.clone()).unwrap().into_shape(d).unwrap());
     }
 }
 
 impl<S: Space, P: Projector<S>> Predictor<S> for LSTDLambda<S, P> {
     fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.beta.evaluate(s)
+        self.fa.evaluate(s)
     }
 }
 
 
 #[allow(non_camel_case_types)]
-pub struct iLSTD<S: Space, P: Projector<S>>
-{
-    fa: Linear<S, P>,
-    n_updates: usize,
-
+pub struct iLSTD<S: Space, P: Projector<S>> {
     a: Array2<f64>,
     mu: Array1<f64>,
 
-    alpha: Parameter,
-    gamma: Parameter,
+    pub fa: Linear<S, P>,
+    pub n_updates: usize,
+
+    pub alpha: Parameter,
+    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
@@ -165,11 +162,11 @@ impl<S: Space, P: Projector<S>> iLSTD<S, P> {
         let n_features = fa.projector.dim();
 
         iLSTD {
-            fa: fa,
-            n_updates: n_updates,
-
             a: Array2::zeros((n_features, n_features)),
             mu: Array1::zeros((n_features,)),
+
+            fa: fa,
+            n_updates: n_updates,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
