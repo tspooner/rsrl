@@ -21,3 +21,4 @@ pub mod gtd;
 // TODO:
 // Implement the algorithms discussed in https://arxiv.org/pdf/1304.3999.pdf
 pub mod lstd;
+pub mod lspe;
