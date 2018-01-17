@@ -1,9 +1,10 @@
 use Parameter;
-use agents::{Agent, Controller};
+use agents::{Agent, LinearAgent, Controller};
 use domains::Transition;
 use fa::{Function, VFunction, QFunction, Projector, Projection, Linear};
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
+use ndarray::Array2;
 use std::marker::PhantomData;
 
 
@@ -84,6 +85,12 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent<S> for GreedyGQ<S, M, P> {
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, M: Projector<S>, P: Policy> LinearAgent<S> for GreedyGQ<S, M, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa_theta.weights.clone()
     }
 }
 

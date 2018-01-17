@@ -1,7 +1,7 @@
 //! Prediction agents module.
 
-use super::Agent;
 use geometry::Space;
+use super::Agent;
 
 
 pub trait Predictor<S: Space>: Agent<S, Sample=(S::Repr, S::Repr, f64)> {

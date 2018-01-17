@@ -1,7 +1,8 @@
 use Parameter;
-use agents::{Agent, Predictor};
-use fa::VFunction;
+use agents::{Agent, LinearAgent, Predictor};
+use fa::{VFunction, Projector, Linear};
 use geometry::Space;
+use ndarray::Array2;
 use std::marker::PhantomData;
 
 
@@ -59,6 +60,12 @@ impl<S: Space, V> Agent<S> for EveryVisitMC<S, V>
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Projector<S>> LinearAgent<S> for EveryVisitMC<S, Linear<S, P>> {
+    fn weights(&self) -> Array2<f64> {
+        self.v_func.weights.clone()
     }
 }
 

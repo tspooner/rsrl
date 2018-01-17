@@ -1,8 +1,9 @@
 use Parameter;
-use agents::{Agent, Predictor, TDPredictor};
+use agents::{Agent, LinearAgent, Predictor, TDPredictor};
 use agents::memory::Trace;
 use fa::{Function, VFunction, Projector, Projection, Linear};
 use geometry::Space;
+use ndarray::Array2;
 
 use std::marker::PhantomData;
 
@@ -44,6 +45,12 @@ impl<S: Space, V: VFunction<S>> Agent<S> for TD<S, V> {
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Projector<S>> LinearAgent<S> for TD<S, Linear<S, P>> {
+    fn weights(&self) -> Array2<f64> {
+        self.v_func.weights.clone()
     }
 }
 
@@ -125,6 +132,12 @@ impl<S: Space, P: Projector<S>> Agent<S> for TDLambda<S, P> {
         self.gamma = self.gamma.step();
 
         self.trace.decay(0.0);
+    }
+}
+
+impl<S: Space, P: Projector<S>> LinearAgent<S> for TDLambda<S, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa_theta.weights.clone()
     }
 }
 

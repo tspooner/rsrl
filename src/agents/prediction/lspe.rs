@@ -1,6 +1,6 @@
 use Parameter;
 use fa::{Function, VFunction, Projector, Projection, Linear};
-use agents::{Agent, BatchAgent, Predictor};
+use agents::{Agent, BatchAgent, LinearAgent, Predictor};
 use ndarray::{Array1, Array2};
 use geometry::Space;
 use ndarray_linalg::Solve;
@@ -91,6 +91,12 @@ impl<S: Space, P: Projector<S>> BatchAgent<S> for LambdaLSPE<S, P> {
 
         self.last_state = None;
         self.trajectory.clear();
+    }
+}
+
+impl<S: Space, P: Projector<S>> LinearAgent<S> for LambdaLSPE<S, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa.weights.clone()
     }
 }
 

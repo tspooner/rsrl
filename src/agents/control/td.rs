@@ -1,10 +1,11 @@
 use Parameter;
-use agents::{Agent, Controller};
+use agents::{Agent, LinearAgent, Controller};
 use agents::memory::Trace;
 use domains::Transition;
 use fa::{Function, QFunction, Projector, Projection, Linear};
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
+use ndarray::Array2;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use utils::dot;
@@ -71,6 +72,12 @@ impl<S: Space, Q, P> Agent<S> for QLearning<S, Q, P>
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, M: Projector<S>, P: Policy> LinearAgent<S> for QLearning<S, Linear<S, M>, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.q_func.weights.clone()
     }
 }
 
@@ -169,6 +176,12 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent<S> for QLambda<S, M, P> {
     }
 }
 
+impl<S: Space, M: Projector<S>, P: Policy> LinearAgent<S> for QLambda<S, M, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa_theta.weights.clone()
+    }
+}
+
 impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for QLambda<S, M, P> {
     fn pi(&mut self, s: &S::Repr) -> usize {
         let qs: Vec<f64> = self.fa_theta.evaluate(s);
@@ -252,6 +265,12 @@ impl<S: Space, Q, P> Agent<S> for SARSA<S, Q, P>
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, M: Projector<S>, P: Policy> LinearAgent<S> for SARSA<S, Linear<S, M>, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.q_func.weights.clone()
     }
 }
 
@@ -347,6 +366,12 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent<S> for SARSALambda<S, M, P> {
     }
 }
 
+impl<S: Space, M: Projector<S>, P: Policy> LinearAgent<S> for SARSALambda<S, M, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa_theta.weights.clone()
+    }
+}
+
 impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for SARSALambda<S, M, P> {
     fn pi(&mut self, s: &S::Repr) -> usize {
         let qs: Vec<f64> = self.fa_theta.evaluate(s);
@@ -429,6 +454,12 @@ impl<S: Space, Q, P> Agent<S> for ExpectedSARSA<S, Q, P>
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, M: Projector<S>, P: Policy> LinearAgent<S> for ExpectedSARSA<S, Linear<S, M>, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.q_func.weights.clone()
     }
 }
 
@@ -590,6 +621,12 @@ impl<S: Space, Q, P> Agent<S> for QSigma<S, Q, P>
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
+    }
+}
+
+impl<S: Space, M: Projector<S>, P: Policy> LinearAgent<S> for QSigma<S, Linear<S, M>, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.q_func.weights.clone()
     }
 }
 

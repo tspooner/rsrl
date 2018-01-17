@@ -6,6 +6,7 @@ pub mod control;
 pub mod prediction;
 
 use geometry::Space;
+use ndarray::Array2;
 pub use self::control::Controller;
 pub use self::prediction::{Predictor, TDPredictor};
 
@@ -26,6 +27,10 @@ pub trait BatchAgent<S: Space>: Agent<S> {
             self.handle_sample(sample);
         }
     }
+}
+
+pub trait LinearAgent<S: Space>: Agent<S> {
+    fn weights(&self) -> Array2<f64>;
 }
 
 

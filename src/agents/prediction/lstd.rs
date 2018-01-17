@@ -1,7 +1,7 @@
 use Parameter;
 use fa::{Function, Projector, Linear};
 use utils::argmaxima;
-use agents::{Agent, BatchAgent, Predictor};
+use agents::{Agent, BatchAgent, LinearAgent, Predictor};
 use agents::memory::Trace;
 use ndarray::{Array1, Array2};
 use geometry::Space;
@@ -62,6 +62,12 @@ impl<S: Space, P: Projector<S>> BatchAgent<S> for LSTD<S, P> {
         let d = (self.b.dim(), 1);
 
         self.fa.assign(self.a.solve_into(self.b.clone()).unwrap().into_shape(d).unwrap());
+    }
+}
+
+impl<S: Space, P: Projector<S>> LinearAgent<S> for LSTD<S, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa.weights.clone()
     }
 }
 
@@ -130,6 +136,12 @@ impl<S: Space, P: Projector<S>> BatchAgent<S> for LSTDLambda<S, P> {
         let d = (self.b.dim(), 1);
 
         self.fa.assign(self.a.solve_into(self.b.clone()).unwrap().into_shape(d).unwrap());
+    }
+}
+
+impl<S: Space, P: Projector<S>> LinearAgent<S> for LSTDLambda<S, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa.weights.clone()
     }
 }
 
@@ -207,6 +219,12 @@ impl<S: Space, P: Projector<S>> Agent<S> for iLSTD<S, P> {
 
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Projector<S>> LinearAgent<S> for iLSTD<S, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa.weights.clone()
     }
 }
 

@@ -1,7 +1,8 @@
 use Parameter;
-use agents::{Agent, Predictor, TDPredictor};
+use agents::{Agent, LinearAgent, Predictor, TDPredictor};
 use fa::{Function, VFunction, Projector, Projection, Linear};
 use geometry::Space;
+use ndarray::Array2;
 
 
 /// Gradient temporal difference learning, version 2.
@@ -77,6 +78,12 @@ impl<S: Space, P: Projector<S>> Agent<S> for GTD2<S, P> {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Projector<S>> LinearAgent<S> for GTD2<S, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa_theta.weights.clone()
     }
 }
 
@@ -178,6 +185,12 @@ impl<S: Space, P: Projector<S>> Agent<S> for TDC<S, P> {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();
+    }
+}
+
+impl<S: Space, P: Projector<S>> LinearAgent<S> for TDC<S, P> {
+    fn weights(&self) -> Array2<f64> {
+        self.fa_theta.weights.clone()
     }
 }
 
