@@ -4,6 +4,7 @@ use fa::{Function, VFunction, Projector, Projection, Linear};
 use geometry::Space;
 
 
+/// Gradient temporal difference learning, version 2.
 pub struct GTD2<S: Space, P: Projector<S>> {
     pub fa_theta: Linear<S, P>,
     pub fa_w: Linear<S, P>,
@@ -102,6 +103,9 @@ impl<S: Space, P: Projector<S>> TDPredictor<S> for GTD2<S, P> {
 }
 
 
+/// Temporal difference learning with corrections.
+///
+/// Note: `beta` should be greater than `alpha`.
 pub struct TDC<S: Space, P: Projector<S>> {
     pub fa_theta: Linear<S, P>,
     pub fa_w: Linear<S, P>,
