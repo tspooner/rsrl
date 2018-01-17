@@ -135,17 +135,15 @@ impl<S: Space, P: Projector<S>> TDC<S, P> {
             gamma: gamma.into(),
         }
     }
-}
 
-impl<S: Space, V: VFunction<S> + Projector<S>> Agent<S> for TDC<S, V> {
-    type Sample = (S::Repr, S::Repr, f64);
+    fn compute_error_with_phi(&self, phi_s: &Projection, phi_ns: &Projection, reward: f64) -> f64 {
+        let v: f64 = self.fa_theta.evaluate_phi(phi_s);
+        let nv: f64 = self.fa_theta.evaluate_phi(phi_ns);
 
-    fn handle_sample(&mut self, sample: &Self::Sample) {
-        let phi_s = self.fa_theta.projector.project(&sample.0);
-        let phi_ns = self.fa_theta.projector.project(&sample.1);
+        reward + self.gamma*nv - v
+    }
 
-        let td_error = sample.2 + self.gamma*self.fa_theta.evaluate_phi(&phi_ns) -
-            self.fa_theta.evaluate_phi(&phi_s);
+    fn handle_error_with_phi(&mut self, phi_s: Projection, phi_ns: Projection, td_error: f64) {
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 
         self.fa_w.update_phi(&phi_s, self.beta*(td_error - td_estimate));
@@ -158,6 +156,19 @@ impl<S: Space, V: VFunction<S> + Projector<S>> Agent<S> for TDC<S, V> {
             self.fa_theta.update_phi(&Projection::Dense(update), self.alpha.value());
         }
     }
+}
+
+impl<S: Space, P: Projector<S>> Agent<S> for TDC<S, P> {
+    type Sample = (S::Repr, S::Repr, f64);
+
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
+        let phi_ns = self.fa_theta.projector.project(&sample.1);
+
+        let td_error = self.compute_error_with_phi(&phi_s, &phi_ns, sample.2);
+
+        self.handle_error_with_phi(phi_s, phi_ns, td_error);
+    }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.alpha = self.alpha.step();
@@ -166,11 +177,25 @@ impl<S: Space, V: VFunction<S> + Projector<S>> Agent<S> for TDC<S, V> {
     }
 }
 
-impl<S: Space, V> Predictor<S> for TDC<S, V>
-    where V: VFunction<S> + Projector<S>
-{
+impl<S: Space, P: Projector<S>> Predictor<S> for TDC<S, P> {
     fn evaluate(&self, s: &S::Repr) -> f64 {
         self.fa_theta.evaluate(s)
+    }
+}
+
+impl<S: Space, P: Projector<S>> TDPredictor<S> for TDC<S, P> {
+    fn handle_error(&mut self, sample: &Self::Sample, td_error: f64) {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
+        let phi_ns = self.fa_theta.projector.project(&sample.1);
+
+        self.handle_error_with_phi(phi_s, phi_ns, td_error);
+    }
+
+    fn compute_error(&self, sample: &Self::Sample) -> f64 {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
+        let phi_ns = self.fa_theta.projector.project(&sample.1);
+
+        self.compute_error_with_phi(&phi_s, &phi_ns, sample.2)
     }
 }
 

@@ -3,7 +3,7 @@ extern crate rsrl;
 
 use rsrl::{run, logging, Parameter, SerialExperiment, Evaluation};
 use rsrl::agents::memory::Trace;
-use rsrl::agents::prediction::gtd::GTD2;
+use rsrl::agents::prediction::td::TDLambda;
 use rsrl::agents::control::actor_critic::ActorCritic;
 use rsrl::domains::{Domain, MountainCar};
 use rsrl::fa::{Linear, Projector};
@@ -24,9 +24,9 @@ fn main() {
         let q_func = Linear::new(bases.clone(), n_actions);
 
         // Build the critic.
-        let v_func = Linear::new(bases.clone(), 1);
-        let a_func = Linear::new(bases, 1);
-        let critic = GTD2::new(v_func, a_func, 0.01, 0.001, 0.99);
+        let trace = Trace::replacing(0.7, bases.activation());
+        let v_func = Linear::new(bases, 1);
+        let critic = TDLambda::new(trace, v_func, 0.01, 0.99);
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
