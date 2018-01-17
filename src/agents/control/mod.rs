@@ -21,4 +21,5 @@ pub trait Controller<S: Space, A: Space>: Agent<S, Sample=Transition<S, A>> {
 pub mod td;
 pub mod gtd;
 pub mod totd;
+pub mod lspi;
 pub mod actor_critic;

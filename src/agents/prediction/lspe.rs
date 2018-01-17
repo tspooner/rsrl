@@ -58,7 +58,9 @@ impl<S: Space, P: Projector<S>> Agent<S> for LambdaLSPE<S, P> {
     fn handle_terminal(&mut self, _: &S::Repr) {
         self.consolidate();
 
+        self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+        self.lambda = self.lambda.step();
     }
 }
 
