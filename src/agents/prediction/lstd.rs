@@ -9,8 +9,6 @@ use ndarray_linalg::Solve;
 use std::marker::PhantomData;
 
 
-// TODO: Add LSTDLambda, iLSTD and iLSTDLambda implementations based on the approach described in
-// "Incremental Least-Squares Temporal Difference Learning" (2006).
 // TODO: Implement regularized LSTD "http://mlg.eng.cam.ac.uk/hoffmanm/papers/hoffman:2012b.pdf
 
 pub struct LSTD<S: Space, P: Projector<S>>
