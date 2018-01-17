@@ -2,7 +2,7 @@ use Parameter;
 use agents::{Agent, BatchAgent, LinearAgent, Controller};
 use agents::memory::Trace;
 use domains::Transition;
-use fa::{Function, QFunction, Projector, Projection, Linear};
+use fa::{Function, Projector, Linear};
 use geometry::{Space, ActionSpace};
 use policies::{Policy, Greedy};
 use ndarray::{Array1, Array2};
@@ -34,7 +34,7 @@ impl<S: Space, M: Projector<S>, P: Policy> LSPILambda<S, M, P> {
         where T1: Into<Parameter>,
               T2: Into<Parameter>,
     {
-        let n_features = fa.projector.dim();
+        let n_features = fa.projector.size();
 
         LSPILambda {
             trace: trace,
@@ -85,8 +85,12 @@ impl<S: Space, M: Projector<S>, P: Policy> BatchAgent<S> for LSPILambda<S, M, P>
                 self.trace.update(&phi_s);
 
                 let z = self.trace.get();
+                let z = z.view().into_shape((z.len(), 1)).unwrap();
 
-                self.a += z.dot(&(phi_s.clone() - self.gamma*exp_nqs));
+                let error_vec = phi_s.clone() - self.gamma*exp_nqs;
+                let update_mat = z.dot(&error_vec.view().into_shape((1, phi_s.len())).unwrap());
+
+                self.a.zip_mut_with(&update_mat, move |y, &x| *y += x);
                 self.b.scaled_add(r, &phi_s);
             } else {
                 break;

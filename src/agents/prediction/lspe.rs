@@ -28,7 +28,7 @@ impl<S: Space, P: Projector<S>> LambdaLSPE<S, P> {
               T2: Into<Parameter>,
               T3: Into<Parameter>,
     {
-        let n_features = fa.projector.dim();
+        let n_features = fa.projector.size();
 
         LambdaLSPE {
             a: Array2::zeros((n_features, n_features)),

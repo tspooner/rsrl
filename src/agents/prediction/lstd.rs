@@ -23,7 +23,7 @@ pub struct LSTD<S: Space, P: Projector<S>> {
 
 impl<S: Space, P: Projector<S>> LSTD<S, P> {
     pub fn new<T: Into<Parameter>>(fa: Linear<S, P>, gamma: T) -> Self {
-        let n_features = fa.projector.dim();
+        let n_features = fa.projector.size();
 
         LSTD {
             a: Array2::zeros((n_features, n_features)),
@@ -92,7 +92,7 @@ pub struct LSTDLambda<S: Space, P: Projector<S>> {
 
 impl<S: Space, P: Projector<S>> LSTDLambda<S, P> {
     pub fn new<T: Into<Parameter>>(trace: Trace, fa: Linear<S, P>, gamma: T) -> Self {
-        let n_features = fa.projector.dim();
+        let n_features = fa.projector.size();
 
         LSTDLambda {
             trace: trace,
@@ -171,7 +171,7 @@ impl<S: Space, P: Projector<S>> iLSTD<S, P> {
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
-        let n_features = fa.projector.dim();
+        let n_features = fa.projector.size();
 
         iLSTD {
             a: Array2::zeros((n_features, n_features)),
