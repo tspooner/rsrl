@@ -1,7 +1,7 @@
+use Vector;
 use super::{Projector, Projection};
 use geometry::RegularSpace;
 use geometry::dimensions::{BoundedDimension, Continuous};
-use ndarray::Array1;
 use utils::cartesian_product;
 
 
@@ -49,7 +49,7 @@ impl Projector<RegularSpace<Continuous>> for Polynomial {
             scaled_state.iter().zip(exps).map(|(v, e)| v.powi(*e)).product()
         });
 
-        Projection::Dense(Array1::from_iter(activations))
+        Projection::Dense(Vector::from_iter(activations))
     }
 
     fn dim(&self) -> usize {
