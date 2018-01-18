@@ -1,19 +1,18 @@
 //! Agent memory representation module.
 
-use Parameter;
-use ndarray::Array1;
+use {Parameter, Vector};
 
 pub enum Trace {
     Accumulating {
         lambda: Parameter,
-        eligibility: Array1<f64>,
+        eligibility: Vector,
     },
     Replacing {
         lambda: Parameter,
-        eligibility: Array1<f64>,
+        eligibility: Vector,
     },
     Null {
-        eligibility: Array1<f64>
+        eligibility: Vector
     }
     // TODO: Dutch traces (need to be able to share alpha parameter)
 }
@@ -22,24 +21,24 @@ impl Trace {
     pub fn accumulating<T: Into<Parameter>>(lambda: T, activation: usize) -> Trace {
         Trace::Accumulating {
             lambda: lambda.into(),
-            eligibility: Array1::zeros((activation,)),
+            eligibility: Vector::zeros((activation,)),
         }
     }
 
     pub fn replacing<T: Into<Parameter>>(lambda: T, activation: usize) -> Trace {
         Trace::Replacing {
             lambda: lambda.into(),
-            eligibility: Array1::zeros((activation,)),
+            eligibility: Vector::zeros((activation,)),
         }
     }
 
     pub fn null(activation: usize) -> Trace {
         Trace::Null {
-            eligibility: Array1::zeros((activation,)),
+            eligibility: Vector::zeros((activation,)),
         }
     }
 
-    pub fn get(&self) -> Array1<f64> {
+    pub fn get(&self) -> Vector {
         match self {
             &Trace::Accumulating { ref eligibility, .. } |
             &Trace::Replacing { ref eligibility, .. } |
@@ -57,7 +56,7 @@ impl Trace {
         }
     }
 
-    pub fn update(&mut self, phi: &Array1<f64>) {
+    pub fn update(&mut self, phi: &Vector) {
         match self {
             &mut Trace::Accumulating { ref mut eligibility, .. } => {
                 *eligibility += phi;

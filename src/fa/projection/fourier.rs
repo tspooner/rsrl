@@ -1,10 +1,10 @@
-use std::f64::consts::PI;
+use Vector;
 use super::{Projector, Projection};
 use geometry::RegularSpace;
 use geometry::norms::l2;
 use geometry::dimensions::{BoundedDimension, Continuous};
-use ndarray::Array1;
 use utils::cartesian_product;
+use std::f64::consts::PI;
 
 
 // TODO: Add learning rate scaling http://lis.csail.mit.edu/pubs/konidaris-aaai11a.pdf
@@ -55,7 +55,7 @@ impl Projector<RegularSpace<Continuous>> for Fourier {
             (v - self.limits[i].0) / (self.limits[i].1 - self.limits[i].0)
         }).collect::<Vec<f64>>();
 
-        Projection::Dense(Array1::from_iter(self.coefficients.iter().map(|cfs| {
+        Projection::Dense(Vector::from_iter(self.coefficients.iter().map(|cfs| {
             let cx = scaled_state.iter().zip(cfs).fold(0.0, |acc, (v, c)| acc + *c*v);
 
             (PI*cx).cos()

@@ -1,7 +1,8 @@
+use Vector;
 use super::{Observation, Transition, Domain, runge_kutta4};
 
 use consts::{G, TWELVE_DEGREES, FOUR_THIRDS};
-use ndarray::{arr1, Array1, NdIndex, Ix1};
+use ndarray::{NdIndex, Ix1};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 
@@ -50,13 +51,13 @@ unsafe impl NdIndex<Ix1> for StateIndex {
 
 
 pub struct CartPole {
-    state: Array1<f64>,
+    state: Vector,
 }
 
 impl CartPole {
     fn new(x: f64, dx: f64, theta: f64, dtheta: f64) -> CartPole {
         CartPole {
-            state: arr1(&vec![x, dx, theta, dtheta])
+            state: Vector::from_vec(vec![x, dx, theta, dtheta])
         }
     }
 
@@ -73,7 +74,7 @@ impl CartPole {
         self.state = ns;
     }
 
-    fn grad(force: f64, state: Array1<f64>) -> Array1<f64> {
+    fn grad(force: f64, state: Vector) -> Vector {
         let dx = state[StateIndex::DX];
         let theta = state[StateIndex::THETA];
         let dtheta = state[StateIndex::DTHETA];
@@ -89,7 +90,7 @@ impl CartPole {
         let ddtheta = numer/denom;
         let ddx = z - POLE_COM*ddtheta*cos_theta;
 
-        arr1(&vec![dx, ddx, dtheta, ddtheta])
+        Vector::from_vec(vec![dx, ddx, dtheta, ddtheta])
     }
 }
 

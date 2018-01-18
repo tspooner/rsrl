@@ -1,8 +1,9 @@
+use Vector;
 use super::{Observation, Transition, Domain, runge_kutta4};
 
 use std::f64::consts::PI;
 use consts::{G, PI_OVER_2};
-use ndarray::{arr1, Array1, NdIndex, Ix1};
+use ndarray::{NdIndex, Ix1};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 
@@ -65,13 +66,13 @@ unsafe impl NdIndex<Ix1> for StateIndex {
 ///
 /// See [https://www.math24.net/double-pendulum/](https://www.math24.net/double-pendulum/)
 pub struct Acrobat {
-    state: Array1<f64>,
+    state: Vector,
 }
 
 impl Acrobat {
     fn new(theta1: f64, theta2: f64, dtheta1: f64, dtheta2: f64) -> Acrobat {
         Acrobat {
-            state: arr1(&vec![theta1, theta2, dtheta1, dtheta2])
+            state: Vector::from_vec(vec![theta1, theta2, dtheta1, dtheta2])
         }
     }
 
@@ -90,7 +91,7 @@ impl Acrobat {
         self.state = ns;
     }
 
-    fn grad(torque: f64, state: Array1<f64>) -> Array1<f64> {
+    fn grad(torque: f64, state: Vector) -> Vector {
         let theta1 = state[StateIndex::THETA1];
         let theta2 = state[StateIndex::THETA2];
         let dtheta1 = state[StateIndex::DTHETA1];
@@ -114,7 +115,7 @@ impl Acrobat {
             (M2*LC2*LC2 + I2 - d2*d2/d1);
         let ddtheta1 = -(d2*ddtheta2 + phi1) / d1;
 
-        arr1(&vec![dtheta1, dtheta2, ddtheta1, ddtheta2])
+        Vector::from_vec(vec![dtheta1, dtheta2, ddtheta1, ddtheta2])
     }
 }
 
