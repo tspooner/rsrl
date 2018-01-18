@@ -5,9 +5,6 @@ use ndarray::Array1;
 use utils::cartesian_product;
 
 
-mod cpfk;
-
-
 /// Polynomial basis projector.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Polynomial {
