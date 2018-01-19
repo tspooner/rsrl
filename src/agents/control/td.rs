@@ -480,40 +480,32 @@ impl<S: Space, Q, P> QSigma<S, Q, P>
     }
 
     fn consume_backup(&mut self) {
-        let td_error = (1..self.n_steps).fold(self.backup[0].delta, |acc, k| {
-            // Calculate the cumulative discount factor:
-            let gamma = self.gamma.value();
-            let df = (1..k).fold(1.0, |acc, i| {
-                let b = &self.backup[i];
+        let mut g = self.backup[0].q;
+        let mut z = 1.0;
+        let mut rho = 1.0;
 
-                acc*gamma*((1.0 - b.sigma)*b.pi + b.sigma)
-            });
+        for k in 0..(self.n_steps - 1) {
+            let ref b1 = self.backup[k];
+            let ref b2 = self.backup[k+1];
 
-            acc + self.backup[k].delta*df
-        });
+            g += z*b1.delta;
+            z *= self.gamma*((1.0 - b2.sigma)*b2.pi + b2.sigma);
+            rho *= 1.0 - b1.sigma + b1.sigma*b1.pi/b1.mu;
+        }
 
-        let isr = (1..self.n_steps).fold(1.0, |acc, k| {
-            let b = &self.backup[k];
-
-            acc*(b.sigma*b.mu / b.pi + 1.0 - b.sigma)
-        });
-
-        self.q_func.update_action(&self.backup[0].s1,
-                                  self.backup[0].a1,
-                                  self.alpha*isr*td_error);
+        let qsa = self.q_func.evaluate_action(&self.backup[0].s, self.backup[0].a);
+        self.q_func.update_action(&self.backup[0].s, self.backup[0].a,
+                                  self.alpha*rho*(g - qsa));
 
         self.backup.pop_front();
     }
 }
 
 struct BackupEntry<S: Space> {
-    pub s1: S::Repr,
-    pub a1: usize,
-    pub s2: S::Repr,
-    pub a2: usize,
+    pub s: S::Repr,
+    pub a: usize,
 
-    pub q1: f64,
-    pub q2: f64,
+    pub q: f64,
     pub delta: f64,
 
     pub sigma: f64,
@@ -540,14 +532,15 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let q = self.q_func.evaluate_action(s, t.action);
         let nqs = self.q_func.evaluate(ns);
 
-        let npi = self.policy.probabilities(nqs.as_slice());
-        let exp_nqs = dot(&nqs, &npi);
-
         let na = self.policy.sample(nqs.as_slice());
+        let npi = Greedy.probabilities(nqs.as_slice());
+        let nmu = self.policy.probabilities(nqs.as_slice());
+
+        let q = self.q_func.evaluate_action(s, t.action);
         let nq = nqs[na];
+        let exp_nqs = dot(&nqs, &npi);
 
         let sigma = {
             self.sigma = self.sigma.step();
@@ -557,18 +550,15 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
 
         // Update backup sequence:
         self.backup.push_back(BackupEntry {
-            s1: s.clone(),
-            a1: t.action,
-            s2: ns.clone(),
-            a2: na,
+            s: s.clone(),
+            a: t.action,
 
-            q1: q,
-            q2: nq,
+            q: q,
             delta: td_error,
 
             sigma: sigma,
             pi: npi[na],
-            mu: Greedy.probabilities(&nqs)[na],
+            mu: nmu[na],
         });
 
         // Learn of latest backup sequence if we have `n_steps` entries:
