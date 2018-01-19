@@ -1,7 +1,7 @@
+use Vector;
 use super::{Projector, Projection};
 use geometry::{Space, RegularSpace};
 use geometry::dimensions::{Dimension, Continuous, Partitioned};
-use ndarray::Array1;
 
 
 /// Fixed uniform basis projector.
@@ -34,7 +34,7 @@ impl UniformGrid {
 
 impl Projector<RegularSpace<Continuous>> for UniformGrid {
     fn project(&self, input: &Vec<f64>) -> Projection {
-        Projection::Sparse(Array1::from_vec(vec![self.hash(input)]))
+        Projection::Sparse(Vector::from_vec(vec![self.hash(input)]))
     }
 
     fn dim(&self) -> usize {

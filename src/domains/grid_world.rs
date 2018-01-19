@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use ndarray::Array2;
+use Matrix;
 use std::cmp;
 use std::fmt::Debug;
 use std::fs::File;
@@ -30,11 +30,11 @@ impl Motion {
 
 
 pub struct GridWorld<T> {
-    layout: Array2<T>,
+    layout: Matrix<T>,
 }
 
 impl<T> GridWorld<T> {
-    pub fn new(layout: Array2<T>) -> GridWorld<T> {
+    pub fn new(layout: Matrix<T>) -> GridWorld<T> {
         GridWorld { layout: layout }
     }
 
@@ -47,9 +47,10 @@ impl<T> GridWorld<T> {
             .collect();
 
         let shape = (m.len(), m[0].len());
+        let mvals = m.into_iter().flat_map(|v| v).collect();
 
         GridWorld {
-            layout: Array2::from_shape_vec(shape, m.into_iter().flat_map(|v| v).collect()).unwrap(),
+            layout: Matrix::from_shape_vec(shape, mvals).unwrap(),
         }
     }
 

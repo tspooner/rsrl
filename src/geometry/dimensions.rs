@@ -685,7 +685,7 @@ impl<'a, D: Dimension> Dimension for &'a D {
 
 #[cfg(test)]
 mod tests {
-    use super::{Dimension, BoundedDimension, FiniteDimension};
+    use super::{Dimension, BoundedDimension};
     use super::{Null, Infinite, Continuous, Partitioned, Discrete};
     use geometry::Span;
 

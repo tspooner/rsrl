@@ -1,7 +1,6 @@
 //! Agent memory representation module.
 
-use Parameter;
-use ndarray::Array1;
+use {Parameter, Vector};
 
 
 pub enum TraceType {
@@ -14,7 +13,7 @@ pub struct Trace {
     pub trace_type: TraceType,
 
     pub lambda: Parameter,
-    pub eligibility: Array1<f64>,
+    pub eligibility: Vector,
 }
 
 impl Trace {
@@ -23,7 +22,7 @@ impl Trace {
             trace_type: trace_type,
 
             lambda: lambda.into(),
-            eligibility: Array1::zeros((activation,)),
+            eligibility: Vector::zeros((activation,)),
         }
     }
 
@@ -35,7 +34,7 @@ impl Trace {
         Trace::new(TraceType::Replacing, lambda, activation)
     }
 
-    pub fn get(&self) -> Array1<f64> {
+    pub fn get(&self) -> Vector {
         self.eligibility.clone()
     }
 
@@ -43,7 +42,7 @@ impl Trace {
         self.eligibility *= rate;
     }
 
-    pub fn update(&mut self, activation: &Array1<f64>) {
+    pub fn update(&mut self, activation: &Vector) {
         match self.trace_type {
             TraceType::Accumulating => self.eligibility += activation,
             TraceType::Replacing => {
@@ -59,7 +58,7 @@ impl Trace {
 #[cfg(test)]
 mod tests {
     use super::Trace;
-    use ndarray::{ArrayBase, arr1};
+    use ndarray::arr1;
 
     #[test]
     fn test_accumulating() {

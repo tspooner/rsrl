@@ -1,8 +1,8 @@
-use std::hash::{Hasher, BuildHasher};
+use Vector;
 use super::{Projector, Projection};
 use geometry::RegularSpace;
 use geometry::dimensions::Continuous;
-use ndarray::Array1;
+use std::hash::{Hasher, BuildHasher};
 
 
 /// Generalised tile coding scheme with hashing.
@@ -31,7 +31,7 @@ impl<H: BuildHasher> Projector<RegularSpace<Continuous>> for TileCoding<H> {
         let floats: Vec<usize> =
             input.iter().map(|f| (*f * self.n_tilings as f64).floor() as usize).collect();
 
-        Projection::Sparse(Array1::from_iter((0..self.n_tilings).map(|t| {
+        Projection::Sparse(Vector::from_iter((0..self.n_tilings).map(|t| {
             hasher.write_usize(t);
             for i in 0..n_floats {
                 hasher.write_usize((floats[i] + t + i*t*2)/self.n_tilings)
