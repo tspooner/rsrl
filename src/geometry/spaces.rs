@@ -410,8 +410,8 @@ mod tests {
         assert_eq!(sa.dim(), sb.dim());
         assert_eq!(sa.span(), sb.span());
 
-        sa += Discrete::new(3);
-        sb += Discrete::new(3);
+        sa = sa + Discrete::new(3);
+        sb = sb + Discrete::new(3);
 
         assert_eq!(sa.dim(), 3);
         assert_eq!(sa.dim(), sb.dim());
