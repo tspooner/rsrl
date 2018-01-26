@@ -173,11 +173,11 @@ impl Domain for Acrobat {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        Self::StateSpace::empty()
-            .push(Continuous::new(LIMITS_THETA1.0, LIMITS_THETA1.1))
-            .push(Continuous::new(LIMITS_THETA2.0, LIMITS_THETA2.1))
-            .push(Continuous::new(LIMITS_DTHETA1.0, LIMITS_DTHETA1.1))
-            .push(Continuous::new(LIMITS_DTHETA2.0, LIMITS_DTHETA2.1))
+        RegularSpace::empty()
+            + Continuous::new(LIMITS_THETA1.0, LIMITS_THETA1.1)
+            + Continuous::new(LIMITS_THETA2.0, LIMITS_THETA2.1)
+            + Continuous::new(LIMITS_DTHETA1.0, LIMITS_DTHETA1.1)
+            + Continuous::new(LIMITS_DTHETA2.0, LIMITS_DTHETA2.1)
     }
 
     fn action_space(&self) -> ActionSpace {
