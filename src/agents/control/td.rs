@@ -94,7 +94,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QLearning<S, Q, P>
 pub struct QLambda<S: Space, M: Projector<S>, P: Policy> {
     trace: Trace,
 
-    pub q_func: Linear<S, M>,
+    pub fa_theta: Linear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -107,14 +107,14 @@ impl<S: Space, M, P> QLambda<S, M, P>
     where M: Projector<S>,
           P: Policy
 {
-    pub fn new<T1, T2>(trace: Trace, q_func: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(trace: Trace, fa_theta: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
         QLambda {
             trace: trace,
 
-            q_func: q_func,
+            fa_theta: fa_theta,
             policy: policy,
 
             alpha: alpha.into(),
@@ -130,19 +130,19 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for QLambda<S, M, P>
           P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.q_func.evaluate(s);
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
 
         Greedy.sample(&qs)
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.q_func.evaluate(s);
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
 
         self.policy.sample(&qs)
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.q_func.evaluate(s);
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
 
         p.sample(&qs)
     }
@@ -151,11 +151,11 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for QLambda<S, M, P>
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let phi_s = self.q_func.projector.project(s);
-        let phi_ns = self.q_func.projector.project(ns);
+        let phi_s = self.fa_theta.projector.project(s);
+        let phi_ns = self.fa_theta.projector.project(ns);
 
-        let qs = self.q_func.evaluate_phi(&phi_s);
-        let nqs = self.q_func.evaluate_phi(&phi_ns);
+        let qs = self.fa_theta.evaluate_phi(&phi_s);
+        let nqs = self.fa_theta.evaluate_phi(&phi_ns);
         let na = Greedy.sample(nqs.as_slice());
 
         let td_error = t.reward + self.gamma*nqs[na] - qs[a];
@@ -167,8 +167,9 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for QLambda<S, M, P>
             self.trace.decay(0.0);
         }
 
-        self.trace.update(&self.q_func.projector.expand_projection(phi_s));
-        self.q_func.update_action_phi(&Projection::Dense(self.trace.get()), a, self.alpha*td_error);
+        self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
+        self.fa_theta.update_action_phi(
+            &Projection::Dense(self.trace.get()), a, td_error*self.alpha);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -267,7 +268,7 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for SARSA<S, Q, P>
 pub struct SARSALambda<S: Space, M: Projector<S>, P: Policy> {
     trace: Trace,
 
-    pub q_func: Linear<S, M>,
+    pub fa_theta: Linear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -280,14 +281,14 @@ impl<S: Space, M, P> SARSALambda<S, M, P>
     where M: Projector<S>,
           P: Policy
 {
-    pub fn new<T1, T2>(trace: Trace, q_func: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(trace: Trace, fa_theta: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
         SARSALambda {
             trace: trace,
 
-            q_func: q_func,
+            fa_theta: fa_theta,
             policy: policy,
 
             alpha: alpha.into(),
@@ -303,7 +304,7 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for SARSALambda<S, M, P>
           P: Policy
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.q_func.evaluate(s);
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
 
         self.policy.sample(&qs)
     }
@@ -313,7 +314,7 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for SARSALambda<S, M, P>
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.q_func.evaluate(s);
+        let qs: Vec<f64> = self.fa_theta.evaluate(s);
 
         p.sample(&qs)
     }
@@ -322,19 +323,21 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for SARSALambda<S, M, P>
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let phi_s = self.q_func.projector.project(s);
-        let phi_ns = self.q_func.projector.project(ns);
+        let phi_s = self.fa_theta.projector.project(s);
+        let phi_ns = self.fa_theta.projector.project(ns);
 
-        let nqs: Vec<f64> = self.q_func.evaluate_phi(&phi_ns);
+        let qsa = self.fa_theta.evaluate_action_phi(&phi_s, a);
+        let nqs: Vec<f64> = self.fa_theta.evaluate_phi(&phi_ns);
         let na = self.policy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - self.q_func.evaluate_action_phi(&phi_s, a);
-
         let rate = self.trace.lambda.value()*self.gamma.value();
-        self.trace.decay(rate);
-        self.trace.update(&self.q_func.projector.expand_projection(phi_s));
+        let td_error = t.reward + self.gamma*nqs[na] - qsa;
 
-        self.q_func.update_action_phi(&Projection::Dense(self.trace.get()), a, self.alpha*td_error);
+        self.trace.decay(rate);
+        self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
+
+        self.fa_theta.update_action_phi(
+            &Projection::Dense(self.trace.get()), a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -480,40 +483,32 @@ impl<S: Space, Q, P> QSigma<S, Q, P>
     }
 
     fn consume_backup(&mut self) {
-        let td_error = (1..self.n_steps).fold(self.backup[0].delta, |acc, k| {
-            // Calculate the cumulative discount factor:
-            let gamma = self.gamma.value();
-            let df = (1..k).fold(1.0, |acc, i| {
-                let b = &self.backup[i];
+        let mut g = self.backup[0].q;
+        let mut z = 1.0;
+        let mut rho = 1.0;
 
-                acc*gamma*((1.0 - b.sigma)*b.pi + b.sigma)
-            });
+        for k in 0..(self.n_steps - 1) {
+            let ref b1 = self.backup[k];
+            let ref b2 = self.backup[k+1];
 
-            acc + self.backup[k].delta*df
-        });
+            g += z*b1.delta;
+            z *= self.gamma*((1.0 - b2.sigma)*b2.pi + b2.sigma);
+            rho *= 1.0 - b1.sigma + b1.sigma*b1.pi/b1.mu;
+        }
 
-        let isr = (1..self.n_steps).fold(1.0, |acc, k| {
-            let b = &self.backup[k];
-
-            acc*(b.sigma*b.mu / b.pi + 1.0 - b.sigma)
-        });
-
-        self.q_func.update_action(&self.backup[0].s1,
-                                  self.backup[0].a1,
-                                  self.alpha*isr*td_error);
+        let qsa = self.q_func.evaluate_action(&self.backup[0].s, self.backup[0].a);
+        self.q_func.update_action(&self.backup[0].s, self.backup[0].a,
+                                  self.alpha*rho*(g - qsa));
 
         self.backup.pop_front();
     }
 }
 
 struct BackupEntry<S: Space> {
-    pub s1: S::Repr,
-    pub a1: usize,
-    pub s2: S::Repr,
-    pub a2: usize,
+    pub s: S::Repr,
+    pub a: usize,
 
-    pub q1: f64,
-    pub q2: f64,
+    pub q: f64,
     pub delta: f64,
 
     pub sigma: f64,
@@ -540,14 +535,15 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
     fn handle_transition(&mut self, t: &Transition<S, ActionSpace>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let q = self.q_func.evaluate_action(s, t.action);
         let nqs = self.q_func.evaluate(ns);
 
-        let npi = self.policy.probabilities(nqs.as_slice());
-        let exp_nqs = dot(&nqs, &npi);
-
         let na = self.policy.sample(nqs.as_slice());
+        let npi = Greedy.probabilities(nqs.as_slice());
+        let nmu = self.policy.probabilities(nqs.as_slice());
+
+        let q = self.q_func.evaluate_action(s, t.action);
         let nq = nqs[na];
+        let exp_nqs = dot(&nqs, &npi);
 
         let sigma = {
             self.sigma = self.sigma.step();
@@ -557,18 +553,15 @@ impl<S: Space, Q, P> ControlAgent<S, ActionSpace> for QSigma<S, Q, P>
 
         // Update backup sequence:
         self.backup.push_back(BackupEntry {
-            s1: s.clone(),
-            a1: t.action,
-            s2: ns.clone(),
-            a2: na,
+            s: s.clone(),
+            a: t.action,
 
-            q1: q,
-            q2: nq,
+            q: q,
             delta: td_error,
 
             sigma: sigma,
             pi: npi[na],
-            mu: Greedy.probabilities(&nqs)[na],
+            mu: nmu[na],
         });
 
         // Learn of latest backup sequence if we have `n_steps` entries:

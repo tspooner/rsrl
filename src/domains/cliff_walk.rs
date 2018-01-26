@@ -90,8 +90,7 @@ impl Domain for CliffWalk {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        Self::StateSpace::new(Discrete::new(self.gw.width()),
-                              Discrete::new(self.gw.height()))
+        PairSpace::new(Discrete::new(self.gw.width()), Discrete::new(self.gw.height()))
     }
 
     fn action_space(&self) -> ActionSpace {

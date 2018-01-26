@@ -181,13 +181,13 @@ impl Domain for HIVTreatment {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        Self::StateSpace::empty()
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
+        RegularSpace::empty()
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
     }
 
     fn action_space(&self) -> ActionSpace {

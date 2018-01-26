@@ -148,11 +148,11 @@ impl Domain for CartPole {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        Self::StateSpace::empty()
-            .push(Continuous::new(LIMITS_X.0, LIMITS_X.1))
-            .push(Continuous::new(LIMITS_DX.0, LIMITS_DX.1))
-            .push(Continuous::new(LIMITS_THETA.0, LIMITS_THETA.1))
-            .push(Continuous::new(LIMITS_DTHETA.0, LIMITS_DTHETA.1))
+        RegularSpace::empty()
+            + Continuous::new(LIMITS_X.0, LIMITS_X.1)
+            + Continuous::new(LIMITS_DX.0, LIMITS_DX.1)
+            + Continuous::new(LIMITS_THETA.0, LIMITS_THETA.1)
+            + Continuous::new(LIMITS_DTHETA.0, LIMITS_DTHETA.1)
     }
 
     fn action_space(&self) -> ActionSpace {

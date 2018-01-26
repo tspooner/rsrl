@@ -57,21 +57,21 @@ impl<S: Space, V> PredictionAgent<S> for TD<S, V>
 pub struct TDLambda<S: Space, P: Projector<S>> {
     trace: Trace,
 
-    pub v_func: Linear<S, P>,
+    pub fa_theta: Linear<S, P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
 impl<S: Space, P: Projector<S>> TDLambda<S, P> {
-    pub fn new<T1, T2>(trace: Trace, v_func: Linear<S, P>, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(trace: Trace, fa_theta: Linear<S, P>, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
         TDLambda {
             trace: trace,
 
-            v_func: v_func,
+            fa_theta: fa_theta,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
@@ -81,17 +81,17 @@ impl<S: Space, P: Projector<S>> TDLambda<S, P> {
 
 impl<S: Space, P: Projector<S>> PredictionAgent<S> for TDLambda<S, P> {
     fn handle_transition(&mut self, s: &S::Repr, ns: &S::Repr, r: f64) -> Option<f64> {
-        let phi_s = self.v_func.projector.project(s);
-        let phi_ns = self.v_func.projector.project(ns);
-
-        let td_error = r + self.gamma*self.v_func.evaluate_phi(&phi_ns) -
-            self.v_func.evaluate_phi(&phi_s);
+        let phi_s = self.fa_theta.projector.project(s);
+        let phi_ns = self.fa_theta.projector.project(ns);
 
         let rate = self.trace.lambda.value()*self.gamma.value();
-        self.trace.decay(rate);
-        self.trace.update(&self.v_func.projector.expand_projection(phi_s));
+        let td_error = r + self.gamma*self.fa_theta.evaluate_phi(&phi_ns) -
+            self.fa_theta.evaluate_phi(&phi_s);
 
-        self.v_func.update_phi(&Projection::Dense(self.trace.get()), self.alpha*td_error);
+        self.trace.decay(rate);
+        self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
+
+        self.fa_theta.update_phi(&Projection::Dense(self.trace.get()), self.alpha*td_error);
 
         Some(td_error)
     }
