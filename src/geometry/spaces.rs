@@ -2,7 +2,7 @@ use super::Span;
 use super::dimensions::{self, Dimension, Partitioned};
 use rand::ThreadRng;
 use std::fmt::Debug;
-use std::ops::Add;
+use std::ops::{Add, Index};
 use std::iter::FromIterator;
 use std::slice::Iter as SliceIter;
 use std::collections::HashMap;
@@ -219,6 +219,14 @@ impl<D: Dimension> Add<RegularSpace<D>> for RegularSpace<D> {
 
     fn add(self, rhs: RegularSpace<D>) -> Self::Output {
         FromIterator::from_iter(self.into_iter().chain(rhs.into_iter()))
+    }
+}
+
+impl<D: Dimension> Index<usize> for RegularSpace<D> {
+    type Output = D;
+
+    fn index(&self, index: usize) -> &D {
+        self.dimensions.index(index)
     }
 }
 
