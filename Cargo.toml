@@ -2,13 +2,13 @@
 name = "rsrl"
 description = "A fast, extensible reinforcement learning framework in Rust"
 
-version = "0.2.0"
+version = "0.2.2"
 authors = ["Tom Spooner <t.spooner@liverpool.ac.uk>"]
 
 license = "MIT"
 readme = "README.md"
 
-keywords = ["learning", "reinforcement", "rl", "ai"]
+keywords = ["machine", "reinforcement", "learning", "rl", "ai"]
 
 repository = "https://github.com/tspooner/rsrl"
 documentation = "https://tspooner.github.io/rsrl/rsrl/index.html"

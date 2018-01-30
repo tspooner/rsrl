@@ -1,13 +1,14 @@
+use Matrix;
 use super::{Function, Parameterised, VFunction, QFunction, Projector, Projection};
 use geometry::Space;
-use ndarray::{ArrayView, Array2};
+use ndarray::{ArrayView};
 use std::marker::PhantomData;
 
 
 #[derive(Serialize, Deserialize)]
 pub struct Linear<S: Space, P: Projector<S>> {
     pub projector: P,
-    pub weights: Array2<f64>,
+    pub weights: Matrix,
 
     phantom: PhantomData<S>,
 }
@@ -18,7 +19,7 @@ impl<S: Space, P: Projector<S>> Linear<S, P> {
 
         Self {
             projector: projector,
-            weights: Array2::<f64>::zeros((n_features, n_outputs)),
+            weights: Matrix::zeros((n_features, n_outputs)),
 
             phantom: PhantomData,
         }
@@ -87,7 +88,7 @@ impl<S: Space, P: Projector<S>> QFunction<S> for Linear<S, P> {
 
     fn evaluate_phi(&self, phi: &Projection) -> Vec<f64> {
         match phi {
-            &Projection::Dense(ref dense_phi) => (self.weights.t().dot(dense_phi)).into_raw_vec(),
+            &Projection::Dense(ref dense_phi) => (self.weights.t().dot(&(dense_phi/phi.z()))).into_raw_vec(),
             &Projection::Sparse(ref sparse_phi) =>
                 (0..self.weights.cols()).map(|c| {
                     sparse_phi.iter().fold(0.0, |acc, idx| acc + self.weights[(*idx, c)])

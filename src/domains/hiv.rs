@@ -1,7 +1,8 @@
+use Vector;
 use super::{Observation, Transition, Domain, runge_kutta4};
 
 use std::ops::Index;
-use ndarray::{arr1, Array1, NdIndex, Ix1};
+use ndarray::{NdIndex, Ix1};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 
@@ -73,14 +74,14 @@ unsafe impl NdIndex<Ix1> for StateIndex {
 
 pub struct HIVTreatment {
     eps: (f64, f64),
-    state: Array1<f64>,
+    state: Vector,
 }
 
 impl HIVTreatment {
     fn new(t1: f64, t1s: f64, t2: f64, t2s: f64, v: f64, e: f64) -> HIVTreatment {
         HIVTreatment {
             eps: ALL_ACTIONS[0],
-            state: arr1(&vec![t1, t1s, t2, t2s, v, e])
+            state: Vector::from_vec(vec![t1, t1s, t2, t2s, v, e])
         }
     }
 
@@ -98,7 +99,7 @@ impl HIVTreatment {
         self.state = ns;
     }
 
-    fn grad(eps: (f64, f64), state: Array1<f64>) -> Array1<f64> {
+    fn grad(eps: (f64, f64), state: Vector) -> Vector {
         let t1 = state[StateIndex::T1];
         let t1s = state[StateIndex::T1S];
         let t2 = state[StateIndex::T2];
@@ -120,7 +121,7 @@ impl HIVTreatment {
             ((1.0 - eps.0)*RHO1*K1*t1 + (1.0 - F*eps.0)*RHO2*K2*t2)*v;
         let d_e = LAMBDA_E + BE*sum_ts/(sum_ts + KB)*e - DE*sum_ts/(sum_ts + KD)*e - DELTA_E*e;
 
-        arr1(&vec![d_t1, d_t1s, d_t2, d_t2s, d_v, d_e])
+        Vector::from_vec(vec![d_t1, d_t1s, d_t2, d_t2s, d_v, d_e])
     }
 }
 
@@ -180,13 +181,13 @@ impl Domain for HIVTreatment {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        Self::StateSpace::empty()
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
-            .push(Continuous::new(LIMITS.0, LIMITS.1))
+        RegularSpace::empty()
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1)
     }
 
     fn action_space(&self) -> ActionSpace {

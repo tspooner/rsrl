@@ -12,22 +12,23 @@ extern crate serde_json;
 extern crate serde_test;
 #[macro_use] extern crate serde_derive;
 
-// extern crate futures;
 extern crate rand;
 
-mod utils;
+pub mod utils;
 mod consts;
 mod macros;
 
-pub mod parameter;
-pub use self::parameter::Parameter;
+pub mod geometry;
+pub use self::geometry::{Vector, Matrix};
 
-mod experiment;
-pub use self::experiment::*;
+mod parameter;
+pub use self::parameter::Parameter;
 
 pub mod agents;
 pub mod domains;
 pub mod fa;
-pub mod geometry;
 pub mod logging;
 pub mod policies;
+
+mod experiment;
+pub use self::experiment::*;

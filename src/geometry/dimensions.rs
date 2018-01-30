@@ -12,8 +12,6 @@ use std::fmt::Debug;
 use std::ops::Range;
 
 
-// XXX: Address concern about [low, high) convention.
-
 /// The basic dimension type.
 pub trait Dimension {
     /// The corresponding primitive type.
@@ -27,11 +25,6 @@ pub trait Dimension {
 
     /// Returns the total span of this dimension.
     fn span(&self) -> Span;
-
-    /// Returns the name of the dimension.
-    fn name(&self) -> Option<String> {
-        None
-    }
 }
 
 /// Dimension type with saturating upper/lower bounds.

@@ -1,9 +1,8 @@
+use Matrix;
 use super::{Observation, Transition, Domain};
 use super::grid_world::{Motion, GridWorld};
 use geometry::{ActionSpace, PairSpace};
 use geometry::dimensions::Discrete;
-
-use ndarray::Array2;
 
 
 const ALL_ACTIONS: [Motion; 4] =
@@ -18,7 +17,7 @@ pub struct CliffWalk {
 impl CliffWalk {
     pub fn new(height: usize, width: usize) -> CliffWalk {
         CliffWalk {
-            gw: GridWorld::new(Array2::<u8>::zeros((height, width))),
+            gw: GridWorld::new(Matrix::zeros((height, width))),
             loc: (0, 0),
         }
     }
@@ -91,8 +90,7 @@ impl Domain for CliffWalk {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        Self::StateSpace::new(Discrete::new(self.gw.width()),
-                              Discrete::new(self.gw.height()))
+        PairSpace::new(Discrete::new(self.gw.width()), Discrete::new(self.gw.height()))
     }
 
     fn action_space(&self) -> ActionSpace {

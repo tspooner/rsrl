@@ -121,9 +121,9 @@ impl Domain for MountainCar {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        Self::StateSpace::empty()
-            .push(Continuous::new(X_MIN, X_MAX))
-            .push(Continuous::new(V_MIN, V_MAX))
+        RegularSpace::empty()
+            + Continuous::new(X_MIN, X_MAX)
+            + Continuous::new(V_MIN, V_MAX)
     }
 
     fn action_space(&self) -> ActionSpace {

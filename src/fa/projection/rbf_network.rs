@@ -1,19 +1,20 @@
+use {Vector, Matrix};
 use super::{Projector, Projection};
 use geometry::{Span, Space, RegularSpace};
 use geometry::dimensions::{Continuous, Partitioned};
-use ndarray::{Axis, ArrayView, Array1, Array2};
+use ndarray::{Axis, ArrayView};
 use utils::cartesian_product;
 
 
 /// Radial basis function network projector.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct RBFNetwork {
-    mu: Array2<f64>,
-    beta: Array1<f64>,
+    mu: Matrix,
+    beta: Vector,
 }
 
 impl RBFNetwork {
-    pub fn new(mu: Array2<f64>, sigma: Array1<f64>) -> Self {
+    pub fn new(mu: Matrix, sigma: Vector) -> Self {
         if mu.cols() != sigma.len() {
             panic!("Dimensions of mu ({:?}) and sigma ({:?}) must agree.",
                    mu.shape(),
@@ -39,13 +40,13 @@ impl RBFNetwork {
             .flat_map(|e| e)
             .collect();
 
-        let mu = Array2::from_shape_vec((n_features, input_space.dim()), flat_combs).unwrap();
+        let mu = Matrix::from_shape_vec((n_features, input_space.dim()), flat_combs).unwrap();
         let sigma = input_space.iter().map(|d| d.partition_width()).collect();
 
         RBFNetwork::new(mu, sigma)
     }
 
-    pub fn kernel(&self, input: &[f64]) -> Array1<f64> {
+    pub fn kernel(&self, input: &[f64]) -> Vector {
         let d = &self.mu - &ArrayView::from_shape((1, self.mu.cols()), input).unwrap();
 
         (&d*&d*&self.beta).mapv(|v| (-v.abs()).exp()).sum_axis(Axis(1))
