@@ -47,6 +47,9 @@ pub trait BoundedDimension: Dimension
 
     /// Returns true iff `val` is within the dimension's bounds.
     fn contains(&self, val: Self::ValueBound) -> bool;
+
+    /// Returns true if either the upper or lower bound are infinite.
+    fn is_infinite(&self) -> bool;
 }
 
 /// Dimension type with bounds and a finite set of values.
@@ -105,6 +108,16 @@ impl Dimension for Infinite {
     }
 }
 
+impl<D: BoundedDimension> From<D> for Infinite where D::Value: PartialOrd {
+    fn from(d: D) -> Infinite {
+        if d.is_infinite() {
+            Infinite
+        } else {
+            panic!("Upper or lower bound must be infinite for a valid conversion.")
+        }
+    }
+}
+
 
 /// A continous dimension.
 #[derive(Clone, Copy, Serialize)]
@@ -155,6 +168,10 @@ impl BoundedDimension for Continuous {
 
     fn contains(&self, val: Self::ValueBound) -> bool {
         (val >= self.lb) && (val < self.ub)
+    }
+
+    fn is_infinite(&self) -> bool {
+        self.lb.is_infinite() || self.ub.is_infinite()
     }
 }
 
@@ -357,6 +374,10 @@ impl BoundedDimension for Partitioned {
     fn contains(&self, val: Self::ValueBound) -> bool {
         (val >= self.lb) && (val < self.ub)
     }
+
+    fn is_infinite(&self) -> bool {
+        self.lb.is_infinite() || self.ub.is_infinite()
+    }
 }
 
 impl FiniteDimension for Partitioned {
@@ -540,6 +561,10 @@ impl BoundedDimension for Discrete {
 
     fn contains(&self, val: Self::Value) -> bool {
         val < self.size
+    }
+
+    fn is_infinite(&self) -> bool {
+        false
     }
 }
 
