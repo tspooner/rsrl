@@ -1,10 +1,9 @@
 extern crate cpython;
 
+use std::f64;
 use self::cpython::{Python, ObjectProtocol, NoArgs};
 use self::cpython::{PyObject, PyResult};
-
 use super::{Observation, Transition, Domain};
-
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 
@@ -111,7 +110,13 @@ impl Domain for OpenAIGym {
             let lb = lbs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
             let ub = ubs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
 
-            acc.push(Continuous::new(lb, ub))
+            if lb.abs() <= 340282346638528860000000000000000000000.0 ||
+               ub.abs() >= 340282346638528860000000000000000000000.0 {
+                acc.push(Continuous::new(f64::NEG_INFINITY, f64::INFINITY))
+
+            } else {
+                acc.push(Continuous::new(lb, ub))
+            }
         })
     }
 
