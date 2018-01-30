@@ -1,3 +1,5 @@
+<img align="right" width="120" title="RSRL logo" src="./logo.png">
+
 # RSRL ([api](https://tspooner.github.io/rsrl))
 
 [![Crates.io](https://img.shields.io/crates/v/rsrl.svg)](https://crates.io/crates/rsrl)
