@@ -44,7 +44,7 @@ impl OpenAIGym {
         }).collect()
     }
 
-    pub fn update_state(&mut self, a: usize) {
+    fn update_state(&mut self, a: usize) {
         let py = self.client.py();
 
         let tr = self.env.call_method(py, "step", (a,), None).unwrap();
