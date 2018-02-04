@@ -23,10 +23,24 @@ impl GymClient {
         self.gil.python()
     }
 
-    pub fn make(&mut self, env_id: &str) -> PyResult<PyObject> {
-        let py = self.gil.python();
+    pub fn make(&mut self, env_id: &str, monitor_path: Option<String>) -> PyResult<PyObject> {
+        let py = self.py();
         let maker = self.gym.get(py, "make")?;
+        let mut env = maker.call(py, (PyString::new(py, env_id),), None);
 
-        maker.call(py, (PyString::new(py, env_id),), None)
+        if let Some(path) = monitor_path {
+            let monitor = self.gym.get(py, "wrappers")?.get(py, "Monitor")?;
+
+            env
+            
+        } else {
+            env
+        }
+    }
+
+    pub fn monitor(&mut self, path: &str) -> PyResult<PyObject> {
+        let py = self.py();
+
+        monitor.call(py, (PyString::new(py, env_id),), None)
     }
 }

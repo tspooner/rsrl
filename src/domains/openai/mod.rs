@@ -21,7 +21,7 @@ pub struct OpenAIGym {
 }
 
 impl OpenAIGym {
-    pub fn new(env_id: &str) -> PyResult<Self> {
+    pub fn new(env_id: &str, monitor: ) -> PyResult<Self> {
         let mut client = GymClient::new()?;
         let env = client.make(env_id)?;
 
