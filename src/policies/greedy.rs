@@ -15,7 +15,9 @@ impl Policy for Greedy {
         if maxima.len() == 1 {
             maxima[0]
         } else {
-            *rand::thread_rng().choose(&maxima).unwrap()
+            *rand::thread_rng()
+                .choose(&maxima)
+                .expect("no valid actions to choose from in `Greedy::sample(qs)`")
         }
     }
 
