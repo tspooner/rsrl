@@ -1,4 +1,5 @@
-use super::cpython::{Python, GILGuard, ObjectProtocol, PyModule, PyResult, PyObject, PyString};
+use super::cpython::{Python, GILGuard, ObjectProtocol};
+use super::cpython::{PyModule, PyResult, PyObject, PyString, PyDict};
 
 
 pub struct GymClient {
@@ -23,24 +24,25 @@ impl GymClient {
         self.gil.python()
     }
 
-    pub fn make(&mut self, env_id: &str, monitor_path: Option<String>) -> PyResult<PyObject> {
+    pub fn make(&self, env_id: &str) -> PyResult<PyObject> {
         let py = self.py();
-        let maker = self.gym.get(py, "make")?;
-        let mut env = maker.call(py, (PyString::new(py, env_id),), None);
 
-        if let Some(path) = monitor_path {
-            let monitor = self.gym.get(py, "wrappers")?.get(py, "Monitor")?;
-
-            env
-            
-        } else {
-            env
-        }
+        self.gym.get(py, "make")?.call(py, (PyString::new(py, env_id),), None)
     }
 
-    pub fn monitor(&mut self, path: &str) -> PyResult<PyObject> {
+    pub fn monitor(&self, env: PyObject, monitor_path: &str) -> PyResult<PyObject> {
+        let py = self.py();
+        let args = (env, PyString::new(py, monitor_path));
+
+        py.import("gym.wrappers")?.get(py, "Monitor")?.call(py, args, None)
+    }
+
+    pub fn upload(&self, file_path: &str, api_key: &str) -> PyResult<PyObject> {
         let py = self.py();
 
-        monitor.call(py, (PyString::new(py, env_id),), None)
+        let kwargs = PyDict::new(py);
+        kwargs.set_item(py, "api_key", api_key)?;
+
+        self.gym.call(py, "upload", (file_path,), Some(&kwargs))
     }
 }

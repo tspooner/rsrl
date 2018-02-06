@@ -1,11 +1,10 @@
 extern crate cpython;
 
-use std::f64;
-use self::cpython::{Python, ObjectProtocol, NoArgs};
-use self::cpython::{PyObject, PyResult};
-use super::{Observation, Transition, Domain};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
+use std::f64;
+use self::cpython::{Python, ObjectProtocol, PyObject, PyResult, NoArgs};
+use super::{Observation, Transition, Domain};
 
 mod client;
 use self::client::GymClient;
@@ -13,6 +12,7 @@ use self::client::GymClient;
 
 pub struct OpenAIGym {
     client: GymClient,
+    monitor_path: Option<String>,
 
     env: PyObject,
     state: Vec<f64>,
@@ -21,21 +21,43 @@ pub struct OpenAIGym {
 }
 
 impl OpenAIGym {
-    pub fn new(env_id: &str, monitor: ) -> PyResult<Self> {
-        let mut client = GymClient::new()?;
-        let env = client.make(env_id)?;
+    pub fn new(env_id: &str, monitor_path: Option<String>) -> PyResult<Self> {
+        let client = GymClient::new()?;
+
+        let env = if let Some(ref path) = monitor_path {
+            let env = client.make(env_id)?;
+
+            client.monitor(env, path)?
+
+        } else {
+            client.make(env_id)?
+        };
 
         let obs = env.call_method(client.py(), "reset", NoArgs, None)?;
         let state = OpenAIGym::parse_vec(client.py(), &obs);
 
         Ok(Self {
             client: client,
+            monitor_path: monitor_path,
 
             env: env,
             state: state,
             terminal: false,
             last_reward: 0.0,
         })
+    }
+
+    pub fn upload<T: Into<String>>(&self, api_key: T) -> Result<(), &'static str> {
+        if let Some(ref path) = self.monitor_path {
+            match self.env.call_method(self.client.py(), "close", NoArgs, None)
+                      .and_then(|_| self.client.upload(path, &api_key.into()))
+            {
+                Ok(_) => Ok(()),
+                Err(_) => Err("upload failed - python error"),
+            }
+        } else {
+            Err("upload failed - no monitor file")
+        }
     }
 
     fn parse_vec(py: Python, vals: &PyObject) -> Vec<f64> {
