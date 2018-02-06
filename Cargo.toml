@@ -20,6 +20,8 @@ coveralls = { repository = "tspooner/rsrl", branch = "master", service = "github
 [dependencies]
 log = "0.4"
 rand = "0.4"
+time = "0.1"
+cpython = "0.1"
 rusty-machine = "0.5"
 
 serde = "1.0"
