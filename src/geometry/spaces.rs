@@ -1,7 +1,8 @@
 use super::Span;
 use super::dimensions::{self, Dimension, Partitioned};
 use rand::ThreadRng;
-use std::ops::Add;
+use std::fmt::Debug;
+use std::ops::{Add, Index};
 use std::iter::FromIterator;
 use std::slice::Iter as SliceIter;
 use std::collections::HashMap;
@@ -11,7 +12,7 @@ use std::collections::hash_map::Iter as HashMapIter;
 /// Trait for defining geometric spaces.
 pub trait Space {
     /// The data representation of the space.
-    type Repr: Clone;
+    type Repr: Debug + Clone;
 
     /// Generate a random sample from the space.
     fn sample(&self, rng: &mut ThreadRng) -> Self::Repr;
@@ -218,6 +219,14 @@ impl<D: Dimension> Add<RegularSpace<D>> for RegularSpace<D> {
 
     fn add(self, rhs: RegularSpace<D>) -> Self::Output {
         FromIterator::from_iter(self.into_iter().chain(rhs.into_iter()))
+    }
+}
+
+impl<D: Dimension> Index<usize> for RegularSpace<D> {
+    type Output = D;
+
+    fn index(&self, index: usize) -> &D {
+        self.dimensions.index(index)
     }
 }
 
