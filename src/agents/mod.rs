@@ -5,11 +5,12 @@ pub mod memory;
 pub mod control;
 pub mod prediction;
 
-use geometry::Space;
-use ndarray::Array2;
 pub use self::control::Controller;
 pub use self::prediction::{Predictor, TDPredictor};
 
+
+use geometry::Space;
+use ndarray::Array2;
 
 pub trait Agent<S: Space> {
     type Sample;
