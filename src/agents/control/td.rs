@@ -154,21 +154,22 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for QLambda<S, M, P>
         let phi_s = self.fa_theta.projector.project(s);
         let phi_ns = self.fa_theta.projector.project(ns);
 
-        let qsa = self.fa_theta.evaluate_action_phi(&phi_s, a);
+        let qs = self.fa_theta.evaluate_phi(&phi_s);
         let nqs = self.fa_theta.evaluate_phi(&phi_ns);
         let na = Greedy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - qsa;
-        let update = self.alpha*td_error;
+        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
 
-        if a == Greedy.sample(&self.fa_theta.evaluate_phi(&phi_s)) {
-            self.trace.decay(self.gamma.value());
+        if a == Greedy.sample(&qs) {
+            let rate = self.trace.lambda.value()*self.gamma.value();
+            self.trace.decay(rate);
         } else {
             self.trace.decay(0.0);
         }
 
         self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
-        self.fa_theta.update_action_phi(&Projection::Dense(self.trace.get()), a, update);
+        self.fa_theta.update_action_phi(
+            &Projection::Dense(self.trace.get()), a, td_error*self.alpha);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {
@@ -329,12 +330,14 @@ impl<S: Space, M, P> ControlAgent<S, ActionSpace> for SARSALambda<S, M, P>
         let nqs: Vec<f64> = self.fa_theta.evaluate_phi(&phi_ns);
         let na = self.policy.sample(nqs.as_slice());
 
+        let rate = self.trace.lambda.value()*self.gamma.value();
         let td_error = t.reward + self.gamma*nqs[na] - qsa;
-        let update = self.alpha*td_error;
 
-        self.trace.decay(self.gamma.value());
+        self.trace.decay(rate);
         self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
-        self.fa_theta.update_action_phi(&Projection::Dense(self.trace.get()), a, update);
+
+        self.fa_theta.update_action_phi(
+            &Projection::Dense(self.trace.get()), a, self.alpha*td_error);
     }
 
     fn handle_terminal(&mut self, _: &S::Repr) {

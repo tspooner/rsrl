@@ -5,7 +5,7 @@ use ndarray::{ArrayView};
 use std::marker::PhantomData;
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Linear<S: Space, P: Projector<S>> {
     pub projector: P,
     pub weights: Matrix,

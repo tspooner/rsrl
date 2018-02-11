@@ -5,7 +5,7 @@ use geometry::dimensions::{Dimension, Continuous, Partitioned};
 
 
 /// Fixed uniform basis projector.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct UniformGrid {
     n_features: usize,
     input_space: RegularSpace<Partitioned>,
