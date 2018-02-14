@@ -1,11 +1,10 @@
 use Parameter;
 use agents::{Agent, Controller};
 use domains::Transition;
-use fa::{Function, VFunction, QFunction, Projector, Projection, Linear};
-use geometry::{Space, ActionSpace};
-use policies::{Policy, Greedy};
+use fa::{Function, Linear, Projection, Projector, QFunction, VFunction};
+use geometry::{ActionSpace, Space};
+use policies::{Greedy, Policy};
 use std::marker::PhantomData;
-
 
 /// Greedy GQ control algorithm.
 ///
@@ -25,16 +24,18 @@ pub struct GreedyGQ<S: Space, M: Projector<S>, P: Policy> {
 }
 
 impl<S: Space, M: Projector<S>, P: Policy> GreedyGQ<S, M, P> {
-    pub fn new<T1, T2, T3>(fa_theta: Linear<S, M>,
-                           fa_w: Linear<S, M>,
-                           policy: P,
-                           alpha: T1,
-                           beta: T2,
-                           gamma: T3)
-                           -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>,
-              T3: Into<Parameter>
+    pub fn new<T1, T2, T3>(
+        fa_theta: Linear<S, M>,
+        fa_w: Linear<S, M>,
+        policy: P,
+        alpha: T1,
+        beta: T2,
+        gamma: T3,
+    ) -> Self
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
+        T3: Into<Parameter>,
     {
         GreedyGQ {
             fa_theta: fa_theta,
@@ -65,17 +66,23 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
         let na = Greedy.sample(&nqs);
 
         let td_estimate = VFunction::evaluate_phi(&mut self.fa_w, &phi_s);
-        let td_error = t.reward + self.gamma.value()*self.fa_theta.evaluate_action_phi(&phi_ns, na) -
-            self.fa_theta.evaluate_action_phi(&phi_s, a);
+        let td_error = t.reward
+            + self.gamma.value() * self.fa_theta.evaluate_action_phi(&phi_ns, na)
+            - self.fa_theta.evaluate_action_phi(&phi_s, a);
 
         let phi_s = self.fa_w.projector.expand_projection(phi_s);
         let phi_ns = self.fa_w.projector.expand_projection(phi_ns);
 
-        let update_q = td_error*&phi_s - self.gamma*td_estimate*phi_ns;
-        let update_v = (td_error - td_estimate)*phi_s;
+        let update_q = td_error * &phi_s - self.gamma * td_estimate * phi_ns;
+        let update_v = (td_error - td_estimate) * phi_s;
 
-        VFunction::update_phi(&mut self.fa_w, &Projection::Dense(update_v), self.alpha*self.beta);
-        self.fa_theta.update_action_phi(&Projection::Dense(update_q), a, self.alpha.value());
+        VFunction::update_phi(
+            &mut self.fa_w,
+            &Projection::Dense(update_v),
+            self.alpha * self.beta,
+        );
+        self.fa_theta
+            .update_action_phi(&Projection::Dense(update_q), a, self.alpha.value());
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
@@ -88,9 +95,7 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
 }
 
 impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for GreedyGQ<S, M, P> {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        self.evaluate_policy(&mut Greedy, s)
-    }
+    fn pi(&mut self, s: &S::Repr) -> usize { self.evaluate_policy(&mut Greedy, s) }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
         let qs: Vec<f64> = self.fa_theta.evaluate(s);

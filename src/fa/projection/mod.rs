@@ -4,7 +4,6 @@ use Vector;
 use geometry::Space;
 use geometry::norms::l1;
 
-
 /// Projected feature vector representation.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum Projection {
@@ -26,17 +25,12 @@ impl Projection {
 }
 
 impl Into<Projection> for Vector<f64> {
-    fn into(self) -> Projection {
-        Projection::Dense(self)
-    }
+    fn into(self) -> Projection { Projection::Dense(self) }
 }
 
 impl Into<Projection> for Vector<usize> {
-    fn into(self) -> Projection {
-        Projection::Sparse(self)
-    }
+    fn into(self) -> Projection { Projection::Sparse(self) }
 }
-
 
 /// Trait for basis projectors.
 pub trait Projector<S: Space> {
@@ -55,12 +49,14 @@ pub trait Projector<S: Space> {
     /// Check for equivalence with another projector of the same type.
     fn equivalent(&self, other: &Self) -> bool;
 
-    /// Project data from an input space onto the basis and convert into a raw, dense vector.
+    /// Project data from an input space onto the basis and convert into a raw,
+    /// dense vector.
     fn project_expanded(&self, input: &S::Repr) -> Vector<f64> {
         self.expand_projection(self.project(input))
     }
 
-    /// Expand and normalise a given projection, and convert into a raw, dense vector.
+    /// Expand and normalise a given projection, and convert into a raw, dense
+    /// vector.
     fn expand_projection(&self, projection: Projection) -> Vector<f64> {
         let z = match projection.z() {
             val if val.abs() < 1e-6 => 1.0,
@@ -68,7 +64,7 @@ pub trait Projector<S: Space> {
         };
 
         match projection {
-            Projection::Dense(phi) => phi/z,
+            Projection::Dense(phi) => phi / z,
             Projection::Sparse(sparse_phi) => {
                 let mut phi = Vector::zeros((self.size(),));
 
@@ -76,12 +72,11 @@ pub trait Projector<S: Space> {
                     phi[*idx] = 1.0;
                 }
 
-                phi/z
+                phi / z
             },
         }
     }
 }
-
 
 mod basis_network;
 pub use self::basis_network::*;

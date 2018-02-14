@@ -1,12 +1,11 @@
+use super::{Domain, Observation, Transition, runge_kutta4};
 use Vector;
-use super::{Observation, Transition, Domain, runge_kutta4};
 
-use std::f64::consts::PI;
-use consts::{G, PI_OVER_2};
-use ndarray::{NdIndex, Ix1};
+use consts::{PI_OVER_2, G};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
-
+use ndarray::{Ix1, NdIndex};
+use std::f64::consts::PI;
 
 // Link masses:
 const M1: f64 = 1.0;
@@ -14,7 +13,8 @@ const M2: f64 = 1.0;
 
 // Link lengths:
 const L1: f64 = 1.0;
-#[allow(dead_code)] const L2: f64 = 1.0;
+#[allow(dead_code)]
+const L2: f64 = 1.0;
 
 // Link centre of masses:
 const LC1: f64 = 0.5;
@@ -28,15 +28,14 @@ const DT: f64 = 0.2;
 
 const LIMITS_THETA1: (f64, f64) = (-PI, PI);
 const LIMITS_THETA2: (f64, f64) = (-PI, PI);
-const LIMITS_DTHETA1: (f64, f64) = (-4.0*PI, 4.0*PI);
-const LIMITS_DTHETA2: (f64, f64) = (-9.0*PI, 9.0*PI);
+const LIMITS_DTHETA1: (f64, f64) = (-4.0 * PI, 4.0 * PI);
+const LIMITS_DTHETA2: (f64, f64) = (-9.0 * PI, 9.0 * PI);
 
 const REWARD_STEP: f64 = -1.0;
 const REWARD_TERMINAL: f64 = 0.0;
 
 const TORQUE: f64 = 1.0;
 const ALL_ACTIONS: [f64; 3] = [-TORQUE, 0.0, TORQUE];
-
 
 #[derive(Debug, Clone, Copy)]
 enum StateIndex {
@@ -53,11 +52,8 @@ unsafe impl NdIndex<Ix1> for StateIndex {
     }
 
     #[inline(always)]
-    fn index_unchecked(&self, strides: &Ix1) -> isize {
-        (*self as usize).index_unchecked(strides)
-    }
+    fn index_unchecked(&self, strides: &Ix1) -> isize { (*self as usize).index_unchecked(strides) }
 }
-
 
 /// Classic double pendulum control domain.
 ///
@@ -72,7 +68,7 @@ pub struct Acrobat {
 impl Acrobat {
     fn new(theta1: f64, theta2: f64, dtheta1: f64, dtheta2: f64) -> Acrobat {
         Acrobat {
-            state: Vector::from_vec(vec![theta1, theta2, dtheta1, dtheta2])
+            state: Vector::from_vec(vec![theta1, theta2, dtheta1, dtheta2]),
         }
     }
 
@@ -100,29 +96,24 @@ impl Acrobat {
         let sin_t2 = theta1.sin();
         let cos_t2 = theta2.cos();
 
-        let d1 =
-            M1*LC1*LC1 + M2*(L1*L1 + LC2*LC2 + 2.0*L1*LC2*cos_t2) + I1 + I2;
-        let d2 = M2*(LC2*LC2 + L1*LC2*cos_t2) + I2;
+        let d1 = M1 * LC1 * LC1 + M2 * (L1 * L1 + LC2 * LC2 + 2.0 * L1 * LC2 * cos_t2) + I1 + I2;
+        let d2 = M2 * (LC2 * LC2 + L1 * LC2 * cos_t2) + I2;
 
-        let phi2 = M2*LC2*G*(theta1 + theta2 - PI_OVER_2).cos();
-        let phi1 =
-            -1.0*L1*LC2*dtheta2*dtheta2*sin_t2 -
-            2.0*M2*L1*LC2*dtheta2*dtheta1*sin_t2 +
-            (M1*LC1 + M2*L1)*G*(theta1 - PI_OVER_2).cos() + phi2;
+        let phi2 = M2 * LC2 * G * (theta1 + theta2 - PI_OVER_2).cos();
+        let phi1 = -1.0 * L1 * LC2 * dtheta2 * dtheta2 * sin_t2
+            - 2.0 * M2 * L1 * LC2 * dtheta2 * dtheta1 * sin_t2
+            + (M1 * LC1 + M2 * L1) * G * (theta1 - PI_OVER_2).cos() + phi2;
 
-        let ddtheta2 =
-            (torque + d2/d1*phi1 - M2*L1*LC2*dtheta1*dtheta1*sin_t2 - phi2) /
-            (M2*LC2*LC2 + I2 - d2*d2/d1);
-        let ddtheta1 = -(d2*ddtheta2 + phi1) / d1;
+        let ddtheta2 = (torque + d2 / d1 * phi1 - M2 * L1 * LC2 * dtheta1 * dtheta1 * sin_t2 - phi2)
+            / (M2 * LC2 * LC2 + I2 - d2 * d2 / d1);
+        let ddtheta1 = -(d2 * ddtheta2 + phi1) / d1;
 
         Vector::from_vec(vec![dtheta1, dtheta2, ddtheta1, ddtheta2])
     }
 }
 
 impl Default for Acrobat {
-    fn default() -> Acrobat {
-        Acrobat::new(0.0, 0.0, 0.0, 0.0)
-    }
+    fn default() -> Acrobat { Acrobat::new(0.0, 0.0, 0.0, 0.0) }
 }
 
 impl Domain for Acrobat {
@@ -162,9 +153,11 @@ impl Domain for Acrobat {
         theta1.cos() + (theta1 + theta2).cos() < -1.0
     }
 
-    fn reward(&self,
-              _: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
+    fn reward(
+        &self,
+        _: &Observation<Self::StateSpace, Self::ActionSpace>,
+        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+    ) -> f64
     {
         match to {
             &Observation::Terminal(_) => REWARD_TERMINAL,
@@ -173,22 +166,19 @@ impl Domain for Acrobat {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        RegularSpace::empty()
-            + Continuous::new(LIMITS_THETA1.0, LIMITS_THETA1.1)
+        RegularSpace::empty() + Continuous::new(LIMITS_THETA1.0, LIMITS_THETA1.1)
             + Continuous::new(LIMITS_THETA2.0, LIMITS_THETA2.1)
             + Continuous::new(LIMITS_DTHETA1.0, LIMITS_DTHETA1.1)
             + Continuous::new(LIMITS_DTHETA2.0, LIMITS_DTHETA2.1)
     }
 
-    fn action_space(&self) -> ActionSpace {
-        ActionSpace::new(Discrete::new(3))
-    }
+    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(3)) }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use domains::{Observation, Domain};
+    use domains::{Domain, Observation};
 
     #[test]
     fn test_initial_observation() {
@@ -200,7 +190,7 @@ mod tests {
                 assert_eq!(state[1], 0.0);
                 assert_eq!(state[2], 0.0);
                 assert_eq!(state[3], 0.0);
-            }
+            },
             _ => panic!("Should yield a fully observable state."),
         }
     }

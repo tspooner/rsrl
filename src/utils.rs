@@ -4,13 +4,11 @@ use blas::ddot;
 use std::cmp::min;
 use std::f64;
 
-
 pub fn dot(x: &[f64], y: &[f64]) -> f64 {
     let n: i32 = min(x.len() as i32, y.len() as i32);
 
     unsafe { ddot(n, x, 1, y, 1) }
 }
-
 
 pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
     let mut max = f64::MIN;
@@ -29,15 +27,14 @@ pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
     (max, ixs)
 }
 
-
 // TODO: Pass by iterator so that we don't have to collect before passing.
 pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
     let d_it = dims.iter().rev().skip(1);
     let i_it = inds.iter().rev().skip(1);
 
-    d_it.zip(i_it).fold(inds.last().cloned().unwrap(), |acc, (d, i)| i + d * acc)
+    d_it.zip(i_it)
+        .fold(inds.last().cloned().unwrap(), |acc, (d, i)| i + d * acc)
 }
-
 
 /// Given a vector containing a partial Cartesian product, and a list of items,
 /// return a vector adding the list of items to the partial Cartesian product.
@@ -51,27 +48,36 @@ pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
 /// let items = vec![6, 7];
 /// let next_product = partial_cartesian(partial_product, &items);
 ///
-/// assert_eq!(next_product, vec![vec![1, 4, 6],
-///                               vec![1, 4, 7],
-///                               vec![1, 5, 6],
-///                               vec![1, 5, 7],
-///                               vec![2, 4, 6],
-///                               vec![2, 4, 7],
-///                               vec![2, 5, 6],
-///                               vec![2, 5, 7]]);
+/// assert_eq!(
+///     next_product,
+///     vec![
+///         vec![1, 4, 6],
+///         vec![1, 4, 7],
+///         vec![1, 5, 6],
+///         vec![1, 5, 7],
+///         vec![2, 4, 6],
+///         vec![2, 4, 7],
+///         vec![2, 5, 6],
+///         vec![2, 5, 7],
+///     ]
+/// );
 /// ```
 ///
 /// Pulled from [here](https://gist.github.com/kylewlacy/115965b40e02a3325558).
 pub fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &Vec<T>) -> Vec<Vec<T>> {
-    a.into_iter().flat_map(|xs| {
-        b.iter().cloned().map(|y| {
-            let mut vec = xs.clone();
-            vec.push(y);
-            vec
-        }).collect::<Vec<_>>()
-    }).collect()
+    a.into_iter()
+        .flat_map(|xs| {
+            b.iter()
+                .cloned()
+                .map(|y| {
+                    let mut vec = xs.clone();
+                    vec.push(y);
+                    vec
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect()
 }
-
 
 /// Computes the Cartesian product of lists[0] * lists[1] * ... * lists[n].
 ///
@@ -83,14 +89,19 @@ pub fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &Vec<T>) -> Vec<Vec<T>> {
 /// let lists = vec![vec![1, 2], vec![4, 5], vec![6, 7]];
 /// let product = cartesian_product(&lists);
 ///
-/// assert_eq!(product, vec![vec![1, 4, 6],
-///                          vec![1, 4, 7],
-///                          vec![1, 5, 6],
-///                          vec![1, 5, 7],
-///                          vec![2, 4, 6],
-///                          vec![2, 4, 7],
-///                          vec![2, 5, 6],
-///                          vec![2, 5, 7]]);
+/// assert_eq!(
+///     product,
+///     vec![
+///         vec![1, 4, 6],
+///         vec![1, 4, 7],
+///         vec![1, 5, 6],
+///         vec![1, 5, 7],
+///         vec![2, 4, 6],
+///         vec![2, 4, 7],
+///         vec![2, 5, 6],
+///         vec![2, 5, 7],
+///     ]
+/// );
 /// ```
 ///
 /// Pulled from [here](https://gist.github.com/kylewlacy/115965b40e02a3325558).
@@ -99,20 +110,17 @@ pub fn cartesian_product<T: Clone>(lists: &Vec<Vec<T>>) -> Vec<Vec<T>> {
         Some((first, rest)) => {
             let init: Vec<Vec<T>> = first.iter().cloned().map(|n| vec![n]).collect();
 
-            rest.iter().cloned().fold(init, |vec, list| {
-                partial_cartesian(vec, &list)
-            })
+            rest.iter()
+                .cloned()
+                .fold(init, |vec, list| partial_cartesian(vec, &list))
         },
-        None => {
-            vec![]
-        }
+        None => vec![],
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{sub2ind, cartesian_product};
+    use super::{cartesian_product, sub2ind};
 
     #[test]
     fn test_sub2ind() {
@@ -125,10 +133,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_sub2ind_empty() {
-        sub2ind(&vec![], &vec![]);
-    }
-
+    fn test_sub2ind_empty() { sub2ind(&vec![], &vec![]); }
 
     #[test]
     fn test_cartesian_product() {

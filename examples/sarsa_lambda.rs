@@ -1,23 +1,23 @@
 extern crate rsrl;
-#[macro_use] extern crate slog;
+#[macro_use]
+extern crate slog;
 
-use rsrl::{run, logging, Parameter, SerialExperiment, Evaluation};
-use rsrl::agents::memory::Trace;
+use rsrl::{logging, run, Evaluation, Parameter, SerialExperiment};
 use rsrl::agents::control::td::SARSALambda;
+use rsrl::agents::memory::Trace;
 use rsrl::domains::{Domain, MountainCar};
 use rsrl::fa::{Linear, Projector};
 use rsrl::fa::projection::Fourier;
 use rsrl::geometry::Space;
 use rsrl::policies::EpsilonGreedy;
 
-
 fn main() {
     let domain = MountainCar::default();
     let mut agent = {
         let n_actions = domain.action_space().span().into();
 
-        // Build the linear value function using a fourier basis projection and the appropriate
-        // eligibility trace.
+        // Build the linear value function using a fourier basis projection and the
+        // appropriate eligibility trace.
         let bases = Fourier::from_space(3, domain.state_space());
         let trace = Trace::replacing(0.7, bases.activation());
         let q_func = Linear::new(bases, n_actions);
@@ -42,8 +42,7 @@ fn main() {
     };
 
     // Testing phase:
-    let testing_result =
-        Evaluation::new(&mut agent, domain_builder).next().unwrap();
+    let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
 
     info!(logger, "solution"; testing_result);
 }

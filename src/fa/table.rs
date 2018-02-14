@@ -27,9 +27,7 @@ use std::ops::AddAssign;
 pub struct Table<K: Hash + Eq, V>(pub HashMap<K, V>);
 
 impl<K: Hash + Eq, V> Table<K, V> {
-    pub fn new() -> Self {
-        Table(HashMap::new())
-    }
+    pub fn new() -> Self { Table(HashMap::new()) }
 }
 
 // TODO: Have to deal with attempts to evaluate when no value is present.
@@ -37,8 +35,9 @@ impl<K: Hash + Eq, V> Table<K, V> {
 //       The issue arises when we try to consider what the default value may be
 //       for the generic type O.
 impl<I, O> Function<I, O> for Table<I, O>
-    where I: Hash + Eq,
-          O: Copy + Default
+where
+    I: Hash + Eq,
+    O: Copy + Default,
 {
     fn evaluate(&self, input: &I) -> O {
         if self.0.contains_key(input) {
@@ -50,8 +49,9 @@ impl<I, O> Function<I, O> for Table<I, O>
 }
 
 impl<I, E> Parameterised<I, E> for Table<I, E>
-    where I: Hash + Eq + Copy,
-          E: Clone + Default + AddAssign
+where
+    I: Hash + Eq + Copy,
+    E: Clone + Default + AddAssign,
 {
     fn update(&mut self, input: &I, error: E) {
         *self.0.entry(*input).or_insert(E::default()) += error;

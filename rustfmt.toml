@@ -1,2 +1,8 @@
-format_strings = false
+fn_single_line = true
+where_single_line = true
+match_block_trailing_comma = true
+normalize_comments = true
 reorder_imports = true
+reorder_imports_in_group = true
+use_try_shorthand = true
+wrap_comments = true

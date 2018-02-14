@@ -1,28 +1,20 @@
 use super::Policy;
 use rand::{thread_rng, ThreadRng};
-use rand::distributions::{Range, IndependentSample};
-
+use rand::distributions::{IndependentSample, Range};
 
 pub struct Random {
     rng: ThreadRng,
 }
 
 impl Random {
-    pub fn new() -> Self {
-        Random { rng: thread_rng() }
-    }
+    pub fn new() -> Self { Random { rng: thread_rng() } }
 }
 
 impl Policy for Random {
-    fn sample(&mut self, qs: &[f64]) -> usize {
-        Range::new(0, qs.len()).ind_sample(&mut self.rng)
-    }
+    fn sample(&mut self, qs: &[f64]) -> usize { Range::new(0, qs.len()).ind_sample(&mut self.rng) }
 
-    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> {
-        vec![1.0/qs.len() as f64; qs.len()]
-    }
+    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> { vec![1.0 / qs.len() as f64; qs.len()] }
 }
-
 
 #[cfg(test)]
 mod tests {

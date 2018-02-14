@@ -4,7 +4,6 @@ use fa::VFunction;
 use geometry::Space;
 use std::marker::PhantomData;
 
-
 pub struct EveryVisitMC<S: Space, V: VFunction<S>> {
     pub v_func: V,
     observations: Vec<(S::Repr, f64)>,
@@ -16,11 +15,12 @@ pub struct EveryVisitMC<S: Space, V: VFunction<S>> {
 }
 
 impl<S: Space, V> EveryVisitMC<S, V>
-    where V: VFunction<S>
+where V: VFunction<S>
 {
     pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         EveryVisitMC {
             v_func: v_func,
@@ -37,16 +37,16 @@ impl<S: Space, V> EveryVisitMC<S, V>
         let mut sum = 0.0;
 
         for (s, r) in self.observations.drain(0..).rev() {
-            sum = r + self.gamma*sum;
+            sum = r + self.gamma * sum;
 
             let v_est = self.v_func.evaluate(&s);
-            self.v_func.update(&s, self.alpha*(sum - v_est));
+            self.v_func.update(&s, self.alpha * (sum - v_est));
         }
     }
 }
 
 impl<S: Space, V> Agent for EveryVisitMC<S, V>
-    where V: VFunction<S>
+where V: VFunction<S>
 {
     type Sample = (S::Repr, S::Repr, f64);
 
@@ -63,9 +63,7 @@ impl<S: Space, V> Agent for EveryVisitMC<S, V>
 }
 
 impl<S: Space, V> Predictor<S> for EveryVisitMC<S, V>
-    where V: VFunction<S>
+where V: VFunction<S>
 {
-    fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.v_func.evaluate(s)
-    }
+    fn evaluate(&self, s: &S::Repr) -> f64 { self.v_func.evaluate(s) }
 }

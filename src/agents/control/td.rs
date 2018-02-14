@@ -2,13 +2,12 @@ use Parameter;
 use agents::{Agent, Controller};
 use agents::memory::Trace;
 use domains::Transition;
-use fa::{Function, QFunction, Projector, Projection, Linear};
-use geometry::{Space, ActionSpace};
-use policies::{Policy, Greedy};
+use fa::{Function, Linear, Projection, Projector, QFunction};
+use geometry::{ActionSpace, Space};
+use policies::{Greedy, Policy};
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use utils::dot;
-
 
 /// Watkins' Q-learning.
 ///
@@ -27,12 +26,14 @@ pub struct QLearning<S: Space, Q: QFunction<S>, P: Policy> {
 }
 
 impl<S: Space, Q, P> QLearning<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
     pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         QLearning {
             q_func: q_func,
@@ -47,8 +48,9 @@ impl<S: Space, Q, P> QLearning<S, Q, P>
 }
 
 impl<S: Space, Q, P> Agent for QLearning<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
     type Sample = Transition<S, ActionSpace>;
 
@@ -61,9 +63,9 @@ impl<S: Space, Q, P> Agent for QLearning<S, Q, P>
         let a = t.action;
         let na = Greedy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
+        let td_error = t.reward + self.gamma * nqs[na] - qs[a];
 
-        self.q_func.update_action(s, a, self.alpha*td_error);
+        self.q_func.update_action(s, a, self.alpha * td_error);
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
@@ -75,12 +77,11 @@ impl<S: Space, Q, P> Agent for QLearning<S, Q, P>
 }
 
 impl<S: Space, Q, P> Controller<S, ActionSpace> for QLearning<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
-    }
+    fn pi(&mut self, s: &S::Repr) -> usize { Greedy.sample(self.q_func.evaluate(s).as_slice()) }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.q_func.evaluate(s).as_slice())
@@ -90,7 +91,6 @@ impl<S: Space, Q, P> Controller<S, ActionSpace> for QLearning<S, Q, P>
         p.sample(self.q_func.evaluate(s).as_slice())
     }
 }
-
 
 /// Watkins' Q-learning with eligibility traces.
 ///
@@ -111,12 +111,20 @@ pub struct QLambda<S: Space, M: Projector<S>, P: Policy> {
 }
 
 impl<S: Space, M, P> QLambda<S, M, P>
-    where M: Projector<S>,
-          P: Policy
+where
+    M: Projector<S>,
+    P: Policy,
 {
-    pub fn new<T1, T2>(trace: Trace, fa_theta: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    pub fn new<T1, T2>(
+        trace: Trace,
+        fa_theta: Linear<S, M>,
+        policy: P,
+        alpha: T1,
+        gamma: T2,
+    ) -> Self
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         QLambda {
             trace: trace,
@@ -146,18 +154,22 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for QLambda<S, M, P> {
         let nqs = self.fa_theta.evaluate_phi(&phi_ns);
         let na = Greedy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
+        let td_error = t.reward + self.gamma * nqs[na] - qs[a];
 
         if a == Greedy.sample(&qs) {
-            let rate = self.trace.lambda.value()*self.gamma.value();
+            let rate = self.trace.lambda.value() * self.gamma.value();
             self.trace.decay(rate);
         } else {
             self.trace.decay(0.0);
         }
 
-        self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
+        self.trace
+            .update(&self.fa_theta.projector.expand_projection(phi_s));
         self.fa_theta.update_action_phi(
-            &Projection::Dense(self.trace.get()), a, td_error*self.alpha);
+            &Projection::Dense(self.trace.get()),
+            a,
+            td_error * self.alpha,
+        );
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
@@ -189,7 +201,6 @@ impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for QLambd
     }
 }
 
-
 /// On-policy variant of Watkins' Q-learning (aka "modified Q-learning").
 ///
 /// # References
@@ -208,12 +219,14 @@ pub struct SARSA<S: Space, Q: QFunction<S>, P: Policy> {
 }
 
 impl<S: Space, Q, P> SARSA<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
     pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         SARSA {
             q_func: q_func,
@@ -228,8 +241,9 @@ impl<S: Space, Q, P> SARSA<S, Q, P>
 }
 
 impl<S: Space, Q, P> Agent for SARSA<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
     type Sample = Transition<S, ActionSpace>;
 
@@ -242,9 +256,9 @@ impl<S: Space, Q, P> Agent for SARSA<S, Q, P>
         let a = t.action;
         let na = self.policy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
+        let td_error = t.reward + self.gamma * nqs[na] - qs[a];
 
-        self.q_func.update_action(s, a, self.alpha*td_error);
+        self.q_func.update_action(s, a, self.alpha * td_error);
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
@@ -256,22 +270,20 @@ impl<S: Space, Q, P> Agent for SARSA<S, Q, P>
 }
 
 impl<S: Space, Q, P> Controller<S, ActionSpace> for SARSA<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.pi(s)
-    }
+    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
 }
-
 
 /// On-policy variant of Watkins' Q-learning with eligibility traces (aka "modified Q-learning").
 ///
@@ -293,12 +305,20 @@ pub struct SARSALambda<S: Space, M: Projector<S>, P: Policy> {
 }
 
 impl<S: Space, M, P> SARSALambda<S, M, P>
-    where M: Projector<S>,
-          P: Policy
+where
+    M: Projector<S>,
+    P: Policy,
 {
-    pub fn new<T1, T2>(trace: Trace, fa_theta: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    pub fn new<T1, T2>(
+        trace: Trace,
+        fa_theta: Linear<S, M>,
+        policy: P,
+        alpha: T1,
+        gamma: T2,
+    ) -> Self
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         SARSALambda {
             trace: trace,
@@ -328,14 +348,18 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for SARSALambda<S, M, P> {
         let nqs: Vec<f64> = self.fa_theta.evaluate_phi(&phi_ns);
         let na = self.policy.sample(nqs.as_slice());
 
-        let rate = self.trace.lambda.value()*self.gamma.value();
-        let td_error = t.reward + self.gamma*nqs[na] - qsa;
+        let rate = self.trace.lambda.value() * self.gamma.value();
+        let td_error = t.reward + self.gamma * nqs[na] - qsa;
 
         self.trace.decay(rate);
-        self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
+        self.trace
+            .update(&self.fa_theta.projector.expand_projection(phi_s));
 
         self.fa_theta.update_action_phi(
-            &Projection::Dense(self.trace.get()), a, self.alpha*td_error);
+            &Projection::Dense(self.trace.get()),
+            a,
+            self.alpha * td_error,
+        );
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
@@ -354,9 +378,7 @@ impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for SARSAL
         self.policy.sample(&qs)
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.pi(s)
-    }
+    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         let qs: Vec<f64> = self.fa_theta.evaluate(s);
@@ -364,7 +386,6 @@ impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for SARSAL
         p.sample(&qs)
     }
 }
-
 
 /// Action probability-weighted variant of SARSA (aka "summation Q-learning").
 ///
@@ -385,12 +406,14 @@ pub struct ExpectedSARSA<S: Space, Q: QFunction<S>, P: Policy> {
 }
 
 impl<S: Space, Q, P> ExpectedSARSA<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
     pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         ExpectedSARSA {
             q_func: q_func,
@@ -405,8 +428,9 @@ impl<S: Space, Q, P> ExpectedSARSA<S, Q, P>
 }
 
 impl<S: Space, Q, P> Agent for ExpectedSARSA<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
     type Sample = Transition<S, ActionSpace>;
 
@@ -419,9 +443,9 @@ impl<S: Space, Q, P> Agent for ExpectedSARSA<S, Q, P>
         let a = t.action;
 
         let exp_nqs = dot(&nqs, &self.policy.probabilities(nqs.as_slice()));
-        let td_error = t.reward + self.gamma*exp_nqs - qs[a];
+        let td_error = t.reward + self.gamma * exp_nqs - qs[a];
 
-        self.q_func.update_action(s, a, self.alpha*td_error);
+        self.q_func.update_action(s, a, self.alpha * td_error);
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
@@ -433,22 +457,20 @@ impl<S: Space, Q, P> Agent for ExpectedSARSA<S, Q, P>
 }
 
 impl<S: Space, Q, P> Controller<S, ActionSpace> for ExpectedSARSA<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.q_func.evaluate(s).as_slice())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.pi(s)
-    }
+    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         p.sample(self.q_func.evaluate(s).as_slice())
     }
 }
-
 
 /// General multi-step temporal-difference learning algorithm.
 ///
@@ -477,19 +499,22 @@ pub struct QSigma<S: Space, Q: QFunction<S>, P: Policy> {
 }
 
 impl<S: Space, Q, P> QSigma<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
-    pub fn new<T1, T2, T3>(q_func: Q,
-                           policy: P,
-                           alpha: T1,
-                           gamma: T2,
-                           sigma: T3,
-                           n_steps: usize)
-                           -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>,
-              T3: Into<Parameter>
+    pub fn new<T1, T2, T3>(
+        q_func: Q,
+        policy: P,
+        alpha: T1,
+        gamma: T2,
+        sigma: T3,
+        n_steps: usize,
+    ) -> Self
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
+        T3: Into<Parameter>,
     {
         QSigma {
             q_func: q_func,
@@ -512,16 +537,20 @@ impl<S: Space, Q, P> QSigma<S, Q, P>
 
         for k in 0..(self.n_steps - 1) {
             let ref b1 = self.backup[k];
-            let ref b2 = self.backup[k+1];
+            let ref b2 = self.backup[k + 1];
 
-            g += z*b1.delta;
-            z *= self.gamma*((1.0 - b2.sigma)*b2.pi + b2.sigma);
-            rho *= 1.0 - b1.sigma + b1.sigma*b1.pi/b1.mu;
+            g += z * b1.delta;
+            z *= self.gamma * ((1.0 - b2.sigma) * b2.pi + b2.sigma);
+            rho *= 1.0 - b1.sigma + b1.sigma * b1.pi / b1.mu;
         }
 
-        let qsa = self.q_func.evaluate_action(&self.backup[0].s, self.backup[0].a);
-        self.q_func.update_action(&self.backup[0].s, self.backup[0].a,
-                                  self.alpha*rho*(g - qsa));
+        let qsa = self.q_func
+            .evaluate_action(&self.backup[0].s, self.backup[0].a);
+        self.q_func.update_action(
+            &self.backup[0].s,
+            self.backup[0].a,
+            self.alpha * rho * (g - qsa),
+        );
 
         self.backup.pop_front();
     }
@@ -540,8 +569,9 @@ struct BackupEntry<S: Space> {
 }
 
 impl<S: Space, Q, P> Agent for QSigma<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
     type Sample = Transition<S, ActionSpace>;
 
@@ -562,7 +592,7 @@ impl<S: Space, Q, P> Agent for QSigma<S, Q, P>
             self.sigma = self.sigma.step();
             self.sigma.value()
         };
-        let td_error = t.reward + self.gamma*(sigma*nq + (1.0 - sigma)*exp_nqs) - q;
+        let td_error = t.reward + self.gamma * (sigma * nq + (1.0 - sigma) * exp_nqs) - q;
 
         // Update backup sequence:
         self.backup.push_back(BackupEntry {
@@ -594,12 +624,11 @@ impl<S: Space, Q, P> Agent for QSigma<S, Q, P>
 }
 
 impl<S: Space, Q, P> Controller<S, ActionSpace> for QSigma<S, Q, P>
-    where Q: QFunction<S>,
-          P: Policy
+where
+    Q: QFunction<S>,
+    P: Policy,
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
-        Greedy.sample(self.q_func.evaluate(s).as_slice())
-    }
+    fn pi(&mut self, s: &S::Repr) -> usize { Greedy.sample(self.q_func.evaluate(s).as_slice()) }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
         self.policy.sample(self.q_func.evaluate(s).as_slice())

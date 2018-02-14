@@ -2,11 +2,10 @@ use Parameter;
 use agents::{Agent, Controller};
 use agents::memory::Trace;
 use domains::Transition;
-use fa::{Function, QFunction, Projector, Projection, Linear};
-use geometry::{Space, ActionSpace};
-use policies::{Policy, Greedy};
+use fa::{Function, Linear, Projection, Projector, QFunction};
+use geometry::{ActionSpace, Space};
+use policies::{Greedy, Policy};
 use std::marker::PhantomData;
-
 
 /// True online variant of the Q(lambda) algorithm.
 ///
@@ -28,12 +27,14 @@ pub struct TOQLambda<S: Space, M: Projector<S>, P: Policy> {
 }
 
 impl<S: Space, M, P> TOQLambda<S, M, P>
-    where M: Projector<S>,
-          P: Policy,
+where
+    M: Projector<S>,
+    P: Policy,
 {
     pub fn new<T1, T2>(trace: Trace, q_func: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         TOQLambda {
             trace: trace,
@@ -57,9 +58,7 @@ impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for TOQLam
         self.policy.sample(&qs)
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.pi(s)
-    }
+    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         let qs: Vec<f64> = self.q_func.evaluate(s);
@@ -82,25 +81,31 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
         let nqs: Vec<f64> = self.q_func.evaluate_phi(&phi_ns);
         let na = Greedy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - qs[a];
+        let td_error = t.reward + self.gamma * nqs[na] - qs[a];
         let phi_s = self.q_func.projector.expand_projection(phi_s);
 
-        let rate = self.trace.lambda.value()*self.gamma.value();
+        let rate = self.trace.lambda.value() * self.gamma.value();
         let trace_update =
-            (1.0 - rate*self.alpha.value()*self.trace.get().dot(&phi_s))*phi_s.clone();
+            (1.0 - rate * self.alpha.value() * self.trace.get().dot(&phi_s)) * phi_s.clone();
 
         if a == Greedy.sample(&qs) {
-            let rate = self.trace.lambda.value()*self.gamma.value();
+            let rate = self.trace.lambda.value() * self.gamma.value();
             self.trace.decay(rate);
         } else {
             self.trace.decay(0.0);
         }
 
         self.trace.update(&trace_update);
-        self.q_func.update_action_phi(&Projection::Dense(self.trace.get()), a,
-                                      self.alpha*(td_error + qs[a] - self.q_old));
-        self.q_func.update_action_phi(&Projection::Dense(phi_s), a,
-                                      self.alpha*(self.q_old - qs[a]));
+        self.q_func.update_action_phi(
+            &Projection::Dense(self.trace.get()),
+            a,
+            self.alpha * (td_error + qs[a] - self.q_old),
+        );
+        self.q_func.update_action_phi(
+            &Projection::Dense(phi_s),
+            a,
+            self.alpha * (self.q_old - qs[a]),
+        );
 
         self.q_old = nqs[na];
     }
@@ -113,7 +118,6 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
         self.policy.handle_terminal();
     }
 }
-
 
 /// True online variant of the SARSA(lambda) algorithm.
 ///
@@ -135,12 +139,14 @@ pub struct TOSARSALambda<S: Space, M: Projector<S>, P: Policy> {
 }
 
 impl<S: Space, M, P> TOSARSALambda<S, M, P>
-    where M: Projector<S>,
-          P: Policy,
+where
+    M: Projector<S>,
+    P: Policy,
 {
     pub fn new<T1, T2>(trace: Trace, q_func: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         TOSARSALambda {
             trace: trace,
@@ -164,9 +170,7 @@ impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for TOSARS
         self.policy.sample(&qs)
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
-        self.pi(s)
-    }
+    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
         let qs: Vec<f64> = self.q_func.evaluate(s);
@@ -189,20 +193,26 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for TOSARSALambda<S, M, P> {
         let nqs: Vec<f64> = self.q_func.evaluate_phi(&phi_ns);
         let na = self.policy.sample(nqs.as_slice());
 
-        let td_error = t.reward + self.gamma*nqs[na] - qsa;
+        let td_error = t.reward + self.gamma * nqs[na] - qsa;
         let phi_s = self.q_func.projector.expand_projection(phi_s);
 
-        let rate = self.trace.lambda.value()*self.gamma.value();
+        let rate = self.trace.lambda.value() * self.gamma.value();
         let trace_update =
-            (1.0 - rate*self.alpha.value()*self.trace.get().dot(&phi_s))*phi_s.clone();
+            (1.0 - rate * self.alpha.value() * self.trace.get().dot(&phi_s)) * phi_s.clone();
 
         self.trace.decay(rate);
         self.trace.update(&trace_update);
 
-        self.q_func.update_action_phi(&Projection::Dense(self.trace.get()), a,
-                                      self.alpha*(td_error + qsa - self.q_old));
-        self.q_func.update_action_phi(&Projection::Dense(phi_s), a,
-                                      self.alpha*(self.q_old - qsa));
+        self.q_func.update_action_phi(
+            &Projection::Dense(self.trace.get()),
+            a,
+            self.alpha * (td_error + qsa - self.q_old),
+        );
+        self.q_func.update_action_phi(
+            &Projection::Dense(phi_s),
+            a,
+            self.alpha * (self.q_old - qsa),
+        );
 
         self.q_old = nqs[na];
     }

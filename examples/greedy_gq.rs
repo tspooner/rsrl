@@ -1,14 +1,14 @@
 extern crate rsrl;
-#[macro_use] extern crate slog;
+#[macro_use]
+extern crate slog;
 
-use rsrl::{run, logging, Parameter, SerialExperiment, Evaluation};
+use rsrl::{logging, run, Evaluation, Parameter, SerialExperiment};
 use rsrl::agents::control::gtd::GreedyGQ;
 use rsrl::domains::{Domain, MountainCar};
 use rsrl::fa::Linear;
 use rsrl::fa::projection::Fourier;
 use rsrl::geometry::Space;
 use rsrl::policies::EpsilonGreedy;
-
 
 fn main() {
     let logger = logging::root(logging::stdout());
@@ -41,8 +41,7 @@ fn main() {
     };
 
     // Testing phase:
-    let testing_result =
-        Evaluation::new(&mut agent, domain_builder).next().unwrap();
+    let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
 
     info!(logger, "solution"; testing_result);
 }

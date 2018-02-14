@@ -1,13 +1,12 @@
 use super::Span;
 use super::dimensions::{self, Dimension, Partitioned};
 use rand::ThreadRng;
-use std::fmt::Debug;
-use std::ops::{Add, Index};
-use std::iter::FromIterator;
-use std::slice::Iter as SliceIter;
 use std::collections::HashMap;
 use std::collections::hash_map::Iter as HashMapIter;
-
+use std::fmt::Debug;
+use std::iter::FromIterator;
+use std::ops::{Add, Index};
+use std::slice::Iter as SliceIter;
 
 /// Trait for defining geometric spaces.
 pub trait Space {
@@ -30,7 +29,6 @@ pub trait Space {
 /// continuous actions.
 pub type ActionSpace = UnitarySpace<dimensions::Discrete>;
 
-
 /// An empty space.
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct EmptySpace;
@@ -38,28 +36,19 @@ pub struct EmptySpace;
 impl Space for EmptySpace {
     type Repr = ();
 
-    fn sample(&self, _: &mut ThreadRng) -> Self::Repr {
-        ()
-    }
+    fn sample(&self, _: &mut ThreadRng) -> Self::Repr { () }
 
-    fn dim(&self) -> usize {
-        0
-    }
+    fn dim(&self) -> usize { 0 }
 
-    fn span(&self) -> Span {
-        Span::Null
-    }
+    fn span(&self) -> Span { Span::Null }
 }
-
 
 /// 1-dimensional space.
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct UnitarySpace<D: Dimension>(D);
 
 impl<D: Dimension> UnitarySpace<D> {
-    pub fn new(d: D) -> Self {
-        UnitarySpace(d)
-    }
+    pub fn new(d: D) -> Self { UnitarySpace(d) }
 }
 
 impl UnitarySpace<dimensions::Continuous> {
@@ -71,36 +60,30 @@ impl UnitarySpace<dimensions::Continuous> {
 impl<D: Dimension> Space for UnitarySpace<D> {
     type Repr = D::Value;
 
-    fn sample(&self, rng: &mut ThreadRng) -> Self::Repr {
-        self.0.sample(rng)
-    }
+    fn sample(&self, rng: &mut ThreadRng) -> Self::Repr { self.0.sample(rng) }
 
-    fn dim(&self) -> usize {
-        1
-    }
+    fn dim(&self) -> usize { 1 }
 
-    fn span(&self) -> Span {
-        self.0.span()
-    }
+    fn span(&self) -> Span { self.0.span() }
 }
-
 
 /// 2-dimensional homogeneous space.
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct PairSpace<D1, D2>((D1, D2))
-    where D1: Dimension,
-          D2: Dimension;
+where
+    D1: Dimension,
+    D2: Dimension;
 
 impl<D1: Dimension, D2: Dimension> PairSpace<D1, D2> {
-    pub fn new(d1: D1, d2: D2) -> Self {
-        PairSpace((d1, d2))
-    }
+    pub fn new(d1: D1, d2: D2) -> Self { PairSpace((d1, d2)) }
 }
 
 impl PairSpace<dimensions::Continuous, dimensions::Continuous> {
     pub fn partitioned(self, density: usize) -> PairSpace<Partitioned, Partitioned> {
-        PairSpace((Partitioned::from_continuous((self.0).0, density),
-                   Partitioned::from_continuous((self.0).1, density)))
+        PairSpace((
+            Partitioned::from_continuous((self.0).0, density),
+            Partitioned::from_continuous((self.0).1, density),
+        ))
     }
 }
 
@@ -111,15 +94,10 @@ impl<D1: Dimension, D2: Dimension> Space for PairSpace<D1, D2> {
         ((self.0).0.sample(rng), (self.0).1.sample(rng))
     }
 
-    fn dim(&self) -> usize {
-        2
-    }
+    fn dim(&self) -> usize { 2 }
 
-    fn span(&self) -> Span {
-        (self.0).0.span()*(self.0).1.span()
-    }
+    fn span(&self) -> Span { (self.0).0.span() * (self.0).1.span() }
 }
-
 
 /// N-dimensional homogeneous space.
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -147,15 +125,13 @@ impl<D: Dimension> RegularSpace<D> {
     }
 
     pub fn push(mut self, d: D) -> Self {
-        self.span = self.span*d.span();
+        self.span = self.span * d.span();
         self.dimensions.push(d);
 
         self
     }
 
-    pub fn iter(&self) -> SliceIter<D> {
-        self.dimensions.iter()
-    }
+    pub fn iter(&self) -> SliceIter<D> { self.dimensions.iter() }
 }
 
 impl RegularSpace<dimensions::Continuous> {
@@ -167,12 +143,7 @@ impl RegularSpace<dimensions::Continuous> {
 }
 
 impl RegularSpace<dimensions::Partitioned> {
-    pub fn centres(&self) -> Vec<Vec<f64>> {
-        self.dimensions
-            .iter()
-            .map(|d| d.centres())
-            .collect()
-    }
+    pub fn centres(&self) -> Vec<Vec<f64>> { self.dimensions.iter().map(|d| d.centres()).collect() }
 }
 
 impl<D: Dimension> Space for RegularSpace<D> {
@@ -182,13 +153,9 @@ impl<D: Dimension> Space for RegularSpace<D> {
         self.dimensions.iter().map(|d| d.sample(rng)).collect()
     }
 
-    fn dim(&self) -> usize {
-        self.dimensions.len()
-    }
+    fn dim(&self) -> usize { self.dimensions.len() }
 
-    fn span(&self) -> Span {
-        self.span
-    }
+    fn span(&self) -> Span { self.span }
 }
 
 impl<D: Dimension> FromIterator<D> for RegularSpace<D> {
@@ -201,17 +168,13 @@ impl<D: Dimension> IntoIterator for RegularSpace<D> {
     type Item = D;
     type IntoIter = ::std::vec::IntoIter<D>;
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.dimensions.into_iter()
-    }
+    fn into_iter(self) -> Self::IntoIter { self.dimensions.into_iter() }
 }
 
 impl<D: Dimension> Add<D> for RegularSpace<D> {
     type Output = Self;
 
-    fn add(self, rhs: D) -> Self::Output {
-        self.push(rhs)
-    }
+    fn add(self, rhs: D) -> Self::Output { self.push(rhs) }
 }
 
 impl<D: Dimension> Add<RegularSpace<D>> for RegularSpace<D> {
@@ -225,11 +188,8 @@ impl<D: Dimension> Add<RegularSpace<D>> for RegularSpace<D> {
 impl<D: Dimension> Index<usize> for RegularSpace<D> {
     type Output = D;
 
-    fn index(&self, index: usize) -> &D {
-        self.dimensions.index(index)
-    }
+    fn index(&self, index: usize) -> &D { self.dimensions.index(index) }
 }
-
 
 /// Named, N-dimensional homogeneous space.
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -257,15 +217,13 @@ impl<D: Dimension> NamedSpace<D> {
     }
 
     pub fn push<S: Into<String>>(mut self, name: S, d: D) -> Self {
-        self.span = self.span*d.span();
+        self.span = self.span * d.span();
         self.dimensions.insert(name.into(), d);
 
         self
     }
 
-    pub fn iter(&self) -> HashMapIter<String, D> {
-        self.dimensions.iter()
-    }
+    pub fn iter(&self) -> HashMapIter<String, D> { self.dimensions.iter() }
 }
 
 impl NamedSpace<dimensions::Continuous> {
@@ -278,10 +236,7 @@ impl NamedSpace<dimensions::Continuous> {
 
 impl NamedSpace<dimensions::Partitioned> {
     pub fn centres(&self) -> Vec<Vec<f64>> {
-        self.dimensions
-            .values()
-            .map(|d| d.centres())
-            .collect()
+        self.dimensions.values().map(|d| d.centres()).collect()
     }
 }
 
@@ -292,13 +247,9 @@ impl<D: Dimension> Space for NamedSpace<D> {
         self.dimensions.iter().map(|(_, d)| d.sample(rng)).collect()
     }
 
-    fn dim(&self) -> usize {
-        self.dimensions.len()
-    }
+    fn dim(&self) -> usize { self.dimensions.len() }
 
-    fn span(&self) -> Span {
-        self.span
-    }
+    fn span(&self) -> Span { self.span }
 }
 
 impl<D: Dimension> FromIterator<(String, D)> for NamedSpace<D> {
@@ -311,9 +262,7 @@ impl<D: Dimension> IntoIterator for NamedSpace<D> {
     type Item = (String, D);
     type IntoIter = ::std::collections::hash_map::IntoIter<String, D>;
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.dimensions.into_iter()
-    }
+    fn into_iter(self) -> Self::IntoIter { self.dimensions.into_iter() }
 }
 
 impl<D: Dimension> Add<NamedSpace<D>> for NamedSpace<D> {
@@ -324,10 +273,9 @@ impl<D: Dimension> Add<NamedSpace<D>> for NamedSpace<D> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{Space, EmptySpace, UnitarySpace, PairSpace, RegularSpace};
+    use super::{EmptySpace, PairSpace, RegularSpace, Space, UnitarySpace};
     use geometry::Span;
     use geometry::dimensions::*;
     use ndarray::arr1;
@@ -356,7 +304,7 @@ mod tests {
             assert!(sample == 0 || sample == 1);
         }
 
-        assert!((counts/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+        assert!((counts / 5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
         assert_eq!(us.dim(), 1);
         assert_eq!(us.span(), Span::Finite(2));
     }
@@ -379,8 +327,8 @@ mod tests {
             assert!(sample.1 == 0 || sample.1 == 1);
         }
 
-        assert!((c1/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
-        assert!((c2/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+        assert!((c1 / 5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+        assert!((c2 / 5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
 
         assert_eq!(ps.dim(), 2);
         assert_eq!(ps.span(), Span::Finite(4));
@@ -404,8 +352,8 @@ mod tests {
             assert!(sample[1] == 0 || sample[1] == 1);
         }
 
-        assert!((c1/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
-        assert!((c2/5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+        assert!((c1 / 5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
+        assert!((c2 / 5000.0).all_close(&arr1(&vec![0.5; 2]), 1e-1));
 
         assert_eq!(space.dim(), 2);
         assert_eq!(space.span(), Span::Finite(4));
@@ -425,7 +373,7 @@ mod tests {
         assert_eq!(sa.dim(), 3);
         assert_eq!(sa.dim(), sb.dim());
 
-        assert_eq!(sa.span(), Span::Finite(4)*Span::Finite(3));
+        assert_eq!(sa.span(), Span::Finite(4) * Span::Finite(3));
         assert_eq!(sa.span(), sb.span());
     }
 }

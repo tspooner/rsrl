@@ -1,11 +1,10 @@
 use Parameter;
 use agents::{Agent, Predictor, TDPredictor};
 use agents::memory::Trace;
-use fa::{Function, VFunction, Projector, Projection, Linear};
+use fa::{Function, Linear, Projection, Projector, VFunction};
 use geometry::Space;
 
 use std::marker::PhantomData;
-
 
 pub struct TD<S: Space, V: VFunction<S>> {
     pub v_func: V,
@@ -17,11 +16,12 @@ pub struct TD<S: Space, V: VFunction<S>> {
 }
 
 impl<S: Space, V> TD<S, V>
-    where V: VFunction<S>
+where V: VFunction<S>
 {
     pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         TD {
             v_func: v_func,
@@ -50,24 +50,21 @@ impl<S: Space, V: VFunction<S>> Agent for TD<S, V> {
 }
 
 impl<S: Space, V: VFunction<S>> Predictor<S> for TD<S, V> {
-    fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.v_func.evaluate(s)
-    }
+    fn evaluate(&self, s: &S::Repr) -> f64 { self.v_func.evaluate(s) }
 }
 
 impl<S: Space, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
     fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
-        self.v_func.update(&sample.0, self.alpha*error);
+        self.v_func.update(&sample.0, self.alpha * error);
     }
 
     fn compute_td_error(&self, sample: &Self::Sample) -> f64 {
         let v = self.v_func.evaluate(&sample.0);
         let nv = self.v_func.evaluate(&sample.1);
 
-        sample.2 + self.gamma*nv - v
+        sample.2 + self.gamma * nv - v
     }
 }
-
 
 pub struct TDLambda<S: Space, P: Projector<S>> {
     trace: Trace,
@@ -80,8 +77,9 @@ pub struct TDLambda<S: Space, P: Projector<S>> {
 
 impl<S: Space, P: Projector<S>> TDLambda<S, P> {
     pub fn new<T1, T2>(trace: Trace, fa_theta: Linear<S, P>, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+    where
+        T1: Into<Parameter>,
+        T2: Into<Parameter>,
     {
         TDLambda {
             trace: trace,
@@ -97,16 +95,18 @@ impl<S: Space, P: Projector<S>> TDLambda<S, P> {
         let v: f64 = self.fa_theta.evaluate_phi(phi_s);
         let nv: f64 = self.fa_theta.evaluate_phi(phi_ns);
 
-        reward + self.gamma*nv - v
+        reward + self.gamma * nv - v
     }
 
     fn handle_error_with_phi(&mut self, phi_s: Projection, error: f64) {
-        let rate = self.trace.lambda.value()*self.gamma.value();
+        let rate = self.trace.lambda.value() * self.gamma.value();
 
         self.trace.decay(rate);
-        self.trace.update(&self.fa_theta.projector.expand_projection(phi_s));
+        self.trace
+            .update(&self.fa_theta.projector.expand_projection(phi_s));
 
-        self.fa_theta.update_phi(&Projection::Dense(self.trace.get()), self.alpha*error);
+        self.fa_theta
+            .update_phi(&Projection::Dense(self.trace.get()), self.alpha * error);
     }
 }
 
@@ -131,9 +131,7 @@ impl<S: Space, P: Projector<S>> Agent for TDLambda<S, P> {
 }
 
 impl<S: Space, P: Projector<S>> Predictor<S> for TDLambda<S, P> {
-    fn evaluate(&self, s: &S::Repr) -> f64 {
-        self.fa_theta.evaluate(s)
-    }
+    fn evaluate(&self, s: &S::Repr) -> f64 { self.fa_theta.evaluate(s) }
 }
 
 impl<S: Space, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {
@@ -147,10 +145,9 @@ impl<S: Space, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {
         let v: f64 = self.fa_theta.evaluate(&sample.0);
         let nv: f64 = self.fa_theta.evaluate(&sample.1);
 
-        sample.2 + self.gamma*nv - v
+        sample.2 + self.gamma * nv - v
     }
 }
-
 
 // TODO:
 // ETD(lambda) - https://arxiv.org/pdf/1503.04269.pdf

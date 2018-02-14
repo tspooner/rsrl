@@ -2,12 +2,10 @@
 
 use {Parameter, Vector};
 
-
 pub enum TraceType {
     Accumulating,
     Replacing,
 }
-
 
 pub struct Trace {
     pub trace_type: TraceType,
@@ -34,13 +32,9 @@ impl Trace {
         Trace::new(TraceType::Replacing, lambda, activation)
     }
 
-    pub fn get(&self) -> Vector {
-        self.eligibility.clone()
-    }
+    pub fn get(&self) -> Vector { self.eligibility.clone() }
 
-    pub fn decay(&mut self, rate: f64) {
-        self.eligibility *= rate;
-    }
+    pub fn decay(&mut self, rate: f64) { self.eligibility *= rate; }
 
     pub fn update(&mut self, activation: &Vector) {
         match self.trace_type {
@@ -53,7 +47,6 @@ impl Trace {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

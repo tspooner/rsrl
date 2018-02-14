@@ -8,14 +8,12 @@ pub mod prediction;
 pub use self::control::Controller;
 pub use self::prediction::{Predictor, TDPredictor};
 
-
 pub trait Agent {
     type Sample;
 
     fn handle_sample(&mut self, sample: &Self::Sample);
     fn handle_terminal(&mut self, sample: &Self::Sample);
 }
-
 
 pub trait BatchAgent: Agent {
     fn consolidate(&mut self);
@@ -26,7 +24,6 @@ pub trait BatchAgent: Agent {
         }
     }
 }
-
 
 // TODO
 // Proximal gradient-descent methods:

@@ -1,9 +1,8 @@
+use super::{Function, Parameterised, Projection, Projector, QFunction, VFunction};
 use Matrix;
-use super::{Function, Parameterised, VFunction, QFunction, Projector, Projection};
 use geometry::Space;
-use ndarray::{ArrayView};
+use ndarray::ArrayView;
 use std::marker::PhantomData;
-
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Linear<S: Space, P: Projector<S>> {
@@ -88,11 +87,16 @@ impl<S: Space, P: Projector<S>> QFunction<S> for Linear<S, P> {
 
     fn evaluate_phi(&self, phi: &Projection) -> Vec<f64> {
         match phi {
-            &Projection::Dense(ref dense_phi) => (self.weights.t().dot(&(dense_phi/phi.z()))).into_raw_vec(),
-            &Projection::Sparse(ref sparse_phi) =>
-                (0..self.weights.cols()).map(|c| {
-                    sparse_phi.iter().fold(0.0, |acc, idx| acc + self.weights[(*idx, c)])
-                }).collect(),
+            &Projection::Dense(ref dense_phi) => {
+                (self.weights.t().dot(&(dense_phi / phi.z()))).into_raw_vec()
+            },
+            &Projection::Sparse(ref sparse_phi) => (0..self.weights.cols())
+                .map(|c| {
+                    sparse_phi
+                        .iter()
+                        .fold(0.0, |acc, idx| acc + self.weights[(*idx, c)])
+                })
+                .collect(),
         }
     }
 
@@ -100,32 +104,34 @@ impl<S: Space, P: Projector<S>> QFunction<S> for Linear<S, P> {
         let col = self.weights.column(action);
 
         match phi {
-            &Projection::Dense(ref dense_phi) => col.dot(&(dense_phi/phi.z())),
-            &Projection::Sparse(ref sparse_phi) =>
-                sparse_phi.iter().fold(0.0, |acc, idx| acc + col[*idx]),
+            &Projection::Dense(ref dense_phi) => col.dot(&(dense_phi / phi.z())),
+            &Projection::Sparse(ref sparse_phi) => {
+                sparse_phi.iter().fold(0.0, |acc, idx| acc + col[*idx])
+            },
         }
     }
 
     fn update_phi(&mut self, phi: &Projection, errors: Vec<f64>) {
         let z = phi.z();
-        let sf = 1.0/z;
+        let sf = 1.0 / z;
 
         match phi {
             &Projection::Dense(ref dense_phi) => {
-                let view = dense_phi.view().into_shape((self.weights.rows(), 1)).unwrap();
-                let error_matrix = ArrayView::from_shape((1, self.weights.cols()), errors.as_slice())
+                let view = dense_phi
+                    .view()
+                    .into_shape((self.weights.rows(), 1))
                     .unwrap();
+                let error_matrix =
+                    ArrayView::from_shape((1, self.weights.cols()), errors.as_slice()).unwrap();
 
                 self.weights.scaled_add(sf, &view.dot(&error_matrix))
             },
-            &Projection::Sparse(ref sparse_phi) => {
-                for c in 0..self.weights.cols() {
-                    let mut col = self.weights.column_mut(c);
-                    let error = errors[c];
+            &Projection::Sparse(ref sparse_phi) => for c in 0..self.weights.cols() {
+                let mut col = self.weights.column_mut(c);
+                let error = errors[c];
 
-                    for idx in sparse_phi {
-                        col[*idx] += error
-                    }
+                for idx in sparse_phi {
+                    col[*idx] += error
                 }
             },
         }
@@ -133,27 +139,24 @@ impl<S: Space, P: Projector<S>> QFunction<S> for Linear<S, P> {
 
     fn update_action_phi(&mut self, phi: &Projection, action: usize, error: f64) {
         let mut col = self.weights.column_mut(action);
-        let scaled_error = error/phi.z();
+        let scaled_error = error / phi.z();
 
         match phi {
             &Projection::Dense(ref dense_phi) => col.scaled_add(scaled_error, dense_phi),
-            &Projection::Sparse(ref sparse_phi) => {
-                for idx in sparse_phi {
-                    col[*idx] += scaled_error
-                }
+            &Projection::Sparse(ref sparse_phi) => for idx in sparse_phi {
+                col[*idx] += scaled_error
             },
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
     extern crate seahash;
 
     use super::*;
-    use std::hash::BuildHasherDefault;
     use fa::projection::TileCoding;
+    use std::hash::BuildHasherDefault;
 
     type SHBuilder = BuildHasherDefault<seahash::SeaHasher>;
 

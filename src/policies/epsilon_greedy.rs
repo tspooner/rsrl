@@ -1,7 +1,6 @@
+use super::{Greedy, Policy, Random};
 use Parameter;
-use super::{Policy, Greedy, Random};
-use rand::{Rng, thread_rng, ThreadRng};
-
+use rand::{thread_rng, Rng, ThreadRng};
 
 pub struct EpsilonGreedy {
     greedy: Greedy,
@@ -50,10 +49,9 @@ impl Policy for EpsilonGreedy {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{Policy, EpsilonGreedy, Parameter};
+    use super::{EpsilonGreedy, Parameter, Policy};
 
     #[test]
     fn test_sampling() {
@@ -77,19 +75,27 @@ mod tests {
     fn test_probabilites() {
         let mut p = EpsilonGreedy::new(0.5);
 
-        assert_eq!(p.probabilities(&[1.0, 0.0, 0.0, 0.0, 0.0]),
-                   vec![0.6, 0.1, 0.1, 0.1, 0.1]);
+        assert_eq!(
+            p.probabilities(&[1.0, 0.0, 0.0, 0.0, 0.0]),
+            vec![0.6, 0.1, 0.1, 0.1, 0.1]
+        );
 
-        assert_eq!(p.probabilities(&[0.0, 0.0, 0.0, 0.0, 1.0]),
-                   vec![0.1, 0.1, 0.1, 0.1, 0.6]);
+        assert_eq!(
+            p.probabilities(&[0.0, 0.0, 0.0, 0.0, 1.0]),
+            vec![0.1, 0.1, 0.1, 0.1, 0.6]
+        );
 
-        assert_eq!(p.probabilities(&[1.0, 0.0, 0.0, 0.0, 1.0]),
-                   vec![0.35, 0.1, 0.1, 0.1, 0.35]);
+        assert_eq!(
+            p.probabilities(&[1.0, 0.0, 0.0, 0.0, 1.0]),
+            vec![0.35, 0.1, 0.1, 0.1, 0.35]
+        );
 
         let mut p = EpsilonGreedy::new(1.0);
 
-        assert_eq!(p.probabilities(&[-1.0, 0.0, 0.0, 0.0]),
-                   vec![0.25, 0.25, 0.25, 0.25]);
+        assert_eq!(
+            p.probabilities(&[-1.0, 0.0, 0.0, 0.0]),
+            vec![0.25, 0.25, 0.25, 0.25]
+        );
     }
 
     #[test]

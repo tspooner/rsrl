@@ -1,10 +1,9 @@
+use super::{Projection, Projector};
 use Vector;
-use super::{Projector, Projection};
 use fa::Function;
 use geometry::RegularSpace;
 use geometry::dimensions::Continuous;
 use geometry::kernels::Kernel;
-
 
 /// Represents the location and kernel associated with a basis function.
 pub struct BasisFunction {
@@ -22,21 +21,17 @@ impl BasisFunction {
 }
 
 impl Function<[f64], f64> for BasisFunction {
-    fn evaluate(&self, input: &[f64]) -> f64 {
-        self.kernel.kernel(&self.loc, input)
-    }
+    fn evaluate(&self, input: &[f64]) -> f64 { self.kernel.kernel(&self.loc, input) }
 }
 
-
-/// Heterogeneous basis network projector for arbitrary combinations of basis functions.
+/// Heterogeneous basis network projector for arbitrary combinations of basis
+/// functions.
 pub struct BasisNetwork {
     bases: Vec<BasisFunction>,
 }
 
 impl BasisNetwork {
-    pub fn new(bases: Vec<BasisFunction>) -> Self {
-        BasisNetwork { bases: bases }
-    }
+    pub fn new(bases: Vec<BasisFunction>) -> Self { BasisNetwork { bases: bases } }
 }
 
 impl Projector<RegularSpace<Continuous>> for BasisNetwork {
@@ -46,28 +41,20 @@ impl Projector<RegularSpace<Continuous>> for BasisNetwork {
         Projection::Dense(phi)
     }
 
-    fn dim(&self) -> usize {
-        unimplemented!()
-    }
+    fn dim(&self) -> usize { unimplemented!() }
 
-    fn size(&self) -> usize {
-        self.bases.len()
-    }
+    fn size(&self) -> usize { self.bases.len() }
 
-    fn activation(&self) -> usize {
-        self.size()
-    }
+    fn activation(&self) -> usize { self.size() }
 
-    fn equivalent(&self, _: &Self) -> bool {
-        unimplemented!()
-    }
+    fn equivalent(&self, _: &Self) -> bool { unimplemented!() }
 }
 
 #[cfg(test)]
 mod tests {
-    use fa::Function;
     use super::BasisFunction;
-    use geometry::kernels::{Kernel, Exponential, SquaredExp};
+    use fa::Function;
+    use geometry::kernels::{Exponential, Kernel, SquaredExp};
 
     #[test]
     fn test_consistency_exp() {

@@ -5,7 +5,6 @@ use utils::argmaxima;
 extern crate rand;
 use rand::Rng;
 
-
 pub struct Greedy;
 
 impl Policy for Greedy {
@@ -35,16 +34,13 @@ impl Policy for Greedy {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{Policy, Greedy};
+    use super::{Greedy, Policy};
 
     #[test]
     #[should_panic]
-    fn test_0d() {
-        Greedy.sample(&vec![]);
-    }
+    fn test_0d() { Greedy.sample(&vec![]); }
 
     #[test]
     fn test_1d() {
@@ -116,10 +112,14 @@ mod tests {
     fn test_probabilites() {
         let mut g = Greedy;
 
-        assert_eq!(g.probabilities(&[1e-7, 2e-7, 3e-7, 4e-7]),
-                   vec![0.0, 0.0, 0.0, 1.0]);
+        assert_eq!(
+            g.probabilities(&[1e-7, 2e-7, 3e-7, 4e-7]),
+            vec![0.0, 0.0, 0.0, 1.0]
+        );
 
-        assert_eq!(g.probabilities(&[1e-7, 1e-7, 1e-7, 1e-7]),
-                   vec![0.25, 0.25, 0.25, 0.25]);
+        assert_eq!(
+            g.probabilities(&[1e-7, 1e-7, 1e-7, 1e-7]),
+            vec![0.25, 0.25, 0.25, 0.25]
+        );
     }
 }

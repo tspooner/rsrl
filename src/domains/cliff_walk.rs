@@ -1,13 +1,15 @@
+use super::{Domain, Observation, Transition};
+use super::grid_world::{GridWorld, Motion};
 use Matrix;
-use super::{Observation, Transition, Domain};
-use super::grid_world::{Motion, GridWorld};
 use geometry::{ActionSpace, PairSpace};
 use geometry::dimensions::Discrete;
 
-
-const ALL_ACTIONS: [Motion; 4] =
-    [Motion::North(1), Motion::East(1), Motion::South(1), Motion::West(1)];
-
+const ALL_ACTIONS: [Motion; 4] = [
+    Motion::North(1),
+    Motion::East(1),
+    Motion::South(1),
+    Motion::West(1),
+];
 
 pub struct CliffWalk {
     gw: GridWorld<u8>,
@@ -28,9 +30,7 @@ impl CliffWalk {
 }
 
 impl Default for CliffWalk {
-    fn default() -> CliffWalk {
-        CliffWalk::new(5, 12)
-    }
+    fn default() -> CliffWalk { CliffWalk::new(5, 12) }
 }
 
 impl Domain for CliffWalk {
@@ -63,10 +63,12 @@ impl Domain for CliffWalk {
         }
     }
 
-    fn reward(&self,
-              from: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>)
-              -> f64 {
+    fn reward(
+        &self,
+        from: &Observation<Self::StateSpace, Self::ActionSpace>,
+        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+    ) -> f64
+    {
         match to {
             &Observation::Terminal(_) => {
                 if to.state().0 == self.gw.width() - 1 {
@@ -74,26 +76,25 @@ impl Domain for CliffWalk {
                 } else {
                     -50.0
                 }
-            }
+            },
             _ => {
                 if from.state() == to.state() {
                     -1.0
                 } else {
                     0.0
                 }
-            }
+            },
         }
     }
 
-    fn is_terminal(&self) -> bool {
-        self.loc.0 > 0 && self.loc.1 == 0
-    }
+    fn is_terminal(&self) -> bool { self.loc.0 > 0 && self.loc.1 == 0 }
 
     fn state_space(&self) -> Self::StateSpace {
-        PairSpace::new(Discrete::new(self.gw.width()), Discrete::new(self.gw.height()))
+        PairSpace::new(
+            Discrete::new(self.gw.width()),
+            Discrete::new(self.gw.height()),
+        )
     }
 
-    fn action_space(&self) -> ActionSpace {
-        ActionSpace::new(Discrete::new(4))
-    }
+    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(4)) }
 }

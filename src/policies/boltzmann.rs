@@ -1,9 +1,8 @@
 use super::Policy;
 
 use Parameter;
-use rand::{Rng, thread_rng, ThreadRng};
+use rand::{thread_rng, Rng, ThreadRng};
 use std::f64;
-
 
 pub struct Boltzmann {
     tau: Parameter,
@@ -34,21 +33,20 @@ impl Policy for Boltzmann {
         let tau = self.tau.value();
 
         let mut z = 0.0;
-        let ws: Vec<f64> = qs.iter().map(|q| {
-            let v = (q / tau).exp();
-            z += v;
+        let ws: Vec<f64> = qs.iter()
+            .map(|q| {
+                let v = (q / tau).exp();
+                z += v;
 
-            v
-        }).collect();
+                v
+            })
+            .collect();
 
         ws.iter().map(|w| w / z).collect()
     }
 
-    fn handle_terminal(&mut self) {
-        self.tau = self.tau.step();
-    }
+    fn handle_terminal(&mut self) { self.tau = self.tau.step(); }
 }
-
 
 pub struct TruncatedBoltzmann {
     c: Parameter,
@@ -63,9 +61,7 @@ impl TruncatedBoltzmann {
         }
     }
 
-    fn kappa(c: f64, x: f64) -> f64 {
-        c / (1.0 + (-x).exp())
-    }
+    fn kappa(c: f64, x: f64) -> f64 { c / (1.0 + (-x).exp()) }
 }
 
 impl Policy for TruncatedBoltzmann {
@@ -83,27 +79,26 @@ impl Policy for TruncatedBoltzmann {
         let c = self.c.value();
 
         let mut z = 0.0;
-        let ws: Vec<f64> = qs.iter().map(|q| {
-            let v = TruncatedBoltzmann::kappa(c, *q).exp();
-            z += v;
+        let ws: Vec<f64> = qs.iter()
+            .map(|q| {
+                let v = TruncatedBoltzmann::kappa(c, *q).exp();
+                z += v;
 
-            v
-        }).collect();
+                v
+            })
+            .collect();
 
         ws.iter().map(|w| w / z).collect()
     }
 
-    fn handle_terminal(&mut self) {
-        self.c = self.c.step();
-    }
+    fn handle_terminal(&mut self) { self.c = self.c.step(); }
 }
-
 
 #[cfg(test)]
 mod tests {
-    use super::{Policy, Boltzmann, Parameter};
-    use std::f64::consts::E;
+    use super::{Boltzmann, Parameter, Policy};
     use ndarray::arr1;
+    use std::f64::consts::E;
 
     #[test]
     #[should_panic]
@@ -130,15 +125,21 @@ mod tests {
             counts[p.sample(&vec![0.0, 1.0])] += 1.0;
         }
 
-        assert!((counts/50000.0).all_close(&arr1(&vec![1.0/(1.0+E), E/(1.0+E)]), 1e-2));
+        assert!((counts / 50000.0).all_close(&arr1(&vec![1.0 / (1.0 + E), E / (1.0 + E)]), 1e-2));
     }
 
     #[test]
     fn test_probabilites() {
-        assert!(arr1(&Boltzmann::new(1.0).probabilities(&vec![0.0, 1.0]))
-                .all_close(&arr1(&vec![1.0/(1.0+E), E/(1.0+E)]), 1e-6));
-        assert!(arr1(&Boltzmann::new(1.0).probabilities(&vec![0.0, 2.0]))
-                .all_close(&arr1(&vec![1.0/(1.0+E*E), E*E/(1.0+E*E)]), 1e-6));
+        assert!(
+            arr1(&Boltzmann::new(1.0).probabilities(&vec![0.0, 1.0]))
+                .all_close(&arr1(&vec![1.0 / (1.0 + E), E / (1.0 + E)]), 1e-6)
+        );
+        assert!(
+            arr1(&Boltzmann::new(1.0).probabilities(&vec![0.0, 2.0])).all_close(
+                &arr1(&vec![1.0 / (1.0 + E * E), E * E / (1.0 + E * E)]),
+                1e-6
+            )
+        );
     }
 
     #[test]

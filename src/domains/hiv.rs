@@ -1,11 +1,10 @@
+use super::{Domain, Observation, Transition, runge_kutta4};
 use Vector;
-use super::{Observation, Transition, Domain, runge_kutta4};
 
-use std::ops::Index;
-use ndarray::{NdIndex, Ix1};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
-
+use ndarray::{Ix1, NdIndex};
+use std::ops::Index;
 
 // Model parameters
 // (https://pdfs.semanticscholar.org/c030/127238b1dbad2263fba6b64b5dec7c3ffa20.pdf):
@@ -40,7 +39,6 @@ const DT_STEP: f64 = DT / SIM_STEPS as f64;
 const LIMITS: (f64, f64) = (-5.0, 8.0);
 const ALL_ACTIONS: [(f64, f64); 4] = [(0.0, 0.0), (0.7, 0.0), (0.0, 0.3), (0.7, 0.3)];
 
-
 #[derive(Debug, Clone, Copy)]
 enum StateIndex {
     T1 = 0,
@@ -54,9 +52,7 @@ enum StateIndex {
 impl Index<StateIndex> for Vec<f64> {
     type Output = f64;
 
-    fn index(&self, idx: StateIndex) -> &f64 {
-        self.index(idx as usize)
-    }
+    fn index(&self, idx: StateIndex) -> &f64 { self.index(idx as usize) }
 }
 
 unsafe impl NdIndex<Ix1> for StateIndex {
@@ -66,11 +62,8 @@ unsafe impl NdIndex<Ix1> for StateIndex {
     }
 
     #[inline(always)]
-    fn index_unchecked(&self, strides: &Ix1) -> isize {
-        (*self as usize).index_unchecked(strides)
-    }
+    fn index_unchecked(&self, strides: &Ix1) -> isize { (*self as usize).index_unchecked(strides) }
 }
-
 
 pub struct HIVTreatment {
     eps: (f64, f64),
@@ -81,7 +74,7 @@ impl HIVTreatment {
     fn new(t1: f64, t1s: f64, t2: f64, t2s: f64, v: f64, e: f64) -> HIVTreatment {
         HIVTreatment {
             eps: ALL_ACTIONS[0],
-            state: Vector::from_vec(vec![t1, t1s, t2, t2s, v, e])
+            state: Vector::from_vec(vec![t1, t1s, t2, t2s, v, e]),
         }
     }
 
@@ -107,28 +100,27 @@ impl HIVTreatment {
         let v = state[StateIndex::V];
         let e = state[StateIndex::E];
 
-        let tmp1 = (1.0 - eps.0)*K1*v*t1;
-        let tmp2 = (1.0 - F*eps.0)*K2*v*t2;
+        let tmp1 = (1.0 - eps.0) * K1 * v * t1;
+        let tmp2 = (1.0 - F * eps.0) * K2 * v * t2;
         let sum_ts = t1s + t2s;
 
-        let d_t1 = LAMBDA1 - D1*t1 - tmp1;
-        let d_t1s = tmp1 - DELTA*t1s - M1*e*t1s;
+        let d_t1 = LAMBDA1 - D1 * t1 - tmp1;
+        let d_t1s = tmp1 - DELTA * t1s - M1 * e * t1s;
 
-        let d_t2 = LAMBDA2 - D2*t2 - tmp2;
-        let d_t2s = tmp2 - DELTA*t2s - M2*e*t2s;
+        let d_t2 = LAMBDA2 - D2 * t2 - tmp2;
+        let d_t2s = tmp2 - DELTA * t2s - M2 * e * t2s;
 
-        let d_v = (1.0 - eps.1)*NT*DELTA*sum_ts - C*v -
-            ((1.0 - eps.0)*RHO1*K1*t1 + (1.0 - F*eps.0)*RHO2*K2*t2)*v;
-        let d_e = LAMBDA_E + BE*sum_ts/(sum_ts + KB)*e - DE*sum_ts/(sum_ts + KD)*e - DELTA_E*e;
+        let d_v = (1.0 - eps.1) * NT * DELTA * sum_ts - C * v
+            - ((1.0 - eps.0) * RHO1 * K1 * t1 + (1.0 - F * eps.0) * RHO2 * K2 * t2) * v;
+        let d_e = LAMBDA_E + BE * sum_ts / (sum_ts + KB) * e - DE * sum_ts / (sum_ts + KD) * e
+            - DELTA_E * e;
 
         Vector::from_vec(vec![d_t1, d_t1s, d_t2, d_t2s, d_v, d_e])
     }
 }
 
 impl Default for HIVTreatment {
-    fn default() -> HIVTreatment {
-        HIVTreatment::new(163573.0, 11945.0, 5.0, 46.0, 63919.0, 24.0)
-    }
+    fn default() -> HIVTreatment { HIVTreatment::new(163573.0, 11945.0, 5.0, 46.0, 63919.0, 24.0) }
 }
 
 impl Domain for HIVTreatment {
@@ -163,38 +155,30 @@ impl Domain for HIVTreatment {
         }
     }
 
-    fn is_terminal(&self) -> bool {
-        false
-    }
+    fn is_terminal(&self) -> bool { false }
 
-    fn reward(&self,
-              _: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
+    fn reward(
+        &self,
+        _: &Observation<Self::StateSpace, Self::ActionSpace>,
+        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+    ) -> f64
     {
         let s = to.state();
-        let r = 1e3*s[StateIndex::E]
-            - 0.1*s[StateIndex::V]
-            - 2e4*self.eps.0.powf(2.0)
-            - 2e3*self.eps.1.powf(2.0);
+        let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps.0.powf(2.0)
+            - 2e3 * self.eps.1.powf(2.0);
 
-        r.signum()*r.abs().log10()
+        r.signum() * r.abs().log10()
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        RegularSpace::empty()
-            + Continuous::new(LIMITS.0, LIMITS.1)
-            + Continuous::new(LIMITS.0, LIMITS.1)
-            + Continuous::new(LIMITS.0, LIMITS.1)
-            + Continuous::new(LIMITS.0, LIMITS.1)
-            + Continuous::new(LIMITS.0, LIMITS.1)
+        RegularSpace::empty() + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1) + Continuous::new(LIMITS.0, LIMITS.1)
+            + Continuous::new(LIMITS.0, LIMITS.1) + Continuous::new(LIMITS.0, LIMITS.1)
             + Continuous::new(LIMITS.0, LIMITS.1)
     }
 
-    fn action_space(&self) -> ActionSpace {
-        ActionSpace::new(Discrete::new(3))
-    }
+    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(3)) }
 }
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}

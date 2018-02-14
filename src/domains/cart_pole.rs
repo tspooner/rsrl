@@ -1,11 +1,10 @@
+use super::{Domain, Observation, Transition, runge_kutta4};
 use Vector;
-use super::{Observation, Transition, Domain, runge_kutta4};
 
-use consts::{G, TWELVE_DEGREES, FOUR_THIRDS};
-use ndarray::{NdIndex, Ix1};
+use consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
-
+use ndarray::{Ix1, NdIndex};
 
 const TAU: f64 = 0.02;
 
@@ -28,7 +27,6 @@ const REWARD_TERMINAL: f64 = -1.0;
 
 const ALL_ACTIONS: [f64; 2] = [-1.0 * CART_FORCE, 1.0 * CART_FORCE];
 
-
 #[derive(Debug, Clone, Copy)]
 enum StateIndex {
     X = 0,
@@ -44,11 +42,8 @@ unsafe impl NdIndex<Ix1> for StateIndex {
     }
 
     #[inline(always)]
-    fn index_unchecked(&self, strides: &Ix1) -> isize {
-        (*self as usize).index_unchecked(strides)
-    }
+    fn index_unchecked(&self, strides: &Ix1) -> isize { (*self as usize).index_unchecked(strides) }
 }
-
 
 pub struct CartPole {
     state: Vector,
@@ -57,7 +52,7 @@ pub struct CartPole {
 impl CartPole {
     fn new(x: f64, dx: f64, theta: f64, dtheta: f64) -> CartPole {
         CartPole {
-            state: Vector::from_vec(vec![x, dx, theta, dtheta])
+            state: Vector::from_vec(vec![x, dx, theta, dtheta]),
         }
     }
 
@@ -82,22 +77,20 @@ impl CartPole {
         let cos_theta = theta.cos();
         let sin_theta = theta.sin();
 
-        let z = (force + POLE_MOMENT*dtheta*dtheta*sin_theta) / TOTAL_MASS;
+        let z = (force + POLE_MOMENT * dtheta * dtheta * sin_theta) / TOTAL_MASS;
 
-        let numer = G*sin_theta - cos_theta*z;
-        let denom = FOUR_THIRDS*POLE_COM - POLE_MOMENT*cos_theta*cos_theta;
+        let numer = G * sin_theta - cos_theta * z;
+        let denom = FOUR_THIRDS * POLE_COM - POLE_MOMENT * cos_theta * cos_theta;
 
-        let ddtheta = numer/denom;
-        let ddx = z - POLE_COM*ddtheta*cos_theta;
+        let ddtheta = numer / denom;
+        let ddx = z - POLE_COM * ddtheta * cos_theta;
 
         Vector::from_vec(vec![dx, ddx, dtheta, ddtheta])
     }
 }
 
 impl Default for CartPole {
-    fn default() -> CartPole {
-        CartPole::new(0.0, 0.0, 0.0, 0.0)
-    }
+    fn default() -> CartPole { CartPole::new(0.0, 0.0, 0.0, 0.0) }
 }
 
 impl Domain for CartPole {
@@ -137,10 +130,12 @@ impl Domain for CartPole {
         x <= LIMITS_X.0 || x >= LIMITS_X.1 || theta <= LIMITS_THETA.0 || theta >= LIMITS_THETA.1
     }
 
-    fn reward(&self,
-              _: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>)
-              -> f64 {
+    fn reward(
+        &self,
+        _: &Observation<Self::StateSpace, Self::ActionSpace>,
+        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+    ) -> f64
+    {
         match to {
             &Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,
@@ -148,23 +143,19 @@ impl Domain for CartPole {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        RegularSpace::empty()
-            + Continuous::new(LIMITS_X.0, LIMITS_X.1)
+        RegularSpace::empty() + Continuous::new(LIMITS_X.0, LIMITS_X.1)
             + Continuous::new(LIMITS_DX.0, LIMITS_DX.1)
             + Continuous::new(LIMITS_THETA.0, LIMITS_THETA.1)
             + Continuous::new(LIMITS_DTHETA.0, LIMITS_DTHETA.1)
     }
 
-    fn action_space(&self) -> ActionSpace {
-        ActionSpace::new(Discrete::new(2))
-    }
+    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(2)) }
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use domains::{Observation, Domain};
+    use domains::{Domain, Observation};
 
     #[test]
     fn test_initial_observation() {
@@ -176,7 +167,7 @@ mod tests {
                 assert_eq!(state[1], 0.0);
                 assert_eq!(state[2], 0.0);
                 assert_eq!(state[3], 0.0);
-            }
+            },
             _ => panic!("Should yield a fully observable state."),
         }
     }

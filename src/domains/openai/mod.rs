@@ -1,14 +1,13 @@
 extern crate cpython;
 
+use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
+use super::{Domain, Observation, Transition};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 use std::f64;
-use self::cpython::{Python, ObjectProtocol, PyObject, PyResult, NoArgs};
-use super::{Observation, Transition, Domain};
 
 mod client;
 use self::client::GymClient;
-
 
 pub struct OpenAIGym {
     client: GymClient,
@@ -28,7 +27,6 @@ impl OpenAIGym {
             let env = client.make(env_id)?;
 
             client.monitor(env, path)?
-
         } else {
             client.make(env_id)?
         };
@@ -49,8 +47,9 @@ impl OpenAIGym {
 
     pub fn upload<T: Into<String>>(&self, api_key: T) -> Result<(), &'static str> {
         if let Some(ref path) = self.monitor_path {
-            match self.env.call_method(self.client.py(), "close", NoArgs, None)
-                      .and_then(|_| self.client.upload(path, &api_key.into()))
+            match self.env
+                .call_method(self.client.py(), "close", NoArgs, None)
+                .and_then(|_| self.client.upload(path, &api_key.into()))
             {
                 Ok(_) => Ok(()),
                 Err(_) => Err("upload failed - python error"),
@@ -61,9 +60,9 @@ impl OpenAIGym {
     }
 
     fn parse_vec(py: Python, vals: &PyObject) -> Vec<f64> {
-        (0..vals.len(py).unwrap()).map(|i| {
-            vals.get_item(py, i).unwrap().extract::<f64>(py).unwrap()
-        }).collect()
+        (0..vals.len(py).unwrap())
+            .map(|i| vals.get_item(py, i).unwrap().extract::<f64>(py).unwrap())
+            .collect()
     }
 
     fn update_state(&mut self, a: usize) {
@@ -88,7 +87,7 @@ impl Domain for OpenAIGym {
         } else {
             Observation::Full {
                 state: self.state.clone(),
-                actions: vec![]
+                actions: vec![],
             }
         }
     }
@@ -107,13 +106,13 @@ impl Domain for OpenAIGym {
         }
     }
 
-    fn is_terminal(&self) -> bool {
-        self.terminal
-    }
+    fn is_terminal(&self) -> bool { self.terminal }
 
-    fn reward(&self,
-              _: &Observation<Self::StateSpace, Self::ActionSpace>,
-              _: &Observation<Self::StateSpace, Self::ActionSpace>) -> f64
+    fn reward(
+        &self,
+        _: &Observation<Self::StateSpace, Self::ActionSpace>,
+        _: &Observation<Self::StateSpace, Self::ActionSpace>,
+    ) -> f64
     {
         self.last_reward
     }
@@ -124,18 +123,21 @@ impl Domain for OpenAIGym {
 
         let lbs = ss.getattr(py, "low").unwrap();
         let ubs = ss.getattr(py, "high").unwrap();
-        let len = ss.getattr(py, "shape").unwrap()
-            .get_item(py, 0).unwrap()
-            .extract::<usize>(py).unwrap();
+        let len = ss.getattr(py, "shape")
+            .unwrap()
+            .get_item(py, 0)
+            .unwrap()
+            .extract::<usize>(py)
+            .unwrap();
 
         (0..len).fold(RegularSpace::empty(), |acc, i| {
             let lb = lbs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
             let ub = ubs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
 
-            if lb.abs() <= 340282346638528860000000000000000000000.0 ||
-               ub.abs() >= 340282346638528860000000000000000000000.0 {
+            if lb.abs() <= 340282346638528860000000000000000000000.0
+                || ub.abs() >= 340282346638528860000000000000000000000.0
+            {
                 acc.push(Continuous::new(f64::NEG_INFINITY, f64::INFINITY))
-
             } else {
                 acc.push(Continuous::new(lb, ub))
             }
@@ -145,9 +147,12 @@ impl Domain for OpenAIGym {
     fn action_space(&self) -> ActionSpace {
         let py = self.client.py();
         let n = self.env
-            .getattr(py, "action_space").unwrap()
-            .getattr(py, "n").unwrap()
-            .extract::<usize>(py).unwrap();
+            .getattr(py, "action_space")
+            .unwrap()
+            .getattr(py, "n")
+            .unwrap()
+            .extract::<usize>(py)
+            .unwrap();
 
         ActionSpace::new(Discrete::new(n))
     }

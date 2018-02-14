@@ -1,8 +1,7 @@
-use super::{Observation, Transition, Domain};
+use super::{Domain, Observation, Transition};
 
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
-
 
 const X_MIN: f64 = -1.2;
 const X_MAX: f64 = 0.6;
@@ -19,7 +18,6 @@ const REWARD_STEP: f64 = -1.0;
 const REWARD_GOAL: f64 = 0.0;
 
 const ALL_ACTIONS: [f64; 3] = [-1.0, 0.0, 1.0];
-
 
 /// Classic mountain car testing domain.
 ///
@@ -52,13 +50,9 @@ pub struct MountainCar {
 }
 
 impl MountainCar {
-    fn new(x: f64, v: f64) -> MountainCar {
-        MountainCar { x: x, v: v }
-    }
+    fn new(x: f64, v: f64) -> MountainCar { MountainCar { x: x, v: v } }
 
-    fn dv(x: f64, a: f64) -> f64 {
-        FORCE_CAR * a + FORCE_G * (HILL_FREQ * x).cos()
-    }
+    fn dv(x: f64, a: f64) -> f64 { FORCE_CAR * a + FORCE_G * (HILL_FREQ * x).cos() }
 
     fn update_state(&mut self, a: usize) {
         let a = ALL_ACTIONS[a];
@@ -69,9 +63,7 @@ impl MountainCar {
 }
 
 impl Default for MountainCar {
-    fn default() -> MountainCar {
-        MountainCar::new(-0.5, 0.0)
-    }
+    fn default() -> MountainCar { MountainCar::new(-0.5, 0.0) }
 }
 
 impl Domain for MountainCar {
@@ -106,14 +98,14 @@ impl Domain for MountainCar {
         }
     }
 
-    fn is_terminal(&self) -> bool {
-        self.x >= X_MAX
-    }
+    fn is_terminal(&self) -> bool { self.x >= X_MAX }
 
-    fn reward(&self,
-              _: &Observation<Self::StateSpace, Self::ActionSpace>,
-              to: &Observation<Self::StateSpace, Self::ActionSpace>)
-              -> f64 {
+    fn reward(
+        &self,
+        _: &Observation<Self::StateSpace, Self::ActionSpace>,
+        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+    ) -> f64
+    {
         match to {
             &Observation::Terminal(_) => REWARD_GOAL,
             _ => REWARD_STEP,
@@ -121,21 +113,16 @@ impl Domain for MountainCar {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        RegularSpace::empty()
-            + Continuous::new(X_MIN, X_MAX)
-            + Continuous::new(V_MIN, V_MAX)
+        RegularSpace::empty() + Continuous::new(X_MIN, X_MAX) + Continuous::new(V_MIN, V_MAX)
     }
 
-    fn action_space(&self) -> ActionSpace {
-        ActionSpace::new(Discrete::new(3))
-    }
+    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(3)) }
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use domains::{Observation, Domain};
+    use domains::{Domain, Observation};
 
     #[test]
     fn test_initial_observation() {
@@ -145,7 +132,7 @@ mod tests {
             Observation::Full { ref state, .. } => {
                 assert_eq!(state[0], -0.5);
                 assert_eq!(state[1], 0.0);
-            }
+            },
             _ => panic!("Should yield a fully observable state."),
         }
     }

@@ -1,6 +1,5 @@
 use std::ops::Mul;
 
-
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum Span {
     Null,
@@ -15,13 +14,11 @@ impl Mul for Span {
         match self {
             Span::Null => rhs,
             Span::Infinite => self,
-            Span::Finite(ls) => {
-                match rhs {
-                    Span::Null => self,
-                    Span::Infinite => rhs,
-                    Span::Finite(rs) => Span::Finite(ls * rs),
-                }
-            }
+            Span::Finite(ls) => match rhs {
+                Span::Null => self,
+                Span::Infinite => rhs,
+                Span::Finite(rs) => Span::Finite(ls * rs),
+            },
         }
     }
 }
@@ -34,7 +31,6 @@ impl Into<usize> for Span {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

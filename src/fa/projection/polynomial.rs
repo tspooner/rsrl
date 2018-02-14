@@ -1,9 +1,8 @@
+use super::{Projection, Projector};
 use Vector;
-use super::{Projector, Projection};
 use geometry::RegularSpace;
 use geometry::dimensions::{BoundedDimension, Continuous};
 use utils::cartesian_product;
-
 
 /// Polynomial basis projector.
 #[derive(Clone, Serialize, Deserialize)]
@@ -29,7 +28,7 @@ impl Polynomial {
     }
 
     fn make_exponents(order: u8, dim: usize) -> Vec<Vec<i32>> {
-        let dcs = vec![(0..(order+1)).map(|v| v as i32).collect::<Vec<i32>>(); dim];
+        let dcs = vec![(0..(order + 1)).map(|v| v as i32).collect::<Vec<i32>>(); dim];
         let mut exponents = cartesian_product(&dcs);
 
         exponents.sort_by(|a, b| b.partial_cmp(a).unwrap());
@@ -41,28 +40,29 @@ impl Polynomial {
 
 impl Projector<RegularSpace<Continuous>> for Polynomial {
     fn project(&self, input: &Vec<f64>) -> Projection {
-        let scaled_state = input.iter().enumerate().map(|(i, v)| {
-            (v - self.limits[i].0) / (self.limits[i].1 - self.limits[i].0)
-        }).map(|v| 2.0*v - 1.0).collect::<Vec<f64>>();
+        let scaled_state = input
+            .iter()
+            .enumerate()
+            .map(|(i, v)| (v - self.limits[i].0) / (self.limits[i].1 - self.limits[i].0))
+            .map(|v| 2.0 * v - 1.0)
+            .collect::<Vec<f64>>();
 
         let activations = self.exponents.iter().map(|exps| {
-            scaled_state.iter().zip(exps).map(|(v, e)| v.powi(*e)).product()
+            scaled_state
+                .iter()
+                .zip(exps)
+                .map(|(v, e)| v.powi(*e))
+                .product()
         });
 
         Projection::Dense(Vector::from_iter(activations))
     }
 
-    fn dim(&self) -> usize {
-        self.limits.len()
-    }
+    fn dim(&self) -> usize { self.limits.len() }
 
-    fn size(&self) -> usize {
-        self.exponents.len()
-    }
+    fn size(&self) -> usize { self.exponents.len() }
 
-    fn activation(&self) -> usize {
-        self.size()
-    }
+    fn activation(&self) -> usize { self.size() }
 
     fn equivalent(&self, other: &Self) -> bool {
         self.order == other.order && self.limits == other.limits

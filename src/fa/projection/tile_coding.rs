@@ -1,9 +1,8 @@
+use super::{Projection, Projector};
 use Vector;
-use super::{Projector, Projection};
 use geometry::RegularSpace;
 use geometry::dimensions::Continuous;
-use std::hash::{Hasher, BuildHasher};
-
+use std::hash::{BuildHasher, Hasher};
 
 /// Generalised tile coding scheme with hashing.
 #[derive(Clone, Serialize, Deserialize)]
@@ -28,33 +27,29 @@ impl<H: BuildHasher> Projector<RegularSpace<Continuous>> for TileCoding<H> {
         let mut hasher = self.hasher_builder.build_hasher();
 
         let n_floats = input.len();
-        let floats: Vec<usize> =
-            input.iter().map(|f| (*f * self.n_tilings as f64).floor() as usize).collect();
+        let floats: Vec<usize> = input
+            .iter()
+            .map(|f| (*f * self.n_tilings as f64).floor() as usize)
+            .collect();
 
         Projection::Sparse(Vector::from_iter((0..self.n_tilings).map(|t| {
             hasher.write_usize(t);
             for i in 0..n_floats {
-                hasher.write_usize((floats[i] + t + i*t*2)/self.n_tilings)
+                hasher.write_usize((floats[i] + t + i * t * 2) / self.n_tilings)
             }
 
             hasher.finish() as usize % self.memory_size
         })))
     }
 
-    fn dim(&self) -> usize {
-        unimplemented!()
-    }
+    fn dim(&self) -> usize { unimplemented!() }
 
-    fn size(&self) -> usize {
-        self.memory_size as usize
-    }
+    fn size(&self) -> usize { self.memory_size as usize }
 
-    fn activation(&self) -> usize {
-        self.n_tilings
-    }
+    fn activation(&self) -> usize { self.n_tilings }
 
     fn equivalent(&self, other: &Self) -> bool {
-        self.size() == other.size() && self.n_tilings == other.n_tilings &&
-        self.memory_size == other.memory_size
+        self.size() == other.size() && self.n_tilings == other.n_tilings
+            && self.memory_size == other.memory_size
     }
 }
