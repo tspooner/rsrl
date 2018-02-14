@@ -29,9 +29,9 @@ serde_json = "1.0"
 serde_test = "1.0"
 serde_derive = "1.0"
 
-slog = "2.0"
+slog = "2.1"
 slog-term = "2.3"
-slog-async = "2.1"
+slog-async = "2.2"
 
 blas = "0.19"
 openblas-src = "0.5"
