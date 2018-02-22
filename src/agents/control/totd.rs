@@ -31,8 +31,13 @@ where
     M: Projector<S::Repr>,
     P: Policy,
 {
-    pub fn new<T1, T2>(trace: Trace, q_func: MultiLinear<S::Repr, M>,
-                       policy: P, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(
+        trace: Trace,
+        q_func: MultiLinear<S::Repr, M>,
+        policy: P,
+        alpha: T1,
+        gamma: T2,
+    ) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -144,8 +149,13 @@ where
     M: Projector<S::Repr>,
     P: Policy,
 {
-    pub fn new<T1, T2>(trace: Trace, q_func: MultiLinear<S::Repr, M>,
-                       policy: P, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(
+        trace: Trace,
+        q_func: MultiLinear<S::Repr, M>,
+        policy: P,
+        alpha: T1,
+        gamma: T2,
+    ) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -165,7 +175,9 @@ where
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace> for TOSARSALambda<S, M, P> {
+impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace>
+    for TOSARSALambda<S, M, P>
+{
     fn pi(&mut self, s: &S::Repr) -> usize {
         let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 

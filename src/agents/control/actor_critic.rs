@@ -87,7 +87,8 @@ where
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+        self.policy
+            .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {

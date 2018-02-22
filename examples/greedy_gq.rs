@@ -5,7 +5,7 @@ extern crate slog;
 use rsrl::{logging, run, Evaluation, Parameter, SerialExperiment};
 use rsrl::agents::control::gtd::GreedyGQ;
 use rsrl::domains::{Domain, MountainCar};
-use rsrl::fa::{SimpleLinear, MultiLinear};
+use rsrl::fa::{MultiLinear, SimpleLinear};
 use rsrl::fa::projection::Fourier;
 use rsrl::geometry::Space;
 use rsrl::policies::EpsilonGreedy;

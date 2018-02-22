@@ -1,8 +1,7 @@
+use super::{Approximator, EvaluationResult, UpdateResult};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::AddAssign;
-use super::{Approximator, EvaluationResult, UpdateResult};
-
 
 /// Generic tabular function representation.
 ///

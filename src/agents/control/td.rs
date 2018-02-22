@@ -86,7 +86,8 @@ where
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+        self.policy
+            .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
@@ -161,7 +162,8 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for QLambda<S, M, P> {
             self.trace.decay(0.0);
         }
 
-        self.trace.update(&phi_s.expanded(self.fa_theta.projector.span()));
+        self.trace
+            .update(&phi_s.expanded(self.fa_theta.projector.span()));
         self.fa_theta.update_action_phi(
             &Projection::Dense(self.trace.get()),
             a,
@@ -272,7 +274,8 @@ where
     P: Policy,
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+        self.policy
+            .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
@@ -345,7 +348,8 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for SARSALambda<S, M, P> 
         let td_error = t.reward + self.gamma * nqs[na] - qsa;
 
         self.trace.decay(rate);
-        self.trace.update(&phi_s.expanded(self.fa_theta.projector.span()));
+        self.trace
+            .update(&phi_s.expanded(self.fa_theta.projector.span()));
 
         self.fa_theta.update_action_phi(
             &Projection::Dense(self.trace.get()),
@@ -363,7 +367,9 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for SARSALambda<S, M, P> 
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace> for SARSALambda<S, M, P> {
+impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace>
+    for SARSALambda<S, M, P>
+{
     fn pi(&mut self, s: &S::Repr) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
@@ -434,8 +440,10 @@ where
 
         let a = t.action;
 
-        let exp_nqs =
-            dot(nqs.as_slice().unwrap(), &self.policy.probabilities(nqs.as_slice().unwrap()));
+        let exp_nqs = dot(
+            nqs.as_slice().unwrap(),
+            &self.policy.probabilities(nqs.as_slice().unwrap()),
+        );
         let td_error = t.reward + self.gamma * exp_nqs - qs[a];
 
         self.q_func.update_action(s, a, self.alpha * td_error);
@@ -455,7 +463,8 @@ where
     P: Policy,
 {
     fn pi(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+        self.policy
+            .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
@@ -627,7 +636,8 @@ where
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+        self.policy
+            .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {

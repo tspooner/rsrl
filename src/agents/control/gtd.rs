@@ -1,7 +1,7 @@
 use {Parameter, Vector};
 use agents::{Agent, Controller};
 use domains::Transition;
-use fa::{Approximator, SimpleLinear, MultiLinear, Projection, Projector, VFunction, QFunction};
+use fa::{Approximator, MultiLinear, Projection, Projector, QFunction, SimpleLinear, VFunction};
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
@@ -76,8 +76,10 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for GreedyGQ<S, M, P> {
         let update_q = td_error * phi_s.clone() - self.gamma * td_estimate * phi_ns;
         let update_v = (td_error - td_estimate) * phi_s;
 
-        self.fa_w.update_phi(&Projection::Dense(update_v), self.alpha * self.beta);
-        self.fa_theta.update_action_phi(&Projection::Dense(update_q), a, self.alpha.value());
+        self.fa_w
+            .update_phi(&Projection::Dense(update_v), self.alpha * self.beta);
+        self.fa_theta
+            .update_action_phi(&Projection::Dense(update_q), a, self.alpha.value());
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {

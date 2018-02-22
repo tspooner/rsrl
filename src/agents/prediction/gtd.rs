@@ -1,6 +1,6 @@
 use Parameter;
 use agents::{Agent, Predictor, TDPredictor};
-use fa::{Approximator, VFunction, SimpleLinear, Projection, Projector};
+use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
 use geometry::Space;
 
 // TODO: Implement TDPredictor for all agents here.
@@ -56,8 +56,10 @@ impl<S: Space, P: Projector<S::Repr>> Agent for GTD2<S, P> {
         let span = self.fa_theta.projector.span();
         let update = phi_s.clone().expanded(span) - self.gamma.value() * phi_ns.expanded(span);
 
-        self.fa_w.update_phi(&phi_s, self.beta * (td_error - td_estimate));
-        self.fa_theta.update_phi(&Projection::Dense(update), self.alpha * td_estimate);
+        self.fa_w
+            .update_phi(&phi_s, self.beta * (td_error - td_estimate));
+        self.fa_theta
+            .update_phi(&Projection::Dense(update), self.alpha * td_estimate);
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
@@ -123,8 +125,10 @@ impl<S: Space, P: Projector<S::Repr>> Agent for TDC<S, P> {
         let update = td_error * phi_s.clone().expanded(span)
             - self.gamma.value() * td_estimate * &phi_ns.expanded(span);
 
-        self.fa_w.update_phi(&phi_s, self.beta * (td_error - td_estimate));
-        self.fa_theta.update_phi(&Projection::Dense(update), self.alpha.value());
+        self.fa_w
+            .update_phi(&phi_s, self.beta * (td_error - td_estimate));
+        self.fa_theta
+            .update_phi(&Projection::Dense(update), self.alpha.value());
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
