@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 /// Regular gradient descent actor critic.
 pub struct ActorCritic<S: Space, Q, C, P>
 where
-    Q: QFunction<S>,
+    Q: QFunction<S::Repr>,
     C: TDPredictor<S>,
     P: Policy,
 {
@@ -26,7 +26,7 @@ where
 
 impl<S: Space, Q, C, P> ActorCritic<S, Q, C, P>
 where
-    Q: QFunction<S>,
+    Q: QFunction<S::Repr>,
     C: TDPredictor<S>,
     P: Policy,
 {
@@ -51,7 +51,7 @@ where
 
 impl<S: Space, Q, C, P> Agent for ActorCritic<S, Q, C, P>
 where
-    Q: QFunction<S>,
+    Q: QFunction<S::Repr>,
     C: TDPredictor<S>,
     P: Policy,
 {
@@ -78,17 +78,19 @@ where
 
 impl<S: Space, Q, C, P> Controller<S, ActionSpace> for ActorCritic<S, Q, C, P>
 where
-    Q: QFunction<S>,
+    Q: QFunction<S::Repr>,
     C: TDPredictor<S>,
     P: Policy,
 {
-    fn pi(&mut self, s: &S::Repr) -> usize { Greedy.sample(self.q_func.evaluate(s).as_slice()) }
+    fn pi(&mut self, s: &S::Repr) -> usize {
+        Greedy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+    }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
-        self.policy.sample(self.q_func.evaluate(s).as_slice())
+        self.policy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        p.sample(self.q_func.evaluate(s).as_slice())
+        p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 }

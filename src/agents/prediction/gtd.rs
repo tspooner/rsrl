@@ -1,23 +1,23 @@
 use Parameter;
 use agents::{Agent, Predictor, TDPredictor};
-use fa::{Function, Linear, Projection, Projector, VFunction};
+use fa::{Approximator, VFunction, SimpleLinear, Projection, Projector};
 use geometry::Space;
 
 // TODO: Implement TDPredictor for all agents here.
 
-pub struct GTD2<S: Space, P: Projector<S>> {
-    pub fa_theta: Linear<S, P>,
-    pub fa_w: Linear<S, P>,
+pub struct GTD2<S: Space, P: Projector<S::Repr>> {
+    pub fa_theta: SimpleLinear<S::Repr, P>,
+    pub fa_w: SimpleLinear<S::Repr, P>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
 }
 
-impl<S: Space, P: Projector<S>> GTD2<S, P> {
+impl<S: Space, P: Projector<S::Repr>> GTD2<S, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: Linear<S, P>,
-        fa_w: Linear<S, P>,
+        fa_theta: SimpleLinear<S::Repr, P>,
+        fa_w: SimpleLinear<S::Repr, P>,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -27,7 +27,7 @@ impl<S: Space, P: Projector<S>> GTD2<S, P> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
-        if !fa_theta.projector.equivalent(&fa_w.projector) {
+        if !(fa_theta.projector.span() == fa_w.projector.span()) {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
 
@@ -42,7 +42,7 @@ impl<S: Space, P: Projector<S>> GTD2<S, P> {
     }
 }
 
-impl<S: Space, V: VFunction<S> + Projector<S>> Agent for GTD2<S, V> {
+impl<S: Space, P: Projector<S::Repr>> Agent for GTD2<S, P> {
     type Sample = (S::Repr, S::Repr, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
@@ -53,17 +53,11 @@ impl<S: Space, V: VFunction<S> + Projector<S>> Agent for GTD2<S, V> {
             - self.fa_theta.evaluate_phi(&phi_s);
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 
-        self.fa_w
-            .update_phi(&phi_s, self.beta * (td_error - td_estimate));
+        let span = self.fa_theta.projector.span();
+        let update = phi_s.clone().expanded(span) - self.gamma.value() * phi_ns.expanded(span);
 
-        {
-            let phi_s = self.fa_theta.projector.expand_projection(phi_s);
-            let phi_ns = self.fa_theta.projector.expand_projection(phi_ns);
-            let update = &phi_s - &(self.gamma.value() * &phi_ns);
-
-            self.fa_theta
-                .update_phi(&Projection::Dense(update), self.alpha * td_estimate);
-        }
+        self.fa_w.update_phi(&phi_s, self.beta * (td_error - td_estimate));
+        self.fa_theta.update_phi(&Projection::Dense(update), self.alpha * td_estimate);
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
@@ -73,25 +67,23 @@ impl<S: Space, V: VFunction<S> + Projector<S>> Agent for GTD2<S, V> {
     }
 }
 
-impl<S: Space, V> Predictor<S> for GTD2<S, V>
-where V: VFunction<S> + Projector<S>
-{
-    fn evaluate(&self, s: &S::Repr) -> f64 { self.fa_theta.evaluate(s) }
+impl<S: Space, P: Projector<S::Repr>> Predictor<S> for GTD2<S, P> {
+    fn evaluate(&self, s: &S::Repr) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
-pub struct TDC<S: Space, P: Projector<S>> {
-    pub fa_theta: Linear<S, P>,
-    pub fa_w: Linear<S, P>,
+pub struct TDC<S: Space, P: Projector<S::Repr>> {
+    pub fa_theta: SimpleLinear<S::Repr, P>,
+    pub fa_w: SimpleLinear<S::Repr, P>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
 }
 
-impl<S: Space, P: Projector<S>> TDC<S, P> {
+impl<S: Space, P: Projector<S::Repr>> TDC<S, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: Linear<S, P>,
-        fa_w: Linear<S, P>,
+        fa_theta: SimpleLinear<S::Repr, P>,
+        fa_w: SimpleLinear<S::Repr, P>,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -101,7 +93,7 @@ impl<S: Space, P: Projector<S>> TDC<S, P> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
-        if !fa_theta.projector.equivalent(&fa_w.projector) {
+        if !(fa_theta.projector.span() == fa_w.projector.span()) {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
 
@@ -116,7 +108,7 @@ impl<S: Space, P: Projector<S>> TDC<S, P> {
     }
 }
 
-impl<S: Space, V: VFunction<S> + Projector<S>> Agent for TDC<S, V> {
+impl<S: Space, P: Projector<S::Repr>> Agent for TDC<S, P> {
     type Sample = (S::Repr, S::Repr, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
@@ -127,17 +119,12 @@ impl<S: Space, V: VFunction<S> + Projector<S>> Agent for TDC<S, V> {
             - self.fa_theta.evaluate_phi(&phi_s);
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 
-        self.fa_w
-            .update_phi(&phi_s, self.beta * (td_error - td_estimate));
+        let span = self.fa_theta.projector.span();
+        let update = td_error * phi_s.clone().expanded(span)
+            - self.gamma.value() * td_estimate * &phi_ns.expanded(span);
 
-        {
-            let phi_s = self.fa_theta.projector.expand_projection(phi_s);
-            let phi_ns = self.fa_theta.projector.expand_projection(phi_ns);
-            let update = &(td_error * &phi_s) - &(self.gamma.value() * td_estimate * &phi_ns);
-
-            self.fa_theta
-                .update_phi(&Projection::Dense(update), self.alpha.value());
-        }
+        self.fa_w.update_phi(&phi_s, self.beta * (td_error - td_estimate));
+        self.fa_theta.update_phi(&Projection::Dense(update), self.alpha.value());
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
@@ -147,10 +134,8 @@ impl<S: Space, V: VFunction<S> + Projector<S>> Agent for TDC<S, V> {
     }
 }
 
-impl<S: Space, V> Predictor<S> for TDC<S, V>
-where V: VFunction<S> + Projector<S>
-{
-    fn evaluate(&self, s: &S::Repr) -> f64 { self.fa_theta.evaluate(s) }
+impl<S: Space, P: Projector<S::Repr>> Predictor<S> for TDC<S, P> {
+    fn evaluate(&self, s: &S::Repr) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
 // TODO:

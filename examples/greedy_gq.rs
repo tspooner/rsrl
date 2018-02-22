@@ -5,7 +5,7 @@ extern crate slog;
 use rsrl::{logging, run, Evaluation, Parameter, SerialExperiment};
 use rsrl::agents::control::gtd::GreedyGQ;
 use rsrl::domains::{Domain, MountainCar};
-use rsrl::fa::Linear;
+use rsrl::fa::{SimpleLinear, MultiLinear};
 use rsrl::fa::projection::Fourier;
 use rsrl::geometry::Space;
 use rsrl::policies::EpsilonGreedy;
@@ -19,8 +19,8 @@ fn main() {
 
         // Build the linear value functions using a fourier basis projection.
         let bases = Fourier::from_space(3, domain.state_space());
-        let v_func = Linear::new(bases.clone(), 1);
-        let q_func = Linear::new(bases, n_actions);
+        let v_func = SimpleLinear::new(bases.clone());
+        let q_func = MultiLinear::new(bases, n_actions);
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);

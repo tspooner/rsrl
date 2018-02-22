@@ -1,8 +1,8 @@
-use super::{Function, Parameterised};
 use std::collections::HashMap;
 use std::hash::Hash;
-
 use std::ops::AddAssign;
+use super::{Approximator, EvaluationResult, UpdateResult};
+
 
 /// Generic tabular function representation.
 ///
@@ -11,8 +11,7 @@ use std::ops::AddAssign;
 /// Basic usage:
 ///
 /// ```
-/// use rsrl::fa::{Function, Parameterised};
-/// use rsrl::fa::Table;
+/// use rsrl::fa::{Approximator, Table};
 ///
 /// let f = {
 ///     let mut t = Table::<(u32, u32), f64>::new();
@@ -21,7 +20,7 @@ use std::ops::AddAssign;
 ///     t
 /// };
 ///
-/// assert_eq!(f.evaluate(&(0, 1)), 1.0);
+/// assert_eq!(f.evaluate(&(0, 1)).unwrap(), 1.0);
 /// ```
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Table<K: Hash + Eq, V>(pub HashMap<K, V>);
@@ -34,26 +33,24 @@ impl<K: Hash + Eq, V> Table<K, V> {
 //       Really we need a map with defaults.
 //       The issue arises when we try to consider what the default value may be
 //       for the generic type O.
-impl<I, O> Function<I, O> for Table<I, O>
-where
-    I: Hash + Eq,
-    O: Copy + Default,
-{
-    fn evaluate(&self, input: &I) -> O {
-        if self.0.contains_key(input) {
-            self.0[input]
-        } else {
-            O::default()
-        }
-    }
-}
-
-impl<I, E> Parameterised<I, E> for Table<I, E>
+impl<I, V> Approximator<I> for Table<I, V>
 where
     I: Hash + Eq + Copy,
-    E: Clone + Default + AddAssign,
+    V: Copy + Default + AddAssign,
 {
-    fn update(&mut self, input: &I, error: E) {
-        *self.0.entry(*input).or_insert(E::default()) += error;
+    type Value = V;
+
+    fn evaluate(&self, input: &I) -> EvaluationResult<V> {
+        if self.0.contains_key(input) {
+            Ok(self.0[input])
+        } else {
+            Ok(V::default())
+        }
+    }
+
+    fn update(&mut self, input: &I, error: V) -> UpdateResult<()> {
+        *self.0.entry(*input).or_insert(V::default()) += error;
+
+        Ok(())
     }
 }

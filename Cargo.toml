@@ -18,6 +18,8 @@ travis-ci = { repository = "tspooner/rsrl", branch = "master" }
 coveralls = { repository = "tspooner/rsrl", branch = "master", service = "github" }
 
 [dependencies]
+lfa = { path = "../lfa" }
+
 log = "0.4"
 rand = "0.4"
 time = "0.1"

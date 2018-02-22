@@ -6,7 +6,7 @@ use rsrl::{logging, run, Evaluation, Parameter, SerialExperiment};
 use rsrl::agents::control::td::SARSALambda;
 use rsrl::agents::memory::Trace;
 use rsrl::domains::{Domain, MountainCar};
-use rsrl::fa::{Linear, Projector};
+use rsrl::fa::MultiLinear;
 use rsrl::fa::projection::Fourier;
 use rsrl::geometry::Space;
 use rsrl::policies::EpsilonGreedy;
@@ -19,8 +19,8 @@ fn main() {
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
         let bases = Fourier::from_space(3, domain.state_space());
-        let trace = Trace::replacing(0.7, bases.activation());
-        let q_func = Linear::new(bases, n_actions);
+        let trace = Trace::replacing(0.7, bases.span().into());
+        let q_func = MultiLinear::new(bases, n_actions);
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
