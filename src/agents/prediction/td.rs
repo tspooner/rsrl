@@ -53,7 +53,7 @@ impl<S: Space, V: VFunction<S::Repr>> Predictor<S> for TD<S, V> {
 
 impl<S: Space, V: VFunction<S::Repr>> TDPredictor<S> for TD<S, V> {
     fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
-        self.v_func.update(&sample.0, self.alpha * error);
+        let _ = self.v_func.update(&sample.0, self.alpha * error);
     }
 
     fn compute_td_error(&self, sample: &Self::Sample) -> f64 {

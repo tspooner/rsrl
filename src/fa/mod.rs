@@ -1,4 +1,4 @@
-use geometry::{Space, Vector};
+use geometry::Vector;
 
 extern crate lfa;
 pub use self::lfa::*;

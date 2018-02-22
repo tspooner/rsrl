@@ -2,7 +2,7 @@ use {Parameter, Vector};
 use agents::{Agent, Controller};
 use agents::memory::Trace;
 use domains::Transition;
-use fa::{Approximator, SimpleLinear, MultiLinear, Projection, Projector, QFunction};
+use fa::{Approximator, MultiLinear, Projection, Projector, QFunction};
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;

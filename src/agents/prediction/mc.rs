@@ -38,7 +38,7 @@ impl<S: Space, V: VFunction<S::Repr>> EveryVisitMC<S, V> {
             sum = r + self.gamma * sum;
 
             let v_est = self.v_func.evaluate(&s).unwrap();
-            self.v_func.update(&s, self.alpha * (sum - v_est));
+            let _ = self.v_func.update(&s, self.alpha * (sum - v_est));
         }
     }
 }
