@@ -1,7 +1,7 @@
-use Parameter;
+use {Parameter, Vector};
 use agents::{Agent, Controller};
 use domains::Transition;
-use fa::{Function, Linear, Projection, Projector, QFunction, VFunction};
+use fa::{Approximator, MultiLinear, Projection, Projector, QFunction, SimpleLinear, VFunction};
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
@@ -10,9 +10,9 @@ use std::marker::PhantomData;
 ///
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function approximation."
 /// Proceedings of the 27th International Conference on Machine Learning (ICML-10). 2010.
-pub struct GreedyGQ<S: Space, M: Projector<S>, P: Policy> {
-    pub fa_theta: Linear<S, M>,
-    pub fa_w: Linear<S, M>,
+pub struct GreedyGQ<S: Space, M: Projector<S::Repr>, P: Policy> {
+    pub fa_theta: MultiLinear<S::Repr, M>,
+    pub fa_w: SimpleLinear<S::Repr, M>,
 
     pub policy: P,
 
@@ -23,10 +23,10 @@ pub struct GreedyGQ<S: Space, M: Projector<S>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, M: Projector<S>, P: Policy> GreedyGQ<S, M, P> {
+impl<S: Space, M: Projector<S::Repr>, P: Policy> GreedyGQ<S, M, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: Linear<S, M>,
-        fa_w: Linear<S, M>,
+        fa_theta: MultiLinear<S::Repr, M>,
+        fa_w: SimpleLinear<S::Repr, M>,
         policy: P,
         alpha: T1,
         beta: T2,
@@ -52,7 +52,7 @@ impl<S: Space, M: Projector<S>, P: Policy> GreedyGQ<S, M, P> {
     }
 }
 
-impl<S: Space, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
+impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for GreedyGQ<S, M, P> {
     type Sample = Transition<S, ActionSpace>;
 
     fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
@@ -62,25 +62,22 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
         let phi_s = self.fa_w.projector.project(s);
         let phi_ns = self.fa_w.projector.project(ns);
 
-        let nqs = QFunction::evaluate_phi(&self.fa_theta, &phi_ns);
-        let na = Greedy.sample(&nqs);
+        let nqs = self.fa_theta.evaluate_phi(&phi_ns);
+        let na = Greedy.sample(nqs.as_slice().unwrap());
 
-        let td_estimate = VFunction::evaluate_phi(&mut self.fa_w, &phi_s);
+        let td_estimate = self.fa_w.evaluate_phi(&phi_s);
         let td_error = t.reward
             + self.gamma.value() * self.fa_theta.evaluate_action_phi(&phi_ns, na)
             - self.fa_theta.evaluate_action_phi(&phi_s, a);
 
-        let phi_s = self.fa_w.projector.expand_projection(phi_s);
-        let phi_ns = self.fa_w.projector.expand_projection(phi_ns);
+        let phi_s = phi_s.expanded(self.fa_w.projector.span());
+        let phi_ns = phi_ns.expanded(self.fa_w.projector.span());
 
-        let update_q = td_error * &phi_s - self.gamma * td_estimate * phi_ns;
+        let update_q = td_error * phi_s.clone() - self.gamma * td_estimate * phi_ns;
         let update_v = (td_error - td_estimate) * phi_s;
 
-        VFunction::update_phi(
-            &mut self.fa_w,
-            &Projection::Dense(update_v),
-            self.alpha * self.beta,
-        );
+        self.fa_w
+            .update_phi(&Projection::Dense(update_v), self.alpha * self.beta);
         self.fa_theta
             .update_action_phi(&Projection::Dense(update_q), a, self.alpha.value());
     }
@@ -94,18 +91,18 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
     }
 }
 
-impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for GreedyGQ<S, M, P> {
+impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace> for GreedyGQ<S, M, P> {
     fn pi(&mut self, s: &S::Repr) -> usize { self.evaluate_policy(&mut Greedy, s) }
 
     fn mu(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+        let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
-        self.policy.sample(qs.as_slice())
+        self.policy.sample(qs.as_slice().unwrap())
     }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.fa_theta.evaluate(s);
+        let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
-        p.sample(qs.as_slice())
+        p.sample(qs.as_slice().unwrap())
     }
 }

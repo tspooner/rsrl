@@ -1,8 +1,8 @@
-use Parameter;
+use {Parameter, Vector};
 use agents::{Agent, Controller};
 use agents::memory::Trace;
 use domains::Transition;
-use fa::{Function, Linear, Projection, Projector, QFunction};
+use fa::{Approximator, MultiLinear, Projection, Projector, QFunction};
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
@@ -13,11 +13,11 @@ use std::marker::PhantomData;
 /// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., & Sutton, R. S. (2016).
 /// True online temporal-difference learning. Journal of Machine Learning Research, 17(145),
 /// 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
-pub struct TOQLambda<S: Space, M: Projector<S>, P: Policy> {
+pub struct TOQLambda<S: Space, M: Projector<S::Repr>, P: Policy> {
     trace: Trace,
     q_old: f64,
 
-    pub q_func: Linear<S, M>,
+    pub q_func: MultiLinear<S::Repr, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -28,10 +28,16 @@ pub struct TOQLambda<S: Space, M: Projector<S>, P: Policy> {
 
 impl<S: Space, M, P> TOQLambda<S, M, P>
 where
-    M: Projector<S>,
+    M: Projector<S::Repr>,
     P: Policy,
 {
-    pub fn new<T1, T2>(trace: Trace, q_func: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(
+        trace: Trace,
+        q_func: MultiLinear<S::Repr, M>,
+        policy: P,
+        alpha: T1,
+        gamma: T2,
+    ) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -51,23 +57,23 @@ where
     }
 }
 
-impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for TOQLambda<S, M, P> {
+impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace> for TOQLambda<S, M, P> {
     fn pi(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.q_func.evaluate(s);
+        let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
-        self.policy.sample(&qs)
+        self.policy.sample(qs.as_slice().unwrap())
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.q_func.evaluate(s);
+        let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
-        p.sample(&qs)
+        p.sample(qs.as_slice().unwrap())
     }
 }
 
-impl<S: Space, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
+impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for TOQLambda<S, M, P> {
     type Sample = Transition<S, ActionSpace>;
 
     fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
@@ -77,18 +83,18 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
         let phi_s = self.q_func.projector.project(s);
         let phi_ns = self.q_func.projector.project(ns);
 
-        let qs: Vec<f64> = self.q_func.evaluate_phi(&phi_s);
-        let nqs: Vec<f64> = self.q_func.evaluate_phi(&phi_ns);
-        let na = Greedy.sample(nqs.as_slice());
+        let qs = self.q_func.evaluate_phi(&phi_s);
+        let nqs = self.q_func.evaluate_phi(&phi_ns);
+        let na = Greedy.sample(nqs.as_slice().unwrap());
 
         let td_error = t.reward + self.gamma * nqs[na] - qs[a];
-        let phi_s = self.q_func.projector.expand_projection(phi_s);
+        let phi_s = phi_s.expanded(self.q_func.projector.span());
 
         let rate = self.trace.lambda.value() * self.gamma.value();
         let trace_update =
             (1.0 - rate * self.alpha.value() * self.trace.get().dot(&phi_s)) * phi_s.clone();
 
-        if a == Greedy.sample(&qs) {
+        if a == Greedy.sample(qs.as_slice().unwrap()) {
             let rate = self.trace.lambda.value() * self.gamma.value();
             self.trace.decay(rate);
         } else {
@@ -125,11 +131,11 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
 /// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., & Sutton, R. S. (2016).
 /// True online temporal-difference learning. Journal of Machine Learning Research, 17(145),
 /// 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
-pub struct TOSARSALambda<S: Space, M: Projector<S>, P: Policy> {
+pub struct TOSARSALambda<S: Space, M: Projector<S::Repr>, P: Policy> {
     trace: Trace,
     q_old: f64,
 
-    pub q_func: Linear<S, M>,
+    pub q_func: MultiLinear<S::Repr, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -140,10 +146,16 @@ pub struct TOSARSALambda<S: Space, M: Projector<S>, P: Policy> {
 
 impl<S: Space, M, P> TOSARSALambda<S, M, P>
 where
-    M: Projector<S>,
+    M: Projector<S::Repr>,
     P: Policy,
 {
-    pub fn new<T1, T2>(trace: Trace, q_func: Linear<S, M>, policy: P, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(
+        trace: Trace,
+        q_func: MultiLinear<S::Repr, M>,
+        policy: P,
+        alpha: T1,
+        gamma: T2,
+    ) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -163,23 +175,25 @@ where
     }
 }
 
-impl<S: Space, M: Projector<S>, P: Policy> Controller<S, ActionSpace> for TOSARSALambda<S, M, P> {
+impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace>
+    for TOSARSALambda<S, M, P>
+{
     fn pi(&mut self, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.q_func.evaluate(s);
+        let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
-        self.policy.sample(&qs)
+        self.policy.sample(qs.as_slice().unwrap())
     }
 
     fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
-        let qs: Vec<f64> = self.q_func.evaluate(s);
+        let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
-        p.sample(&qs)
+        p.sample(qs.as_slice().unwrap())
     }
 }
 
-impl<S: Space, M: Projector<S>, P: Policy> Agent for TOSARSALambda<S, M, P> {
+impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for TOSARSALambda<S, M, P> {
     type Sample = Transition<S, ActionSpace>;
 
     fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
@@ -190,11 +204,11 @@ impl<S: Space, M: Projector<S>, P: Policy> Agent for TOSARSALambda<S, M, P> {
         let phi_ns = self.q_func.projector.project(ns);
 
         let qsa = self.q_func.evaluate_action_phi(&phi_s, a);
-        let nqs: Vec<f64> = self.q_func.evaluate_phi(&phi_ns);
-        let na = self.policy.sample(nqs.as_slice());
+        let nqs = self.q_func.evaluate_phi(&phi_ns);
+        let na = self.policy.sample(nqs.as_slice().unwrap());
 
         let td_error = t.reward + self.gamma * nqs[na] - qsa;
-        let phi_s = self.q_func.projector.expand_projection(phi_s);
+        let phi_s = phi_s.expanded(self.q_func.projector.span());
 
         let rate = self.trace.lambda.value() * self.gamma.value();
         let trace_update =

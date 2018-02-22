@@ -21,7 +21,7 @@ pub mod utils;
 mod consts;
 mod macros;
 
-pub mod geometry;
+pub extern crate spaces as geometry;
 pub use self::geometry::{Matrix, Vector};
 
 mod parameter;

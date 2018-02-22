@@ -1,33 +1,13 @@
-//! Function approximation module.
+use geometry::Vector;
 
-use geometry::Space;
+extern crate lfa;
+pub use self::lfa::*;
 
-/// An interface for dealing with functions that may be evaluated.
-pub trait Function<I: ?Sized, O> {
-    /// Evaluates the function and returns its output.
-    fn evaluate(&self, input: &I) -> O;
-}
-
-impl<I: ?Sized, O, T> Function<I, O> for Box<T>
-where T: Function<I, O>
-{
-    fn evaluate(&self, input: &I) -> O { (**self).evaluate(input) }
-}
-
-/// An interface for dealing with adaptive functions.
-pub trait Parameterised<I: ?Sized, U> {
-    fn update(&mut self, input: &I, update: U);
-}
-
-impl<I: ?Sized, U, T> Parameterised<I, U> for Box<T>
-where T: Parameterised<I, U>
-{
-    fn update(&mut self, input: &I, update: U) { (**self).update(input, update) }
-}
+mod table;
+pub use self::table::Table;
 
 /// An interface for state-value functions.
-pub trait VFunction<S: Space>
-    : Function<S::Repr, f64> + Parameterised<S::Repr, f64> {
+pub trait VFunction<I: ?Sized>: Approximator<I, Value = f64> {
     #[allow(unused_variables)]
     fn evaluate_phi(&self, phi: &Projection) -> f64 { unimplemented!() }
 
@@ -35,72 +15,75 @@ pub trait VFunction<S: Space>
     fn update_phi(&mut self, phi: &Projection, update: f64) { unimplemented!() }
 }
 
-impl<S: Space, T> VFunction<S> for Box<T>
-where T: VFunction<S>
-{
-    fn evaluate_phi(&self, phi: &Projection) -> f64 { (**self).evaluate_phi(phi) }
+impl<I: ?Sized, P: Projector<I>> VFunction<I> for SimpleLinear<I, P> {
+    fn evaluate_phi(&self, phi: &Projection) -> f64 { self.evaluate_projection(phi) }
 
-    fn update_phi(&mut self, phi: &Projection, update: f64) { (**self).update_phi(phi, update); }
+    fn update_phi(&mut self, phi: &Projection, update: f64) { self.update_projection(phi, update); }
 }
 
 /// An interface for action-value functions.
-pub trait QFunction<S: Space>
-    : Function<S::Repr, Vec<f64>> + Parameterised<S::Repr, Vec<f64>> {
-    fn evaluate_action(&self, input: &S::Repr, action: usize) -> f64;
-    fn update_action(&mut self, input: &S::Repr, action: usize, update: f64);
-
-    #[allow(unused_variables)]
-    fn evaluate_phi(&self, phi: &Projection) -> Vec<f64> {
-        unimplemented!();
+pub trait QFunction<I: ?Sized>: Approximator<I, Value = Vector<f64>> {
+    fn evaluate_action(&self, input: &I, action: usize) -> f64 {
+        self.evaluate(input).unwrap()[action]
     }
 
     #[allow(unused_variables)]
-    fn evaluate_action_phi(&self, phi: &Projection, action: usize) -> f64 {
-        unimplemented!();
-    }
+    fn update_action(&mut self, input: &I, action: usize, update: f64) { unimplemented!() }
 
     #[allow(unused_variables)]
-    fn update_phi(&mut self, phi: &Projection, updates: Vec<f64>) {
-        unimplemented!();
-    }
+    fn evaluate_phi(&self, phi: &Projection) -> Vector<f64> { unimplemented!() }
+
+    #[allow(unused_variables)]
+    fn evaluate_action_phi(&self, phi: &Projection, action: usize) -> f64 { unimplemented!() }
+
+    #[allow(unused_variables)]
+    fn update_phi(&mut self, phi: &Projection, updates: Vector<f64>) { unimplemented!() }
 
     #[allow(unused_variables)]
     fn update_action_phi(&mut self, phi: &Projection, action: usize, update: f64) {
-        unimplemented!();
+        unimplemented!()
     }
 }
 
-impl<S: Space, T> QFunction<S> for Box<T>
-where T: QFunction<S>
-{
-    fn evaluate_action(&self, input: &S::Repr, action: usize) -> f64 {
-        (**self).evaluate_action(input, action)
+impl<I: ?Sized, P: Projector<I>> QFunction<I> for MultiLinear<I, P> {
+    fn evaluate_action(&self, input: &I, action: usize) -> f64 {
+        let p = self.projector.project(input);
+
+        self.evaluate_action_phi(&p, action)
     }
 
-    fn update_action(&mut self, input: &S::Repr, action: usize, update: f64) {
-        (**self).update_action(input, action, update);
+    fn update_action(&mut self, input: &I, action: usize, update: f64) {
+        let p = self.projector.project(input);
+
+        self.update_action_phi(&p, action, update);
     }
 
-    fn evaluate_phi(&self, phi: &Projection) -> Vec<f64> { (**self).evaluate_phi(phi) }
+    fn evaluate_phi(&self, phi: &Projection) -> Vector<f64> { self.evaluate_projection(&phi) }
 
     fn evaluate_action_phi(&self, phi: &Projection, action: usize) -> f64 {
-        (**self).evaluate_action_phi(phi, action)
+        let col = self.weights.column(action);
+
+        match phi {
+            &Projection::Dense(ref dense) => col.dot(&(dense / phi.z())),
+            &Projection::Sparse(ref sparse) => sparse.iter().fold(0.0, |acc, idx| acc + col[*idx]),
+        }
     }
 
-    fn update_phi(&mut self, phi: &Projection, updates: Vec<f64>) {
-        (**self).update_phi(phi, updates);
+    fn update_phi(&mut self, phi: &Projection, updates: Vector<f64>) {
+        self.update_projection(phi, updates);
     }
 
     fn update_action_phi(&mut self, phi: &Projection, action: usize, update: f64) {
-        (**self).update_action_phi(phi, action, update)
+        let mut col = self.weights.column_mut(action);
+
+        let z = phi.z();
+        let scaled_update = update / z;
+
+        match phi {
+            &Projection::Dense(ref dense) => col.scaled_add(scaled_update, dense),
+            &Projection::Sparse(ref sparse) => for idx in sparse {
+                col[*idx] += scaled_update
+            },
+        }
     }
 }
-
-mod table;
-pub use self::table::Table;
-
-pub mod projection;
-pub use self::projection::{Projection, Projector};
-
-mod linear;
-pub use self::linear::Linear;
