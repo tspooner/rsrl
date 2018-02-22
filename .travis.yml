@@ -36,14 +36,6 @@ script:
 
 after_success:
   - cargo coveralls
-  - |
-      [ $TRAVIS_BRANCH = master ] &&
-      [ $TRAVIS_PULL_REQUEST = false ] &&
-      cargo doc --no-deps &&
-      echo "<meta http-equiv=refresh content=0;url=`echo $TRAVIS_REPO_SLUG | cut -d '/' -f 2`/index.html>" > target/doc/index.html &&
-      pip install --user ghp-import &&
-      /home/travis/.local/bin/ghp-import -n target/doc &&
-      git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
 
 env:
   global:

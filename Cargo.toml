@@ -11,7 +11,7 @@ readme = "README.md"
 keywords = ["machine", "reinforcement", "learning", "rl", "ai"]
 
 repository = "https://github.com/tspooner/rsrl"
-documentation = "https://tspooner.github.io/rsrl/rsrl/index.html"
+documentation = "https://docs.rs/rsrl"
 
 [badges]
 travis-ci = { repository = "tspooner/rsrl", branch = "master" }

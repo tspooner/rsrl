@@ -1,6 +1,6 @@
 <img align="right" width="120" title="RSRL logo" src="https://github.com/tspooner/rsrl/raw/master/logo.png">
 
-# RSRL ([api](https://tspooner.github.io/rsrl))
+# RSRL ([api](https://docs.rs/rsrl/))
 
 [![Crates.io](https://img.shields.io/crates/v/rsrl.svg)](https://crates.io/crates/rsrl)
 [![Build Status](https://travis-ci.org/tspooner/rsrl.svg?branch=master)](https://travis-ci.org/tspooner/rsrl)
