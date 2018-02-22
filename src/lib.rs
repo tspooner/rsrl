@@ -6,6 +6,7 @@ extern crate slog_term;
 extern crate blas;
 extern crate openblas_src;
 
+#[macro_use]
 extern crate ndarray;
 
 extern crate serde;
