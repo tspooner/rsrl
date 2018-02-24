@@ -50,7 +50,7 @@ pub struct Evaluation<'a, A: 'a, D> {
 
 impl<'a, S: Space, A, D> Evaluation<'a, A, D>
 where
-    A: Controller<S, ActionSpace>,
+    A: Controller<S::Repr, <ActionSpace as Space>::Repr>,
     D: Domain<StateSpace = S, ActionSpace = ActionSpace>,
 {
     pub fn new(agent: &'a mut A, domain_factory: Box<Fn() -> D>) -> Evaluation<'a, A, D> {
@@ -65,7 +65,7 @@ where
 
 impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
 where
-    A: Controller<S, ActionSpace>,
+    A: Controller<S::Repr, <ActionSpace as Space>::Repr>,
     D: Domain<StateSpace = S, ActionSpace = ActionSpace>,
 {
     type Item = Episode;
@@ -109,7 +109,7 @@ pub struct SerialExperiment<'a, A: 'a, D> {
 
 impl<'a, S: Space, A, D> SerialExperiment<'a, A, D>
 where
-    A: Controller<S, ActionSpace>,
+    A: Controller<S::Repr, <ActionSpace as Space>::Repr>,
     D: Domain<StateSpace = S, ActionSpace = ActionSpace>,
 {
     pub fn new(
@@ -128,7 +128,7 @@ where
 
 impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
 where
-    A: Controller<S, ActionSpace>,
+    A: Controller<S::Repr, <ActionSpace as Space>::Repr>,
     D: Domain<StateSpace = S, ActionSpace = ActionSpace>,
 {
     type Item = Episode;
