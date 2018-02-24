@@ -41,7 +41,7 @@ impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
     }
 }
 
-impl<S: Sized, P: Projector<S>> Agent for GTD2<S, P> {
+impl<S, P: Projector<S>> Agent for GTD2<S, P> {
     type Sample = (S, S, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
@@ -68,7 +68,7 @@ impl<S: Sized, P: Projector<S>> Agent for GTD2<S, P> {
     }
 }
 
-impl<S: Sized, P: Projector<S>> Predictor<S> for GTD2<S, P> {
+impl<S, P: Projector<S>> Predictor<S> for GTD2<S, P> {
     fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
@@ -110,7 +110,7 @@ impl<S: ?Sized, P: Projector<S>> TDC<S, P> {
     }
 }
 
-impl<S: Sized, P: Projector<S>> Agent for TDC<S, P> {
+impl<S, P: Projector<S>> Agent for TDC<S, P> {
     type Sample = (S, S, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
@@ -138,7 +138,7 @@ impl<S: Sized, P: Projector<S>> Agent for TDC<S, P> {
     }
 }
 
-impl<S: Sized, P: Projector<S>> Predictor<S> for TDC<S, P> {
+impl<S, P: Projector<S>> Predictor<S> for TDC<S, P> {
     fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 

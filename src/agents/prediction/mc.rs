@@ -4,7 +4,7 @@ use fa::VFunction;
 use std::marker::PhantomData;
 
 
-pub struct EveryVisitMC<S: Sized, V: VFunction<S>> {
+pub struct EveryVisitMC<S, V: VFunction<S>> {
     pub v_func: V,
     observations: Vec<(S, f64)>,
 
@@ -14,7 +14,7 @@ pub struct EveryVisitMC<S: Sized, V: VFunction<S>> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Sized, V: VFunction<S>> EveryVisitMC<S, V> {
+impl<S, V: VFunction<S>> EveryVisitMC<S, V> {
     pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,

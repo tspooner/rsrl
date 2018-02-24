@@ -30,7 +30,7 @@ impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
     }
 }
 
-impl<S: Sized, V: VFunction<S>> Agent for TD<S, V> {
+impl<S, V: VFunction<S>> Agent for TD<S, V> {
     type Sample = (S, S, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
@@ -45,11 +45,11 @@ impl<S: Sized, V: VFunction<S>> Agent for TD<S, V> {
     }
 }
 
-impl<S: Sized, V: VFunction<S>> Predictor<S> for TD<S, V> {
+impl<S, V: VFunction<S>> Predictor<S> for TD<S, V> {
     fn evaluate(&self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }
 
-impl<S: Sized, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
+impl<S, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
     fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
         let _ = self.v_func.update(&sample.0, self.alpha * error);
     }
@@ -111,7 +111,7 @@ impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
     }
 }
 
-impl<S: Sized, P: Projector<S>> Agent for TDLambda<S, P> {
+impl<S, P: Projector<S>> Agent for TDLambda<S, P> {
     type Sample = (S, S, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
@@ -131,11 +131,11 @@ impl<S: Sized, P: Projector<S>> Agent for TDLambda<S, P> {
     }
 }
 
-impl<S: Sized, P: Projector<S>> Predictor<S> for TDLambda<S, P> {
+impl<S, P: Projector<S>> Predictor<S> for TDLambda<S, P> {
     fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
-impl<S: Sized, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {
+impl<S, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {
     fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
         let phi_s = self.fa_theta.projector.project(&sample.0);
 
