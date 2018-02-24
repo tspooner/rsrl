@@ -1,12 +1,12 @@
 use Parameter;
 use agents::{Agent, Predictor};
 use fa::VFunction;
-use geometry::Space;
 use std::marker::PhantomData;
 
-pub struct EveryVisitMC<S: Space, V: VFunction<S::Repr>> {
+
+pub struct EveryVisitMC<S: Sized, V: VFunction<S>> {
     pub v_func: V,
-    observations: Vec<(S::Repr, f64)>,
+    observations: Vec<(S, f64)>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -14,7 +14,7 @@ pub struct EveryVisitMC<S: Space, V: VFunction<S::Repr>> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, V: VFunction<S::Repr>> EveryVisitMC<S, V> {
+impl<S: Sized, V: VFunction<S>> EveryVisitMC<S, V> {
     pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
@@ -43,8 +43,8 @@ impl<S: Space, V: VFunction<S::Repr>> EveryVisitMC<S, V> {
     }
 }
 
-impl<S: Space, V: VFunction<S::Repr>> Agent for EveryVisitMC<S, V> {
-    type Sample = (S::Repr, S::Repr, f64);
+impl<S: Clone, V: VFunction<S>> Agent for EveryVisitMC<S, V> {
+    type Sample = (S, S, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
         self.observations.push((sample.0.clone(), sample.2.clone()));
@@ -58,6 +58,6 @@ impl<S: Space, V: VFunction<S::Repr>> Agent for EveryVisitMC<S, V> {
     }
 }
 
-impl<S: Space, V: VFunction<S::Repr>> Predictor<S> for EveryVisitMC<S, V> {
-    fn evaluate(&self, s: &S::Repr) -> f64 { self.v_func.evaluate(s).unwrap() }
+impl<S: Clone, V: VFunction<S>> Predictor<S> for EveryVisitMC<S, V> {
+    fn evaluate(&self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }
