@@ -128,7 +128,7 @@ impl Domain for HIVTreatment {
     type ActionSpace = ActionSpace;
 
     fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
-        let s = self.state.mapv(|v| v.log10()).to_vec();
+        let s = self.state.mapv(|v| clip!(LIMITS.0, v.log10(), LIMITS.1)).to_vec();
 
         if self.is_terminal() {
             Observation::Terminal(s)
@@ -181,4 +181,57 @@ impl Domain for HIVTreatment {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_initial_observation() {
+        let m = HIVTreatment::new(1.0, 10.0, 100.0, 200.0, 500.0, 10000.0);
+
+        match m.emit() {
+            Observation::Full { ref state, .. } => {
+                assert!((state[0] - 0.0).abs() < 1e-7);
+                assert!((state[1] - 1.0).abs() < 1e-7);
+                assert!((state[2] - 2.0).abs() < 1e-7);
+                assert!((state[3] - 2.301029995663981).abs() < 1e-7);
+                assert!((state[4] - 2.698970004336019).abs() < 1e-7);
+                assert!((state[5] - 4.0).abs() < 1e-7);
+            },
+            _ => panic!("Should yield a fully observable state."),
+        }
+    }
+
+    #[test]
+    fn test_initial_observation_default() {
+        let m = HIVTreatment::default();
+
+        match m.emit() {
+            Observation::Full { ref state, .. } => {
+                assert!((state[0] - 5.213711618903007).abs() < 1e-7);
+                assert!((state[1] - 4.077186154085897).abs() < 1e-7);
+                assert!((state[2] - 0.698970004336019).abs() < 1e-7);
+                assert!((state[3] - 1.662757831681574).abs() < 1e-7);
+                assert!((state[4] - 4.805629971908577).abs() < 1e-7);
+                assert!((state[5] - 1.380211241711606).abs() < 1e-7);
+            },
+            _ => panic!("Should yield a fully observable state."),
+        }
+    }
+
+    #[test]
+    fn test_limits() {
+        let m = HIVTreatment::new(1e10, 1e-10, 1.0, 1.0, 1.0, 1.0);
+
+        match m.emit() {
+            Observation::Full { ref state, .. } => {
+                assert!((state[0] - LIMITS.1).abs() < 1e-7);
+                assert!((state[1] - LIMITS.0).abs() < 1e-7);
+                assert!((state[2] - 0.0).abs() < 1e-7);
+                assert!((state[3] - 0.0).abs() < 1e-7);
+                assert!((state[4] - 0.0).abs() < 1e-7);
+                assert!((state[5] - 0.0).abs() < 1e-7);
+            },
+            _ => panic!("Should yield a fully observable state."),
+        }
+    }
+}
