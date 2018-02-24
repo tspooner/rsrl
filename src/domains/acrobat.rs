@@ -120,7 +120,7 @@ impl Domain for Acrobat {
     type StateSpace = RegularSpace<Continuous>;
     type ActionSpace = ActionSpace;
 
-    fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
+    fn emit(&self) -> Observation<Vec<f64>, usize> {
         if self.is_terminal() {
             Observation::Terminal(self.state.to_vec())
         } else {
@@ -131,7 +131,7 @@ impl Domain for Acrobat {
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Self::StateSpace, Self::ActionSpace> {
+    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
         self.update_state(a);
@@ -155,8 +155,8 @@ impl Domain for Acrobat {
 
     fn reward(
         &self,
-        _: &Observation<Self::StateSpace, Self::ActionSpace>,
-        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+        _: &Observation<Vec<f64>, usize>,
+        to: &Observation<Vec<f64>, usize>,
     ) -> f64
     {
         match to {

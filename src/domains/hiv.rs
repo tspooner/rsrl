@@ -127,7 +127,7 @@ impl Domain for HIVTreatment {
     type StateSpace = RegularSpace<Continuous>;
     type ActionSpace = ActionSpace;
 
-    fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
+    fn emit(&self) -> Observation<Vec<f64>, usize> {
         let s = self.state.mapv(|v| clip!(LIMITS.0, v.log10(), LIMITS.1)).to_vec();
 
         if self.is_terminal() {
@@ -140,7 +140,7 @@ impl Domain for HIVTreatment {
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Self::StateSpace, Self::ActionSpace> {
+    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
         self.update_state(a);
@@ -159,8 +159,8 @@ impl Domain for HIVTreatment {
 
     fn reward(
         &self,
-        _: &Observation<Self::StateSpace, Self::ActionSpace>,
-        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+        _: &Observation<Vec<f64>, usize>,
+        to: &Observation<Vec<f64>, usize>,
     ) -> f64
     {
         let s = to.state();

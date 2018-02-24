@@ -37,7 +37,7 @@ impl Domain for CliffWalk {
     type StateSpace = PairSpace<Discrete, Discrete>;
     type ActionSpace = ActionSpace;
 
-    fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
+    fn emit(&self) -> Observation<(usize, usize), usize> {
         if self.is_terminal() {
             Observation::Terminal(self.loc)
         } else {
@@ -48,7 +48,7 @@ impl Domain for CliffWalk {
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Self::StateSpace, Self::ActionSpace> {
+    fn step(&mut self, a: usize) -> Transition<(usize, usize), usize> {
         let from = self.emit();
 
         self.update_state(a);
@@ -65,8 +65,8 @@ impl Domain for CliffWalk {
 
     fn reward(
         &self,
-        from: &Observation<Self::StateSpace, Self::ActionSpace>,
-        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+        from: &Observation<(usize, usize), usize>,
+        to: &Observation<(usize, usize), usize>,
     ) -> f64
     {
         match to {
