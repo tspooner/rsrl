@@ -5,33 +5,33 @@ use geometry::dimensions;
 use geometry::dimensions::Dimension;
 
 /// Container class for data associated with a domain observation.
-pub enum Observation<S: Space, A: Space> {
+pub enum Observation<S, A> {
     /// Fully observed state of the environment.
     Full {
         /// Current state of the environment.
-        state: S::Repr,
+        state: S,
 
         /// Set of available actions.
-        actions: Vec<A::Repr>,
+        actions: Vec<A>,
     },
 
     /// Partially observed state of the environment.
     Partial {
         /// Current state of the environment.
-        state: S::Repr,
+        state: S,
 
         /// Set of available actions.
-        actions: Vec<A::Repr>,
+        actions: Vec<A>,
     },
 
     /// Terminal state of the environment.
-    Terminal(S::Repr),
+    Terminal(S),
 }
 
-impl<S: Space, A: Space> Observation<S, A> {
+impl<S, A> Observation<S, A> {
     /// Helper function returning a reference to the state values for the given
     /// observation.
-    pub fn state(&self) -> &S::Repr {
+    pub fn state(&self) -> &S {
         use self::Observation::*;
 
         match self {
@@ -41,12 +41,12 @@ impl<S: Space, A: Space> Observation<S, A> {
 }
 
 /// Container class for data associated with a domain transition.
-pub struct Transition<S: Space, A: Space> {
+pub struct Transition<S, A> {
     /// State transitioned _from_, `s`.
     pub from: Observation<S, A>,
 
     /// Action taken to initiate the transition.
-    pub action: A::Repr,
+    pub action: A,
 
     /// Reward obtained from the transition.
     pub reward: f64,
@@ -64,13 +64,14 @@ pub trait Domain {
     type ActionSpace: Space;
 
     /// Emit an observation of the current state of the environment.
-    fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace>;
+    fn emit(&self) -> Observation<<Self::StateSpace as Space>::Repr,
+                                  <Self::ActionSpace as Space>::Repr>;
 
     /// Transition the environment forward a single step given an action, `a`.
     fn step(
         &mut self,
         a: <dimensions::Discrete as Dimension>::Value,
-    ) -> Transition<Self::StateSpace, Self::ActionSpace>;
+    ) -> Transition<<Self::StateSpace as Space>::Repr, <Self::ActionSpace as Space>::Repr>;
 
     /// Returns true if the current state is terminal.
     fn is_terminal(&self) -> bool;
@@ -79,8 +80,8 @@ pub trait Domain {
     /// another.
     fn reward(
         &self,
-        from: &Observation<Self::StateSpace, Self::ActionSpace>,
-        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+        from: &Observation<<Self::StateSpace as Space>::Repr, <Self::ActionSpace as Space>::Repr>,
+        to: &Observation<<Self::StateSpace as Space>::Repr, <Self::ActionSpace as Space>::Repr>,
     ) -> f64;
 
     /// Returns an instance of the state space type class.

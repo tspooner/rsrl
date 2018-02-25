@@ -10,9 +10,9 @@ use std::marker::PhantomData;
 ///
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function approximation."
 /// Proceedings of the 27th International Conference on Machine Learning (ICML-10). 2010.
-pub struct GreedyGQ<S: Space, M: Projector<S::Repr>, P: Policy> {
-    pub fa_theta: MultiLinear<S::Repr, M>,
-    pub fa_w: SimpleLinear<S::Repr, M>,
+pub struct GreedyGQ<S: ?Sized, M: Projector<S>, P: Policy> {
+    pub fa_theta: MultiLinear<S, M>,
+    pub fa_w: SimpleLinear<S, M>,
 
     pub policy: P,
 
@@ -23,10 +23,10 @@ pub struct GreedyGQ<S: Space, M: Projector<S::Repr>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> GreedyGQ<S, M, P> {
+impl<S: ?Sized, M: Projector<S>, P: Policy> GreedyGQ<S, M, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: MultiLinear<S::Repr, M>,
-        fa_w: SimpleLinear<S::Repr, M>,
+        fa_theta: MultiLinear<S, M>,
+        fa_w: SimpleLinear<S, M>,
         policy: P,
         alpha: T1,
         beta: T2,
@@ -52,10 +52,10 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> GreedyGQ<S, M, P> {
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for GreedyGQ<S, M, P> {
-    type Sample = Transition<S, ActionSpace>;
+impl<S, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -91,16 +91,16 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for GreedyGQ<S, M, P> {
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace> for GreedyGQ<S, M, P> {
-    fn pi(&mut self, s: &S::Repr) -> usize { self.evaluate_policy(&mut Greedy, s) }
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr> for GreedyGQ<S, M, P> {
+    fn pi(&mut self, s: &S) -> usize { self.evaluate_policy(&mut Greedy, s) }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
+    fn mu(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
         self.policy.sample(qs.as_slice().unwrap())
     }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
         p.sample(qs.as_slice().unwrap())

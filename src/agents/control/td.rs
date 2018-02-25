@@ -15,7 +15,7 @@ use utils::dot;
 /// - Watkins, C. J. C. H. (1989). Learning from Delayed Rewards. Ph.D. thesis, Cambridge
 /// University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning, 8:279–292.
-pub struct QLearning<S: Space, Q: QFunction<S::Repr>, P: Policy> {
+pub struct QLearning<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
 
@@ -25,9 +25,9 @@ pub struct QLearning<S: Space, Q: QFunction<S::Repr>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, Q, P> QLearning<S, Q, P>
+impl<S, Q, P> QLearning<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
     pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
@@ -47,14 +47,14 @@ where
     }
 }
 
-impl<S: Space, Q, P> Agent for QLearning<S, Q, P>
+impl<S, Q, P> Agent for QLearning<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
-    type Sample = Transition<S, ActionSpace>;
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s).unwrap();
@@ -76,21 +76,21 @@ where
     }
 }
 
-impl<S: Space, Q, P> Controller<S, ActionSpace> for QLearning<S, Q, P>
+impl<S, Q, P> Controller<S, <ActionSpace as Space>::Repr> for QLearning<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S) -> usize {
         Greedy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
+    fn mu(&mut self, s: &S) -> usize {
         self.policy
             .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 }
@@ -101,10 +101,10 @@ where
 /// - Watkins, C. J. C. H. (1989). Learning from Delayed Rewards. Ph.D. thesis, Cambridge
 /// University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning, 8:279–292.
-pub struct QLambda<S: Space, M: Projector<S::Repr>, P: Policy> {
+pub struct QLambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
 
-    pub fa_theta: MultiLinear<S::Repr, M>,
+    pub fa_theta: MultiLinear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -113,10 +113,10 @@ pub struct QLambda<S: Space, M: Projector<S::Repr>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> QLambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> QLambda<S, M, P> {
     pub fn new<T1, T2>(
         trace: Trace,
-        fa_theta: MultiLinear<S::Repr, M>,
+        fa_theta: MultiLinear<S, M>,
         policy: P,
         alpha: T1,
         gamma: T2,
@@ -139,10 +139,10 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> QLambda<S, M, P> {
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for QLambda<S, M, P> {
-    type Sample = Transition<S, ActionSpace>;
+impl<S, M: Projector<S>, P: Policy> Agent for QLambda<S, M, P> {
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -180,20 +180,20 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for QLambda<S, M, P> {
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace> for QLambda<S, M, P> {
-    fn pi(&mut self, s: &S::Repr) -> usize {
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr> for QLambda<S, M, P> {
+    fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
         Greedy.sample(qs.as_slice().unwrap())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
+    fn mu(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
         self.policy.sample(qs.as_slice().unwrap())
     }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
         p.sample(qs.as_slice().unwrap())
@@ -207,7 +207,7 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace> for 
 /// University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing eligibility traces.
 /// Machine Learning 22:123–158.
-pub struct SARSA<S: Space, Q: QFunction<S::Repr>, P: Policy> {
+pub struct SARSA<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
 
@@ -217,9 +217,9 @@ pub struct SARSA<S: Space, Q: QFunction<S::Repr>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, Q, P> SARSA<S, Q, P>
+impl<S, Q, P> SARSA<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
     pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
@@ -239,14 +239,14 @@ where
     }
 }
 
-impl<S: Space, Q, P> Agent for SARSA<S, Q, P>
+impl<S, Q, P> Agent for SARSA<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
-    type Sample = Transition<S, ActionSpace>;
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s).unwrap();
@@ -268,19 +268,19 @@ where
     }
 }
 
-impl<S: Space, Q, P> Controller<S, ActionSpace> for SARSA<S, Q, P>
+impl<S, Q, P> Controller<S, <ActionSpace as Space>::Repr> for SARSA<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S) -> usize {
         self.policy
             .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
+    fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 }
@@ -292,10 +292,10 @@ where
 /// University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing eligibility traces.
 /// Machine Learning 22:123–158.
-pub struct SARSALambda<S: Space, M: Projector<S::Repr>, P: Policy> {
+pub struct SARSALambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
 
-    pub fa_theta: MultiLinear<S::Repr, M>,
+    pub fa_theta: MultiLinear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -304,10 +304,10 @@ pub struct SARSALambda<S: Space, M: Projector<S::Repr>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> SARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> SARSALambda<S, M, P> {
     pub fn new<T1, T2>(
         trace: Trace,
-        fa_theta: MultiLinear<S::Repr, M>,
+        fa_theta: MultiLinear<S, M>,
         policy: P,
         alpha: T1,
         gamma: T2,
@@ -330,10 +330,10 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> SARSALambda<S, M, P> {
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for SARSALambda<S, M, P> {
-    type Sample = Transition<S, ActionSpace>;
+impl<S, M: Projector<S>, P: Policy> Agent for SARSALambda<S, M, P> {
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -367,18 +367,18 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for SARSALambda<S, M, P> 
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace>
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
     for SARSALambda<S, M, P>
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
         self.policy.sample(qs.as_slice().unwrap())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
+    fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
         p.sample(qs.as_slice().unwrap())
@@ -393,7 +393,7 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace>
 /// - van Seijen, H., van Hasselt, H., Whiteson, S., Wiering, M. (2009). A theoretical and
 /// empirical analysis of Expected Sarsa. In Proceedings of the IEEE Symposium on Adaptive Dynamic
 /// Programming and Reinforcement Learning, pp. 177–184.
-pub struct ExpectedSARSA<S: Space, Q: QFunction<S::Repr>, P: Policy> {
+pub struct ExpectedSARSA<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
 
@@ -403,9 +403,9 @@ pub struct ExpectedSARSA<S: Space, Q: QFunction<S::Repr>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, Q, P> ExpectedSARSA<S, Q, P>
+impl<S, Q, P> ExpectedSARSA<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
     pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
@@ -425,14 +425,14 @@ where
     }
 }
 
-impl<S: Space, Q, P> Agent for ExpectedSARSA<S, Q, P>
+impl<S, Q, P> Agent for ExpectedSARSA<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
-    type Sample = Transition<S, ActionSpace>;
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.q_func.evaluate(s).unwrap();
@@ -457,19 +457,19 @@ where
     }
 }
 
-impl<S: Space, Q, P> Controller<S, ActionSpace> for ExpectedSARSA<S, Q, P>
+impl<S, Q, P> Controller<S, <ActionSpace as Space>::Repr> for ExpectedSARSA<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S) -> usize {
         self.policy
             .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
+    fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 }
@@ -487,7 +487,7 @@ where
 /// Manuscript in preparation.
 /// - De Asis, K., Hernandez-Garcia, J. F., Holland, G. Z., & Sutton, R. S. (2017). Multi-step
 /// Reinforcement Learning: A Unifying Algorithm. arXiv preprint arXiv:1703.01327.
-pub struct QSigma<S: Space, Q: QFunction<S::Repr>, P: Policy> {
+pub struct QSigma<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
 
@@ -500,9 +500,9 @@ pub struct QSigma<S: Space, Q: QFunction<S::Repr>, P: Policy> {
     backup: VecDeque<BackupEntry<S>>,
 }
 
-impl<S: Space, Q, P> QSigma<S, Q, P>
+impl<S, Q, P> QSigma<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
     pub fn new<T1, T2, T3>(
@@ -558,8 +558,8 @@ where
     }
 }
 
-struct BackupEntry<S: Space> {
-    pub s: S::Repr,
+struct BackupEntry<S> {
+    pub s: S,
     pub a: usize,
 
     pub q: f64,
@@ -570,14 +570,14 @@ struct BackupEntry<S: Space> {
     pub mu: f64,
 }
 
-impl<S: Space, Q, P> Agent for QSigma<S, Q, P>
+impl<S: Clone, Q, P> Agent for QSigma<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
-    type Sample = Transition<S, ActionSpace>;
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let nqs = self.q_func.evaluate(ns).unwrap();
@@ -626,21 +626,21 @@ where
     }
 }
 
-impl<S: Space, Q, P> Controller<S, ActionSpace> for QSigma<S, Q, P>
+impl<S: Clone, Q, P> Controller<S, <ActionSpace as Space>::Repr> for QSigma<S, Q, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     P: Policy,
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S) -> usize {
         Greedy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
+    fn mu(&mut self, s: &S) -> usize {
         self.policy
             .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 }

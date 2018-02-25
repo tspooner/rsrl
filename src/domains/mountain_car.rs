@@ -70,7 +70,7 @@ impl Domain for MountainCar {
     type StateSpace = RegularSpace<Continuous>;
     type ActionSpace = ActionSpace;
 
-    fn emit(&self) -> Observation<Self::StateSpace, Self::ActionSpace> {
+    fn emit(&self) -> Observation<Vec<f64>, usize> {
         let s = vec![self.x, self.v];
 
         if self.is_terminal() {
@@ -83,7 +83,7 @@ impl Domain for MountainCar {
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Self::StateSpace, Self::ActionSpace> {
+    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
         self.update_state(a);
@@ -102,8 +102,8 @@ impl Domain for MountainCar {
 
     fn reward(
         &self,
-        _: &Observation<Self::StateSpace, Self::ActionSpace>,
-        to: &Observation<Self::StateSpace, Self::ActionSpace>,
+        _: &Observation<Vec<f64>, usize>,
+        to: &Observation<Vec<f64>, usize>,
     ) -> f64
     {
         match to {

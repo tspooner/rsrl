@@ -13,11 +13,11 @@ use std::marker::PhantomData;
 /// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., & Sutton, R. S. (2016).
 /// True online temporal-difference learning. Journal of Machine Learning Research, 17(145),
 /// 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
-pub struct TOQLambda<S: Space, M: Projector<S::Repr>, P: Policy> {
+pub struct TOQLambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
     q_old: f64,
 
-    pub q_func: MultiLinear<S::Repr, M>,
+    pub q_func: MultiLinear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -26,14 +26,14 @@ pub struct TOQLambda<S: Space, M: Projector<S::Repr>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, M, P> TOQLambda<S, M, P>
+impl<S, M, P> TOQLambda<S, M, P>
 where
-    M: Projector<S::Repr>,
+    M: Projector<S>,
     P: Policy,
 {
     pub fn new<T1, T2>(
         trace: Trace,
-        q_func: MultiLinear<S::Repr, M>,
+        q_func: MultiLinear<S, M>,
         policy: P,
         alpha: T1,
         gamma: T2,
@@ -57,26 +57,26 @@ where
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace> for TOQLambda<S, M, P> {
-    fn pi(&mut self, s: &S::Repr) -> usize {
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr> for TOQLambda<S, M, P> {
+    fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
         self.policy.sample(qs.as_slice().unwrap())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
+    fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
         p.sample(qs.as_slice().unwrap())
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for TOQLambda<S, M, P> {
-    type Sample = Transition<S, ActionSpace>;
+impl<S, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -131,11 +131,11 @@ impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for TOQLambda<S, M, P> {
 /// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., & Sutton, R. S. (2016).
 /// True online temporal-difference learning. Journal of Machine Learning Research, 17(145),
 /// 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
-pub struct TOSARSALambda<S: Space, M: Projector<S::Repr>, P: Policy> {
+pub struct TOSARSALambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
     q_old: f64,
 
-    pub q_func: MultiLinear<S::Repr, M>,
+    pub q_func: MultiLinear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -144,14 +144,14 @@ pub struct TOSARSALambda<S: Space, M: Projector<S::Repr>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, M, P> TOSARSALambda<S, M, P>
+impl<S, M, P> TOSARSALambda<S, M, P>
 where
-    M: Projector<S::Repr>,
+    M: Projector<S>,
     P: Policy,
 {
     pub fn new<T1, T2>(
         trace: Trace,
-        q_func: MultiLinear<S::Repr, M>,
+        q_func: MultiLinear<S, M>,
         policy: P,
         alpha: T1,
         gamma: T2,
@@ -175,28 +175,28 @@ where
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Controller<S, ActionSpace>
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
     for TOSARSALambda<S, M, P>
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
         self.policy.sample(qs.as_slice().unwrap())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize { self.pi(s) }
+    fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
         p.sample(qs.as_slice().unwrap())
     }
 }
 
-impl<S: Space, M: Projector<S::Repr>, P: Policy> Agent for TOSARSALambda<S, M, P> {
-    type Sample = Transition<S, ActionSpace>;
+impl<S, M: Projector<S>, P: Policy> Agent for TOSARSALambda<S, M, P> {
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 

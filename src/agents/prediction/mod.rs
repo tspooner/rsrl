@@ -1,13 +1,12 @@
 //! Prediction agents module.
 
 use super::Agent;
-use geometry::Space;
 
-pub trait Predictor<S: Space>: Agent<Sample = (S::Repr, S::Repr, f64)> {
-    fn evaluate(&self, s: &S::Repr) -> f64;
+pub trait Predictor<S: Sized>: Agent<Sample = (S, S, f64)> {
+    fn evaluate(&self, s: &S) -> f64;
 }
 
-pub trait TDPredictor<S: Space>: Predictor<S> {
+pub trait TDPredictor<S: Sized>: Predictor<S> {
     fn handle_td_error(&mut self, sample: &Self::Sample, td_error: f64);
     fn compute_td_error(&self, sample: &Self::Sample) -> f64;
 }

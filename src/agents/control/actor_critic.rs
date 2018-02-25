@@ -7,9 +7,9 @@ use policies::{Greedy, Policy};
 use std::marker::PhantomData;
 
 /// Regular gradient descent actor critic.
-pub struct ActorCritic<S: Space, Q, C, P>
+pub struct ActorCritic<S, Q, C, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     C: TDPredictor<S>,
     P: Policy,
 {
@@ -24,9 +24,9 @@ where
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, Q, C, P> ActorCritic<S, Q, C, P>
+impl<S, Q, C, P> ActorCritic<S, Q, C, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     C: TDPredictor<S>,
     P: Policy,
 {
@@ -49,22 +49,21 @@ where
     }
 }
 
-impl<S: Space, Q, C, P> Agent for ActorCritic<S, Q, C, P>
+impl<S: Clone, Q, C, P> Agent for ActorCritic<S, Q, C, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     C: TDPredictor<S>,
     P: Policy,
 {
-    type Sample = Transition<S, ActionSpace>;
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
-    fn handle_sample(&mut self, t: &Transition<S, ActionSpace>) {
+    fn handle_sample(&mut self, t: &Self::Sample) {
         let (s, ns) = (t.from.state(), t.to.state());
+        let p_sample = (s.clone(), ns.clone(), t.reward);
 
-        let td_error = self.critic
-            .compute_td_error(&(s.clone(), ns.clone(), t.reward));
+        let td_error = self.critic.compute_td_error(&p_sample);
 
-        self.critic
-            .handle_td_error(&(s.clone(), ns.clone(), t.reward), td_error);
+        self.critic.handle_td_error(&p_sample, td_error);
         self.q_func.update_action(s, t.action, self.beta * td_error);
     }
 
@@ -76,22 +75,22 @@ where
     }
 }
 
-impl<S: Space, Q, C, P> Controller<S, ActionSpace> for ActorCritic<S, Q, C, P>
+impl<S: Clone, Q, C, P> Controller<S, <ActionSpace as Space>::Repr> for ActorCritic<S, Q, C, P>
 where
-    Q: QFunction<S::Repr>,
+    Q: QFunction<S>,
     C: TDPredictor<S>,
     P: Policy,
 {
-    fn pi(&mut self, s: &S::Repr) -> usize {
+    fn pi(&mut self, s: &S) -> usize {
         Greedy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
-    fn mu(&mut self, s: &S::Repr) -> usize {
+    fn mu(&mut self, s: &S) -> usize {
         self.policy
             .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize {
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 }

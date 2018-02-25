@@ -1,23 +1,22 @@
 use Parameter;
 use agents::{Agent, Predictor, TDPredictor};
 use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
-use geometry::Space;
 
 // TODO: Implement TDPredictor for all agents here.
 
-pub struct GTD2<S: Space, P: Projector<S::Repr>> {
-    pub fa_theta: SimpleLinear<S::Repr, P>,
-    pub fa_w: SimpleLinear<S::Repr, P>,
+pub struct GTD2<S: ?Sized, P: Projector<S>> {
+    pub fa_theta: SimpleLinear<S, P>,
+    pub fa_w: SimpleLinear<S, P>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
 }
 
-impl<S: Space, P: Projector<S::Repr>> GTD2<S, P> {
+impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: SimpleLinear<S::Repr, P>,
-        fa_w: SimpleLinear<S::Repr, P>,
+        fa_theta: SimpleLinear<S, P>,
+        fa_w: SimpleLinear<S, P>,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -42,8 +41,8 @@ impl<S: Space, P: Projector<S::Repr>> GTD2<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S::Repr>> Agent for GTD2<S, P> {
-    type Sample = (S::Repr, S::Repr, f64);
+impl<S, P: Projector<S>> Agent for GTD2<S, P> {
+    type Sample = (S, S, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
         let phi_s = self.fa_theta.projector.project(&sample.0);
@@ -69,23 +68,24 @@ impl<S: Space, P: Projector<S::Repr>> Agent for GTD2<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S::Repr>> Predictor<S> for GTD2<S, P> {
-    fn evaluate(&self, s: &S::Repr) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+impl<S, P: Projector<S>> Predictor<S> for GTD2<S, P> {
+    fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
-pub struct TDC<S: Space, P: Projector<S::Repr>> {
-    pub fa_theta: SimpleLinear<S::Repr, P>,
-    pub fa_w: SimpleLinear<S::Repr, P>,
+
+pub struct TDC<S: ?Sized, P: Projector<S>> {
+    pub fa_theta: SimpleLinear<S, P>,
+    pub fa_w: SimpleLinear<S, P>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
 }
 
-impl<S: Space, P: Projector<S::Repr>> TDC<S, P> {
+impl<S: ?Sized, P: Projector<S>> TDC<S, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: SimpleLinear<S::Repr, P>,
-        fa_w: SimpleLinear<S::Repr, P>,
+        fa_theta: SimpleLinear<S, P>,
+        fa_w: SimpleLinear<S, P>,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -110,8 +110,8 @@ impl<S: Space, P: Projector<S::Repr>> TDC<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S::Repr>> Agent for TDC<S, P> {
-    type Sample = (S::Repr, S::Repr, f64);
+impl<S, P: Projector<S>> Agent for TDC<S, P> {
+    type Sample = (S, S, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
         let phi_s = self.fa_theta.projector.project(&sample.0);
@@ -138,8 +138,8 @@ impl<S: Space, P: Projector<S::Repr>> Agent for TDC<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S::Repr>> Predictor<S> for TDC<S, P> {
-    fn evaluate(&self, s: &S::Repr) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+impl<S, P: Projector<S>> Predictor<S> for TDC<S, P> {
+    fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
 // TODO:

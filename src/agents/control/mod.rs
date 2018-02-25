@@ -2,18 +2,17 @@
 
 use super::Agent;
 use domains::Transition;
-use geometry::Space;
 use policies::Policy;
 
-pub trait Controller<S: Space, A: Space>: Agent<Sample = Transition<S, A>> {
+pub trait Controller<S, A>: Agent<Sample = Transition<S, A>> {
     /// Sample the target policy for a given state `s`.
-    fn pi(&mut self, s: &S::Repr) -> usize;
+    fn pi(&mut self, s: &S) -> usize;
 
     /// Sample the behaviour policy for a given state `s`.
-    fn mu(&mut self, s: &S::Repr) -> usize;
+    fn mu(&mut self, s: &S) -> usize;
 
     /// Sample a given policy against some state `s` for this agent.
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S::Repr) -> usize;
+    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize;
 }
 
 pub mod td;

@@ -2,11 +2,9 @@ use Parameter;
 use agents::{Agent, Predictor, TDPredictor};
 use agents::memory::Trace;
 use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
-use geometry::Space;
-
 use std::marker::PhantomData;
 
-pub struct TD<S: Space, V: VFunction<S::Repr>> {
+pub struct TD<S: ?Sized, V: VFunction<S>> {
     pub v_func: V,
 
     pub alpha: Parameter,
@@ -15,7 +13,7 @@ pub struct TD<S: Space, V: VFunction<S::Repr>> {
     phantom: PhantomData<S>,
 }
 
-impl<S: Space, V: VFunction<S::Repr>> TD<S, V> {
+impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
     pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
@@ -32,8 +30,8 @@ impl<S: Space, V: VFunction<S::Repr>> TD<S, V> {
     }
 }
 
-impl<S: Space, V: VFunction<S::Repr>> Agent for TD<S, V> {
-    type Sample = (S::Repr, S::Repr, f64);
+impl<S, V: VFunction<S>> Agent for TD<S, V> {
+    type Sample = (S, S, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
         let td_error = self.compute_td_error(sample);
@@ -47,11 +45,11 @@ impl<S: Space, V: VFunction<S::Repr>> Agent for TD<S, V> {
     }
 }
 
-impl<S: Space, V: VFunction<S::Repr>> Predictor<S> for TD<S, V> {
-    fn evaluate(&self, s: &S::Repr) -> f64 { self.v_func.evaluate(s).unwrap() }
+impl<S, V: VFunction<S>> Predictor<S> for TD<S, V> {
+    fn evaluate(&self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }
 
-impl<S: Space, V: VFunction<S::Repr>> TDPredictor<S> for TD<S, V> {
+impl<S, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
     fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
         let _ = self.v_func.update(&sample.0, self.alpha * error);
     }
@@ -64,19 +62,19 @@ impl<S: Space, V: VFunction<S::Repr>> TDPredictor<S> for TD<S, V> {
     }
 }
 
-pub struct TDLambda<S: Space, P: Projector<S::Repr>> {
+pub struct TDLambda<S: ?Sized, P: Projector<S>> {
     trace: Trace,
 
-    pub fa_theta: SimpleLinear<S::Repr, P>,
+    pub fa_theta: SimpleLinear<S, P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
-impl<S: Space, P: Projector<S::Repr>> TDLambda<S, P> {
+impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
     pub fn new<T1, T2>(
         trace: Trace,
-        fa_theta: SimpleLinear<S::Repr, P>,
+        fa_theta: SimpleLinear<S, P>,
         alpha: T1,
         gamma: T2,
     ) -> Self
@@ -113,8 +111,8 @@ impl<S: Space, P: Projector<S::Repr>> TDLambda<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S::Repr>> Agent for TDLambda<S, P> {
-    type Sample = (S::Repr, S::Repr, f64);
+impl<S, P: Projector<S>> Agent for TDLambda<S, P> {
+    type Sample = (S, S, f64);
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
         let phi_s = self.fa_theta.projector.project(&sample.0);
@@ -133,11 +131,11 @@ impl<S: Space, P: Projector<S::Repr>> Agent for TDLambda<S, P> {
     }
 }
 
-impl<S: Space, P: Projector<S::Repr>> Predictor<S> for TDLambda<S, P> {
-    fn evaluate(&self, s: &S::Repr) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+impl<S, P: Projector<S>> Predictor<S> for TDLambda<S, P> {
+    fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
-impl<S: Space, P: Projector<S::Repr>> TDPredictor<S> for TDLambda<S, P> {
+impl<S, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {
     fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
         let phi_s = self.fa_theta.projector.project(&sample.0);
 
