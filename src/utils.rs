@@ -27,7 +27,6 @@ pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
     (max, ixs)
 }
 
-// TODO: Pass by iterator so that we don't have to collect before passing.
 pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
     let d_it = dims.iter().rev().skip(1);
     let i_it = inds.iter().rev().skip(1);
