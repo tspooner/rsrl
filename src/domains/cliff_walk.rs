@@ -1,8 +1,8 @@
-use super::{Domain, Observation, Transition};
-use super::grid_world::{GridWorld, Motion};
 use Matrix;
 use geometry::{ActionSpace, PairSpace};
 use geometry::dimensions::Discrete;
+use super::{Domain, Observation, Transition};
+use super::grid_world::{GridWorld, Motion};
 
 const ALL_ACTIONS: [Motion; 4] = [
     Motion::North(1),
@@ -43,7 +43,7 @@ impl Domain for CliffWalk {
         } else {
             Observation::Full {
                 state: self.loc,
-                actions: vec![0, 1, 2, 3],
+                actions: [0, 1, 2, 3].iter().cloned().collect(),
             }
         }
     }

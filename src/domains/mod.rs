@@ -1,5 +1,6 @@
 //! Learning benchmark domains module.
 
+use std::collections::HashSet;
 use geometry::Space;
 use geometry::dimensions;
 use geometry::dimensions::Dimension;
@@ -12,7 +13,7 @@ pub enum Observation<S, A> {
         state: S,
 
         /// Set of available actions.
-        actions: Vec<A>,
+        actions: HashSet<A>,
     },
 
     /// Partially observed state of the environment.
@@ -21,7 +22,7 @@ pub enum Observation<S, A> {
         state: S,
 
         /// Set of available actions.
-        actions: Vec<A>,
+        actions: HashSet<A>,
     },
 
     /// Terminal state of the environment.

@@ -1,7 +1,6 @@
-use super::{Domain, Observation, Transition};
-
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
+use super::{Domain, Observation, Transition};
 
 const X_MIN: f64 = -1.2;
 const X_MAX: f64 = 0.6;
@@ -78,7 +77,7 @@ impl Domain for MountainCar {
         } else {
             Observation::Full {
                 state: s,
-                actions: vec![0, 1, 2],
+                actions: [0, 1, 2].iter().cloned().collect(),
             }
         }
     }

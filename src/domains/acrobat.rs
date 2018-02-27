@@ -1,11 +1,10 @@
-use super::{Domain, Observation, Transition, runge_kutta4};
 use Vector;
-
 use consts::{PI_OVER_2, G};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 use ndarray::{Ix1, NdIndex};
 use std::f64::consts::PI;
+use super::{Domain, Observation, Transition, runge_kutta4};
 
 // Link masses:
 const M1: f64 = 1.0;
@@ -126,7 +125,7 @@ impl Domain for Acrobat {
         } else {
             Observation::Full {
                 state: self.state.to_vec(),
-                actions: vec![0, 1, 2],
+                actions: [0, 1, 2].iter().cloned().collect(),
             }
         }
     }

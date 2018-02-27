@@ -1,10 +1,10 @@
-use super::{Domain, Observation, Transition, runge_kutta4};
 use Vector;
-
 use consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 use ndarray::{Ix1, NdIndex};
+use super::{Domain, Observation, Transition, runge_kutta4};
+
 
 const TAU: f64 = 0.02;
 
@@ -103,7 +103,7 @@ impl Domain for CartPole {
         } else {
             Observation::Full {
                 state: self.state.to_vec(),
-                actions: vec![0, 1],
+                actions: [0, 1].iter().cloned().collect(),
             }
         }
     }

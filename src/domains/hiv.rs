@@ -1,10 +1,10 @@
-use super::{Domain, Observation, Transition, runge_kutta4};
 use Vector;
-
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
 use ndarray::{Ix1, NdIndex};
 use std::ops::Index;
+use super::{Domain, Observation, Transition, runge_kutta4};
+
 
 // Model parameters
 // (https://pdfs.semanticscholar.org/c030/127238b1dbad2263fba6b64b5dec7c3ffa20.pdf):
@@ -135,7 +135,7 @@ impl Domain for HIVTreatment {
         } else {
             Observation::Full {
                 state: s,
-                actions: vec![0, 1, 2],
+                actions: [0, 1, 2].iter().cloned().collect(),
             }
         }
     }

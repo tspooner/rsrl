@@ -1,13 +1,15 @@
 extern crate cpython;
 
-use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
-use super::{Domain, Observation, Transition};
 use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
+use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
+use std::collections::HashSet;
 use std::f64;
+use super::{Domain, Observation, Transition};
 
 mod client;
 use self::client::GymClient;
+
 
 pub struct OpenAIGym {
     client: GymClient,
@@ -87,7 +89,7 @@ impl Domain for OpenAIGym {
         } else {
             Observation::Full {
                 state: self.state.clone(),
-                actions: vec![],
+                actions: HashSet::new(),
             }
         }
     }
