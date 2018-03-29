@@ -1,6 +1,6 @@
 use super::Policy;
-use rand::{thread_rng, ThreadRng};
 use rand::distributions::{IndependentSample, Range};
+use rand::{thread_rng, ThreadRng};
 
 pub struct Random {
     rng: ThreadRng,

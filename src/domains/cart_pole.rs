@@ -1,10 +1,11 @@
-use Vector;
 use consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
-use geometry::{ActionSpace, RegularSpace};
-use geometry::dimensions::{Continuous, Discrete};
+use geometry::{
+    ActionSpace, RegularSpace,
+    dimensions::{Continuous, Discrete},
+};
 use ndarray::{Ix1, NdIndex};
 use super::{Domain, Observation, Transition, runge_kutta4};
-
+use {Vector};
 
 const TAU: f64 = 0.02;
 
@@ -130,12 +131,7 @@ impl Domain for CartPole {
         x <= LIMITS_X.0 || x >= LIMITS_X.1 || theta <= LIMITS_THETA.0 || theta >= LIMITS_THETA.1
     }
 
-    fn reward(
-        &self,
-        _: &Observation<Vec<f64>, usize>,
-        to: &Observation<Vec<f64>, usize>,
-    ) -> f64
-    {
+    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
         match to {
             &Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,

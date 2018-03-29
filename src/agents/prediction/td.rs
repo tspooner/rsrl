@@ -1,6 +1,6 @@
 use Parameter;
-use agents::{Agent, Predictor, TDPredictor};
 use agents::memory::Trace;
+use agents::{Agent, Predictor, TDPredictor};
 use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
 use std::marker::PhantomData;
 
@@ -72,12 +72,7 @@ pub struct TDLambda<S: ?Sized, P: Projector<S>> {
 }
 
 impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
-    pub fn new<T1, T2>(
-        trace: Trace,
-        fa_theta: SimpleLinear<S, P>,
-        alpha: T1,
-        gamma: T2,
-    ) -> Self
+    pub fn new<T1, T2>(trace: Trace, fa_theta: SimpleLinear<S, P>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,

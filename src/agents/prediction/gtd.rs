@@ -1,5 +1,5 @@
 use Parameter;
-use agents::{Agent, Predictor, TDPredictor};
+use agents::{Agent, Predictor};
 use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
 
 // TODO: Implement TDPredictor for all agents here.
@@ -71,7 +71,6 @@ impl<S, P: Projector<S>> Agent for GTD2<S, P> {
 impl<S, P: Projector<S>> Predictor<S> for GTD2<S, P> {
     fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
-
 
 pub struct TDC<S: ?Sized, P: Projector<S>> {
     pub fa_theta: SimpleLinear<S, P>,

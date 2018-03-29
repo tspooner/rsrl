@@ -15,7 +15,7 @@ pub trait Controller<S, A>: Agent<Sample = Transition<S, A>> {
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> A;
 }
 
-pub mod td;
-pub mod gtd;
-pub mod totd;
 pub mod actor_critic;
+pub mod gtd;
+pub mod td;
+pub mod totd;

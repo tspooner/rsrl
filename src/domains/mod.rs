@@ -1,9 +1,9 @@
 //! Learning benchmark domains module.
 
-use std::collections::HashSet;
 use geometry::Space;
 use geometry::dimensions;
 use geometry::dimensions::Dimension;
+use std::collections::HashSet;
 
 /// Container class for data associated with a domain observation.
 pub enum Observation<S, A> {
@@ -65,8 +65,9 @@ pub trait Domain {
     type ActionSpace: Space;
 
     /// Emit an observation of the current state of the environment.
-    fn emit(&self) -> Observation<<Self::StateSpace as Space>::Repr,
-                                  <Self::ActionSpace as Space>::Repr>;
+    fn emit(
+        &self,
+    ) -> Observation<<Self::StateSpace as Space>::Repr, <Self::ActionSpace as Space>::Repr>;
 
     /// Transition the environment forward a single step given an action, `a`.
     fn step(
@@ -107,8 +108,8 @@ pub use self::acrobat::Acrobat;
 mod hiv;
 pub use self::hiv::HIVTreatment;
 
-mod grid_world;
 mod cliff_walk;
+mod grid_world;
 pub use self::cliff_walk::CliffWalk;
 
 mod openai;

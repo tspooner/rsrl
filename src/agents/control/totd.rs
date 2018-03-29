@@ -1,18 +1,18 @@
-use {Parameter, Vector};
-use agents::{Agent, Controller};
 use agents::memory::Trace;
+use agents::{Agent, Controller};
 use domains::Transition;
 use fa::{Approximator, MultiLinear, Projection, Projector, QFunction};
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
+use {Parameter, Vector};
 
 /// True online variant of the Q(lambda) algorithm.
 ///
 /// # References
-/// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., & Sutton, R. S. (2016).
-/// True online temporal-difference learning. Journal of Machine Learning Research, 17(145),
-/// 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
+/// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., &
+/// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
+/// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
 pub struct TOQLambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
     q_old: f64,
@@ -57,7 +57,9 @@ where
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr> for TOQLambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
+    for TOQLambda<S, M, P>
+{
     fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
@@ -128,9 +130,9 @@ impl<S, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
 /// True online variant of the SARSA(lambda) algorithm.
 ///
 /// # References
-/// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., & Sutton, R. S. (2016).
-/// True online temporal-difference learning. Journal of Machine Learning Research, 17(145),
-/// 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
+/// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., &
+/// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
+/// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
 pub struct TOSARSALambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
     q_old: f64,

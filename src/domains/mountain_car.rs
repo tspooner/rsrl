@@ -1,6 +1,6 @@
-use geometry::{ActionSpace, RegularSpace};
-use geometry::dimensions::{Continuous, Discrete};
 use super::{Domain, Observation, Transition};
+use geometry::dimensions::{Continuous, Discrete};
+use geometry::{ActionSpace, RegularSpace};
 
 const X_MIN: f64 = -1.2;
 const X_MAX: f64 = 0.6;
@@ -20,11 +20,12 @@ const ALL_ACTIONS: [f64; 3] = [-1.0, 0.0, 1.0];
 
 /// Classic mountain car testing domain.
 ///
-/// This problem involves an under-powered car which must ascend a steep hill. Since gravity is
-/// stronger than the car's engine, even at full throttle, the car cannot simply accelerate up the
-/// steep slope. The car is situated in a valley and must learn to leverage potential energy by
-/// driving up the opposite hill before the car is able to make it to the goal at the top of the
-/// rightmost hill.[^1]
+/// This problem involves an under-powered car which must ascend a steep hill.
+/// Since gravity is stronger than the car's engine, even at full throttle, the
+/// car cannot simply accelerate up the steep slope. The car is situated in a
+/// valley and must learn to leverage potential energy by driving up the
+/// opposite hill before the car is able to make it to the goal at the top of
+/// the rightmost hill.[^1]
 ///
 /// [^1]: See [https://en.wikipedia.org/wiki/Mountain_car_problem](https://en.wikipedia.org/wiki/Mountain_car_problem)
 ///
@@ -39,10 +40,10 @@ const ALL_ACTIONS: [f64; 3] = [-1.0, 0.0, 1.0];
 ///
 /// # References
 /// - Moore, A. W. (1990). Efficient memory-based learning for robot control.
-/// - Singh, S. P., & Sutton, R. S. (1996). Reinforcement learning with replacing eligibility
-/// traces. Recent Advances in Reinforcement Learning, 123-158.
-/// - Sutton, R. S., & Barto, A. G. (1998). Reinforcement learning: An introduction (Vol. 1, No.
-/// 1). Cambridge: MIT press.
+/// - Singh, S. P., & Sutton, R. S. (1996). Reinforcement learning with
+/// replacing eligibility traces. Recent Advances in Reinforcement Learning,
+/// 123-158. - Sutton, R. S., & Barto, A. G. (1998). Reinforcement learning: An
+/// introduction (Vol. 1, No. 1). Cambridge: MIT press.
 pub struct MountainCar {
     x: f64,
     v: f64,
@@ -99,12 +100,7 @@ impl Domain for MountainCar {
 
     fn is_terminal(&self) -> bool { self.x >= X_MAX }
 
-    fn reward(
-        &self,
-        _: &Observation<Vec<f64>, usize>,
-        to: &Observation<Vec<f64>, usize>,
-    ) -> f64
-    {
+    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
         match to {
             &Observation::Terminal(_) => REWARD_GOAL,
             _ => REWARD_STEP,

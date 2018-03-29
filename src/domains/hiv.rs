@@ -1,10 +1,9 @@
+use super::{Domain, Observation, Transition, runge_kutta4};
 use Vector;
-use geometry::{ActionSpace, RegularSpace};
 use geometry::dimensions::{Continuous, Discrete};
+use geometry::{ActionSpace, RegularSpace};
 use ndarray::{Ix1, NdIndex};
 use std::ops::Index;
-use super::{Domain, Observation, Transition, runge_kutta4};
-
 
 // Model parameters
 // (https://pdfs.semanticscholar.org/c030/127238b1dbad2263fba6b64b5dec7c3ffa20.pdf):
@@ -128,7 +127,9 @@ impl Domain for HIVTreatment {
     type ActionSpace = ActionSpace;
 
     fn emit(&self) -> Observation<Vec<f64>, usize> {
-        let s = self.state.mapv(|v| clip!(LIMITS.0, v.log10(), LIMITS.1)).to_vec();
+        let s = self.state
+            .mapv(|v| clip!(LIMITS.0, v.log10(), LIMITS.1))
+            .to_vec();
 
         if self.is_terminal() {
             Observation::Terminal(s)
@@ -157,12 +158,7 @@ impl Domain for HIVTreatment {
 
     fn is_terminal(&self) -> bool { false }
 
-    fn reward(
-        &self,
-        _: &Observation<Vec<f64>, usize>,
-        to: &Observation<Vec<f64>, usize>,
-    ) -> f64
-    {
+    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
         let s = to.state();
         let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps.0.powf(2.0)
             - 2e3 * self.eps.1.powf(2.0);

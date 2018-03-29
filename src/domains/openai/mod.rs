@@ -1,15 +1,14 @@
 extern crate cpython;
 
-use geometry::{ActionSpace, RegularSpace};
-use geometry::dimensions::{Continuous, Discrete};
 use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
+use super::{Domain, Observation, Transition};
+use geometry::dimensions::{Continuous, Discrete};
+use geometry::{ActionSpace, RegularSpace};
 use std::collections::HashSet;
 use std::f64;
-use super::{Domain, Observation, Transition};
 
 mod client;
 use self::client::GymClient;
-
 
 pub struct OpenAIGym {
     client: GymClient,
@@ -110,12 +109,7 @@ impl Domain for OpenAIGym {
 
     fn is_terminal(&self) -> bool { self.terminal }
 
-    fn reward(
-        &self,
-        _: &Observation<Vec<f64>, usize>,
-        _: &Observation<Vec<f64>, usize>,
-    ) -> f64
-    {
+    fn reward(&self, _: &Observation<Vec<f64>, usize>, _: &Observation<Vec<f64>, usize>) -> f64 {
         self.last_reward
     }
 

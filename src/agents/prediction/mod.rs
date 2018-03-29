@@ -11,9 +11,9 @@ pub trait TDPredictor<S: Sized>: Predictor<S> {
     fn compute_td_error(&self, sample: &Self::Sample) -> f64;
 }
 
+pub mod gtd;
 pub mod mc;
 pub mod td;
-pub mod gtd;
 
 // TODO:
 // Implement the algorithms discussed in https://arxiv.org/pdf/1304.3999.pdf

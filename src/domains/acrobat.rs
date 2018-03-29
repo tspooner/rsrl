@@ -1,10 +1,12 @@
-use Vector;
+use super::{Domain, Observation, Transition, runge_kutta4};
 use consts::{PI_OVER_2, G};
-use geometry::{ActionSpace, RegularSpace};
-use geometry::dimensions::{Continuous, Discrete};
+use geometry::{
+    ActionSpace, RegularSpace,
+    dimensions::{Continuous, Discrete},
+};
 use ndarray::{Ix1, NdIndex};
 use std::f64::consts::PI;
-use super::{Domain, Observation, Transition, runge_kutta4};
+use {Vector};
 
 // Link masses:
 const M1: f64 = 1.0;
@@ -56,8 +58,9 @@ unsafe impl NdIndex<Ix1> for StateIndex {
 
 /// Classic double pendulum control domain.
 ///
-/// The acrobot is a 2-link pendulum environment in which only the second joint actuated. The goal
-/// is to swing the end-effector to a distance equal to the length of one link above the base.
+/// The acrobot is a 2-link pendulum environment in which only the second joint
+/// actuated. The goal is to swing the end-effector to a distance equal to the
+/// length of one link above the base.
 ///
 /// See [https://www.math24.net/double-pendulum/](https://www.math24.net/double-pendulum/)
 pub struct Acrobat {
@@ -152,12 +155,7 @@ impl Domain for Acrobat {
         theta1.cos() + (theta1 + theta2).cos() < -1.0
     }
 
-    fn reward(
-        &self,
-        _: &Observation<Vec<f64>, usize>,
-        to: &Observation<Vec<f64>, usize>,
-    ) -> f64
-    {
+    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
         match to {
             &Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,

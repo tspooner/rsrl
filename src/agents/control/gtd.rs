@@ -1,15 +1,16 @@
-use {Parameter, Vector};
 use agents::{Agent, Controller};
 use domains::Transition;
 use fa::{Approximator, MultiLinear, Projection, Projector, QFunction, SimpleLinear, VFunction};
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
+use {Parameter, Vector};
 
 /// Greedy GQ control algorithm.
 ///
-/// Maei, Hamid R., et al. "Toward off-policy learning control with function approximation."
-/// Proceedings of the 27th International Conference on Machine Learning (ICML-10). 2010.
+/// Maei, Hamid R., et al. "Toward off-policy learning control with function
+/// approximation." Proceedings of the 27th International Conference on Machine
+/// Learning (ICML-10). 2010.
 pub struct GreedyGQ<S: ?Sized, M: Projector<S>, P: Policy> {
     pub fa_theta: MultiLinear<S, M>,
     pub fa_w: SimpleLinear<S, M>,
@@ -91,7 +92,9 @@ impl<S, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr> for GreedyGQ<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
+    for GreedyGQ<S, M, P>
+{
     fn pi(&mut self, s: &S) -> usize { self.evaluate_policy(&mut Greedy, s) }
 
     fn mu(&mut self, s: &S) -> usize {

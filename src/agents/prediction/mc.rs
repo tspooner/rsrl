@@ -3,7 +3,6 @@ use agents::{Agent, Predictor};
 use fa::VFunction;
 use std::marker::PhantomData;
 
-
 pub struct EveryVisitMC<S, V: VFunction<S>> {
     pub v_func: V,
     observations: Vec<(S, f64)>,

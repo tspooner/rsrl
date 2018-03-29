@@ -1,6 +1,5 @@
-use {Parameter, Vector};
-use agents::{Agent, Controller};
 use agents::memory::Trace;
+use agents::{Agent, Controller};
 use domains::Transition;
 use fa::{Approximator, MultiLinear, Projection, Projector, QFunction};
 use geometry::{ActionSpace, Space};
@@ -8,13 +7,15 @@ use policies::{Greedy, Policy};
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use utils::dot;
+use {Parameter, Vector};
 
 /// Watkins' Q-learning.
 ///
 /// # References
-/// - Watkins, C. J. C. H. (1989). Learning from Delayed Rewards. Ph.D. thesis, Cambridge
-/// University.
-/// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning, 8:279–292.
+/// - Watkins, C. J. C. H. (1989). Learning from Delayed Rewards. Ph.D. thesis,
+/// Cambridge University.
+/// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
+/// 8:279–292.
 pub struct QLearning<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
@@ -98,9 +99,10 @@ where
 /// Watkins' Q-learning with eligibility traces.
 ///
 /// # References
-/// - Watkins, C. J. C. H. (1989). Learning from Delayed Rewards. Ph.D. thesis, Cambridge
-/// University.
-/// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning, 8:279–292.
+/// - Watkins, C. J. C. H. (1989). Learning from Delayed Rewards. Ph.D. thesis,
+/// Cambridge University.
+/// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
+/// 8:279–292.
 pub struct QLambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
 
@@ -180,7 +182,9 @@ impl<S, M: Projector<S>, P: Policy> Agent for QLambda<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr> for QLambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
+    for QLambda<S, M, P>
+{
     fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
@@ -203,10 +207,10 @@ impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr> 
 /// On-policy variant of Watkins' Q-learning (aka "modified Q-learning").
 ///
 /// # References
-/// - Rummery, G. A. (1995). Problem Solving with Reinforcement Learning. Ph.D thesis, Cambridge
-/// University.
-/// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing eligibility traces.
-/// Machine Learning 22:123–158.
+/// - Rummery, G. A. (1995). Problem Solving with Reinforcement Learning. Ph.D
+/// thesis, Cambridge University.
+/// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
+/// eligibility traces. Machine Learning 22:123–158.
 pub struct SARSA<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
@@ -285,13 +289,14 @@ where
     }
 }
 
-/// On-policy variant of Watkins' Q-learning with eligibility traces (aka "modified Q-learning").
+/// On-policy variant of Watkins' Q-learning with eligibility traces (aka
+/// "modified Q-learning").
 ///
 /// # References
-/// - Rummery, G. A. (1995). Problem Solving with Reinforcement Learning. Ph.D thesis, Cambridge
-/// University.
-/// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing eligibility traces.
-/// Machine Learning 22:123–158.
+/// - Rummery, G. A. (1995). Problem Solving with Reinforcement Learning. Ph.D
+/// thesis, Cambridge University.
+/// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
+/// eligibility traces. Machine Learning 22:123–158.
 pub struct SARSALambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
 
@@ -388,11 +393,12 @@ impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
 /// Action probability-weighted variant of SARSA (aka "summation Q-learning").
 ///
 /// # References
-/// - Rummery, G. A. (1995). Problem Solving with Reinforcement Learning. Ph.D thesis, Cambridge
-/// University.
-/// - van Seijen, H., van Hasselt, H., Whiteson, S., Wiering, M. (2009). A theoretical and
-/// empirical analysis of Expected Sarsa. In Proceedings of the IEEE Symposium on Adaptive Dynamic
-/// Programming and Reinforcement Learning, pp. 177–184.
+/// - Rummery, G. A. (1995). Problem Solving with Reinforcement Learning. Ph.D
+/// thesis, Cambridge University.
+/// - van Seijen, H., van Hasselt, H., Whiteson, S., Wiering, M. (2009). A
+/// theoretical and empirical analysis of Expected Sarsa. In Proceedings of the
+/// IEEE Symposium on Adaptive Dynamic Programming and Reinforcement Learning,
+/// pp. 177–184.
 pub struct ExpectedSARSA<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
@@ -477,16 +483,17 @@ where
 /// General multi-step temporal-difference learning algorithm.
 ///
 /// # Parameters
-/// - `sigma` varies the degree of sampling, yielding classical learning algorithms as special
-/// cases:
+/// - `sigma` varies the degree of sampling, yielding classical learning
+/// algorithms as special cases:
 ///     * `0` - `ExpectedSARSA` | `TreeBackup`
 ///     * `1` - `SARSA`
 ///
 /// # References
-/// - Sutton, R. S. and Barto, A. G. (2017). Reinforcement Learning: An Introduction (2nd ed.).
-/// Manuscript in preparation.
-/// - De Asis, K., Hernandez-Garcia, J. F., Holland, G. Z., & Sutton, R. S. (2017). Multi-step
-/// Reinforcement Learning: A Unifying Algorithm. arXiv preprint arXiv:1703.01327.
+/// - Sutton, R. S. and Barto, A. G. (2017). Reinforcement Learning: An
+/// Introduction (2nd ed.). Manuscript in preparation.
+/// - De Asis, K., Hernandez-Garcia, J. F., Holland, G. Z., & Sutton, R. S.
+/// (2017). Multi-step Reinforcement Learning: A Unifying Algorithm. arXiv
+/// preprint arXiv:1703.01327.
 pub struct QSigma<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,

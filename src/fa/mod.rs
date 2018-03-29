@@ -1,3 +1,5 @@
+//! Function approximation and value function representation module.
+
 use geometry::Vector;
 
 extern crate lfa;

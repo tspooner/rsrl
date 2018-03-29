@@ -137,7 +137,7 @@ mod tests {
         assert!(
             arr1(&Boltzmann::new(1.0).probabilities(&vec![0.0, 2.0])).all_close(
                 &arr1(&vec![1.0 / (1.0 + E * E), E * E / (1.0 + E * E)]),
-                1e-6
+                1e-6,
             )
         );
     }
