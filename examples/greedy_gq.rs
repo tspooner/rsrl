@@ -2,13 +2,14 @@ extern crate rsrl;
 #[macro_use]
 extern crate slog;
 
-use rsrl::{logging, run, Evaluation, Parameter, SerialExperiment};
-use rsrl::agents::control::gtd::GreedyGQ;
-use rsrl::domains::{Domain, MountainCar};
-use rsrl::fa::{MultiLinear, SimpleLinear};
-use rsrl::fa::projection::Fourier;
-use rsrl::geometry::Space;
-use rsrl::policies::EpsilonGreedy;
+use rsrl::{
+    logging, run, Evaluation, Parameter, SerialExperiment,
+    agents::control::gtd::GreedyGQ,
+    domains::{Domain, MountainCar},
+    fa::{MultiLinear, SimpleLinear, projection::Fourier},
+    geometry::Space,
+    policies::EpsilonGreedy
+};
 
 fn main() {
     let logger = logging::root(logging::stdout());

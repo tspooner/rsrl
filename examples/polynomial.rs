@@ -2,14 +2,17 @@ extern crate rsrl;
 #[macro_use]
 extern crate slog;
 
-use rsrl::{logging, run, Evaluation, Parameter, SerialExperiment};
-use rsrl::agents::control::td::SARSALambda;
-use rsrl::agents::memory::Trace;
-use rsrl::domains::{Domain, MountainCar};
-use rsrl::fa::MultiLinear;
-use rsrl::fa::projection::Polynomial;
-use rsrl::geometry::Space;
-use rsrl::policies::EpsilonGreedy;
+use rsrl::{
+    logging, run, Evaluation, Parameter, SerialExperiment,
+    agents::{
+        control::td::SARSALambda,
+        memory::Trace,
+    },
+    domains::{Domain, MountainCar},
+    fa::{MultiLinear, projection::Polynomial},
+    geometry::Space,
+    policies::EpsilonGreedy
+};
 
 fn main() {
     let domain = MountainCar::default();

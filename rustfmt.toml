@@ -1,5 +1,7 @@
 fn_single_line = true
 where_single_line = true
+imports_indent = "Block"
+imports_layout = "HorizontalVertical"
 match_block_trailing_comma = true
 normalize_comments = true
 reorder_imports = true
