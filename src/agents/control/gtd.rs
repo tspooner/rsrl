@@ -10,7 +10,7 @@ use {Parameter, Vector};
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function
 /// approximation." Proceedings of the 27th International Conference on Machine
 /// Learning (ICML-10). 2010.
-pub struct GreedyGQ<S: ?Sized, M: Projector<S>, P: Policy> {
+pub struct GreedyGQ<S: ?Sized, M: Projector<S>, P: Policy<[f64], usize>> {
     pub fa_theta: MultiLFA<S, M>,
     pub fa_w: SimpleLFA<S, M>,
 
@@ -23,7 +23,7 @@ pub struct GreedyGQ<S: ?Sized, M: Projector<S>, P: Policy> {
     phantom: PhantomData<S>,
 }
 
-impl<S: ?Sized, M: Projector<S>, P: Policy> GreedyGQ<S, M, P> {
+impl<S: ?Sized, M: Projector<S>, P: Policy<[f64], usize>> GreedyGQ<S, M, P> {
     pub fn new<T1, T2, T3>(
         fa_theta: MultiLFA<S, M>,
         fa_w: SimpleLFA<S, M>,
@@ -52,7 +52,7 @@ impl<S: ?Sized, M: Projector<S>, P: Policy> GreedyGQ<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
+impl<S, M: Projector<S>, P: Policy<[f64], usize>> Agent for GreedyGQ<S, M, P> {
     type Sample = Transition<S, usize>;
 
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
@@ -91,18 +91,14 @@ impl<S, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for GreedyGQ<S, M, P> {
-    fn pi(&mut self, s: &S) -> usize { self.evaluate_policy(&mut Greedy, s) }
+impl<S, M: Projector<S>, P: Policy<[f64], usize>> Controller<S, usize> for GreedyGQ<S, M, P> {
+    fn pi(&mut self, s: &S) -> usize {
+        Greedy.sample(self.fa_theta.evaluate(s).unwrap().as_slice().unwrap())
+    }
 
     fn mu(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
         self.policy.sample(qs.as_slice().unwrap())
-    }
-
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
-        let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
-
-        p.sample(qs.as_slice().unwrap())
     }
 }

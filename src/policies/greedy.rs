@@ -1,4 +1,4 @@
-use super::Policy;
+use super::{Policy, FinitePolicy};
 
 use utils::argmaxima;
 
@@ -7,23 +7,29 @@ use rand::Rng;
 
 pub struct Greedy;
 
-impl Policy for Greedy {
-    fn sample(&mut self, qs: &[f64]) -> usize {
-        let maxima = argmaxima(qs).1;
+impl Policy<[f64], usize> for Greedy {
+    fn sample(&mut self, q_values: &[f64]) -> usize {
+        let maxima = argmaxima(q_values).1;
 
         if maxima.len() == 1 {
             maxima[0]
         } else {
             *rand::thread_rng()
                 .choose(&maxima)
-                .expect("no valid actions to choose from in `Greedy::sample(qs)`")
+                .expect("No valid actions to choose from in `Greedy::sample(q_values)`")
         }
     }
 
-    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> {
-        let mut ps = vec![0.0; qs.len()];
+    fn probability(&mut self, q_values: &[f64], a: usize) -> f64 {
+        self.probabilities(q_values)[a]
+    }
+}
 
-        let maxima = argmaxima(qs).1;
+impl FinitePolicy<[f64]> for Greedy {
+    fn probabilities(&mut self, q_values: &[f64]) -> Vec<f64> {
+        let mut ps = vec![0.0; q_values.len()];
+
+        let maxima = argmaxima(q_values).1;
 
         let p = 1.0 / maxima.len() as f64;
         for i in maxima {

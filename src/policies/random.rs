@@ -1,6 +1,6 @@
-use super::Policy;
-use rand::distributions::{IndependentSample, Range};
 use rand::{thread_rng, ThreadRng};
+use rand::distributions::{IndependentSample, Range};
+use super::{Policy, FinitePolicy};
 
 pub struct Random {
     rng: ThreadRng,
@@ -10,10 +10,22 @@ impl Random {
     pub fn new() -> Self { Random { rng: thread_rng() } }
 }
 
-impl Policy for Random {
-    fn sample(&mut self, qs: &[f64]) -> usize { Range::new(0, qs.len()).ind_sample(&mut self.rng) }
+impl Policy<[f64], usize> for Random {
+    fn sample(&mut self, q_values: &[f64]) -> usize {
+        Range::new(0, q_values.len()).ind_sample(&mut self.rng)
+    }
 
-    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64> { vec![1.0 / qs.len() as f64; qs.len()] }
+    fn probability(&mut self, q_values: &[f64], _: usize) -> f64 {
+        1.0 / q_values.len() as f64
+    }
+}
+
+impl FinitePolicy<[f64]> for Random {
+    fn probabilities(&mut self, q_values: &[f64]) -> Vec<f64> {
+        let n = q_values.len();
+
+        vec![1.0 / n as f64; n]
+    }
 }
 
 #[cfg(test)]

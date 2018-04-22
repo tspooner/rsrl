@@ -10,7 +10,7 @@ pub struct ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,
-    P: Policy,
+    P: Policy<[f64], usize>,
 {
     pub q_func: Q, // actor
     pub critic: C,
@@ -27,7 +27,7 @@ impl<S, Q, C, P> ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,
-    P: Policy,
+    P: Policy<[f64], usize>,
 {
     pub fn new<T1, T2>(q_func: Q, critic: C, policy: P, beta: T1, gamma: T2) -> Self
     where
@@ -52,7 +52,7 @@ impl<S: Clone, Q, C, P> Agent for ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,
-    P: Policy,
+    P: Policy<[f64], usize>,
 {
     type Sample = Transition<S, usize>;
 
@@ -78,7 +78,7 @@ impl<S: Clone, Q, C, P> Controller<S, usize> for ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,
-    P: Policy,
+    P: Policy<[f64], usize>,
 {
     fn pi(&mut self, s: &S) -> usize {
         Greedy.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
@@ -87,9 +87,5 @@ where
     fn mu(&mut self, s: &S) -> usize {
         self.policy
             .sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
-    }
-
-    fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
-        p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
     }
 }

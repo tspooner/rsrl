@@ -1,7 +1,6 @@
 use agents::Controller;
 use domains::{Domain, Observation};
 use geometry::{dimensions::Discrete, Space};
-use policies::Greedy;
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
 
 /// Container for episodic statistics.
@@ -44,8 +43,6 @@ where T: Iterator<Item = Episode> {
 pub struct Evaluation<'a, A: 'a, D> {
     agent: &'a mut A,
     domain_factory: Box<Fn() -> D>,
-
-    greedy: Greedy,
 }
 
 impl<'a, S: Space, A, D> Evaluation<'a, A, D>
@@ -57,8 +54,6 @@ where
         Evaluation {
             agent: agent,
             domain_factory: domain_factory,
-
-            greedy: Greedy,
         }
     }
 }
@@ -72,8 +67,7 @@ where
 
     fn next(&mut self) -> Option<Episode> {
         let mut domain = (self.domain_factory)();
-        let mut a = self.agent
-            .evaluate_policy(&mut self.greedy, &domain.emit().state());
+        let mut a = self.agent.pi(&domain.emit().state());
 
         let mut e = Episode {
             steps: 1,
@@ -91,7 +85,7 @@ where
                     self.agent.handle_terminal(&t);
                     break;
                 },
-                _ => self.agent.evaluate_policy(&mut self.greedy, &t.to.state()),
+                _ => self.agent.pi(&t.to.state()),
             };
         }
 

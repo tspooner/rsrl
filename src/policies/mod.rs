@@ -1,17 +1,20 @@
 //! Agent policy module.
 
-// TODO: Add support for generic action spaces representation.
 /// Policy trait for functions that select between a set of values.
-pub trait Policy {
-    /// Sample the policy distribution for a set of exogenous input values.
-    fn sample(&mut self, qs: &[f64]) -> usize;
+pub trait Policy<I: ?Sized, A> {
+    /// Sample the policy distribution for a given input.
+    fn sample(&mut self, input: &I) -> A;
 
-    /// Return the probability of selecting each value in a given set of input
-    /// values.
-    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64>;
+    /// Return the probability of selecting an action for a given input.
+    fn probability(&mut self, input: &I, a: A) -> f64;
 
     /// Update the policy after reaching a terminal state.
     fn handle_terminal(&mut self) {}
+}
+
+pub trait FinitePolicy<I: ?Sized>: Policy<I, usize> {
+    /// Return the probability of selecting each action for a given input.
+    fn probabilities(&mut self, input: &I) -> Vec<f64>;
 }
 
 mod random;
@@ -24,4 +27,7 @@ mod epsilon_greedy;
 pub use self::epsilon_greedy::EpsilonGreedy;
 
 mod boltzmann;
-pub use self::boltzmann::{Boltzmann, TruncatedBoltzmann};
+pub use self::boltzmann::Boltzmann;
+
+mod truncated_boltzmann;
+pub use self::truncated_boltzmann::TruncatedBoltzmann;
