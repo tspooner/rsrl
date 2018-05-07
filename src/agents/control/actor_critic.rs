@@ -2,7 +2,6 @@ use Parameter;
 use agents::{Agent, Controller, TDPredictor};
 use domains::Transition;
 use fa::QFunction;
-use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
 
@@ -55,7 +54,7 @@ where
     C: TDPredictor<S>,
     P: Policy,
 {
-    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
+    type Sample = Transition<S, usize>;
 
     fn handle_sample(&mut self, t: &Self::Sample) {
         let (s, ns) = (t.from.state(), t.to.state());
@@ -75,7 +74,7 @@ where
     }
 }
 
-impl<S: Clone, Q, C, P> Controller<S, <ActionSpace as Space>::Repr> for ActorCritic<S, Q, C, P>
+impl<S: Clone, Q, C, P> Controller<S, usize> for ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,

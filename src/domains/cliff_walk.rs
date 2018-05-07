@@ -1,5 +1,5 @@
 use geometry::{
-    ActionSpace, PairSpace,
+    PairSpace,
     dimensions::Discrete,
 };
 use super::{
@@ -39,7 +39,7 @@ impl Default for CliffWalk {
 
 impl Domain for CliffWalk {
     type StateSpace = PairSpace<Discrete, Discrete>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
     fn emit(&self) -> Observation<(usize, usize), usize> {
         if self.is_terminal() {
@@ -100,5 +100,5 @@ impl Domain for CliffWalk {
         )
     }
 
-    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(4)) }
+    fn action_space(&self) -> Discrete { Discrete::new(4) }
 }

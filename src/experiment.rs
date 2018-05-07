@@ -1,6 +1,6 @@
 use agents::Controller;
 use domains::{Domain, Observation};
-use geometry::{ActionSpace, Space};
+use geometry::{Space, dimensions::Discrete};
 use policies::Greedy;
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
 
@@ -50,8 +50,8 @@ pub struct Evaluation<'a, A: 'a, D> {
 
 impl<'a, S: Space, A, D> Evaluation<'a, A, D>
 where
-    A: Controller<S::Repr, <ActionSpace as Space>::Repr>,
-    D: Domain<StateSpace = S, ActionSpace = ActionSpace>,
+    A: Controller<S::Value, usize>,
+    D: Domain<StateSpace = S, ActionSpace = Discrete>,
 {
     pub fn new(agent: &'a mut A, domain_factory: Box<Fn() -> D>) -> Evaluation<'a, A, D> {
         Evaluation {
@@ -65,8 +65,8 @@ where
 
 impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
 where
-    A: Controller<S::Repr, <ActionSpace as Space>::Repr>,
-    D: Domain<StateSpace = S, ActionSpace = ActionSpace>,
+    A: Controller<S::Value, usize>,
+    D: Domain<StateSpace = S, ActionSpace = Discrete>,
 {
     type Item = Episode;
 
@@ -109,8 +109,8 @@ pub struct SerialExperiment<'a, A: 'a, D> {
 
 impl<'a, S: Space, A, D> SerialExperiment<'a, A, D>
 where
-    A: Controller<S::Repr, <ActionSpace as Space>::Repr>,
-    D: Domain<StateSpace = S, ActionSpace = ActionSpace>,
+    A: Controller<S::Value, usize>,
+    D: Domain<StateSpace = S, ActionSpace = Discrete>,
 {
     pub fn new(
         agent: &'a mut A,
@@ -128,8 +128,8 @@ where
 
 impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
 where
-    A: Controller<S::Repr, <ActionSpace as Space>::Repr>,
-    D: Domain<StateSpace = S, ActionSpace = ActionSpace>,
+    A: Controller<S::Value, usize>,
+    D: Domain<StateSpace = S, ActionSpace = Discrete>,
 {
     type Item = Episode;
 

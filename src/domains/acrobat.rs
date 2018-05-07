@@ -1,7 +1,7 @@
 use super::{Domain, Observation, Transition, runge_kutta4};
 use consts::{PI_OVER_2, G};
 use geometry::{
-    ActionSpace, RegularSpace,
+    RegularSpace,
     dimensions::{Continuous, Discrete},
 };
 use ndarray::{Ix1, NdIndex};
@@ -120,7 +120,7 @@ impl Default for Acrobat {
 
 impl Domain for Acrobat {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
     fn emit(&self) -> Observation<Vec<f64>, usize> {
         if self.is_terminal() {
@@ -169,7 +169,7 @@ impl Domain for Acrobat {
             + Continuous::new(LIMITS_DTHETA2.0, LIMITS_DTHETA2.1)
     }
 
-    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(3)) }
+    fn action_space(&self) -> Discrete { Discrete::new(3) }
 }
 
 #[cfg(test)]

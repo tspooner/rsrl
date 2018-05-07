@@ -1,6 +1,5 @@
+use geometry::{RegularSpace, dimensions::{Continuous, Discrete}};
 use super::{Domain, Observation, Transition};
-use geometry::dimensions::{Continuous, Discrete};
-use geometry::{ActionSpace, RegularSpace};
 
 const X_MIN: f64 = -1.2;
 const X_MAX: f64 = 0.6;
@@ -68,7 +67,7 @@ impl Default for MountainCar {
 
 impl Domain for MountainCar {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
     fn emit(&self) -> Observation<Vec<f64>, usize> {
         let s = vec![self.x, self.v];
@@ -111,7 +110,7 @@ impl Domain for MountainCar {
         RegularSpace::empty() + Continuous::new(X_MIN, X_MAX) + Continuous::new(V_MIN, V_MAX)
     }
 
-    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(3)) }
+    fn action_space(&self) -> Discrete { Discrete::new(3) }
 }
 
 #[cfg(test)]
