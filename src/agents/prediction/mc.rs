@@ -1,7 +1,7 @@
-use Parameter;
 use agents::{Agent, Predictor};
 use fa::VFunction;
 use std::marker::PhantomData;
+use Parameter;
 
 pub struct EveryVisitMC<S, V: VFunction<S>> {
     pub v_func: V,

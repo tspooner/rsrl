@@ -1,9 +1,9 @@
-use Parameter;
 use agents::{Agent, Controller, TDPredictor};
 use domains::Transition;
 use fa::QFunction;
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
+use Parameter;
 
 /// Regular gradient descent actor critic.
 pub struct ActorCritic<S, Q, C, P>

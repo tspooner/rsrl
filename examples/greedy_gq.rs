@@ -3,12 +3,16 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    logging, run, Evaluation, Parameter, SerialExperiment,
     agents::control::gtd::GreedyGQ,
     domains::{Domain, MountainCar},
-    fa::{MultiLinear, SimpleLinear, projection::Fourier},
+    fa::{projection::Fourier, MultiLinear, SimpleLinear},
     geometry::Space,
-    policies::EpsilonGreedy
+    logging,
+    policies::EpsilonGreedy,
+    run,
+    Evaluation,
+    Parameter,
+    SerialExperiment,
 };
 
 fn main() {

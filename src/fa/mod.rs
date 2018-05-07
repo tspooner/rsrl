@@ -3,8 +3,8 @@
 use geometry::Vector;
 
 extern crate lfa;
+use self::lfa::approximators::{Multi, Simple};
 pub use self::lfa::*;
-use self::lfa::approximators::{Simple, Multi};
 
 mod table;
 pub use self::table::Table;
@@ -22,9 +22,7 @@ pub trait VFunction<I: ?Sized>: Approximator<I, Value = f64> {
 }
 
 impl<I: ?Sized, P: Projector<I>> VFunction<I> for SimpleLFA<I, P> {
-    fn evaluate_phi(&self, phi: &Projection) -> f64 {
-        self.approximator.evaluate(phi).unwrap()
-    }
+    fn evaluate_phi(&self, phi: &Projection) -> f64 { self.approximator.evaluate(phi).unwrap() }
 
     fn update_phi(&mut self, phi: &Projection, update: f64) {
         self.approximator.update(phi, update);

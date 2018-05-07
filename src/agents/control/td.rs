@@ -181,9 +181,7 @@ impl<S, M: Projector<S>, P: Policy> Agent for QLambda<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, usize>
-    for QLambda<S, M, P>
-{
+impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for QLambda<S, M, P> {
     fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
@@ -371,9 +369,7 @@ impl<S, M: Projector<S>, P: Policy> Agent for SARSALambda<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, usize>
-    for SARSALambda<S, M, P>
-{
+impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for SARSALambda<S, M, P> {
     fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
@@ -654,8 +650,8 @@ where
 /// Persistent Advantage Learning
 ///
 /// # References
-/// - Bellemare, Marc G., et al. "Increasing the Action Gap: New Operators for Reinforcement
-/// Learning." AAAI. 2016.
+/// - Bellemare, Marc G., et al. "Increasing the Action Gap: New Operators for
+/// Reinforcement Learning." AAAI. 2016.
 pub struct PAL<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,

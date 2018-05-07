@@ -2,7 +2,10 @@ extern crate cpython;
 
 use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
 use super::{Domain, Observation, Transition};
-use geometry::{RegularSpace, dimensions::{Continuous, Discrete}};
+use geometry::{
+    dimensions::{Continuous, Discrete},
+    RegularSpace,
+};
 use std::collections::HashSet;
 use std::f64;
 

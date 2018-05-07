@@ -1,8 +1,8 @@
-use Parameter;
 use agents::memory::Trace;
 use agents::{Agent, Predictor, TDPredictor};
-use fa::{Approximator, SimpleLFA, Projection, Projector, VFunction};
+use fa::{Approximator, Projection, Projector, SimpleLFA, VFunction};
 use std::marker::PhantomData;
+use Parameter;
 
 pub struct TD<S: ?Sized, V: VFunction<S>> {
     pub v_func: V,

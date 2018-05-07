@@ -1,8 +1,8 @@
 use super::Policy;
 
-use Parameter;
 use rand::{thread_rng, Rng, ThreadRng};
 use std::f64;
+use Parameter;
 
 pub struct Boltzmann {
     tau: Parameter,

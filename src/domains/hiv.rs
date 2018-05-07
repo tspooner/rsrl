@@ -1,5 +1,8 @@
-use super::{Domain, Observation, Transition, runge_kutta4};
-use geometry::{RegularSpace, dimensions::{Continuous, Discrete}};
+use super::{runge_kutta4, Domain, Observation, Transition};
+use geometry::{
+    dimensions::{Continuous, Discrete},
+    RegularSpace,
+};
 use ndarray::{Ix1, NdIndex};
 use std::ops::Index;
 use Vector;

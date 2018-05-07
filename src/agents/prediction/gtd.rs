@@ -1,6 +1,6 @@
-use Parameter;
 use agents::{Agent, Predictor};
 use fa::{Approximator, Projection, Projector, SimpleLFA, VFunction};
+use Parameter;
 
 // TODO: Implement TDPredictor for all agents here.
 

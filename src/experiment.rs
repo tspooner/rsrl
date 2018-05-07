@@ -1,6 +1,6 @@
 use agents::Controller;
 use domains::{Domain, Observation};
-use geometry::{Space, dimensions::Discrete};
+use geometry::{dimensions::Discrete, Space};
 use policies::Greedy;
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
 
