@@ -5,7 +5,7 @@ extern crate slog;
 use rsrl::{
     agents::control::gtd::GreedyGQ,
     domains::{Domain, MountainCar},
-    fa::{projection::Fourier, MultiLinear, SimpleLinear},
+    fa::{projectors::fixed::Fourier, LFA},
     geometry::Space,
     logging,
     policies::EpsilonGreedy,
@@ -20,12 +20,12 @@ fn main() {
 
     let domain = MountainCar::default();
     let mut agent = {
-        let n_actions = domain.action_space().span().into();
+        let n_actions = domain.action_space().card().into();
 
         // Build the linear value functions using a fourier basis projection.
         let bases = Fourier::from_space(3, domain.state_space());
-        let v_func = SimpleLinear::new(bases.clone());
-        let q_func = MultiLinear::new(bases, n_actions);
+        let v_func = LFA::simple(bases.clone());
+        let q_func = LFA::multi(bases, n_actions);
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
