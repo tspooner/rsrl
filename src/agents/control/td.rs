@@ -6,7 +6,6 @@ use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::collections::VecDeque;
 use std::marker::PhantomData;
-use utils::dot;
 use {Parameter, Vector};
 
 /// Watkins' Q-learning.
@@ -446,10 +445,8 @@ where
 
         let a = t.action;
 
-        let exp_nqs = dot(
-            nqs.as_slice().unwrap(),
-            &self.policy.probabilities(nqs.as_slice().unwrap()),
-        );
+        let pi: Vector<f64> = self.policy.probabilities(nqs.as_slice().unwrap()).into();
+        let exp_nqs = pi.dot(&nqs);
         let td_error = t.reward + self.gamma * exp_nqs - qs[a];
 
         self.q_func.update_action(s, a, self.alpha * td_error);
@@ -591,12 +588,12 @@ where
         let nqs_slice = nqs.as_slice().unwrap();
 
         let na = self.policy.sample(nqs_slice);
-        let npi = Greedy.probabilities(nqs_slice);
         let nmu = self.policy.probabilities(nqs_slice);
+        let npi: Vector<f64> = Greedy.probabilities(nqs_slice).into();
 
         let q = self.q_func.evaluate_action(s, t.action);
         let nq = nqs[na];
-        let exp_nqs = dot(nqs_slice, &npi);
+        let exp_nqs = nqs.dot(&npi);
 
         let sigma = {
             self.sigma = self.sigma.step();

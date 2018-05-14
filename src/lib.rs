@@ -8,9 +8,6 @@ extern crate slog;
 extern crate slog_async;
 extern crate slog_term;
 
-extern crate blas;
-extern crate openblas_src;
-
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

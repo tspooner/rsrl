@@ -1,14 +1,6 @@
 #![allow(dead_code)]
 
-use blas::ddot;
-use std::cmp::min;
 use std::f64;
-
-pub fn dot(x: &[f64], y: &[f64]) -> f64 {
-    let n: i32 = min(x.len() as i32, y.len() as i32);
-
-    unsafe { ddot(n, x, 1, y, 1) }
-}
 
 pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
     let mut max = f64::MIN;
