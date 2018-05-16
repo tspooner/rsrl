@@ -1,5 +1,6 @@
 use Parameter;
 use agents::{Agent, Predictor};
+use domains::Transition;
 use fa::VFunction;
 use std::marker::PhantomData;
 
@@ -43,10 +44,10 @@ impl<S, V: VFunction<S>> EveryVisitMC<S, V> {
 }
 
 impl<S: Clone, V: VFunction<S>> Agent for EveryVisitMC<S, V> {
-    type Sample = (S, S, f64);
+    type Sample = Transition<S, ()>;
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
-        self.observations.push((sample.0.clone(), sample.2.clone()));
+        self.observations.push((sample.from.state().clone(), sample.reward));
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {
