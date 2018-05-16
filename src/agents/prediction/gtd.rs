@@ -1,6 +1,7 @@
-use agents::{Agent, Predictor};
+use agents::Predictor;
+use domains::Transition;
 use fa::{Approximator, Projection, Projector, SimpleLFA, VFunction};
-use Parameter;
+use {Handler, Parameter};
 
 // TODO: Implement TDPredictor for all agents here.
 
@@ -41,14 +42,14 @@ impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Agent for GTD2<S, P> {
-    type Sample = (S, S, f64);
+impl<S, P: Projector<S>> Handler for GTD2<S, P> {
+    type Sample = Transition<S, ()>;
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
-        let phi_s = self.fa_theta.projector.project(&sample.0);
-        let phi_ns = self.fa_theta.projector.project(&sample.1);
+        let phi_s = self.fa_theta.projector.project(&sample.from.state());
+        let phi_ns = self.fa_theta.projector.project(&sample.to.state());
 
-        let td_error = sample.2 + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
+        let td_error = sample.reward + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
             - self.fa_theta.evaluate_phi(&phi_s);
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 
@@ -109,14 +110,14 @@ impl<S: ?Sized, P: Projector<S>> TDC<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Agent for TDC<S, P> {
-    type Sample = (S, S, f64);
+impl<S, P: Projector<S>> Handler for TDC<S, P> {
+    type Sample = Transition<S, ()>;
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
-        let phi_s = self.fa_theta.projector.project(&sample.0);
-        let phi_ns = self.fa_theta.projector.project(&sample.1);
+        let phi_s = self.fa_theta.projector.project(&sample.from.state());
+        let phi_ns = self.fa_theta.projector.project(&sample.to.state());
 
-        let td_error = sample.2 + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
+        let td_error = sample.reward + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
             - self.fa_theta.evaluate_phi(&phi_s);
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 

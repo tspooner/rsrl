@@ -1,8 +1,8 @@
 //! Prediction agents module.
+use domains::Transition;
+use Handler;
 
-use super::Agent;
-
-pub trait Predictor<S: Sized>: Agent<Sample = (S, S, f64)> {
+pub trait Predictor<S: Sized>: Handler<Sample = Transition<S, ()>> {
     fn evaluate(&self, s: &S) -> f64;
 }
 

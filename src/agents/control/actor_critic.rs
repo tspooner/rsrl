@@ -1,9 +1,9 @@
-use agents::{Agent, Controller, TDPredictor};
+use agents::{Controller, TDPredictor};
 use domains::Transition;
 use fa::QFunction;
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
-use Parameter;
+use {Handler, Parameter};
 
 /// Regular gradient descent actor critic.
 pub struct ActorCritic<S, Q, C, P>
@@ -48,7 +48,7 @@ where
     }
 }
 
-impl<S: Clone, Q, C, P> Agent for ActorCritic<S, Q, C, P>
+impl<S: Clone, Q, C, P> Handler for ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,
@@ -57,13 +57,11 @@ where
     type Sample = Transition<S, usize>;
 
     fn handle_sample(&mut self, t: &Self::Sample) {
-        let (s, ns) = (t.from.state(), t.to.state());
-        let p_sample = (s.clone(), ns.clone(), t.reward);
-
+        let p_sample = t.into();
         let td_error = self.critic.compute_td_error(&p_sample);
 
         self.critic.handle_td_error(&p_sample, td_error);
-        self.q_func.update_action(s, t.action, self.beta * td_error);
+        self.q_func.update_action(t.from.state(), t.action, self.beta * td_error);
     }
 
     fn handle_terminal(&mut self, _: &Self::Sample) {

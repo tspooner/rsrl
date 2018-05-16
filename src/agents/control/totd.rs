@@ -1,10 +1,9 @@
-use agents::memory::Trace;
-use agents::{Agent, Controller};
+use agents::{Controller, memory::Trace};
 use domains::Transition;
 use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
-use {Parameter, Vector};
+use {Handler, Parameter, Vector};
 
 /// True online variant of the Q(lambda) algorithm.
 ///
@@ -66,7 +65,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Controller<S, usize> for TOQLa
     fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Agent for TOQLambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for TOQLambda<S, M, P> {
     type Sample = Transition<S, usize>;
 
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
@@ -177,7 +176,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Controller<S, usize> for TOSAR
     fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Agent for TOSARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for TOSARSALambda<S, M, P> {
     type Sample = Transition<S, usize>;
 
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
