@@ -2,7 +2,7 @@ pub trait Handler {
     type Sample;
 
     #[allow(unused_variables)]
-    fn handle_sample(&mut self, sample: &Self::Sample);
+    fn handle_sample(&mut self, sample: &Self::Sample) {}
 
     #[allow(unused_variables)]
     fn handle_terminal(&mut self, sample: &Self::Sample) {}
