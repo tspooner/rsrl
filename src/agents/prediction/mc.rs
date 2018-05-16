@@ -43,14 +43,12 @@ impl<S, V: VFunction<S>> EveryVisitMC<S, V> {
     }
 }
 
-impl<S: Clone, V: VFunction<S>> Handler for EveryVisitMC<S, V> {
-    type Sample = Transition<S, ()>;
-
-    fn handle_sample(&mut self, sample: &Self::Sample) {
+impl<S: Clone, V: VFunction<S>> Handler<Transition<S, ()>> for EveryVisitMC<S, V> {
+    fn handle_sample(&mut self, sample: &Transition<S, ()>) {
         self.observations.push((sample.from.state().clone(), sample.reward));
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, ()>) {
         self.propagate();
 
         self.alpha = self.alpha.step();

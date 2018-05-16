@@ -52,9 +52,7 @@ impl<S: ?Sized, M: Projector<S>, P: Policy<[f64], usize>> GreedyGQ<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for GreedyGQ<S, M, P> {
-    type Sample = Transition<S, usize>;
-
+impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> for GreedyGQ<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
@@ -82,7 +80,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for GreedyGQ<S, M, P> 
             .update_action_phi(&Projection::Dense(update_q), a, self.alpha.value());
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.beta = self.beta.step();
         self.gamma = self.gamma.step();

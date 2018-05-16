@@ -65,9 +65,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Controller<S, usize> for TOQLa
     fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for TOQLambda<S, M, P> {
-    type Sample = Transition<S, usize>;
-
+impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> for TOQLambda<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -107,7 +105,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for TOQLambda<S, M, P>
         self.q_old = nqs[na];
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -176,9 +174,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Controller<S, usize> for TOSAR
     fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for TOSARSALambda<S, M, P> {
-    type Sample = Transition<S, usize>;
-
+impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> for TOSARSALambda<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -213,7 +209,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for TOSARSALambda<S, M
         self.q_old = nqs[na];
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 

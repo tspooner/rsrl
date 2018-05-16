@@ -48,15 +48,13 @@ where
     }
 }
 
-impl<S: Clone, Q, C, P> Handler for ActorCritic<S, Q, C, P>
+impl<S: Clone, Q, C, P> Handler<Transition<S, usize>> for ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,
     P: Policy<[f64], usize>,
 {
-    type Sample = Transition<S, usize>;
-
-    fn handle_sample(&mut self, t: &Self::Sample) {
+    fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let p_sample = t.into();
         let td_error = self.critic.compute_td_error(&p_sample);
 
@@ -64,7 +62,7 @@ where
         self.q_func.update_action(t.from.state(), t.action, self.beta * td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.beta = self.beta.step();
         self.gamma = self.gamma.step();
 

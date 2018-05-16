@@ -45,13 +45,11 @@ where
     }
 }
 
-impl<S, Q, P> Handler for QLearning<S, Q, P>
+impl<S, Q, P> Handler<Transition<S, usize>> for QLearning<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy<[f64], usize>,
 {
-    type Sample = Transition<S, usize>;
-
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -64,7 +62,7 @@ where
         self.q_func.update_action(s, t.action, self.alpha * td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -132,9 +130,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> QLambda<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for QLambda<S, M, P> {
-    type Sample = Transition<S, usize>;
-
+impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> for QLambda<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -163,7 +159,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for QLambda<S, M, P> {
         );
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -225,13 +221,11 @@ where
     }
 }
 
-impl<S, Q, P> Handler for SARSA<S, Q, P>
+impl<S, Q, P> Handler<Transition<S, usize>> for SARSA<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy<[f64], usize>,
 {
-    type Sample = Transition<S, usize>;
-
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -244,7 +238,7 @@ where
         self.q_func.update_action(s, t.action, self.alpha * td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -311,9 +305,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> SARSALambda<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for SARSALambda<S, M, P> {
-    type Sample = Transition<S, usize>;
-
+impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> for SARSALambda<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -338,7 +330,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler for SARSALambda<S, M, 
         );
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -398,13 +390,11 @@ where
     }
 }
 
-impl<S, Q, P> Handler for ExpectedSARSA<S, Q, P>
+impl<S, Q, P> Handler<Transition<S, usize>> for ExpectedSARSA<S, Q, P>
 where
     Q: QFunction<S>,
     P: FinitePolicy<[f64]>,
 {
-    type Sample = Transition<S, usize>;
-
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -418,7 +408,7 @@ where
         self.q_func.update_action(s, t.action, self.alpha * td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -536,13 +526,11 @@ struct BackupEntry<S> {
     pub mu: f64,
 }
 
-impl<S: Clone, Q, P> Handler for QSigma<S, Q, P>
+impl<S: Clone, Q, P> Handler<Transition<S, usize>> for QSigma<S, Q, P>
 where
     Q: QFunction<S>,
     P: FinitePolicy<[f64]>,
 {
-    type Sample = Transition<S, usize>;
-
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -582,7 +570,7 @@ where
         }
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         // TODO: Handle terminal update according to Sutton's pseudocode.
         //       It's likely that this will require a change to the interface
         self.alpha = self.alpha.step();
@@ -644,13 +632,11 @@ where
     }
 }
 
-impl<S, Q, P> Handler for PAL<S, Q, P>
+impl<S, Q, P> Handler<Transition<S, usize>> for PAL<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy<[f64], usize>,
 {
-    type Sample = Transition<S, usize>;
-
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -667,7 +653,7 @@ where
         self.q_func.update_action(s, t.action, self.alpha * pal_error);
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
