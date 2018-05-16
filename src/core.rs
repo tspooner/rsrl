@@ -10,7 +10,7 @@ pub trait Handler {
 
 pub trait BatchHandler: Handler {
     fn handle_batch(&mut self, batch: &Vec<Self::Sample>) {
-        for sample in batch.iter() {
+        for sample in batch.into_iter() {
             self.handle_sample(sample);
         }
     }
