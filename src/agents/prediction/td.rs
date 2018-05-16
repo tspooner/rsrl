@@ -30,16 +30,14 @@ impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
     }
 }
 
-impl<S, V: VFunction<S>> Handler for TD<S, V> {
-    type Sample = Transition<S, ()>;
-
-    fn handle_sample(&mut self, sample: &Self::Sample) {
+impl<S, V: VFunction<S>> Handler<Transition<S, ()>> for TD<S, V> {
+    fn handle_sample(&mut self, sample: &Transition<S, ()>) {
         let td_error = self.compute_td_error(sample);
 
         self.handle_td_error(&sample, td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, ()>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
@@ -50,11 +48,11 @@ impl<S, V: VFunction<S>> Predictor<S> for TD<S, V> {
 }
 
 impl<S, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
-    fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
+    fn handle_td_error(&mut self, sample: &Transition<S, ()>, error: f64) {
         let _ = self.v_func.update(&sample.from.state(), self.alpha * error);
     }
 
-    fn compute_td_error(&self, sample: &Self::Sample) -> f64 {
+    fn compute_td_error(&self, sample: &Transition<S, ()>) -> f64 {
         let v = self.v_func.evaluate(&sample.from.state()).unwrap();
         let nv = self.v_func.evaluate(&sample.to.state()).unwrap();
 
@@ -106,10 +104,8 @@ impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Handler for TDLambda<S, P> {
-    type Sample = Transition<S, ()>;
-
-    fn handle_sample(&mut self, sample: &Self::Sample) {
+impl<S, P: Projector<S>> Handler<Transition<S, ()>> for TDLambda<S, P> {
+    fn handle_sample(&mut self, sample: &Transition<S, ()>) {
         let phi_s = self.fa_theta.projector.project(&sample.from.state());
         let phi_ns = self.fa_theta.projector.project(&sample.to.state());
 
@@ -118,7 +114,7 @@ impl<S, P: Projector<S>> Handler for TDLambda<S, P> {
         self.handle_error_with_phi(phi_s, td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, ()>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -131,13 +127,13 @@ impl<S, P: Projector<S>> Predictor<S> for TDLambda<S, P> {
 }
 
 impl<S, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {
-    fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
+    fn handle_td_error(&mut self, sample: &Transition<S, ()>, error: f64) {
         let phi_s = self.fa_theta.projector.project(&sample.from.state());
 
         self.handle_error_with_phi(phi_s, error);
     }
 
-    fn compute_td_error(&self, sample: &Self::Sample) -> f64 {
+    fn compute_td_error(&self, sample: &Transition<S, ()>) -> f64 {
         let v: f64 = self.fa_theta.evaluate(&sample.from.state()).unwrap();
         let nv: f64 = self.fa_theta.evaluate(&sample.to.state()).unwrap();
 

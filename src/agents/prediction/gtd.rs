@@ -42,10 +42,8 @@ impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Handler for GTD2<S, P> {
-    type Sample = Transition<S, ()>;
-
-    fn handle_sample(&mut self, sample: &Self::Sample) {
+impl<S, P: Projector<S>> Handler<Transition<S, ()>> for GTD2<S, P> {
+    fn handle_sample(&mut self, sample: &Transition<S, ()>) {
         let phi_s = self.fa_theta.projector.project(&sample.from.state());
         let phi_ns = self.fa_theta.projector.project(&sample.to.state());
 
@@ -62,7 +60,7 @@ impl<S, P: Projector<S>> Handler for GTD2<S, P> {
             .update_phi(&Projection::Dense(update), self.alpha * td_estimate);
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, ()>) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();
@@ -110,10 +108,8 @@ impl<S: ?Sized, P: Projector<S>> TDC<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Handler for TDC<S, P> {
-    type Sample = Transition<S, ()>;
-
-    fn handle_sample(&mut self, sample: &Self::Sample) {
+impl<S, P: Projector<S>> Handler<Transition<S, ()>> for TDC<S, P> {
+    fn handle_sample(&mut self, sample: &Transition<S, ()>) {
         let phi_s = self.fa_theta.projector.project(&sample.from.state());
         let phi_ns = self.fa_theta.projector.project(&sample.to.state());
 
@@ -131,7 +127,7 @@ impl<S, P: Projector<S>> Handler for TDC<S, P> {
             .update_phi(&Projection::Dense(update), self.alpha.value());
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, ()>) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();
