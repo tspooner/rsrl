@@ -1,8 +1,8 @@
-use Parameter;
-use agents::{Agent, Predictor};
+use agents::Predictor;
 use domains::Transition;
 use fa::VFunction;
 use std::marker::PhantomData;
+use {Handler, Parameter};
 
 pub struct EveryVisitMC<S, V: VFunction<S>> {
     pub v_func: V,
@@ -43,7 +43,7 @@ impl<S, V: VFunction<S>> EveryVisitMC<S, V> {
     }
 }
 
-impl<S: Clone, V: VFunction<S>> Agent for EveryVisitMC<S, V> {
+impl<S: Clone, V: VFunction<S>> Handler for EveryVisitMC<S, V> {
     type Sample = Transition<S, ()>;
 
     fn handle_sample(&mut self, sample: &Self::Sample) {

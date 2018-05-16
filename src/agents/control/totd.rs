@@ -1,11 +1,10 @@
-use agents::memory::Trace;
-use agents::{Agent, Controller};
+use agents::{Controller, memory::Trace};
 use domains::Transition;
 use fa::{Approximator, MultiLinear, Projection, Projector, QFunction};
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
-use {Parameter, Vector};
+use {Handler, Parameter, Vector};
 
 /// True online variant of the Q(lambda) algorithm.
 ///
@@ -75,7 +74,7 @@ impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Handler for TOQLambda<S, M, P> {
     type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
     fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
@@ -195,7 +194,7 @@ impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Agent for TOSARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Handler for TOSARSALambda<S, M, P> {
     type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
     fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {

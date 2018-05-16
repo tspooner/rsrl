@@ -1,10 +1,10 @@
-use Parameter;
-use agents::{Agent, Controller, TDPredictor};
+use agents::{Controller, TDPredictor};
 use domains::Transition;
 use fa::QFunction;
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
+use {Handler, Parameter};
 
 /// Regular gradient descent actor critic.
 pub struct ActorCritic<S, Q, C, P>
@@ -49,7 +49,7 @@ where
     }
 }
 
-impl<S: Clone, Q, C, P> Agent for ActorCritic<S, Q, C, P>
+impl<S: Clone, Q, C, P> Handler for ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,

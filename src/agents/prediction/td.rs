@@ -1,9 +1,8 @@
-use Parameter;
-use agents::memory::Trace;
-use agents::{Agent, Predictor, TDPredictor};
+use agents::{Predictor, TDPredictor, memory::Trace};
 use domains::Transition;
 use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
 use std::marker::PhantomData;
+use {Handler, Parameter};
 
 pub struct TD<S: ?Sized, V: VFunction<S>> {
     pub v_func: V,
@@ -31,7 +30,7 @@ impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
     }
 }
 
-impl<S, V: VFunction<S>> Agent for TD<S, V> {
+impl<S, V: VFunction<S>> Handler for TD<S, V> {
     type Sample = Transition<S, ()>;
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
@@ -107,7 +106,7 @@ impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Agent for TDLambda<S, P> {
+impl<S, P: Projector<S>> Handler for TDLambda<S, P> {
     type Sample = Transition<S, ()>;
 
     fn handle_sample(&mut self, sample: &Self::Sample) {

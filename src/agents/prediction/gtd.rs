@@ -1,7 +1,7 @@
-use Parameter;
-use agents::{Agent, Predictor};
+use agents::{Predictor};
 use domains::Transition;
 use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
+use {Handler, Parameter};
 
 // TODO: Implement TDPredictor for all agents here.
 
@@ -42,7 +42,7 @@ impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Agent for GTD2<S, P> {
+impl<S, P: Projector<S>> Handler for GTD2<S, P> {
     type Sample = Transition<S, ()>;
 
     fn handle_sample(&mut self, sample: &Self::Sample) {
@@ -110,7 +110,7 @@ impl<S: ?Sized, P: Projector<S>> TDC<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Agent for TDC<S, P> {
+impl<S, P: Projector<S>> Handler for TDC<S, P> {
     type Sample = Transition<S, ()>;
 
     fn handle_sample(&mut self, sample: &Self::Sample) {

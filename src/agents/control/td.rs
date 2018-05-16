@@ -1,12 +1,10 @@
-use agents::memory::Trace;
-use agents::{Agent, Controller};
+use agents::{Controller, memory::Trace};
 use domains::Transition;
 use fa::{Approximator, MultiLinear, Projection, Projector, QFunction};
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
-use std::collections::VecDeque;
-use std::marker::PhantomData;
-use {Parameter, Vector};
+use std::{collections::VecDeque, marker::PhantomData};
+use {Handler, Parameter, Vector};
 
 /// Watkins' Q-learning.
 ///
@@ -47,7 +45,7 @@ where
     }
 }
 
-impl<S, Q, P> Agent for QLearning<S, Q, P>
+impl<S, Q, P> Handler for QLearning<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,
@@ -140,7 +138,7 @@ impl<S, M: Projector<S>, P: Policy> QLambda<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Agent for QLambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Handler for QLambda<S, M, P> {
     type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
     fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
@@ -242,7 +240,7 @@ where
     }
 }
 
-impl<S, Q, P> Agent for SARSA<S, Q, P>
+impl<S, Q, P> Handler for SARSA<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,
@@ -334,7 +332,7 @@ impl<S, M: Projector<S>, P: Policy> SARSALambda<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Agent for SARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Handler for SARSALambda<S, M, P> {
     type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
     fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
@@ -430,7 +428,7 @@ where
     }
 }
 
-impl<S, Q, P> Agent for ExpectedSARSA<S, Q, P>
+impl<S, Q, P> Handler for ExpectedSARSA<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,
@@ -574,7 +572,7 @@ struct BackupEntry<S> {
     pub mu: f64,
 }
 
-impl<S: Clone, Q, P> Agent for QSigma<S, Q, P>
+impl<S: Clone, Q, P> Handler for QSigma<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,
@@ -686,7 +684,7 @@ where
     }
 }
 
-impl<S, Q, P> Agent for PAL<S, Q, P>
+impl<S, Q, P> Handler for PAL<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,

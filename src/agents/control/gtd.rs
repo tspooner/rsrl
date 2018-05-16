@@ -1,10 +1,10 @@
-use agents::{Agent, Controller};
+use agents::Controller;
 use domains::Transition;
 use fa::{Approximator, MultiLinear, Projection, Projector, QFunction, SimpleLinear, VFunction};
 use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
-use {Parameter, Vector};
+use {Handler, Parameter, Vector};
 
 /// Greedy GQ control algorithm.
 ///
@@ -53,7 +53,7 @@ impl<S: ?Sized, M: Projector<S>, P: Policy> GreedyGQ<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Agent for GreedyGQ<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Handler for GreedyGQ<S, M, P> {
     type Sample = Transition<S, <ActionSpace as Space>::Repr>;
 
     fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
