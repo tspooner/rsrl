@@ -1,7 +1,9 @@
-use rand::{thread_rng, Rng, ThreadRng};
+use domains::Transition;
+use geometry::Vector;
+use policies::{Policy, FinitePolicy, QPolicy, sample_probs};
+use rand::{thread_rng, ThreadRng};
 use std::f64;
-use super::{Policy, FinitePolicy};
-use Parameter;
+use {Handler, Parameter};
 
 pub struct Boltzmann {
     tau: Parameter,
@@ -17,30 +19,42 @@ impl Boltzmann {
     }
 }
 
-impl Policy<[f64], usize> for Boltzmann {
-    fn sample(&mut self, q_values: &[f64]) -> usize {
-        let ps = self.probabilities(q_values);
-
-        let r = self.rng.next_f64();
-        match ps.iter().position(|p| *p > r) {
-            Some(index) => index,
-            None => ps.len() - 1,
-        }
+impl<S> Handler<Transition<S, usize>> for Boltzmann {
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
+        self.tau = self.tau.step()
     }
-
-    fn probability(&mut self, q_values: &[f64], a: usize) -> f64 {
-        self.probabilities(q_values)[a]
-    }
-
-    fn handle_terminal(&mut self) { self.tau = self.tau.step(); }
 }
 
-impl FinitePolicy<[f64]> for Boltzmann {
-    fn probabilities(&mut self, q_values: &[f64]) -> Vec<f64> {
+impl<S> Policy<S, usize> for Boltzmann {
+    fn sample(&mut self, s: &S) -> usize {
+        let ps = self.probabilities(s);
+
+        sample_probs(&mut self.rng, ps.as_slice().unwrap())
+    }
+
+    fn probability(&mut self, s: &S, a: usize) -> f64 {
+        self.probabilities(s)[a]
+    }
+}
+
+impl<S> FinitePolicy<S> for Boltzmann {
+    fn probabilities(&mut self, _: &S) -> Vector<f64> {
+        unimplemented!()
+    }
+}
+
+impl<S> QPolicy<S> for Boltzmann {
+    fn sample_qs(&mut self, s: &S, q_values: &[f64]) -> usize {
+        let ps = self.probabilities_qs(s, q_values);
+
+        sample_probs(&mut self.rng, ps.as_slice().unwrap())
+    }
+
+    fn probabilities_qs(&mut self, _: &S, q_values: &[f64]) -> Vector<f64> {
         let tau = self.tau.value();
 
         let mut z = 0.0;
-        let ws: Vec<f64> = q_values.iter()
+        let ws: Vec<f64> = q_values.into_iter()
             .map(|v| {
                 let v = (v / tau).exp();
                 z += v;

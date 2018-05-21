@@ -1,9 +1,9 @@
 use agents::{Controller, memory::Trace};
 use domains::Transition;
 use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
-use policies::{Greedy, Policy};
+use policies::{fixed::Greedy, QPolicy};
 use std::marker::PhantomData;
-use {Handler, Parameter, Vector};
+use {Handler, Parameter};
 
 /// True online variant of the Q(lambda) algorithm.
 ///
@@ -11,7 +11,7 @@ use {Handler, Parameter, Vector};
 /// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., &
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
-pub struct TOQLambda<S, M: Projector<S>, P: Policy<[f64], usize>> {
+pub struct TOQLambda<S, M: Projector<S>, P: QPolicy<S>> {
     trace: Trace,
     q_old: f64,
 
@@ -27,7 +27,7 @@ pub struct TOQLambda<S, M: Projector<S>, P: Policy<[f64], usize>> {
 impl<S, M, P> TOQLambda<S, M, P>
 where
     M: Projector<S>,
-    P: Policy<[f64], usize>,
+    P: QPolicy<S>,
 {
     pub fn new<T1, T2>(
         trace: Trace,
@@ -55,26 +55,21 @@ where
     }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Controller<S, usize> for TOQLambda<S, M, P> {
-    fn pi(&mut self, s: &S) -> usize {
-        let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
-
-        self.policy.sample(qs.as_slice().unwrap())
-    }
+impl<S, M: Projector<S>, P: QPolicy<S>> Controller<S, usize> for TOQLambda<S, M, P> {
+    fn pi(&mut self, s: &S) -> usize { self.policy.sample(s) }
 
     fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> for TOQLambda<S, M, P> {
+impl<S, M: Projector<S>, P: QPolicy<S>> Handler<Transition<S, usize>> for TOQLambda<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let phi_s = self.q_func.projector.project(s);
-        let phi_ns = self.q_func.projector.project(ns);
 
         let qs = self.q_func.evaluate_phi(&phi_s);
-        let nqs = self.q_func.evaluate_phi(&phi_ns);
-        let na = Greedy.sample(nqs.as_slice().unwrap());
+        let nqs = self.q_func.evaluate(&s).unwrap();
+        let na = Greedy.sample_qs(&ns, nqs.as_slice().unwrap());
 
         let td_error = t.reward + self.gamma * nqs[na] - qs[t.action];
         let phi_s = phi_s.expanded(self.q_func.projector.dim());
@@ -83,7 +78,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> 
         let trace_update =
             (1.0 - rate * self.alpha.value() * self.trace.get().dot(&phi_s)) * phi_s.clone();
 
-        if t.action == Greedy.sample(qs.as_slice().unwrap()) {
+        if t.action == Greedy.sample_qs(&s, qs.as_slice().unwrap()) {
             let rate = self.trace.lambda.value() * self.gamma.value();
             self.trace.decay(rate);
         } else {
@@ -105,12 +100,13 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> 
         self.q_old = nqs[na];
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
         self.trace.decay(0.0);
-        self.policy.handle_terminal();
+
+        self.policy.handle_terminal(t);
     }
 }
 
@@ -120,7 +116,7 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> 
 /// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., &
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
-pub struct TOSARSALambda<S, M: Projector<S>, P: Policy<[f64], usize>> {
+pub struct TOSARSALambda<S, M: Projector<S>, P: QPolicy<S>> {
     trace: Trace,
     q_old: f64,
 
@@ -136,7 +132,7 @@ pub struct TOSARSALambda<S, M: Projector<S>, P: Policy<[f64], usize>> {
 impl<S, M, P> TOSARSALambda<S, M, P>
 where
     M: Projector<S>,
-    P: Policy<[f64], usize>,
+    P: QPolicy<S>,
 {
     pub fn new<T1, T2>(
         trace: Trace,
@@ -164,28 +160,23 @@ where
     }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Controller<S, usize> for TOSARSALambda<S, M, P> {
-    fn pi(&mut self, s: &S) -> usize {
-        let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
-
-        self.policy.sample(qs.as_slice().unwrap())
-    }
+impl<S, M: Projector<S>, P: QPolicy<S>> Controller<S, usize> for TOSARSALambda<S, M, P> {
+    fn pi(&mut self, s: &S) -> usize { self.policy.sample(s) }
 
     fn mu(&mut self, s: &S) -> usize { self.pi(s) }
 }
 
-impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> for TOSARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P: QPolicy<S>> Handler<Transition<S, usize>> for TOSARSALambda<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let phi_s = self.q_func.projector.project(s);
-        let phi_ns = self.q_func.projector.project(ns);
 
+        let na = self.policy.sample(ns);
+        let nq = self.q_func.evaluate_action(s, na);
         let qsa = self.q_func.evaluate_action_phi(&phi_s, t.action);
-        let nqs = self.q_func.evaluate_phi(&phi_ns);
-        let na = self.policy.sample(nqs.as_slice().unwrap());
 
-        let td_error = t.reward + self.gamma * nqs[na] - qsa;
+        let td_error = t.reward + self.gamma * nq - qsa;
         let phi_s = phi_s.expanded(self.q_func.projector.dim());
 
         let rate = self.trace.lambda.value() * self.gamma.value();
@@ -206,14 +197,15 @@ impl<S, M: Projector<S>, P: Policy<[f64], usize>> Handler<Transition<S, usize>> 
             self.alpha * (self.q_old - qsa),
         );
 
-        self.q_old = nqs[na];
+        self.q_old = nq;
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
         self.trace.decay(0.0);
-        self.policy.handle_terminal();
+
+        self.policy.handle_terminal(t);
     }
 }

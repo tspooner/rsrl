@@ -1,32 +1,44 @@
-use super::{Policy, FinitePolicy};
-
+use domains::Transition;
+use geometry::Vector;
+use policies::{Policy, FinitePolicy, QPolicy, sample_probs};
+use rand::{Rng, thread_rng};
 use utils::argmaxima;
-
-extern crate rand;
-use rand::Rng;
+use Handler;
 
 pub struct Greedy;
 
-impl Policy<[f64], usize> for Greedy {
-    fn sample(&mut self, q_values: &[f64]) -> usize {
+impl<S> Handler<Transition<S, usize>> for Greedy {}
+
+impl<S> Policy<S, usize> for Greedy {
+    fn sample(&mut self, s: &S) -> usize {
+        sample_probs(&mut thread_rng(), self.probabilities(s).as_slice().unwrap())
+    }
+
+    fn probability(&mut self, s: &S, a: usize) -> f64 {
+        self.probabilities(s)[a]
+    }
+}
+
+impl<S> FinitePolicy<S> for Greedy {
+    fn probabilities(&mut self, s: &S) -> Vector<f64> {
+        unimplemented!()
+    }
+}
+
+impl<S> QPolicy<S> for Greedy {
+    fn sample_qs(&mut self, s: &S, q_values: &[f64]) -> usize {
         let maxima = argmaxima(q_values).1;
 
         if maxima.len() == 1 {
             maxima[0]
         } else {
-            *rand::thread_rng()
+            *thread_rng()
                 .choose(&maxima)
-                .expect("No valid actions to choose from in `Greedy::sample(q_values)`")
+                .expect("No valid actions to choose from in `Greedy.sample_qs(qs)`")
         }
     }
 
-    fn probability(&mut self, q_values: &[f64], a: usize) -> f64 {
-        self.probabilities(q_values)[a]
-    }
-}
-
-impl FinitePolicy<[f64]> for Greedy {
-    fn probabilities(&mut self, q_values: &[f64]) -> Vec<f64> {
+    fn probabilities_qs(&mut self, s: &S, q_values: &[f64]) -> Vector<f64> {
         let mut ps = vec![0.0; q_values.len()];
 
         let maxima = argmaxima(q_values).1;
@@ -36,7 +48,7 @@ impl FinitePolicy<[f64]> for Greedy {
             ps[i] = p;
         }
 
-        ps
+        ps.into()
     }
 }
 

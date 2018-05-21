@@ -1,33 +1,53 @@
 //! Agent policy module.
+use core::Handler;
+use domains::Transition;
+use geometry::{Vector, Matrix};
+use rand::{Rng, ThreadRng, thread_rng};
+
+#[inline]
+pub(self) fn sample_probs(rng: &mut ThreadRng, probabilities: &[f64]) -> usize {
+    let r = rng.next_f64();
+    let n_actions = probabilities.len();
+
+    match probabilities.into_iter().position(|p| *p > r) {
+        Some(index) => index,
+        None => n_actions - 1,
+    }
+}
 
 /// Policy trait for functions that select between a set of values.
-pub trait Policy<I: ?Sized, A> {
+pub trait Policy<S, A>: Handler<Transition<S, A>> {
     /// Sample the policy distribution for a given input.
-    fn sample(&mut self, input: &I) -> A;
+    fn sample(&mut self, input: &S) -> A;
 
     /// Return the probability of selecting an action for a given input.
-    fn probability(&mut self, input: &I, a: A) -> f64;
-
-    /// Update the policy after reaching a terminal state.
-    fn handle_terminal(&mut self) {}
+    fn probability(&mut self, input: &S, a: A) -> f64;
 }
 
-pub trait FinitePolicy<I: ?Sized>: Policy<I, usize> {
+pub trait FinitePolicy<S>: Policy<S, usize> {
     /// Return the probability of selecting each action for a given input.
-    fn probabilities(&mut self, input: &I) -> Vec<f64>;
+    fn probabilities(&mut self, input: &S) -> Vector<f64>;
 }
 
-mod random;
-pub use self::random::Random;
+pub trait DifferentiablePolicy<S, A>: Policy<S, A> {
+    /// Compute the derivative of the log probability for a single action.
+    fn grad_log(&self, input: &S, a: A) -> Matrix<f64>;
+}
 
-mod greedy;
-pub use self::greedy::Greedy;
+pub trait QPolicy<S>: FinitePolicy<S> {
+    /// Sample the policy distribution for a given set of Q(s, a)-values.
+    fn sample_qs(&mut self, input: &S, q_values: &[f64]) -> usize {
+        sample_probs(&mut thread_rng(), self.probabilities_qs(input, q_values).as_slice().unwrap())
+    }
 
-mod epsilon_greedy;
-pub use self::epsilon_greedy::EpsilonGreedy;
+    /// Return the probability of selecting an action for a given set of Q(s, a)-values.
+    fn probability_qs(&mut self, input: &S, a: usize, q_values: &[f64]) -> f64 {
+        self.probabilities_qs(input, q_values)[a]
+    }
 
-mod boltzmann;
-pub use self::boltzmann::Boltzmann;
+    /// Return the probability of selecting each action for a given set of Q(s, a)-values.
+    fn probabilities_qs(&mut self, input: &S, q_values: &[f64]) -> Vector<f64>;
+}
 
-mod truncated_boltzmann;
-pub use self::truncated_boltzmann::TruncatedBoltzmann;
+pub mod fixed;
+// pub mod parametrised;

@@ -8,7 +8,7 @@ use rsrl::{
     fa::{projectors::fixed::Fourier, LFA},
     geometry::Space,
     logging,
-    policies::EpsilonGreedy,
+    policies::fixed::EpsilonGreedy,
     run,
     Evaluation,
     Parameter,

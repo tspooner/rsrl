@@ -1,5 +1,4 @@
 //! Function approximation and value function representation module.
-
 use geometry::Vector;
 
 extern crate lfa;
@@ -25,7 +24,7 @@ impl<I: ?Sized, P: Projector<I>> VFunction<I> for SimpleLFA<I, P> {
     fn evaluate_phi(&self, phi: &Projection) -> f64 { self.approximator.evaluate(phi).unwrap() }
 
     fn update_phi(&mut self, phi: &Projection, update: f64) {
-        self.approximator.update(phi, update);
+        let _ = self.approximator.update(phi, update);
     }
 }
 
@@ -80,7 +79,7 @@ impl<I: ?Sized, P: Projector<I>> QFunction<I> for MultiLFA<I, P> {
     }
 
     fn update_phi(&mut self, phi: &Projection, updates: Vector<f64>) {
-        self.approximator.update(phi, updates);
+        let _ = self.approximator.update(phi, updates);
     }
 
     fn update_action_phi(&mut self, phi: &Projection, action: usize, update: f64) {
