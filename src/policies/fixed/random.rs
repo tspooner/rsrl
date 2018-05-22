@@ -1,5 +1,5 @@
 use domains::Transition;
-use geometry::Vector;
+use geometry::{Space, Vector};
 use policies::{Policy, FinitePolicy};
 use rand::{
     thread_rng, ThreadRng,
@@ -12,6 +12,10 @@ pub struct Random(usize, ThreadRng);
 impl Random {
     pub fn new(n_actions: usize) -> Self {
         Random(n_actions, thread_rng())
+    }
+
+    pub fn from_space<S: Space>(space: S) -> Self {
+        Self::new(space.dim())
     }
 }
 
@@ -28,7 +32,7 @@ impl<S> Policy<S, usize> for Random {
 }
 
 impl<S> FinitePolicy<S> for Random {
-    fn probabilities(&mut self, s: &S) -> Vector<f64> {
+    fn probabilities(&mut self, _: &S) -> Vector<f64> {
         vec![1.0 / self.0 as f64; self.0].into()
     }
 }

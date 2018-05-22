@@ -527,22 +527,19 @@ where
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let nqs = self.q_func.borrow().evaluate(ns).unwrap();
-        let nqs_slice = nqs.as_slice().unwrap();
-
         let na = self.policy.sample(ns);
         let nmu = self.policy.probability(ns, na);
         let npi = self.target.probabilities(&ns);
 
         let q = self.q_func.borrow().evaluate_action(s, t.action);
-        let nq = nqs[na];
+        let nqs = self.q_func.borrow().evaluate(ns).unwrap();
         let exp_nqs = nqs.dot(&npi);
 
         let sigma = {
             self.sigma = self.sigma.step();
             self.sigma.value()
         };
-        let td_error = t.reward + self.gamma * (sigma * nq + (1.0 - sigma) * exp_nqs) - q;
+        let td_error = t.reward + self.gamma * (sigma * nqs[na] + (1.0 - sigma) * exp_nqs) - q;
 
         // Update backup sequence:
         self.backup.push_back(BackupEntry {
