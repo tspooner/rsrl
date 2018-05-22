@@ -1,30 +1,33 @@
 use domains::Transition;
+use fa::SharedQFunction;
 use geometry::Vector;
 use rand::{thread_rng, Rng, ThreadRng};
-use super::{Policy, FinitePolicy, QPolicy, Greedy, Random};
+use super::{Policy, FinitePolicy, Greedy, Random};
 use {Handler, Parameter};
 
-pub struct EpsilonGreedy {
+pub struct EpsilonGreedy<S> {
     random: Random,
-    greedy: Greedy,
+    greedy: Greedy<S>,
 
     epsilon: Parameter,
     rng: ThreadRng,
 }
 
-impl EpsilonGreedy {
-    pub fn new<T: Into<Parameter>>(epsilon: T) -> Self {
-        EpsilonGreedy {
-            random: Random::new(),
-            greedy: Greedy,
+impl<S> EpsilonGreedy<S> {
+    pub fn new<T: Into<Parameter>>(q_func: SharedQFunction<S>, epsilon: T) -> Self {
+        let n_actions = q_func.borrow().n_actions();
 
+        EpsilonGreedy {
             epsilon: epsilon.into(),
             rng: thread_rng(),
+
+            random: Random::new(n_actions),
+            greedy: Greedy::new(q_func),
         }
     }
 }
 
-impl<S> Handler<Transition<S, usize>> for EpsilonGreedy {
+impl<S> Handler<Transition<S, usize>> for EpsilonGreedy<S> {
     fn handle_terminal(&mut self, t: &Transition<S, usize>) {
         self.epsilon = self.epsilon.step();
 
@@ -33,7 +36,7 @@ impl<S> Handler<Transition<S, usize>> for EpsilonGreedy {
     }
 }
 
-impl<S> Policy<S, usize> for EpsilonGreedy {
+impl<S> Policy<S, usize> for EpsilonGreedy<S> {
     fn sample(&mut self, s: &S) -> usize {
         if self.rng.next_f64() < self.epsilon.value() {
             self.random.sample(s)
@@ -47,28 +50,9 @@ impl<S> Policy<S, usize> for EpsilonGreedy {
     }
 }
 
-impl<S> FinitePolicy<S> for EpsilonGreedy {
+impl<S> FinitePolicy<S> for EpsilonGreedy<S> {
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
         let prs = self.greedy.probabilities(s);
-        let pr = self.epsilon / prs.len() as f64;
-
-        prs.iter()
-            .map(|p| pr + p * (1.0 - self.epsilon))
-            .collect()
-    }
-}
-
-impl<S> QPolicy<S> for EpsilonGreedy {
-    fn sample_qs(&mut self, s: &S, q_values: &[f64]) -> usize {
-        if self.rng.next_f64() < self.epsilon.value() {
-            self.random.sample_qs(s, q_values)
-        } else {
-            self.greedy.sample_qs(s, q_values)
-        }
-    }
-
-    fn probabilities_qs(&mut self, s: &S, q_values: &[f64]) -> Vector<f64> {
-        let prs = self.greedy.probabilities_qs(s, q_values);
         let pr = self.epsilon / prs.len() as f64;
 
         prs.iter()

@@ -1,33 +1,24 @@
 use domains::Transition;
+use fa::SharedQFunction;
 use geometry::Vector;
-use policies::{Policy, FinitePolicy, QPolicy, sample_probs};
+use policies::{Policy, FinitePolicy};
 use rand::{Rng, thread_rng};
 use utils::argmaxima;
 use Handler;
 
-pub struct Greedy;
+pub struct Greedy<S>(SharedQFunction<S>);
 
-impl<S> Handler<Transition<S, usize>> for Greedy {}
+impl<S> Greedy<S> {
+    pub fn new(q_func: SharedQFunction<S>) -> Self {
+        Greedy(q_func)
+    }
+}
 
-impl<S> Policy<S, usize> for Greedy {
+impl<S> Handler<Transition<S, usize>> for Greedy<S> {}
+
+impl<S> Policy<S, usize> for Greedy<S> {
     fn sample(&mut self, s: &S) -> usize {
-        sample_probs(&mut thread_rng(), self.probabilities(s).as_slice().unwrap())
-    }
-
-    fn probability(&mut self, s: &S, a: usize) -> f64 {
-        self.probabilities(s)[a]
-    }
-}
-
-impl<S> FinitePolicy<S> for Greedy {
-    fn probabilities(&mut self, s: &S) -> Vector<f64> {
-        unimplemented!()
-    }
-}
-
-impl<S> QPolicy<S> for Greedy {
-    fn sample_qs(&mut self, s: &S, q_values: &[f64]) -> usize {
-        let maxima = argmaxima(q_values).1;
+        let maxima = argmaxima(self.0.borrow().evaluate(s).unwrap().as_slice().unwrap()).1;
 
         if maxima.len() == 1 {
             maxima[0]
@@ -38,10 +29,17 @@ impl<S> QPolicy<S> for Greedy {
         }
     }
 
-    fn probabilities_qs(&mut self, s: &S, q_values: &[f64]) -> Vector<f64> {
-        let mut ps = vec![0.0; q_values.len()];
+    fn probability(&mut self, s: &S, a: usize) -> f64 {
+        self.probabilities(s)[a]
+    }
+}
 
-        let maxima = argmaxima(q_values).1;
+impl<S> FinitePolicy<S> for Greedy<S> {
+    fn probabilities(&mut self, s: &S) -> Vector<f64> {
+        let qs = self.0.borrow().evaluate(s).unwrap();
+        let mut ps = vec![0.0; qs.len()];
+
+        let maxima = argmaxima(qs.as_slice().unwrap()).1;
 
         let p = 1.0 / maxima.len() as f64;
         for i in maxima {

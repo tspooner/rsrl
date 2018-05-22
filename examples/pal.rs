@@ -13,6 +13,7 @@ use rsrl::{
     Evaluation,
     Parameter,
     SerialExperiment,
+    make_shared,
 };
 
 fn main() {
@@ -23,11 +24,11 @@ fn main() {
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
         let bases = Fourier::from_space(3, domain.state_space());
-        let q_func = LFA::multi(bases, n_actions);
+        let q_func = make_shared(LFA::multi(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
-        let policy = EpsilonGreedy::new(eps);
+        let policy = EpsilonGreedy::new(q_func.clone(), eps);
 
         PAL::new(q_func, policy, 0.1, 0.99)
     };

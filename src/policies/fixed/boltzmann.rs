@@ -1,31 +1,36 @@
 use domains::Transition;
+use fa::SharedQFunction;
 use geometry::Vector;
-use policies::{Policy, FinitePolicy, QPolicy, sample_probs};
+use policies::{Policy, FinitePolicy, sample_probs};
 use rand::{thread_rng, ThreadRng};
 use std::f64;
 use {Handler, Parameter};
 
-pub struct Boltzmann {
+pub struct Boltzmann<S> {
+    q_func: SharedQFunction<S>,
+
     tau: Parameter,
     rng: ThreadRng,
 }
 
-impl Boltzmann {
-    pub fn new<T: Into<Parameter>>(tau: T) -> Self {
+impl<S> Boltzmann<S> {
+    pub fn new<T: Into<Parameter>>(q_func: SharedQFunction<S>, tau: T) -> Self {
         Boltzmann {
+            q_func: q_func,
+
             tau: tau.into(),
             rng: thread_rng(),
         }
     }
 }
 
-impl<S> Handler<Transition<S, usize>> for Boltzmann {
+impl<S> Handler<Transition<S, usize>> for Boltzmann<S> {
     fn handle_terminal(&mut self, _: &Transition<S, usize>) {
         self.tau = self.tau.step()
     }
 }
 
-impl<S> Policy<S, usize> for Boltzmann {
+impl<S> Policy<S, usize> for Boltzmann<S> {
     fn sample(&mut self, s: &S) -> usize {
         let ps = self.probabilities(s);
 
@@ -37,24 +42,12 @@ impl<S> Policy<S, usize> for Boltzmann {
     }
 }
 
-impl<S> FinitePolicy<S> for Boltzmann {
-    fn probabilities(&mut self, _: &S) -> Vector<f64> {
-        unimplemented!()
-    }
-}
-
-impl<S> QPolicy<S> for Boltzmann {
-    fn sample_qs(&mut self, s: &S, q_values: &[f64]) -> usize {
-        let ps = self.probabilities_qs(s, q_values);
-
-        sample_probs(&mut self.rng, ps.as_slice().unwrap())
-    }
-
-    fn probabilities_qs(&mut self, _: &S, q_values: &[f64]) -> Vector<f64> {
+impl<S> FinitePolicy<S> for Boltzmann<S> {
+    fn probabilities(&mut self, s: &S) -> Vector<f64> {
         let tau = self.tau.value();
 
         let mut z = 0.0;
-        let ws: Vec<f64> = q_values.into_iter()
+        let ws: Vec<f64> = self.q_func.borrow().evaluate(s).unwrap().into_iter()
             .map(|v| {
                 let v = (v / tau).exp();
                 z += v;

@@ -2,7 +2,7 @@
 use core::Handler;
 use domains::Transition;
 use geometry::{Vector, Matrix};
-use rand::{Rng, ThreadRng, thread_rng};
+use rand::{Rng, ThreadRng};
 
 #[inline]
 pub(self) fn sample_probs(rng: &mut ThreadRng, probabilities: &[f64]) -> usize {
@@ -32,21 +32,6 @@ pub trait FinitePolicy<S>: Policy<S, usize> {
 pub trait DifferentiablePolicy<S, A>: Policy<S, A> {
     /// Compute the derivative of the log probability for a single action.
     fn grad_log(&self, input: &S, a: A) -> Matrix<f64>;
-}
-
-pub trait QPolicy<S>: FinitePolicy<S> {
-    /// Sample the policy distribution for a given set of Q(s, a)-values.
-    fn sample_qs(&mut self, input: &S, q_values: &[f64]) -> usize {
-        sample_probs(&mut thread_rng(), self.probabilities_qs(input, q_values).as_slice().unwrap())
-    }
-
-    /// Return the probability of selecting an action for a given set of Q(s, a)-values.
-    fn probability_qs(&mut self, input: &S, a: usize, q_values: &[f64]) -> f64 {
-        self.probabilities_qs(input, q_values)[a]
-    }
-
-    /// Return the probability of selecting each action for a given set of Q(s, a)-values.
-    fn probabilities_qs(&mut self, input: &S, q_values: &[f64]) -> Vector<f64>;
 }
 
 pub mod fixed;

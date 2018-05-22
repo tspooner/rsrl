@@ -13,6 +13,7 @@ use rsrl::{
     Evaluation,
     Parameter,
     SerialExperiment,
+    make_shared,
 };
 
 fn main() {
@@ -24,12 +25,12 @@ fn main() {
 
         // Build the linear value functions using a fourier basis projection.
         let bases = Fourier::from_space(3, domain.state_space());
-        let v_func = LFA::simple(bases.clone());
-        let q_func = LFA::multi(bases, n_actions);
+        let v_func = make_shared(LFA::simple(bases.clone()));
+        let q_func = make_shared(LFA::multi(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
-        let policy = EpsilonGreedy::new(eps);
+        let policy = EpsilonGreedy::new(q_func.clone(), eps);
 
         GreedyGQ::new(q_func, v_func, policy, 1e-1, 1e-3, 0.99)
     };

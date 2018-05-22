@@ -1,4 +1,5 @@
 //! Function approximation and value function representation module.
+use core::Shared;
 use geometry::Vector;
 
 extern crate lfa;
@@ -10,6 +11,9 @@ pub use self::table::Table;
 
 pub(crate) type SimpleLFA<I, P> = LFA<I, P, Simple>;
 pub(crate) type MultiLFA<I, P> = LFA<I, P, Multi>;
+
+pub(crate) type SharedVFunction<I> = Shared<VFunction<I, Value = f64>>;
+pub(crate) type SharedQFunction<I> = Shared<QFunction<I, Value = Vector<f64>>>;
 
 /// An interface for state-value functions.
 pub trait VFunction<I: ?Sized>: Approximator<I, Value = f64> {
@@ -30,6 +34,8 @@ impl<I: ?Sized, P: Projector<I>> VFunction<I> for SimpleLFA<I, P> {
 
 /// An interface for action-value functions.
 pub trait QFunction<I: ?Sized>: Approximator<I, Value = Vector<f64>> {
+    fn n_actions(&self) -> usize;
+
     fn evaluate_action(&self, input: &I, action: usize) -> f64 {
         self.evaluate(input).unwrap()[action]
     }
@@ -53,6 +59,8 @@ pub trait QFunction<I: ?Sized>: Approximator<I, Value = Vector<f64>> {
 }
 
 impl<I: ?Sized, P: Projector<I>> QFunction<I> for MultiLFA<I, P> {
+    fn n_actions(&self) -> usize { self.approximator.weights.cols() }
+
     fn evaluate_action(&self, input: &I, action: usize) -> f64 {
         let p = self.projector.project(input);
 

@@ -1,17 +1,17 @@
 use domains::Transition;
 use geometry::Vector;
-use policies::{Policy, FinitePolicy, QPolicy};
+use policies::{Policy, FinitePolicy};
 use rand::{
     thread_rng, ThreadRng,
     distributions::{IndependentSample, Range},
 };
 use Handler;
 
-pub struct Random(ThreadRng);
+pub struct Random(usize, ThreadRng);
 
 impl Random {
-    pub fn new() -> Self {
-        Random(thread_rng())
+    pub fn new(n_actions: usize) -> Self {
+        Random(n_actions, thread_rng())
     }
 }
 
@@ -19,31 +19,17 @@ impl<S> Handler<Transition<S, usize>> for Random {}
 
 impl<S> Policy<S, usize> for Random {
     fn sample(&mut self, _: &S) -> usize {
-        unimplemented!()
+        Range::new(0, self.0).ind_sample(&mut self.1)
     }
 
     fn probability(&mut self, _: &S, _: usize) -> f64 {
-        unimplemented!()
+        1.0 / self.0 as f64
     }
 }
 
 impl<S> FinitePolicy<S> for Random {
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
-        unimplemented!()
-    }
-}
-
-impl<S> QPolicy<S> for Random {
-    fn sample_qs(&mut self, _: &S, q_values: &[f64]) -> usize {
-        Range::new(0, q_values.len()).ind_sample(&mut self.0)
-    }
-
-    fn probability_qs(&mut self, _: &S, _: usize, q_values: &[f64]) -> f64 {
-        1.0 / q_values.len() as f64
-    }
-
-    fn probabilities_qs(&mut self, _: &S, q_values: &[f64]) -> Vector<f64> {
-        vec![1.0 / q_values.len() as f64; q_values.len()].into()
+        vec![1.0 / self.0 as f64; self.0].into()
     }
 }
 
