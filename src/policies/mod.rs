@@ -1,6 +1,7 @@
 //! Agent policy module.
 use core::Handler;
 use domains::Transition;
+use fa::{Approximator, UpdateResult};
 use geometry::{Vector, Matrix};
 use rand::{Rng, ThreadRng};
 
@@ -34,5 +35,15 @@ pub trait DifferentiablePolicy<S, A>: Policy<S, A> {
     fn grad_log(&self, input: &S, a: A) -> Matrix<f64>;
 }
 
+pub trait ParameterisedPolicy<S, A>: DifferentiablePolicy<S, A> {
+    fn update(&mut self, input: &S, a: A, error: f64) {
+        let grad_log = self.grad_log(input, a);
+
+        self.update_raw(error*grad_log)
+    }
+
+    fn update_raw(&mut self, errors: Matrix<f64>);
+}
+
 pub mod fixed;
-// pub mod parametrised;
+pub mod parametrised;

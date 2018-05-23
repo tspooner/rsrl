@@ -30,7 +30,9 @@ mod macros;
 pub mod utils;
 pub mod logging;
 
-pub mod agents;
 pub mod domains;
+pub use self::domains::{Transition, Observation};
+
+pub mod agents;
 pub mod fa;
 pub mod policies;
