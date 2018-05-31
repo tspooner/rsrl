@@ -23,8 +23,12 @@ impl KV for Episode {
 }
 
 /// Helper function for running experiments.
-pub fn run<T>(runner: T, n_episodes: usize, logger: Option<Logger>) -> Vec<Episode>
-where T: Iterator<Item = Episode> {
+pub fn run(
+    runner: impl Iterator<Item = Episode>,
+    n_episodes: usize,
+    logger: Option<Logger>
+) -> Vec<Episode>
+{
     let exp = runner.take(n_episodes);
 
     match logger {
