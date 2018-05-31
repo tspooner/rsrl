@@ -1,8 +1,8 @@
-use agents::{Predictor, TDPredictor, memory::Trace};
-use domains::Transition;
-use fa::{Approximator, Projection, Projector, SimpleLFA, VFunction};
+use Parameter;
+use agents::memory::Trace;
+use agents::{Agent, Predictor, TDPredictor};
+use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
 use std::marker::PhantomData;
-use {Handler, Parameter};
 
 pub struct TD<S: ?Sized, V: VFunction<S>> {
     pub v_func: V,
@@ -30,14 +30,16 @@ impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
     }
 }
 
-impl<S, V: VFunction<S>> Handler<Transition<S, ()>> for TD<S, V> {
-    fn handle_sample(&mut self, sample: &Transition<S, ()>) {
+impl<S, V: VFunction<S>> Agent for TD<S, V> {
+    type Sample = (S, S, f64);
+
+    fn handle_sample(&mut self, sample: &Self::Sample) {
         let td_error = self.compute_td_error(sample);
 
         self.handle_td_error(&sample, td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, ()>) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
@@ -48,29 +50,29 @@ impl<S, V: VFunction<S>> Predictor<S> for TD<S, V> {
 }
 
 impl<S, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
-    fn handle_td_error(&mut self, sample: &Transition<S, ()>, error: f64) {
-        let _ = self.v_func.update(&sample.from.state(), self.alpha * error);
+    fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
+        let _ = self.v_func.update(&sample.0, self.alpha * error);
     }
 
-    fn compute_td_error(&self, sample: &Transition<S, ()>) -> f64 {
-        let v = self.v_func.evaluate(&sample.from.state()).unwrap();
-        let nv = self.v_func.evaluate(&sample.to.state()).unwrap();
+    fn compute_td_error(&self, sample: &Self::Sample) -> f64 {
+        let v = self.v_func.evaluate(&sample.0).unwrap();
+        let nv = self.v_func.evaluate(&sample.1).unwrap();
 
-        sample.reward + self.gamma * nv - v
+        sample.2 + self.gamma * nv - v
     }
 }
 
 pub struct TDLambda<S: ?Sized, P: Projector<S>> {
     trace: Trace,
 
-    pub fa_theta: SimpleLFA<S, P>,
+    pub fa_theta: SimpleLinear<S, P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
 impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
-    pub fn new<T1, T2>(trace: Trace, fa_theta: SimpleLFA<S, P>, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(trace: Trace, fa_theta: SimpleLinear<S, P>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -97,24 +99,26 @@ impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
 
         self.trace.decay(rate);
         self.trace
-            .update(&phi_s.expanded(self.fa_theta.projector.dim()));
+            .update(&phi_s.expanded(self.fa_theta.projector.span()));
 
         self.fa_theta
             .update_phi(&Projection::Dense(self.trace.get()), self.alpha * error);
     }
 }
 
-impl<S, P: Projector<S>> Handler<Transition<S, ()>> for TDLambda<S, P> {
-    fn handle_sample(&mut self, sample: &Transition<S, ()>) {
-        let phi_s = self.fa_theta.projector.project(&sample.from.state());
-        let phi_ns = self.fa_theta.projector.project(&sample.to.state());
+impl<S, P: Projector<S>> Agent for TDLambda<S, P> {
+    type Sample = (S, S, f64);
 
-        let td_error = self.compute_error_with_phi(&phi_s, &phi_ns, sample.reward);
+    fn handle_sample(&mut self, sample: &Self::Sample) {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
+        let phi_ns = self.fa_theta.projector.project(&sample.1);
+
+        let td_error = self.compute_error_with_phi(&phi_s, &phi_ns, sample.2);
 
         self.handle_error_with_phi(phi_s, td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, ()>) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -127,17 +131,17 @@ impl<S, P: Projector<S>> Predictor<S> for TDLambda<S, P> {
 }
 
 impl<S, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {
-    fn handle_td_error(&mut self, sample: &Transition<S, ()>, error: f64) {
-        let phi_s = self.fa_theta.projector.project(&sample.from.state());
+    fn handle_td_error(&mut self, sample: &Self::Sample, error: f64) {
+        let phi_s = self.fa_theta.projector.project(&sample.0);
 
         self.handle_error_with_phi(phi_s, error);
     }
 
-    fn compute_td_error(&self, sample: &Transition<S, ()>) -> f64 {
-        let v: f64 = self.fa_theta.evaluate(&sample.from.state()).unwrap();
-        let nv: f64 = self.fa_theta.evaluate(&sample.to.state()).unwrap();
+    fn compute_td_error(&self, sample: &Self::Sample) -> f64 {
+        let v: f64 = self.fa_theta.evaluate(&sample.0).unwrap();
+        let nv: f64 = self.fa_theta.evaluate(&sample.1).unwrap();
 
-        sample.reward + self.gamma * nv - v
+        sample.2 + self.gamma * nv - v
     }
 }
 

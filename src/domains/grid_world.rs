@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
+use Matrix;
 use std::cmp;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::{Error as IOError, Read};
 use std::str::FromStr;
-use Matrix;
 
 #[derive(Clone, Copy)]
 pub enum Motion {

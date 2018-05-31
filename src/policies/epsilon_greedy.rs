@@ -1,6 +1,6 @@
 use super::{Greedy, Policy, Random};
-use rand::{thread_rng, Rng, ThreadRng};
 use Parameter;
+use rand::{thread_rng, Rng, ThreadRng};
 
 pub struct EpsilonGreedy {
     greedy: Greedy,

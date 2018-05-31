@@ -1,9 +1,11 @@
-use agents::{Controller, memory::Trace};
+use agents::memory::Trace;
+use agents::{Agent, Controller};
 use domains::Transition;
-use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
+use fa::{Approximator, MultiLinear, Projection, Projector, QFunction};
+use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
-use {Handler, Parameter, Vector};
+use {Parameter, Vector};
 
 /// True online variant of the Q(lambda) algorithm.
 ///
@@ -15,7 +17,7 @@ pub struct TOQLambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
     q_old: f64,
 
-    pub q_func: MultiLFA<S, M>,
+    pub q_func: MultiLinear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -31,7 +33,7 @@ where
 {
     pub fn new<T1, T2>(
         trace: Trace,
-        q_func: MultiLFA<S, M>,
+        q_func: MultiLinear<S, M>,
         policy: P,
         alpha: T1,
         gamma: T2,
@@ -55,7 +57,9 @@ where
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for TOQLambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
+    for TOQLambda<S, M, P>
+{
     fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
@@ -71,8 +75,10 @@ impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for TOQLambda<S, M, P> 
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for TOQLambda<S, M, P> {
-    fn handle_sample(&mut self, t: &Transition<S, usize>) {
+impl<S, M: Projector<S>, P: Policy> Agent for TOQLambda<S, M, P> {
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
+
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -84,7 +90,7 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for TOQLambda<
         let na = Greedy.sample(nqs.as_slice().unwrap());
 
         let td_error = t.reward + self.gamma * nqs[na] - qs[a];
-        let phi_s = phi_s.expanded(self.q_func.projector.dim());
+        let phi_s = phi_s.expanded(self.q_func.projector.span());
 
         let rate = self.trace.lambda.value() * self.gamma.value();
         let trace_update =
@@ -112,7 +118,7 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for TOQLambda<
         self.q_old = nqs[na];
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -131,7 +137,7 @@ pub struct TOSARSALambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
     q_old: f64,
 
-    pub q_func: MultiLFA<S, M>,
+    pub q_func: MultiLinear<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -147,7 +153,7 @@ where
 {
     pub fn new<T1, T2>(
         trace: Trace,
-        q_func: MultiLFA<S, M>,
+        q_func: MultiLinear<S, M>,
         policy: P,
         alpha: T1,
         gamma: T2,
@@ -171,7 +177,9 @@ where
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for TOSARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
+    for TOSARSALambda<S, M, P>
+{
     fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.q_func.evaluate(s).unwrap();
 
@@ -187,8 +195,10 @@ impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for TOSARSALambda<S, M,
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for TOSARSALambda<S, M, P> {
-    fn handle_sample(&mut self, t: &Transition<S, usize>) {
+impl<S, M: Projector<S>, P: Policy> Agent for TOSARSALambda<S, M, P> {
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
+
+    fn handle_sample(&mut self, t: &Transition<S, <ActionSpace as Space>::Repr>) {
         let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -200,7 +210,7 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for TOSARSALam
         let na = self.policy.sample(nqs.as_slice().unwrap());
 
         let td_error = t.reward + self.gamma * nqs[na] - qsa;
-        let phi_s = phi_s.expanded(self.q_func.projector.dim());
+        let phi_s = phi_s.expanded(self.q_func.projector.span());
 
         let rate = self.trace.lambda.value() * self.gamma.value();
         let trace_update =
@@ -223,7 +233,7 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for TOSARSALam
         self.q_old = nqs[na];
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 

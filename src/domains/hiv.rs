@@ -1,11 +1,9 @@
-use super::{runge_kutta4, Domain, Observation, Transition};
-use geometry::{
-    dimensions::{Continuous, Discrete},
-    RegularSpace,
-};
+use super::{Domain, Observation, Transition, runge_kutta4};
+use Vector;
+use geometry::dimensions::{Continuous, Discrete};
+use geometry::{ActionSpace, RegularSpace};
 use ndarray::{Ix1, NdIndex};
 use std::ops::Index;
-use Vector;
 
 // Model parameters
 // (https://pdfs.semanticscholar.org/c030/127238b1dbad2263fba6b64b5dec7c3ffa20.pdf):
@@ -126,7 +124,7 @@ impl Default for HIVTreatment {
 
 impl Domain for HIVTreatment {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = Discrete;
+    type ActionSpace = ActionSpace;
 
     fn emit(&self) -> Observation<Vec<f64>, usize> {
         let s = self.state
@@ -175,7 +173,7 @@ impl Domain for HIVTreatment {
             + Continuous::new(LIMITS.0, LIMITS.1)
     }
 
-    fn action_space(&self) -> Discrete { Discrete::new(3) }
+    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(3)) }
 }
 
 #[cfg(test)]

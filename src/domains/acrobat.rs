@@ -1,12 +1,12 @@
-use super::{runge_kutta4, Domain, Observation, Transition};
+use super::{Domain, Observation, Transition, runge_kutta4};
 use consts::{PI_OVER_2, G};
 use geometry::{
+    ActionSpace, RegularSpace,
     dimensions::{Continuous, Discrete},
-    RegularSpace,
 };
 use ndarray::{Ix1, NdIndex};
 use std::f64::consts::PI;
-use Vector;
+use {Vector};
 
 // Link masses:
 const M1: f64 = 1.0;
@@ -120,7 +120,7 @@ impl Default for Acrobat {
 
 impl Domain for Acrobat {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = Discrete;
+    type ActionSpace = ActionSpace;
 
     fn emit(&self) -> Observation<Vec<f64>, usize> {
         if self.is_terminal() {
@@ -169,7 +169,7 @@ impl Domain for Acrobat {
             + Continuous::new(LIMITS_DTHETA2.0, LIMITS_DTHETA2.1)
     }
 
-    fn action_space(&self) -> Discrete { Discrete::new(3) }
+    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(3)) }
 }
 
 #[cfg(test)]

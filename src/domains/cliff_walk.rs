@@ -1,11 +1,12 @@
-use super::{
-    grid_world::{GridWorld, Motion},
-    Domain,
-    Observation,
-    Transition,
+use geometry::{
+    ActionSpace, PairSpace,
+    dimensions::Discrete,
 };
-use geometry::{dimensions::Discrete, PairSpace};
-use Matrix;
+use super::{
+    Domain, Observation, Transition,
+    grid_world::{GridWorld, Motion},
+};
+use {Matrix};
 
 const ALL_ACTIONS: [Motion; 4] = [
     Motion::North(1),
@@ -38,7 +39,7 @@ impl Default for CliffWalk {
 
 impl Domain for CliffWalk {
     type StateSpace = PairSpace<Discrete, Discrete>;
-    type ActionSpace = Discrete;
+    type ActionSpace = ActionSpace;
 
     fn emit(&self) -> Observation<(usize, usize), usize> {
         if self.is_terminal() {
@@ -99,5 +100,5 @@ impl Domain for CliffWalk {
         )
     }
 
-    fn action_space(&self) -> Discrete { Discrete::new(4) }
+    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(4)) }
 }

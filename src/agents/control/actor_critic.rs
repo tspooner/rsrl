@@ -1,9 +1,10 @@
-use agents::{Controller, TDPredictor};
+use Parameter;
+use agents::{Agent, Controller, TDPredictor};
 use domains::Transition;
 use fa::QFunction;
+use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
-use {Handler, Parameter};
 
 /// Regular gradient descent actor critic.
 pub struct ActorCritic<S, Q, C, P>
@@ -48,21 +49,25 @@ where
     }
 }
 
-impl<S: Clone, Q, C, P> Handler<Transition<S, usize>> for ActorCritic<S, Q, C, P>
+impl<S: Clone, Q, C, P> Agent for ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,
     P: Policy,
 {
-    fn handle_sample(&mut self, t: &Transition<S, usize>) {
-        let p_sample = t.into();
+    type Sample = Transition<S, <ActionSpace as Space>::Repr>;
+
+    fn handle_sample(&mut self, t: &Self::Sample) {
+        let (s, ns) = (t.from.state(), t.to.state());
+        let p_sample = (s.clone(), ns.clone(), t.reward);
+
         let td_error = self.critic.compute_td_error(&p_sample);
 
         self.critic.handle_td_error(&p_sample, td_error);
-        self.q_func.update_action(t.from.state(), t.action, self.beta * td_error);
+        self.q_func.update_action(s, t.action, self.beta * td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, _: &Self::Sample) {
         self.beta = self.beta.step();
         self.gamma = self.gamma.step();
 
@@ -70,7 +75,7 @@ where
     }
 }
 
-impl<S: Clone, Q, C, P> Controller<S, usize> for ActorCritic<S, Q, C, P>
+impl<S: Clone, Q, C, P> Controller<S, <ActionSpace as Space>::Repr> for ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,

@@ -12,25 +12,21 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+mod consts;
+mod macros;
+pub mod utils;
+
 pub extern crate spaces as geometry;
 pub use self::geometry::{Matrix, Vector};
-
-mod core;
-pub use self::core::*;
 
 mod parameter;
 pub use self::parameter::Parameter;
 
-mod experiment;
-pub use self::experiment::*;
-
-mod consts;
-mod macros;
-
-pub mod utils;
-pub mod logging;
-
 pub mod agents;
 pub mod domains;
 pub mod fa;
+pub mod logging;
 pub mod policies;
+
+mod experiment;
+pub use self::experiment::*;

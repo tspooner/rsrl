@@ -18,8 +18,8 @@ travis-ci = { repository = "tspooner/rsrl", branch = "master" }
 coveralls = { repository = "tspooner/rsrl", branch = "master", service = "github" }
 
 [dependencies]
-lfa = "0.3"
-spaces = "2.0"
+lfa = "0.2"
+spaces = "0.0"
 
 rand = "0.4"
 cpython = "0.1"
