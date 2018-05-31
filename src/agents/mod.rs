@@ -19,7 +19,7 @@ pub trait Controller<S, A> {
 }
 
 pub trait Predictor<S: ?Sized> {
-    fn evaluate(&mut self, s: &S) -> f64;
+    fn predict(&mut self, s: &S) -> f64;
 }
 
 pub trait TDPredictor<S: Sized>: Predictor<S> {
