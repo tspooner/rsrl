@@ -1,12 +1,13 @@
-use Parameter;
-use agents::{Agent, Predictor};
-use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
+use agents::Predictor;
+use domains::Transition;
+use fa::{Approximator, Projection, Projector, SimpleLFA, VFunction};
+use {Handler, Parameter};
 
 // TODO: Implement TDPredictor for all agents here.
 
 pub struct GTD2<S: ?Sized, P: Projector<S>> {
-    pub fa_theta: SimpleLinear<S, P>,
-    pub fa_w: SimpleLinear<S, P>,
+    pub fa_theta: SimpleLFA<S, P>,
+    pub fa_w: SimpleLFA<S, P>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
@@ -15,8 +16,8 @@ pub struct GTD2<S: ?Sized, P: Projector<S>> {
 
 impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: SimpleLinear<S, P>,
-        fa_w: SimpleLinear<S, P>,
+        fa_theta: SimpleLFA<S, P>,
+        fa_w: SimpleLFA<S, P>,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -26,7 +27,7 @@ impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
-        if !(fa_theta.projector.span() == fa_w.projector.span()) {
+        if !(fa_theta.projector.dim() == fa_w.projector.dim()) {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
 
@@ -41,19 +42,17 @@ impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Agent for GTD2<S, P> {
-    type Sample = (S, S, f64);
+impl<S, P: Projector<S>> Handler<Transition<S, ()>> for GTD2<S, P> {
+    fn handle_sample(&mut self, sample: &Transition<S, ()>) {
+        let phi_s = self.fa_theta.projector.project(&sample.from.state());
+        let phi_ns = self.fa_theta.projector.project(&sample.to.state());
 
-    fn handle_sample(&mut self, sample: &Self::Sample) {
-        let phi_s = self.fa_theta.projector.project(&sample.0);
-        let phi_ns = self.fa_theta.projector.project(&sample.1);
-
-        let td_error = sample.2 + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
+        let td_error = sample.reward + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
             - self.fa_theta.evaluate_phi(&phi_s);
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 
-        let span = self.fa_theta.projector.span();
-        let update = phi_s.clone().expanded(span) - self.gamma.value() * phi_ns.expanded(span);
+        let dim = self.fa_theta.projector.dim();
+        let update = phi_s.clone().expanded(dim) - self.gamma.value() * phi_ns.expanded(dim);
 
         self.fa_w
             .update_phi(&phi_s, self.beta * (td_error - td_estimate));
@@ -61,7 +60,7 @@ impl<S, P: Projector<S>> Agent for GTD2<S, P> {
             .update_phi(&Projection::Dense(update), self.alpha * td_estimate);
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, ()>) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();
@@ -73,8 +72,8 @@ impl<S, P: Projector<S>> Predictor<S> for GTD2<S, P> {
 }
 
 pub struct TDC<S: ?Sized, P: Projector<S>> {
-    pub fa_theta: SimpleLinear<S, P>,
-    pub fa_w: SimpleLinear<S, P>,
+    pub fa_theta: SimpleLFA<S, P>,
+    pub fa_w: SimpleLFA<S, P>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
@@ -83,8 +82,8 @@ pub struct TDC<S: ?Sized, P: Projector<S>> {
 
 impl<S: ?Sized, P: Projector<S>> TDC<S, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: SimpleLinear<S, P>,
-        fa_w: SimpleLinear<S, P>,
+        fa_theta: SimpleLFA<S, P>,
+        fa_w: SimpleLFA<S, P>,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -94,7 +93,7 @@ impl<S: ?Sized, P: Projector<S>> TDC<S, P> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
-        if !(fa_theta.projector.span() == fa_w.projector.span()) {
+        if !(fa_theta.projector.dim() == fa_w.projector.dim()) {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
 
@@ -109,20 +108,18 @@ impl<S: ?Sized, P: Projector<S>> TDC<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Agent for TDC<S, P> {
-    type Sample = (S, S, f64);
+impl<S, P: Projector<S>> Handler<Transition<S, ()>> for TDC<S, P> {
+    fn handle_sample(&mut self, sample: &Transition<S, ()>) {
+        let phi_s = self.fa_theta.projector.project(&sample.from.state());
+        let phi_ns = self.fa_theta.projector.project(&sample.to.state());
 
-    fn handle_sample(&mut self, sample: &Self::Sample) {
-        let phi_s = self.fa_theta.projector.project(&sample.0);
-        let phi_ns = self.fa_theta.projector.project(&sample.1);
-
-        let td_error = sample.2 + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
+        let td_error = sample.reward + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
             - self.fa_theta.evaluate_phi(&phi_s);
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 
-        let span = self.fa_theta.projector.span();
-        let update = td_error * phi_s.clone().expanded(span)
-            - self.gamma.value() * td_estimate * &phi_ns.expanded(span);
+        let dim = self.fa_theta.projector.dim();
+        let update = td_error * phi_s.clone().expanded(dim)
+            - self.gamma.value() * td_estimate * &phi_ns.expanded(dim);
 
         self.fa_w
             .update_phi(&phi_s, self.beta * (td_error - td_estimate));
@@ -130,7 +127,7 @@ impl<S, P: Projector<S>> Agent for TDC<S, P> {
             .update_phi(&Projection::Dense(update), self.alpha.value());
     }
 
-    fn handle_terminal(&mut self, _: &Self::Sample) {
+    fn handle_terminal(&mut self, _: &Transition<S, ()>) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();

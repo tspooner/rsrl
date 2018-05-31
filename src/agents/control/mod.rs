@@ -1,10 +1,9 @@
 //! Control agents module.
-
-use super::Agent;
 use domains::Transition;
 use policies::Policy;
+use Handler;
 
-pub trait Controller<S, A>: Agent<Sample = Transition<S, A>> {
+pub trait Controller<S, A>: Handler<Transition<S, A>> {
     /// Sample the target policy for a given state `s`.
     fn pi(&mut self, s: &S) -> A;
 

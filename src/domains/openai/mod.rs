@@ -2,8 +2,10 @@ extern crate cpython;
 
 use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
 use super::{Domain, Observation, Transition};
-use geometry::dimensions::{Continuous, Discrete};
-use geometry::{ActionSpace, RegularSpace};
+use geometry::{
+    dimensions::{Continuous, Discrete},
+    RegularSpace,
+};
 use std::collections::HashSet;
 use std::f64;
 
@@ -80,7 +82,7 @@ impl OpenAIGym {
 
 impl Domain for OpenAIGym {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
     fn emit(&self) -> Observation<Vec<f64>, usize> {
         if self.is_terminal() {
@@ -140,7 +142,7 @@ impl Domain for OpenAIGym {
         })
     }
 
-    fn action_space(&self) -> ActionSpace {
+    fn action_space(&self) -> Discrete {
         let py = self.client.py();
         let n = self.env
             .getattr(py, "action_space")
@@ -150,6 +152,6 @@ impl Domain for OpenAIGym {
             .extract::<usize>(py)
             .unwrap();
 
-        ActionSpace::new(Discrete::new(n))
+        Discrete::new(n)
     }
 }
