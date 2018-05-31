@@ -1,5 +1,6 @@
 use agents::Controller;
-use domains::{Domain, Observation};
+use core::Handler;
+use domains::{Domain, Observation, Transition};
 use geometry::{dimensions::Discrete, Space};
 use policies::Greedy;
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
@@ -50,7 +51,7 @@ pub struct Evaluation<'a, A: 'a, D> {
 
 impl<'a, S: Space, A, D> Evaluation<'a, A, D>
 where
-    A: Controller<S::Value, usize>,
+    A: Handler<Transition<S::Value, usize>> + Controller<S::Value, usize>,
     D: Domain<StateSpace = S, ActionSpace = Discrete>,
 {
     pub fn new(agent: &'a mut A, domain_factory: Box<Fn() -> D>) -> Evaluation<'a, A, D> {
@@ -65,7 +66,7 @@ where
 
 impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
 where
-    A: Controller<S::Value, usize>,
+    A: Handler<Transition<S::Value, usize>> + Controller<S::Value, usize>,
     D: Domain<StateSpace = S, ActionSpace = Discrete>,
 {
     type Item = Episode;
@@ -128,7 +129,7 @@ where
 
 impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
 where
-    A: Controller<S::Value, usize>,
+    A: Handler<Transition<S::Value, usize>> + Controller<S::Value, usize>,
     D: Domain<StateSpace = S, ActionSpace = Discrete>,
 {
     type Item = Episode;
