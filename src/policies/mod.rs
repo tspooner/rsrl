@@ -14,14 +14,7 @@ pub trait Policy {
     fn handle_terminal(&mut self) {}
 }
 
-mod random;
-pub use self::random::Random;
-
-mod greedy;
-pub use self::greedy::Greedy;
-
-mod epsilon_greedy;
-pub use self::epsilon_greedy::EpsilonGreedy;
-
-mod boltzmann;
-pub use self::boltzmann::{Boltzmann, TruncatedBoltzmann};
+import_all!(random);
+import_all!(greedy);
+import_all!(epsilon_greedy);
+import_all!(boltzmann);

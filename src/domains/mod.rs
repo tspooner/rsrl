@@ -173,21 +173,11 @@ pub trait Domain {
 mod ode;
 use self::ode::*;
 
-mod mountain_car;
-pub use self::mountain_car::MountainCar;
-
-mod cart_pole;
-pub use self::cart_pole::CartPole;
-
-mod acrobat;
-pub use self::acrobat::Acrobat;
-
-mod hiv;
-pub use self::hiv::HIVTreatment;
-
-mod cliff_walk;
 mod grid_world;
-pub use self::cliff_walk::CliffWalk;
 
-mod openai;
-pub use self::openai::OpenAIGym;
+import_all!(mountain_car);
+import_all!(cart_pole);
+import_all!(acrobat);
+import_all!(hiv);
+import_all!(cliff_walk);
+import_all!(openai);
