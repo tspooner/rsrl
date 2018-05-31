@@ -1,14 +1,13 @@
 //! Learning agents module.
 use domains::Transition;
 use policies::Policy;
-use Handler;
 
 pub mod memory;
 
 pub mod control;
 pub mod prediction;
 
-pub trait Controller<S, A>: Handler<Transition<S, A>> {
+pub trait Controller<S, A> {
     /// Sample the target policy for a given state `s`.
     fn pi(&mut self, s: &S) -> A;
 
@@ -19,7 +18,7 @@ pub trait Controller<S, A>: Handler<Transition<S, A>> {
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> A;
 }
 
-pub trait Predictor<S: Sized>: Handler<Transition<S, ()>> {
+pub trait Predictor<S: ?Sized> {
     fn evaluate(&mut self, s: &S) -> f64;
 }
 
