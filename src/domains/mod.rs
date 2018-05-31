@@ -1,8 +1,6 @@
 //! Learning benchmark domains module.
 
 use geometry::Space;
-use geometry::dimensions;
-use geometry::dimensions::Dimension;
 use std::collections::HashSet;
 
 macro_rules! impl_into {
@@ -146,13 +144,13 @@ pub trait Domain {
     /// Emit an observation of the current state of the environment.
     fn emit(
         &self,
-    ) -> Observation<<Self::StateSpace as Space>::Repr, <Self::ActionSpace as Space>::Repr>;
+    ) -> Observation<<Self::StateSpace as Space>::Value, <Self::ActionSpace as Space>::Value>;
 
     /// Transition the environment forward a single step given an action, `a`.
     fn step(
         &mut self,
-        a: <dimensions::Discrete as Dimension>::Value,
-    ) -> Transition<<Self::StateSpace as Space>::Repr, <Self::ActionSpace as Space>::Repr>;
+        a: <Self::ActionSpace as Space>::Value,
+    ) -> Transition<<Self::StateSpace as Space>::Value, <Self::ActionSpace as Space>::Value>;
 
     /// Returns true if the current state is terminal.
     fn is_terminal(&self) -> bool;
@@ -161,8 +159,8 @@ pub trait Domain {
     /// another.
     fn reward(
         &self,
-        from: &Observation<<Self::StateSpace as Space>::Repr, <Self::ActionSpace as Space>::Repr>,
-        to: &Observation<<Self::StateSpace as Space>::Repr, <Self::ActionSpace as Space>::Repr>,
+        from: &Observation<<Self::StateSpace as Space>::Value, <Self::ActionSpace as Space>::Value>,
+        to: &Observation<<Self::StateSpace as Space>::Value, <Self::ActionSpace as Space>::Value>,
     ) -> f64;
 
     /// Returns an instance of the state space type class.

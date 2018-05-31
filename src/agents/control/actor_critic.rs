@@ -1,7 +1,6 @@
 use agents::{Controller, TDPredictor};
 use domains::Transition;
 use fa::QFunction;
-use geometry::{ActionSpace, Space};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
 use {Handler, Parameter};
@@ -71,7 +70,7 @@ where
     }
 }
 
-impl<S: Clone, Q, C, P> Controller<S, <ActionSpace as Space>::Repr> for ActorCritic<S, Q, C, P>
+impl<S: Clone, Q, C, P> Controller<S, usize> for ActorCritic<S, Q, C, P>
 where
     Q: QFunction<S>,
     C: TDPredictor<S>,

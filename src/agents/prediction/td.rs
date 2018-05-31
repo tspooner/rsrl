@@ -1,6 +1,6 @@
 use agents::{Predictor, TDPredictor, memory::Trace};
 use domains::Transition;
-use fa::{Approximator, Projection, Projector, SimpleLinear, VFunction};
+use fa::{Approximator, Projection, Projector, SimpleLFA, VFunction};
 use std::marker::PhantomData;
 use {Handler, Parameter};
 
@@ -63,14 +63,14 @@ impl<S, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
 pub struct TDLambda<S: ?Sized, P: Projector<S>> {
     trace: Trace,
 
-    pub fa_theta: SimpleLinear<S, P>,
+    pub fa_theta: SimpleLFA<S, P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
 impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
-    pub fn new<T1, T2>(trace: Trace, fa_theta: SimpleLinear<S, P>, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(trace: Trace, fa_theta: SimpleLFA<S, P>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -97,7 +97,7 @@ impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
 
         self.trace.decay(rate);
         self.trace
-            .update(&phi_s.expanded(self.fa_theta.projector.span()));
+            .update(&phi_s.expanded(self.fa_theta.projector.dim()));
 
         self.fa_theta
             .update_phi(&Projection::Dense(self.trace.get()), self.alpha * error);

@@ -1,7 +1,6 @@
 use agents::{Controller, memory::Trace};
 use domains::Transition;
-use fa::{Approximator, MultiLinear, Projection, Projector, QFunction};
-use geometry::{ActionSpace, Space};
+use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
 use policies::{Greedy, Policy};
 use std::{collections::VecDeque, marker::PhantomData};
 use {Handler, Parameter, Vector};
@@ -72,7 +71,7 @@ where
     }
 }
 
-impl<S, Q, P> Controller<S, <ActionSpace as Space>::Repr> for QLearning<S, Q, P>
+impl<S, Q, P> Controller<S, usize> for QLearning<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,
@@ -101,7 +100,7 @@ where
 pub struct QLambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
 
-    pub fa_theta: MultiLinear<S, M>,
+    pub fa_theta: MultiLFA<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -113,7 +112,7 @@ pub struct QLambda<S, M: Projector<S>, P: Policy> {
 impl<S, M: Projector<S>, P: Policy> QLambda<S, M, P> {
     pub fn new<T1, T2>(
         trace: Trace,
-        fa_theta: MultiLinear<S, M>,
+        fa_theta: MultiLFA<S, M>,
         policy: P,
         alpha: T1,
         gamma: T2,
@@ -158,7 +157,7 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for QLambda<S,
         }
 
         self.trace
-            .update(&phi_s.expanded(self.fa_theta.projector.span()));
+            .update(&phi_s.expanded(self.fa_theta.projector.dim()));
         self.fa_theta.update_action_phi(
             &Projection::Dense(self.trace.get()),
             a,
@@ -175,9 +174,7 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for QLambda<S,
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
-    for QLambda<S, M, P>
-{
+impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for QLambda<S, M, P> {
     fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
@@ -263,7 +260,7 @@ where
     }
 }
 
-impl<S, Q, P> Controller<S, <ActionSpace as Space>::Repr> for SARSA<S, Q, P>
+impl<S, Q, P> Controller<S, usize> for SARSA<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,
@@ -291,7 +288,7 @@ where
 pub struct SARSALambda<S, M: Projector<S>, P: Policy> {
     trace: Trace,
 
-    pub fa_theta: MultiLinear<S, M>,
+    pub fa_theta: MultiLFA<S, M>,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -303,7 +300,7 @@ pub struct SARSALambda<S, M: Projector<S>, P: Policy> {
 impl<S, M: Projector<S>, P: Policy> SARSALambda<S, M, P> {
     pub fn new<T1, T2>(
         trace: Trace,
-        fa_theta: MultiLinear<S, M>,
+        fa_theta: MultiLFA<S, M>,
         policy: P,
         alpha: T1,
         gamma: T2,
@@ -343,7 +340,7 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for SARSALambd
 
         self.trace.decay(rate);
         self.trace
-            .update(&phi_s.expanded(self.fa_theta.projector.span()));
+            .update(&phi_s.expanded(self.fa_theta.projector.dim()));
 
         self.fa_theta.update_action_phi(
             &Projection::Dense(self.trace.get()),
@@ -361,9 +358,7 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for SARSALambd
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
-    for SARSALambda<S, M, P>
-{
+impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for SARSALambda<S, M, P> {
     fn pi(&mut self, s: &S) -> usize {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
@@ -448,7 +443,7 @@ where
     }
 }
 
-impl<S, Q, P> Controller<S, <ActionSpace as Space>::Repr> for ExpectedSARSA<S, Q, P>
+impl<S, Q, P> Controller<S, usize> for ExpectedSARSA<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,
@@ -616,7 +611,7 @@ where
     }
 }
 
-impl<S: Clone, Q, P> Controller<S, <ActionSpace as Space>::Repr> for QSigma<S, Q, P>
+impl<S: Clone, Q, P> Controller<S, usize> for QSigma<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,
@@ -638,8 +633,8 @@ where
 /// Persistent Advantage Learning
 ///
 /// # References
-/// - Bellemare, Marc G., et al. "Increasing the Action Gap: New Operators for Reinforcement
-/// Learning." AAAI. 2016.
+/// - Bellemare, Marc G., et al. "Increasing the Action Gap: New Operators for
+/// Reinforcement Learning." AAAI. 2016.
 pub struct PAL<S, Q: QFunction<S>, P: Policy> {
     pub q_func: Q,
     pub policy: P,
@@ -703,7 +698,7 @@ where
     }
 }
 
-impl<S, Q, P> Controller<S, <ActionSpace as Space>::Repr> for PAL<S, Q, P>
+impl<S, Q, P> Controller<S, usize> for PAL<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy,

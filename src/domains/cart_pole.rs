@@ -1,11 +1,11 @@
+use super::{runge_kutta4, Domain, Observation, Transition};
 use consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
 use geometry::{
-    ActionSpace, RegularSpace,
     dimensions::{Continuous, Discrete},
+    RegularSpace,
 };
 use ndarray::{Ix1, NdIndex};
-use super::{Domain, Observation, Transition, runge_kutta4};
-use {Vector};
+use Vector;
 
 const TAU: f64 = 0.02;
 
@@ -96,7 +96,7 @@ impl Default for CartPole {
 
 impl Domain for CartPole {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
     fn emit(&self) -> Observation<Vec<f64>, usize> {
         if self.is_terminal() {
@@ -145,7 +145,7 @@ impl Domain for CartPole {
             + Continuous::new(LIMITS_DTHETA.0, LIMITS_DTHETA.1)
     }
 
-    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(2)) }
+    fn action_space(&self) -> Discrete { Discrete::new(2) }
 }
 
 #[cfg(test)]

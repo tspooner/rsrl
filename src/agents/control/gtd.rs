@@ -1,7 +1,6 @@
 use agents::Controller;
 use domains::Transition;
-use fa::{Approximator, MultiLinear, Projection, Projector, QFunction, SimpleLinear, VFunction};
-use geometry::{ActionSpace, Space};
+use fa::{Approximator, MultiLFA, Projection, Projector, QFunction, SimpleLFA, VFunction};
 use policies::{Greedy, Policy};
 use std::marker::PhantomData;
 use {Handler, Parameter, Vector};
@@ -12,8 +11,8 @@ use {Handler, Parameter, Vector};
 /// approximation." Proceedings of the 27th International Conference on Machine
 /// Learning (ICML-10). 2010.
 pub struct GreedyGQ<S: ?Sized, M: Projector<S>, P: Policy> {
-    pub fa_theta: MultiLinear<S, M>,
-    pub fa_w: SimpleLinear<S, M>,
+    pub fa_theta: MultiLFA<S, M>,
+    pub fa_w: SimpleLFA<S, M>,
 
     pub policy: P,
 
@@ -26,8 +25,8 @@ pub struct GreedyGQ<S: ?Sized, M: Projector<S>, P: Policy> {
 
 impl<S: ?Sized, M: Projector<S>, P: Policy> GreedyGQ<S, M, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: MultiLinear<S, M>,
-        fa_w: SimpleLinear<S, M>,
+        fa_theta: MultiLFA<S, M>,
+        fa_w: SimpleLFA<S, M>,
         policy: P,
         alpha: T1,
         beta: T2,
@@ -69,8 +68,8 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for GreedyGQ<S
             + self.gamma.value() * self.fa_theta.evaluate_action_phi(&phi_ns, na)
             - self.fa_theta.evaluate_action_phi(&phi_s, a);
 
-        let phi_s = phi_s.expanded(self.fa_w.projector.span());
-        let phi_ns = phi_ns.expanded(self.fa_w.projector.span());
+        let phi_s = phi_s.expanded(self.fa_w.projector.dim());
+        let phi_ns = phi_ns.expanded(self.fa_w.projector.dim());
 
         let update_q = td_error * phi_s.clone() - self.gamma * td_estimate * phi_ns;
         let update_v = (td_error - td_estimate) * phi_s;
@@ -90,9 +89,7 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for GreedyGQ<S
     }
 }
 
-impl<S, M: Projector<S>, P: Policy> Controller<S, <ActionSpace as Space>::Repr>
-    for GreedyGQ<S, M, P>
-{
+impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for GreedyGQ<S, M, P> {
     fn pi(&mut self, s: &S) -> usize { self.evaluate_policy(&mut Greedy, s) }
 
     fn mu(&mut self, s: &S) -> usize {
