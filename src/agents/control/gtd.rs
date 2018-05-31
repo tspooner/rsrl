@@ -1,4 +1,4 @@
-use agents::Controller;
+use agents::{Controller, Predictor};
 use domains::Transition;
 use fa::{Approximator, MultiLFA, Projection, Projector, QFunction, SimpleLFA, VFunction};
 use policies::{Greedy, Policy};
@@ -102,5 +102,14 @@ impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for GreedyGQ<S, M, P> {
         let qs: Vector<f64> = self.fa_theta.evaluate(s).unwrap();
 
         p.sample(qs.as_slice().unwrap())
+    }
+}
+
+impl<S, M: Projector<S>, P: Policy> Predictor<S> for GreedyGQ<S, M, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.fa_theta.evaluate(s).unwrap();
+        let pi: Vector<f64> = self.policy.probabilities(nqs.as_slice().unwrap()).into();
+
+        pi.dot(&nqs)
     }
 }

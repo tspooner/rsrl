@@ -1,4 +1,4 @@
-use agents::{Controller, memory::Trace};
+use agents::{Controller, Predictor, memory::Trace};
 use domains::Transition;
 use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
 use policies::{Greedy, Policy};
@@ -121,6 +121,15 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for TOQLambda<
     }
 }
 
+impl<S, M: Projector<S>, P: Policy> Predictor<S> for TOQLambda<S, M, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.q_func.evaluate(s).unwrap();
+        let na = Greedy.sample(nqs.as_slice().unwrap());
+
+        nqs[na]
+    }
+}
+
 /// True online variant of the SARSA(lambda) algorithm.
 ///
 /// # References
@@ -229,5 +238,14 @@ impl<S, M: Projector<S>, P: Policy> Handler<Transition<S, usize>> for TOSARSALam
 
         self.trace.decay(0.0);
         self.policy.handle_terminal();
+    }
+}
+
+impl<S, M: Projector<S>, P: Policy> Predictor<S> for TOSARSALambda<S, M, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.q_func.evaluate(s).unwrap();
+        let pi: Vector<f64> = self.policy.probabilities(nqs.as_slice().unwrap()).into();
+
+        pi.dot(&nqs)
     }
 }

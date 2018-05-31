@@ -1,4 +1,4 @@
-use agents::{Controller, memory::Trace};
+use agents::{Controller, Predictor, memory::Trace};
 use domains::Transition;
 use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
 use policies::{Greedy, Policy};
@@ -87,6 +87,15 @@ where
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+    }
+}
+
+impl<S, Q: QFunction<S>, P: Policy> Predictor<S> for QLearning<S, Q, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.q_func.evaluate(s).unwrap();
+        let na = Greedy.sample(nqs.as_slice().unwrap());
+
+        nqs[na]
     }
 }
 
@@ -194,6 +203,15 @@ impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for QLambda<S, M, P> {
     }
 }
 
+impl<S, M: Projector<S>, P: Policy> Predictor<S> for QLambda<S, M, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.fa_theta.evaluate(s).unwrap();
+        let na = Greedy.sample(nqs.as_slice().unwrap());
+
+        nqs[na]
+    }
+}
+
 /// On-policy variant of Watkins' Q-learning (aka "modified Q-learning").
 ///
 /// # References
@@ -274,6 +292,15 @@ where
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+    }
+}
+
+impl<S, Q: QFunction<S>, P: Policy> Predictor<S> for SARSA<S, Q, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.q_func.evaluate(s).unwrap();
+        let pi: Vector<f64> = self.policy.probabilities(nqs.as_slice().unwrap()).into();
+
+        pi.dot(&nqs)
     }
 }
 
@@ -374,6 +401,15 @@ impl<S, M: Projector<S>, P: Policy> Controller<S, usize> for SARSALambda<S, M, P
     }
 }
 
+impl<S, M: Projector<S>, P: Policy> Predictor<S> for SARSALambda<S, M, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.fa_theta.evaluate(s).unwrap();
+        let pi: Vector<f64> = self.policy.probabilities(nqs.as_slice().unwrap()).into();
+
+        pi.dot(&nqs)
+    }
+}
+
 /// Action probability-weighted variant of SARSA (aka "summation Q-learning").
 ///
 /// # References
@@ -457,6 +493,15 @@ where
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+    }
+}
+
+impl<S, Q: QFunction<S>, P: Policy> Predictor<S> for ExpectedSARSA<S, Q, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.q_func.evaluate(s).unwrap();
+        let pi: Vector<f64> = self.policy.probabilities(nqs.as_slice().unwrap()).into();
+
+        pi.dot(&nqs)
     }
 }
 
@@ -630,6 +675,15 @@ where
     }
 }
 
+impl<S, Q: QFunction<S>, P: Policy> Predictor<S> for QSigma<S, Q, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.q_func.evaluate(s).unwrap();
+        let na = Greedy.sample(nqs.as_slice().unwrap());
+
+        nqs[na]
+    }
+}
+
 /// Persistent Advantage Learning
 ///
 /// # References
@@ -714,6 +768,15 @@ where
 
     fn evaluate_policy<T: Policy>(&self, p: &mut T, s: &S) -> usize {
         p.sample(self.q_func.evaluate(s).unwrap().as_slice().unwrap())
+    }
+}
+
+impl<S, Q: QFunction<S>, P: Policy> Predictor<S> for PAL<S, Q, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.q_func.evaluate(s).unwrap();
+        let na = Greedy.sample(nqs.as_slice().unwrap());
+
+        nqs[na]
     }
 }
 

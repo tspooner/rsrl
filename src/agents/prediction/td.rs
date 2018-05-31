@@ -44,7 +44,7 @@ impl<S, V: VFunction<S>> Handler<Transition<S, ()>> for TD<S, V> {
 }
 
 impl<S, V: VFunction<S>> Predictor<S> for TD<S, V> {
-    fn evaluate(&self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
+    fn predict(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }
 
 impl<S, V: VFunction<S>> TDPredictor<S> for TD<S, V> {
@@ -123,7 +123,7 @@ impl<S, P: Projector<S>> Handler<Transition<S, ()>> for TDLambda<S, P> {
 }
 
 impl<S, P: Projector<S>> Predictor<S> for TDLambda<S, P> {
-    fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+    fn predict(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
 impl<S, P: Projector<S>> TDPredictor<S> for TDLambda<S, P> {

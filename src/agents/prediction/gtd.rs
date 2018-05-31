@@ -68,7 +68,7 @@ impl<S, P: Projector<S>> Handler<Transition<S, ()>> for GTD2<S, P> {
 }
 
 impl<S, P: Projector<S>> Predictor<S> for GTD2<S, P> {
-    fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+    fn predict(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
 pub struct TDC<S: ?Sized, P: Projector<S>> {
@@ -135,7 +135,7 @@ impl<S, P: Projector<S>> Handler<Transition<S, ()>> for TDC<S, P> {
 }
 
 impl<S, P: Projector<S>> Predictor<S> for TDC<S, P> {
-    fn evaluate(&self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+    fn predict(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 
 // TODO:
