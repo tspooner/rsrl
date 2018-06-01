@@ -57,5 +57,5 @@ impl<S: Clone, V: VFunction<S>> Handler<Transition<S, ()>> for EveryVisitMC<S, V
 }
 
 impl<S: Clone, V: VFunction<S>> Predictor<S> for EveryVisitMC<S, V> {
-    fn evaluate(&self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
+    fn predict(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }

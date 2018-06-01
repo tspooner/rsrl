@@ -1,6 +1,6 @@
-use agents::Controller;
+use agents::{Controller, Predictor};
 use domains::Transition;
-use fa::{MultiLFA, Projection, Projector, QFunction, SimpleLFA, VFunction};
+use fa::{Approximator, MultiLFA, Projection, Projector, QFunction, SimpleLFA, VFunction};
 use policies::{fixed::Greedy, Policy, FinitePolicy};
 use std::marker::PhantomData;
 use {Shared, Handler, Parameter};
@@ -97,5 +97,14 @@ impl<S, M: Projector<S>, P: FinitePolicy<S>> Controller<S, usize> for GreedyGQ<S
 
     fn mu(&mut self, s: &S) -> usize {
         self.policy.sample(&s)
+    }
+}
+
+impl<S, M: Projector<S>, P: FinitePolicy<S>> Predictor<S> for GreedyGQ<S, M, P> {
+    fn predict(&mut self, s: &S) -> f64 {
+        let nqs = self.fa_theta.borrow().evaluate(s).unwrap();
+        let pi = self.target.probabilities(s);
+
+        pi.dot(&nqs)
     }
 }

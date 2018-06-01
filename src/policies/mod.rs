@@ -1,7 +1,6 @@
 //! Agent policy module.
 use core::Handler;
 use domains::Transition;
-use fa::{Approximator, UpdateResult};
 use geometry::{Vector, Matrix};
 use rand::{Rng, ThreadRng};
 
