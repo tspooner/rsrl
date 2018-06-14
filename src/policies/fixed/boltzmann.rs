@@ -1,10 +1,10 @@
+use core::{Handler, Parameter};
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
 use policies::{Policy, FinitePolicy, sample_probs};
 use rand::{thread_rng, ThreadRng};
 use std::f64;
-use {Handler, Parameter};
 
 pub struct Boltzmann<S> {
     q_func: SharedQFunction<S>,

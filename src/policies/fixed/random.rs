@@ -1,3 +1,4 @@
+use core::Handler;
 use domains::Transition;
 use geometry::{Space, Vector};
 use policies::{Policy, FinitePolicy};
@@ -5,7 +6,6 @@ use rand::{
     thread_rng, ThreadRng,
     distributions::{IndependentSample, Range},
 };
-use Handler;
 
 pub struct Random(usize, ThreadRng);
 

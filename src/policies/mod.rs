@@ -1,5 +1,5 @@
 //! Agent policy module.
-use core::Handler;
+use core::{Handler, Shared};
 use domains::Transition;
 use geometry::{Vector, Matrix};
 use rand::{Rng, ThreadRng};
@@ -14,6 +14,8 @@ pub(self) fn sample_probs(rng: &mut ThreadRng, probabilities: &[f64]) -> usize {
         None => n_actions - 1,
     }
 }
+
+pub type SharedPolicy<S, A> = Shared<Policy<S, A>>;
 
 /// Policy trait for functions that select between a set of values.
 pub trait Policy<S, A>: Handler<Transition<S, A>> {

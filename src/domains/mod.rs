@@ -1,5 +1,4 @@
 //! Learning benchmark domains module.
-
 use geometry::Space;
 use std::collections::HashSet;
 

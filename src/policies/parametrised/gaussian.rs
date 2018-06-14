@@ -1,7 +1,6 @@
-use fa::{
-    Projector, Projection, Approximator, SimpleLFA,
-    EvaluationResult, UpdateResult,
-};
+use core::{Parameter, Handler};
+use domains::Transition;
+use fa::{Projector, Projection, Approximator, SimpleLFA};
 use geometry::{Vector, Matrix};
 use rand::{
     thread_rng, ThreadRng,
@@ -12,7 +11,6 @@ use rand::{
 };
 use std::iter::repeat;
 use super::{Policy, DifferentiablePolicy, pdfs::normal_pdf};
-use {Parameter, Handler, Transition};
 
 pub struct Gaussian1d<S, M: Projector<S>> {
     pub fa_mean: SimpleLFA<S, M>,

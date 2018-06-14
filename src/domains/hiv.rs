@@ -1,11 +1,11 @@
-use super::{runge_kutta4, Domain, Observation, Transition};
+use core::Vector;
 use geometry::{
     dimensions::{Continuous, Discrete},
     RegularSpace,
 };
 use ndarray::{Ix1, NdIndex};
 use std::ops::Index;
-use Vector;
+use super::{runge_kutta4, Domain, Observation, Transition};
 
 // Model parameters
 // (https://pdfs.semanticscholar.org/c030/127238b1dbad2263fba6b64b5dec7c3ffa20.pdf):

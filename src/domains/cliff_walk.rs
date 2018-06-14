@@ -1,11 +1,11 @@
+use core::Matrix;
+use geometry::{dimensions::Discrete, PairSpace};
 use super::{
     grid_world::{GridWorld, Motion},
     Domain,
     Observation,
     Transition,
 };
-use geometry::{dimensions::Discrete, PairSpace};
-use Matrix;
 
 const ALL_ACTIONS: [Motion; 4] = [
     Motion::North(1),

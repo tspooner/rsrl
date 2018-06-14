@@ -1,9 +1,9 @@
+use core::{Handler, Parameter};
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
 use rand::{thread_rng, Rng, ThreadRng};
 use super::{Policy, FinitePolicy, Greedy, Random};
-use {Handler, Parameter};
 
 pub struct EpsilonGreedy<S> {
     random: Random,

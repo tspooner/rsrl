@@ -9,11 +9,11 @@ pub use self::lfa::*;
 mod table;
 pub use self::table::Table;
 
-pub(crate) type SimpleLFA<I, P> = LFA<I, P, Simple>;
-pub(crate) type MultiLFA<I, P> = LFA<I, P, Multi>;
+pub type SimpleLFA<I, P> = LFA<I, P, Simple>;
+pub type MultiLFA<I, P> = LFA<I, P, Multi>;
 
-pub(crate) type SharedVFunction<I> = Shared<VFunction<I, Value = f64>>;
-pub(crate) type SharedQFunction<I> = Shared<QFunction<I, Value = Vector<f64>>>;
+pub type SharedVFunction<I> = Shared<VFunction<I, Value = f64>>;
+pub type SharedQFunction<I> = Shared<QFunction<I, Value = Vector<f64>>>;
 
 /// An interface for state-value functions.
 pub trait VFunction<I: ?Sized>: Approximator<I, Value = f64> {

@@ -1,11 +1,11 @@
-use super::{runge_kutta4, Domain, Observation, Transition};
 use consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
+use core::Vector;
 use geometry::{
     dimensions::{Continuous, Discrete},
     RegularSpace,
 };
 use ndarray::{Ix1, NdIndex};
-use Vector;
+use super::{runge_kutta4, Domain, Observation, Transition};
 
 const TAU: f64 = 0.02;
 

@@ -1,13 +1,12 @@
 extern crate cpython;
 
-use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
-use super::{Domain, Observation, Transition};
 use geometry::{
     dimensions::{Continuous, Discrete},
     RegularSpace,
 };
-use std::collections::HashSet;
-use std::f64;
+use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
+use std::{collections::HashSet, f64};
+use super::{Domain, Observation, Transition};
 
 mod client;
 use self::client::GymClient;

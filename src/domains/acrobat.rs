@@ -1,12 +1,12 @@
-use super::{runge_kutta4, Domain, Observation, Transition};
 use consts::{PI_OVER_2, G};
+use core::Vector;
 use geometry::{
     dimensions::{Continuous, Discrete},
     RegularSpace,
 };
 use ndarray::{Ix1, NdIndex};
 use std::f64::consts::PI;
-use Vector;
+use super::{runge_kutta4, Domain, Observation, Transition};
 
 // Link masses:
 const M1: f64 = 1.0;

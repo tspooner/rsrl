@@ -1,10 +1,10 @@
+use core::{Handler};
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
 use policies::{Policy, FinitePolicy};
 use rand::{Rng, thread_rng};
 use utils::argmaxima;
-use Handler;
 
 pub struct Greedy<S>(SharedQFunction<S>);
 

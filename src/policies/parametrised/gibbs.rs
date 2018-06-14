@@ -1,11 +1,11 @@
+use core::Handler;
+use domains::Transition;
 use fa::{Projector, Approximator, MultiLFA};
 use geometry::{Vector, Matrix};
 use ndarray::Ix2;
 use policies::{Policy, FinitePolicy, DifferentiablePolicy, ParameterisedPolicy};
 use rand::{thread_rng, Rng, ThreadRng};
-use std::f64;
-use std::ops::AddAssign;
-use {Transition, Handler};
+use std::{f64, ops::AddAssign};
 
 pub struct Gibbs<S, M: Projector<S>> {
     pub fa: MultiLFA<S, M>,

@@ -1,10 +1,10 @@
+use core::{Handler, Parameter};
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
 use rand::{thread_rng, ThreadRng};
 use std::f64;
 use super::{sample_probs, Policy, FinitePolicy};
-use {Handler, Parameter};
 
 fn kappa(c: f64, x: f64) -> f64 { c / (1.0 + (-x).exp()) }
 
