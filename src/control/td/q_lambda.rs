@@ -1,7 +1,7 @@
-use core::{Controller, Predictor, Handler, Shared, Parameter, Vector, Trace};
+use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Trace};
 use domains::Transition;
 use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
-use policies::{fixed::Greedy, Policy, FinitePolicy};
+use policies::{fixed::Greedy, Policy};
 use std::marker::PhantomData;
 
 /// Watkins' Q-learning with eligibility traces.
@@ -11,12 +11,12 @@ use std::marker::PhantomData;
 /// Cambridge University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
-pub struct QLambda<S, M: Projector<S>, P: FinitePolicy<S>> {
+pub struct QLambda<S, M: Projector<S>, P: Policy<S>> {
     trace: Trace,
 
     pub fa_theta: Shared<MultiLFA<S, M>>,
 
-    pub policy: P,
+    pub policy: Shared<P>,
     pub target: Greedy<S>,
 
     pub alpha: Parameter,
@@ -25,11 +25,11 @@ pub struct QLambda<S, M: Projector<S>, P: FinitePolicy<S>> {
     phantom: PhantomData<S>,
 }
 
-impl<S: 'static, M: Projector<S> + 'static, P: FinitePolicy<S>> QLambda<S, M, P> {
+impl<S: 'static, M: Projector<S> + 'static, P: Policy<S>> QLambda<S, M, P> {
     pub fn new<T1, T2>(
         trace: Trace,
         fa_theta: Shared<MultiLFA<S, M>>,
-        policy: P,
+        policy: Shared<P>,
         alpha: T1,
         gamma: T2,
     ) -> Self
@@ -53,7 +53,7 @@ impl<S: 'static, M: Projector<S> + 'static, P: FinitePolicy<S>> QLambda<S, M, P>
     }
 }
 
-impl<S, M: Projector<S>, P: FinitePolicy<S>> Handler<Transition<S, usize>> for QLambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for QLambda<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -86,29 +86,28 @@ impl<S, M: Projector<S>, P: FinitePolicy<S>> Handler<Transition<S, usize>> for Q
 
         self.trace.decay(0.0);
 
-        self.policy.handle_terminal(t);
         self.target.handle_terminal(t);
+        self.policy.borrow_mut().handle_terminal(t);
     }
 }
 
-impl<S, M: Projector<S>, P: FinitePolicy<S>> Controller<S, usize> for QLambda<S, M, P> {
-    fn pi(&mut self, s: &S) -> usize { self.policy.sample(s) }
-
-    fn mu(&mut self, s: &S) -> usize { self.target.sample(s) }
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Controller<S, usize> for QLambda<S, M, P> {
+    fn pi(&mut self, s: &S) -> usize { self.target.sample(s) }
+    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, M: Projector<S>, P: FinitePolicy<S>> Predictor<S, usize> for QLambda<S, M, P> {
-    fn predict_v(&mut self, s: &S) -> f64 {
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Predictor<S, usize> for QLambda<S, M, P> {
+    fn v(&mut self, s: &S) -> f64 {
         let a = self.pi(s);
 
-        self.predict_qsa(s, a)
+        self.qsa(s, a)
     }
 
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn qs(&mut self, s: &S) -> Vector<f64> {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn qsa(&mut self, s: &S, a: usize) -> f64 {
         self.fa_theta.borrow().evaluate_action(&s, a)
     }
 }

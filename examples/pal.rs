@@ -3,17 +3,13 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    agents::control::td::PAL,
+    control::td::PAL,
+    core::{run, Evaluation, Parameter, SerialExperiment, make_shared, Trace},
     domains::{Domain, MountainCar},
     fa::{projectors::fixed::Fourier, LFA},
     geometry::Space,
-    logging,
     policies::fixed::EpsilonGreedy,
-    run,
-    Evaluation,
-    Parameter,
-    SerialExperiment,
-    make_shared,
+    logging,
 };
 
 fn main() {
@@ -28,7 +24,7 @@ fn main() {
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
-        let policy = EpsilonGreedy::new(q_func.clone(), eps);
+        let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
 
         PAL::new(q_func, policy, 0.1, 0.99)
     };

@@ -128,7 +128,7 @@ impl Domain for HIVTreatment {
     type StateSpace = RegularSpace<Continuous>;
     type ActionSpace = Discrete;
 
-    fn emit(&self) -> Observation<Vec<f64>, usize> {
+    fn emit(&self) -> Observation<Vec<f64>> {
         let s = self.state
             .mapv(|v| clip!(LIMITS.0, v.log10(), LIMITS.1))
             .to_vec();
@@ -136,10 +136,7 @@ impl Domain for HIVTreatment {
         if self.is_terminal() {
             Observation::Terminal(s)
         } else {
-            Observation::Full {
-                state: s,
-                actions: [0, 1, 2].iter().cloned().collect(),
-            }
+            Observation::Full(s)
         }
     }
 
@@ -160,7 +157,7 @@ impl Domain for HIVTreatment {
 
     fn is_terminal(&self) -> bool { false }
 
-    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
+    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
         let s = to.state();
         let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps.0.powf(2.0)
             - 2e3 * self.eps.1.powf(2.0);
@@ -187,7 +184,7 @@ mod tests {
         let m = HIVTreatment::new(1.0, 10.0, 100.0, 200.0, 500.0, 10000.0);
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert!((state[0] - 0.0).abs() < 1e-7);
                 assert!((state[1] - 1.0).abs() < 1e-7);
                 assert!((state[2] - 2.0).abs() < 1e-7);
@@ -204,7 +201,7 @@ mod tests {
         let m = HIVTreatment::default();
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert!((state[0] - 5.213711618903007).abs() < 1e-7);
                 assert!((state[1] - 4.077186154085897).abs() < 1e-7);
                 assert!((state[2] - 0.698970004336019).abs() < 1e-7);
@@ -221,7 +218,7 @@ mod tests {
         let m = HIVTreatment::new(1e10, 1e-10, 1.0, 1.0, 1.0, 1.0);
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert!((state[0] - LIMITS.1).abs() < 1e-7);
                 assert!((state[1] - LIMITS.0).abs() < 1e-7);
                 assert!((state[2] - 0.0).abs() < 1e-7);

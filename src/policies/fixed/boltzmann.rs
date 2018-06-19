@@ -1,4 +1,4 @@
-use core::{Handler, Parameter};
+use core::Parameter;
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
@@ -24,13 +24,9 @@ impl<S> Boltzmann<S> {
     }
 }
 
-impl<S> Handler<Transition<S, usize>> for Boltzmann<S> {
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
-        self.tau = self.tau.step()
-    }
-}
+impl<S> Policy<S> for Boltzmann<S> {
+    type Action = usize;
 
-impl<S> Policy<S, usize> for Boltzmann<S> {
     fn sample(&mut self, s: &S) -> usize {
         let ps = self.probabilities(s);
 
@@ -39,6 +35,10 @@ impl<S> Policy<S, usize> for Boltzmann<S> {
 
     fn probability(&mut self, s: &S, a: usize) -> f64 {
         self.probabilities(s)[a]
+    }
+
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
+        self.tau = self.tau.step()
     }
 }
 

@@ -1,4 +1,4 @@
-use core::{Handler, Predictor, Parameter, Trace};
+use core::{Algorithm, Predictor, Parameter, Trace};
 use domains::Transition;
 use fa::{Approximator, Projection, Projector, SimpleLFA, VFunction};
 
@@ -28,12 +28,12 @@ impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
     }
 }
 
-impl<S, A, P: Projector<S>> Handler<Transition<S, A>> for TDLambda<S, P> {
+impl<S, A, M: Projector<S>> Algorithm<S, A> for TDLambda<S, M> {
     fn handle_sample(&mut self, sample: &Transition<S, A>) {
         let phi_s = self.fa_theta.projector.project(&sample.from.state());
 
         let v = self.fa_theta.evaluate_phi(&phi_s);
-        let nv = self.predict_v(sample.to.state());
+        let nv = self.v(sample.to.state());
 
         let td_error = sample.reward + self.gamma * nv - v;
         let decay_rate = self.trace.lambda.value() * self.gamma.value();
@@ -55,5 +55,5 @@ impl<S, A, P: Projector<S>> Handler<Transition<S, A>> for TDLambda<S, P> {
 }
 
 impl<S, P: Projector<S>> Predictor<S, ()> for TDLambda<S, P> {
-    fn predict_v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+    fn v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }

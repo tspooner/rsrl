@@ -1,7 +1,7 @@
-use core::{Controller, Predictor, Handler, Shared, Parameter, Vector, Trace};
+use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector, Trace};
 use domains::Transition;
 use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
-use policies::FinitePolicy;
+use policies::{Policy, FinitePolicy};
 use std::marker::PhantomData;
 
 /// On-policy variant of Watkins' Q-learning with eligibility traces (aka
@@ -12,11 +12,11 @@ use std::marker::PhantomData;
 /// thesis, Cambridge University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
-pub struct SARSALambda<S, M: Projector<S>, P: FinitePolicy<S>> {
+pub struct SARSALambda<S, M: Projector<S>, P: Policy<S>> {
     trace: Trace,
 
     pub fa_theta: Shared<MultiLFA<S, M>>,
-    pub policy: P,
+    pub policy: Shared<P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -24,11 +24,11 @@ pub struct SARSALambda<S, M: Projector<S>, P: FinitePolicy<S>> {
     phantom: PhantomData<S>,
 }
 
-impl<S, M: Projector<S>, P: FinitePolicy<S>> SARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy<S>> SARSALambda<S, M, P> {
     pub fn new<T1, T2>(
         trace: Trace,
         fa_theta: Shared<MultiLFA<S, M>>,
-        policy: P,
+        policy: Shared<P>,
         alpha: T1,
         gamma: T2,
     ) -> Self
@@ -50,14 +50,15 @@ impl<S, M: Projector<S>, P: FinitePolicy<S>> SARSALambda<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: FinitePolicy<S>> Handler<Transition<S, usize>> for SARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for SARSALambda<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let phi_s = self.fa_theta.borrow().projector.project(s);
 
+        let na = self.policy.borrow_mut().sample(ns);
         let qa = self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
-        let nqa = self.fa_theta.borrow().evaluate_action(ns, self.policy.sample(ns));
+        let nqa = self.fa_theta.borrow().evaluate_action(ns, na);
 
         let rate = self.trace.lambda.value() * self.gamma.value();
         let td_error = t.reward + self.gamma * nqa - qa;
@@ -78,27 +79,25 @@ impl<S, M: Projector<S>, P: FinitePolicy<S>> Handler<Transition<S, usize>> for S
         self.gamma = self.gamma.step();
 
         self.trace.decay(0.0);
-
-        self.policy.handle_terminal(t);
+        self.policy.borrow_mut().handle_terminal(t);
     }
 }
 
 impl<S, M: Projector<S>, P: FinitePolicy<S>> Controller<S, usize> for SARSALambda<S, M, P> {
-    fn pi(&mut self, s: &S) -> usize { self.policy.sample(s) }
-
-    fn mu(&mut self, s: &S) -> usize { self.pi(s) }
+    fn pi(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S, M: Projector<S>, P: FinitePolicy<S>> Predictor<S, usize> for SARSALambda<S, M, P> {
-    fn predict_v(&mut self, s: &S) -> f64 {
-        self.predict_qs(s).dot(&self.policy.probabilities(s))
+    fn v(&mut self, s: &S) -> f64 {
+        self.qs(s).dot(&self.policy.borrow_mut().probabilities(s))
     }
 
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn qs(&mut self, s: &S) -> Vector<f64> {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn qsa(&mut self, s: &S, a: usize) -> f64 {
         self.fa_theta.borrow().evaluate_action(&s, a)
     }
 }

@@ -1,5 +1,3 @@
-use core::Handler;
-use domains::Transition;
 use geometry::{Space, Vector};
 use policies::{Policy, FinitePolicy};
 use rand::{
@@ -19,9 +17,9 @@ impl Random {
     }
 }
 
-impl<S> Handler<Transition<S, usize>> for Random {}
+impl<S> Policy<S> for Random {
+    type Action = usize;
 
-impl<S> Policy<S, usize> for Random {
     fn sample(&mut self, _: &S) -> usize {
         Range::new(0, self.0).ind_sample(&mut self.1)
     }

@@ -122,14 +122,11 @@ impl Domain for Acrobat {
     type StateSpace = RegularSpace<Continuous>;
     type ActionSpace = Discrete;
 
-    fn emit(&self) -> Observation<Vec<f64>, usize> {
+    fn emit(&self) -> Observation<Vec<f64>> {
         if self.is_terminal() {
             Observation::Terminal(self.state.to_vec())
         } else {
-            Observation::Full {
-                state: self.state.to_vec(),
-                actions: [0, 1, 2].iter().cloned().collect(),
-            }
+            Observation::Full(self.state.to_vec())
         }
     }
 
@@ -155,7 +152,7 @@ impl Domain for Acrobat {
         theta1.cos() + (theta1 + theta2).cos() < -1.0
     }
 
-    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
+    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
         match to {
             &Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,
@@ -182,7 +179,7 @@ mod tests {
         let m = Acrobat::default();
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert_eq!(state[0], 0.0);
                 assert_eq!(state[1], 0.0);
                 assert_eq!(state[2], 0.0);

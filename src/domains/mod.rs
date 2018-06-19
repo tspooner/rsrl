@@ -1,52 +1,15 @@
 //! Learning benchmark domains module.
 use geometry::Space;
-use std::collections::HashSet;
 
 macro_rules! impl_into {
-    (Observation<S, $type:ty> => Observation<S, ()>) => (
-        impl<S> Into<Observation<S, ()>> for Observation<S, $type> {
-            fn into(self) -> Observation<S, ()> {
-                use self::Observation::*;
-
-                match self {
-                    Full { state, .. } => Full { state: state, actions: HashSet::new() },
-                    Partial { state, .. } => Partial { state: state, actions: HashSet::new() },
-                    Terminal(state) => Terminal(state),
-                }
-            }
-        }
-
-        impl<'a, S: Clone> From<&'a Observation<S, $type>> for Observation<S, ()> {
-            fn from(obs: &'a Observation<S, $type>) -> Observation<S, ()> {
-                use self::Observation::*;
-
-                match obs {
-                    Full { state, .. } => Full { state: state.clone(), actions: HashSet::new() },
-                    Partial { state, .. } => Partial { state: state.clone(), actions: HashSet::new() },
-                    Terminal(state) => Terminal(state.clone()),
-                }
-            }
-        }
-    );
     (Transition<S, $type:ty> => Transition<S, ()>) => (
         impl<S> Into<Transition<S, ()>> for Transition<S, $type> {
             fn into(self) -> Transition<S, ()> {
                 Transition {
-                    from: self.from.into(),
+                    from: self.from,
                     action: (),
                     reward: self.reward,
                     to: self.to.into(),
-                }
-            }
-        }
-
-        impl<'a, S: Clone> From<&'a Transition<S, $type>> for Transition<S, ()> {
-            fn from(t: &'a Transition<S, $type>) -> Transition<S, ()> {
-                Transition {
-                    from: (&t.from).into(),
-                    action: (),
-                    reward: t.reward,
-                    to: (&t.to).into(),
                 }
             }
         }
@@ -55,59 +18,34 @@ macro_rules! impl_into {
 
 /// Container class for data associated with a domain observation.
 #[derive(Clone)]
-pub enum Observation<S, A> {
+pub enum Observation<S> {
     /// Fully observed state of the environment.
-    Full {
-        /// Current state of the environment.
-        state: S,
-
-        /// Set of available actions.
-        actions: HashSet<A>,
-    },
+    Full(S),
 
     /// Partially observed state of the environment.
-    Partial {
-        /// Current state of the environment.
-        state: S,
-
-        /// Set of available actions.
-        actions: HashSet<A>,
-    },
+    Partial(S),
 
     /// Terminal state of the environment.
     Terminal(S),
 }
 
-impl<S, A> Observation<S, A> {
+impl<S> Observation<S> {
     /// Helper function returning a reference to the state values for the given
     /// observation.
     pub fn state(&self) -> &S {
         use self::Observation::*;
 
         match self {
-            &Full { ref state, .. } | &Partial { ref state, .. } | &Terminal(ref state) => state,
+            &Full(ref state) | &Partial(ref state) | &Terminal(ref state) => state,
         }
     }
 }
-
-impl_into!(Observation<S, u8> => Observation<S, ()>);
-impl_into!(Observation<S, u16> => Observation<S, ()>);
-impl_into!(Observation<S, u32> => Observation<S, ()>);
-impl_into!(Observation<S, u64> => Observation<S, ()>);
-impl_into!(Observation<S, usize> => Observation<S, ()>);
-impl_into!(Observation<S, i8> => Observation<S, ()>);
-impl_into!(Observation<S, i16> => Observation<S, ()>);
-impl_into!(Observation<S, i32> => Observation<S, ()>);
-impl_into!(Observation<S, i64> => Observation<S, ()>);
-impl_into!(Observation<S, isize> => Observation<S, ()>);
-impl_into!(Observation<S, f32> => Observation<S, ()>);
-impl_into!(Observation<S, f64> => Observation<S, ()>);
 
 /// Container class for data associated with a domain transition.
 #[derive(Clone)]
 pub struct Transition<S, A> {
     /// State transitioned _from_, `s`.
-    pub from: Observation<S, A>,
+    pub from: Observation<S>,
 
     /// Action taken to initiate the transition (control tasks).
     pub action: A,
@@ -116,7 +54,7 @@ pub struct Transition<S, A> {
     pub reward: f64,
 
     /// State transitioned _to_, `s'`.
-    pub to: Observation<S, A>,
+    pub to: Observation<S>,
 }
 
 impl_into!(Transition<S, u8> => Transition<S, ()>);
@@ -143,7 +81,7 @@ pub trait Domain {
     /// Emit an observation of the current state of the environment.
     fn emit(
         &self,
-    ) -> Observation<<Self::StateSpace as Space>::Value, <Self::ActionSpace as Space>::Value>;
+    ) -> Observation<<Self::StateSpace as Space>::Value>;
 
     /// Transition the environment forward a single step given an action, `a`.
     fn step(
@@ -158,8 +96,8 @@ pub trait Domain {
     /// another.
     fn reward(
         &self,
-        from: &Observation<<Self::StateSpace as Space>::Value, <Self::ActionSpace as Space>::Value>,
-        to: &Observation<<Self::StateSpace as Space>::Value, <Self::ActionSpace as Space>::Value>,
+        from: &Observation<<Self::StateSpace as Space>::Value>,
+        to: &Observation<<Self::StateSpace as Space>::Value>,
     ) -> f64;
 
     /// Returns an instance of the state space type class.

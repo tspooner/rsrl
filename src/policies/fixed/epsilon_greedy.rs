@@ -1,4 +1,4 @@
-use core::{Handler, Parameter};
+use core::Parameter;
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
@@ -27,16 +27,9 @@ impl<S> EpsilonGreedy<S> {
     }
 }
 
-impl<S> Handler<Transition<S, usize>> for EpsilonGreedy<S> {
-    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
-        self.epsilon = self.epsilon.step();
+impl<S> Policy<S> for EpsilonGreedy<S> {
+    type Action = usize;
 
-        self.greedy.handle_terminal(t);
-        self.random.handle_terminal(t);
-    }
-}
-
-impl<S> Policy<S, usize> for EpsilonGreedy<S> {
     fn sample(&mut self, s: &S) -> usize {
         if self.rng.next_f64() < self.epsilon.value() {
             self.random.sample(s)
@@ -47,6 +40,13 @@ impl<S> Policy<S, usize> for EpsilonGreedy<S> {
 
     fn probability(&mut self, s: &S, a: usize) -> f64 {
         self.probabilities(s)[a]
+    }
+
+    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
+        self.epsilon = self.epsilon.step();
+
+        self.greedy.handle_terminal(t);
+        self.random.handle_terminal(t);
     }
 }
 

@@ -1,4 +1,3 @@
-use core::{Handler};
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
@@ -14,9 +13,9 @@ impl<S> Greedy<S> {
     }
 }
 
-impl<S> Handler<Transition<S, usize>> for Greedy<S> {}
+impl<S> Policy<S> for Greedy<S> {
+    type Action = usize;
 
-impl<S> Policy<S, usize> for Greedy<S> {
     fn sample(&mut self, s: &S) -> usize {
         let maxima = argmaxima(self.0.borrow().evaluate(s).unwrap().as_slice().unwrap()).1;
 

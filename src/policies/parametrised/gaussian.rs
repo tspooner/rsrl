@@ -1,4 +1,4 @@
-use core::{Parameter, Handler};
+use core::Parameter;
 use domains::Transition;
 use fa::{Projector, Projection, Approximator, SimpleLFA};
 use geometry::{Vector, Matrix};
@@ -36,13 +36,9 @@ impl<S, M: Projector<S>> Gaussian1d<S, M> {
     }
 }
 
-impl<S, M: Projector<S>> Handler<Transition<S, f64>> for Gaussian1d<S, M> {
-    fn handle_terminal(&mut self, _: &Transition<S, f64>) {
-        self.std.step();
-    }
-}
+impl<S, M: Projector<S>> Policy<S> for Gaussian1d<S, M> {
+    type Action = f64;
 
-impl<S, M: Projector<S>> Policy<S, f64> for Gaussian1d<S, M> {
     fn sample(&mut self, input: &S) -> f64 {
         let phi = self.fa_mean.projector.project(input);
 
@@ -54,9 +50,13 @@ impl<S, M: Projector<S>> Policy<S, f64> for Gaussian1d<S, M> {
 
         normal_pdf(self.mean(&phi), self.std.value(), a)
     }
+
+    fn handle_terminal(&mut self, _: &Transition<S, f64>) {
+        self.std.step();
+    }
 }
 
-impl<S, M: Projector<S>> DifferentiablePolicy<S, f64> for Gaussian1d<S, M> {
+impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<S, M> {
     fn grad_log(&self, input: &S, a: f64) -> Matrix<f64> {
         let phi = self.fa_mean.projector.project(input);
         let mean = self.mean(&phi);

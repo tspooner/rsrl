@@ -72,16 +72,13 @@ impl Domain for MountainCar {
     type StateSpace = RegularSpace<Continuous>;
     type ActionSpace = Discrete;
 
-    fn emit(&self) -> Observation<Vec<f64>, usize> {
+    fn emit(&self) -> Observation<Vec<f64>> {
         let s = vec![self.x, self.v];
 
         if self.is_terminal() {
             Observation::Terminal(s)
         } else {
-            Observation::Full {
-                state: s,
-                actions: [0, 1, 2].iter().cloned().collect(),
-            }
+            Observation::Full(s)
         }
     }
 
@@ -102,7 +99,7 @@ impl Domain for MountainCar {
 
     fn is_terminal(&self) -> bool { self.x >= X_MAX }
 
-    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
+    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
         match to {
             &Observation::Terminal(_) => REWARD_GOAL,
             _ => REWARD_STEP,
@@ -126,7 +123,7 @@ mod tests {
         let m = MountainCar::default();
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert_eq!(state[0], -0.5);
                 assert_eq!(state[1], 0.0);
             },

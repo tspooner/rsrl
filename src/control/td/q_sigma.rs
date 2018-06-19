@@ -1,4 +1,4 @@
-use core::{Controller, Predictor, Handler, Shared, Parameter, Vector};
+use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector};
 use domains::Transition;
 use fa::QFunction;
 use policies::{fixed::Greedy, Policy, FinitePolicy};
@@ -18,10 +18,10 @@ use std::collections::VecDeque;
 /// - De Asis, K., Hernandez-Garcia, J. F., Holland, G. Z., & Sutton, R. S.
 /// (2017). Multi-step Reinforcement Learning: A Unifying Algorithm. arXiv
 /// preprint arXiv:1703.01327.
-pub struct QSigma<S, Q: QFunction<S>, P: FinitePolicy<S>> {
+pub struct QSigma<S, Q: QFunction<S>, P: Policy<S>> {
     pub q_func: Shared<Q>,
 
-    pub policy: P,
+    pub policy: Shared<P>,
     pub target: Greedy<S>,
 
     pub alpha: Parameter,
@@ -36,11 +36,11 @@ pub struct QSigma<S, Q: QFunction<S>, P: FinitePolicy<S>> {
 impl<S, Q, P> QSigma<S, Q, P>
 where
     Q: QFunction<S> + 'static,
-    P: FinitePolicy<S>,
+    P: Policy<S>,
 {
     pub fn new<T1, T2, T3>(
         q_func: Shared<Q>,
-        policy: P,
+        policy: Shared<P>,
         alpha: T1,
         gamma: T2,
         sigma: T3,
@@ -106,7 +106,7 @@ struct BackupEntry<S> {
     pub mu: f64,
 }
 
-impl<S: Clone, Q, P> Handler<Transition<S, usize>> for QSigma<S, Q, P>
+impl<S: Clone, Q, P> Algorithm<S, usize> for QSigma<S, Q, P>
 where
     Q: QFunction<S> + 'static,
     P: FinitePolicy<S>,
@@ -114,8 +114,7 @@ where
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let na = self.policy.sample(&ns);
-        let mu = self.policy.probabilities(&ns);
+        let na = self.policy.borrow_mut().sample(&ns);
         let pi = self.target.probabilities(&ns);
 
         let qa = self.q_func.borrow().evaluate_action(s, t.action);
@@ -139,7 +138,7 @@ where
 
             sigma: sigma,
             pi: pi[na],
-            mu: mu[na],
+            mu: self.policy.borrow_mut().probability(ns, na),
         });
 
         // Learn of latest backup sequence if we have `n_steps` entries:
@@ -154,7 +153,7 @@ where
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.handle_terminal(t);
+        self.policy.borrow_mut().handle_terminal(t);
     }
 }
 
@@ -163,9 +162,9 @@ where
     Q: QFunction<S> + 'static,
     P: FinitePolicy<S>,
 {
-    fn pi(&mut self, s: &S) -> usize { self.policy.sample(s) }
+    fn pi(&mut self, s: &S) -> usize { self.target.sample(s) }
 
-    fn mu(&mut self, s: &S) -> usize { self.target.sample(s) }
+    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S: Clone, Q, P> Predictor<S, usize> for QSigma<S, Q, P>
@@ -173,15 +172,15 @@ where
     Q: QFunction<S> + 'static,
     P: FinitePolicy<S>,
 {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn v(&mut self, s: &S) -> f64 {
         self.q_func.borrow().evaluate(s).unwrap()[self.target.sample(s)]
     }
 
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

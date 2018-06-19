@@ -1,7 +1,7 @@
-use core::{Controller, Predictor, Handler, Shared, Parameter, Vector};
+use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector};
 use domains::Transition;
 use fa::QFunction;
-use policies::{fixed::Greedy, Policy, FinitePolicy};
+use policies::{fixed::Greedy, Policy};
 use std::marker::PhantomData;
 
 /// Watkins' Q-learning.
@@ -11,10 +11,10 @@ use std::marker::PhantomData;
 /// Cambridge University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
-pub struct QLearning<S, Q: QFunction<S>, P: FinitePolicy<S>> {
+pub struct QLearning<S, Q: QFunction<S>, P: Policy<S>> {
     pub q_func: Shared<Q>,
 
-    pub policy: P,
+    pub policy: Shared<P>,
     pub target: Greedy<S>,
 
     pub alpha: Parameter,
@@ -23,12 +23,8 @@ pub struct QLearning<S, Q: QFunction<S>, P: FinitePolicy<S>> {
     phantom: PhantomData<S>,
 }
 
-impl<S, Q, P> QLearning<S, Q, P>
-where
-    Q: QFunction<S> + 'static,
-    P: FinitePolicy<S>,
-{
-    pub fn new<T1, T2>(q_func: Shared<Q>, policy: P, alpha: T1, gamma: T2) -> Self
+impl<S, Q: QFunction<S> + 'static, P: Policy<S>> QLearning<S, Q, P> {
+    pub fn new<T1, T2>(q_func: Shared<Q>, policy: Shared<P>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -47,11 +43,7 @@ where
     }
 }
 
-impl<S, Q, P> Handler<Transition<S, usize>> for QLearning<S, Q, P>
-where
-    Q: QFunction<S>,
-    P: FinitePolicy<S>,
-{
+impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for QLearning<S, Q, P> {
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
@@ -67,36 +59,27 @@ where
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.handle_terminal(t);
+        self.policy.borrow_mut().handle_terminal(t);
     }
 }
 
-impl<S, Q, P> Controller<S, usize> for QLearning<S, Q, P>
-where
-    Q: QFunction<S>,
-    P: FinitePolicy<S>,
-{
-    fn pi(&mut self, s: &S) -> usize { self.policy.sample(s) }
-
-    fn mu(&mut self, s: &S) -> usize { self.target.sample(s) }
+impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Controller<S, usize> for QLearning<S, Q, P> {
+    fn pi(&mut self, s: &S) -> usize { self.target.sample(s) }
+    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, Q, P> Predictor<S, usize> for QLearning<S, Q, P>
-where
-    Q: QFunction<S>,
-    P: FinitePolicy<S>,
-{
-    fn predict_v(&mut self, s: &S) -> f64 {
-        let a = self.pi(s);
+impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Predictor<S, usize> for QLearning<S, Q, P> {
+    fn v(&mut self, s: &S) -> f64 {
+        let a = self.target.sample(&s);
 
-        self.predict_qsa(s, a)
+        self.qsa(s, a)
     }
 
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

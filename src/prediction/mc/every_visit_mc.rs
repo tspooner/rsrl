@@ -1,4 +1,4 @@
-use core::{Handler, Predictor, Parameter};
+use core::{Algorithm, Predictor, Parameter};
 use domains::Transition;
 use fa::VFunction;
 use std::marker::PhantomData;
@@ -42,7 +42,7 @@ impl<S, V: VFunction<S>> EveryVisitMC<S, V> {
     }
 }
 
-impl<S: Clone, A, V: VFunction<S>> Handler<Transition<S, A>> for EveryVisitMC<S, V> {
+impl<S: Clone, A, V: VFunction<S>> Algorithm<S, A> for EveryVisitMC<S, V> {
     fn handle_sample(&mut self, sample: &Transition<S, A>) {
         self.cache.push((sample.from.state().clone(), sample.reward));
     }
@@ -56,5 +56,5 @@ impl<S: Clone, A, V: VFunction<S>> Handler<Transition<S, A>> for EveryVisitMC<S,
 }
 
 impl<S: Clone, A, V: VFunction<S>> Predictor<S, A> for EveryVisitMC<S, V> {
-    fn predict_v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
+    fn v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }

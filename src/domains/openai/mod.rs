@@ -5,7 +5,7 @@ use geometry::{
     RegularSpace,
 };
 use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
-use std::{collections::HashSet, f64};
+use std::f64;
 use super::{Domain, Observation, Transition};
 
 mod client;
@@ -83,14 +83,11 @@ impl Domain for OpenAIGym {
     type StateSpace = RegularSpace<Continuous>;
     type ActionSpace = Discrete;
 
-    fn emit(&self) -> Observation<Vec<f64>, usize> {
+    fn emit(&self) -> Observation<Vec<f64>> {
         if self.is_terminal() {
             Observation::Terminal(self.state.clone())
         } else {
-            Observation::Full {
-                state: self.state.clone(),
-                actions: HashSet::new(),
-            }
+            Observation::Full(self.state.clone())
         }
     }
 
@@ -110,7 +107,7 @@ impl Domain for OpenAIGym {
 
     fn is_terminal(&self) -> bool { self.terminal }
 
-    fn reward(&self, _: &Observation<Vec<f64>, usize>, _: &Observation<Vec<f64>, usize>) -> f64 {
+    fn reward(&self, _: &Observation<Vec<f64>>, _: &Observation<Vec<f64>>) -> f64 {
         self.last_reward
     }
 

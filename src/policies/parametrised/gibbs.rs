@@ -1,5 +1,3 @@
-use core::Handler;
-use domains::Transition;
 use fa::{Projector, Approximator, MultiLFA};
 use geometry::{Vector, Matrix};
 use ndarray::Ix2;
@@ -37,9 +35,9 @@ impl<S, M: Projector<S>> Gibbs<S, M> {
     }
 }
 
-impl<S, M: Projector<S>> Handler<Transition<S, usize>> for Gibbs<S, M> {}
+impl<S, M: Projector<S>> Policy<S> for Gibbs<S, M> {
+    type Action = usize;
 
-impl<S, M: Projector<S>> Policy<S, usize> for Gibbs<S, M> {
     fn sample(&mut self, input: &S) -> usize {
         let ps = self.probabilities(input);
 
@@ -63,7 +61,7 @@ impl<S, M: Projector<S>> FinitePolicy<S> for Gibbs<S, M> {
     }
 }
 
-impl<S, M: Projector<S>> DifferentiablePolicy<S, usize> for Gibbs<S, M> {
+impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gibbs<S, M> {
     fn grad_log(&self, input: &S, a: usize) -> Matrix<f64> {
         let phi = self.fa.projector.project(input);
 
@@ -78,7 +76,7 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S, usize> for Gibbs<S, M> {
     }
 }
 
-impl<S, M: Projector<S>> ParameterisedPolicy<S, usize> for Gibbs<S, M> {
+impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<S, M> {
     fn update(&mut self, input: &S, a: usize, error: f64) {
         let grad_log = self.grad_log(input, a);
 
