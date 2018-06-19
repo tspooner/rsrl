@@ -179,4 +179,6 @@ import_all!(cart_pole);
 import_all!(acrobat);
 import_all!(hiv);
 import_all!(cliff_walk);
+
+#[cfg(feature = "openai")]
 import_all!(openai);
