@@ -114,11 +114,11 @@ where
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let na = self.policy.borrow_mut().sample(&ns);
+        let na = self.sample_behaviour(&ns);
         let pi = self.target.probabilities(&ns);
 
-        let qa = self.q_func.borrow().evaluate_action(s, t.action);
-        let nqs = self.q_func.borrow().evaluate(ns).unwrap();
+        let qa = self.predict_qsa(&s, t.action);
+        let nqs = self.q_func.borrow().evaluate(&ns).unwrap();
         let nqa = nqs[na];
         let exp_nqs = nqs.dot(&pi);
 
@@ -162,9 +162,9 @@ where
     Q: QFunction<S> + 'static,
     P: FinitePolicy<S>,
 {
-    fn pi(&mut self, s: &S) -> usize { self.target.sample(s) }
+    fn sample_target(&mut self, s: &S) -> usize { self.target.sample(s) }
 
-    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S: Clone, Q, P> Predictor<S, usize> for QSigma<S, Q, P>
@@ -172,15 +172,17 @@ where
     Q: QFunction<S> + 'static,
     P: FinitePolicy<S>,
 {
-    fn v(&mut self, s: &S) -> f64 {
-        self.q_func.borrow().evaluate(s).unwrap()[self.target.sample(s)]
+    fn predict_v(&mut self, s: &S) -> f64 {
+        let a = self.sample_target(s);
+
+        self.q_func.borrow().evaluate(s).unwrap()[a]
     }
 
-    fn qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

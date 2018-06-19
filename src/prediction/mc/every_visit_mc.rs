@@ -56,5 +56,5 @@ impl<S: Clone, A, V: VFunction<S>> Algorithm<S, A> for EveryVisitMC<S, V> {
 }
 
 impl<S: Clone, A, V: VFunction<S>> Predictor<S, A> for EveryVisitMC<S, V> {
-    fn v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
+    fn predict_v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }

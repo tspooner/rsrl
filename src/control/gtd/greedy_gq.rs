@@ -60,7 +60,7 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for G
         let phi_s = self.fa_w.borrow().projector.project(s);
         let phi_ns = self.fa_w.borrow().projector.project(ns);
 
-        let na = self.mu(ns);
+        let na = self.sample_target(ns);
 
         let td_estimate = self.fa_w.borrow().evaluate_phi(&phi_s);
         let td_error = t.reward
@@ -90,20 +90,21 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for G
 }
 
 impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Controller<S, usize> for GreedyGQ<S, M, P> {
-    fn pi(&mut self, s: &S) -> usize { self.target.sample(s) }
-    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_target(&mut self, s: &S) -> usize { self.target.sample(s) }
+
+    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Predictor<S, usize> for GreedyGQ<S, M, P> {
-    fn v(&mut self, s: &S) -> f64 {
-        self.qs(s).dot(&self.target.probabilities(s))
+    fn predict_v(&mut self, s: &S) -> f64 {
+        self.predict_qs(s).dot(&self.target.probabilities(s))
     }
 
-    fn qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 
-    fn qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.fa_theta.borrow().evaluate_action(&s, a)
     }
 }

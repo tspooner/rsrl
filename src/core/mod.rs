@@ -8,16 +8,16 @@ pub trait Algorithm<S, A> {
 
 pub trait Controller<S, A>: Algorithm<S, A> {
     /// Sample the target policy for a given state `s`.
-    fn pi(&mut self, s: &S) -> A;
+    fn sample_target(&mut self, s: &S) -> A;
 
     /// Sample the behaviour policy for a given state `s`.
-    fn mu(&mut self, s: &S) -> A;
+    fn sample_behaviour(&mut self, s: &S) -> A;
 }
 
 pub trait Predictor<S, A>: Algorithm<S, A> {
-    fn v(&mut self, s: &S) -> f64 { unimplemented!() }
-    fn qs(&mut self, s: &S) -> Vector<f64> { unimplemented!() }
-    fn qsa(&mut self, s: &S, a: A) -> f64 { unimplemented!() }
+    fn predict_v(&mut self, s: &S) -> f64 { unimplemented!() }
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> { unimplemented!() }
+    fn predict_qsa(&mut self, s: &S, a: A) -> f64 { unimplemented!() }
 }
 
 mod memory;

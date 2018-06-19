@@ -66,5 +66,5 @@ impl<S, A, M: Projector<S>> Algorithm<S, A> for TDC<S, M> {
 }
 
 impl<S, A, P: Projector<S>> Predictor<S, A> for TDC<S, P> {
-    fn v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+    fn predict_v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }

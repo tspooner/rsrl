@@ -47,10 +47,11 @@ impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for Q
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let qs = self.q_func.borrow().evaluate(s).unwrap();
-        let nqs = self.q_func.borrow().evaluate(ns).unwrap();
+        let qsa = self.predict_qsa(&s, t.action);
+        let na = self.sample_target(&ns);
+        let nqsna = self.predict_qsa(&ns, na);
 
-        let td_error = t.reward + self.gamma * nqs[self.target.sample(&ns)] - qs[t.action];
+        let td_error = t.reward + self.gamma * nqsna - qsa;
 
         self.q_func.borrow_mut().update_action(s, t.action, self.alpha * td_error);
     }
@@ -64,22 +65,23 @@ impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for Q
 }
 
 impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Controller<S, usize> for QLearning<S, Q, P> {
-    fn pi(&mut self, s: &S) -> usize { self.target.sample(s) }
-    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_target(&mut self, s: &S) -> usize { self.target.sample(s) }
+
+    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Predictor<S, usize> for QLearning<S, Q, P> {
-    fn v(&mut self, s: &S) -> f64 {
-        let a = self.target.sample(&s);
+    fn predict_v(&mut self, s: &S) -> f64 {
+        let a = self.sample_target(s);
 
-        self.qsa(s, a)
+        self.predict_qsa(s, a)
     }
 
-    fn qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

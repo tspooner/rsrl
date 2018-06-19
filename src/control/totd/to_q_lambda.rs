@@ -68,7 +68,7 @@ where
 
         let phi_s = self.q_func.borrow().projector.project(s);
 
-        let na = self.pi(&ns);
+        let na = self.sample_target(&ns);
         let qsa = self.q_func.borrow().evaluate_action_phi(&phi_s, t.action);
         let nqa = self.q_func.borrow().evaluate_action(ns, na);
 
@@ -79,7 +79,7 @@ where
         let trace_update =
             (1.0 - rate * self.alpha.value() * self.trace.get().dot(&phi_s)) * phi_s.clone();
 
-        if t.action == self.pi(&s) {
+        if t.action == self.sample_target(&s) {
             let rate = self.trace.lambda.value() * self.gamma.value();
             self.trace.decay(rate);
         } else {
@@ -114,8 +114,8 @@ where
     M: Projector<S>,
     P: Policy<S, Action = usize>,
 {
-    fn pi(&mut self, s: &S) -> usize { self.target.sample(s) }
-    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_target(&mut self, s: &S) -> usize { self.target.sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S, M, P> Predictor<S, usize> for TOQLambda<S, M, P>
@@ -123,17 +123,17 @@ where
     M: Projector<S>,
     P: Policy<S, Action = usize>,
 {
-    fn v(&mut self, s: &S) -> f64 {
-        let a = self.pi(s);
+    fn predict_v(&mut self, s: &S) -> f64 {
+        let a = self.sample_target(s);
 
-        self.qsa(s, a)
+        self.predict_qsa(s, a)
     }
 
-    fn qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

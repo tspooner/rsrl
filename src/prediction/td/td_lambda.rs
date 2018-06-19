@@ -33,7 +33,7 @@ impl<S, A, M: Projector<S>> Algorithm<S, A> for TDLambda<S, M> {
         let phi_s = self.fa_theta.projector.project(&sample.from.state());
 
         let v = self.fa_theta.evaluate_phi(&phi_s);
-        let nv = self.v(sample.to.state());
+        let nv = self.predict_v(sample.to.state());
 
         let td_error = sample.reward + self.gamma * nv - v;
         let decay_rate = self.trace.lambda.value() * self.gamma.value();
@@ -55,5 +55,5 @@ impl<S, A, M: Projector<S>> Algorithm<S, A> for TDLambda<S, M> {
 }
 
 impl<S, P: Projector<S>> Predictor<S, ()> for TDLambda<S, P> {
-    fn v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+    fn predict_v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }

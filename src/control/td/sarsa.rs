@@ -61,20 +61,20 @@ impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for S
 }
 
 impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Controller<S, usize> for SARSA<S, Q, P> {
-    fn pi(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
-    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_target(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Predictor<S, usize> for SARSA<S, Q, P> {
-    fn v(&mut self, s: &S) -> f64 {
-        self.qs(s).dot(&self.policy.borrow_mut().probabilities(s))
+    fn predict_v(&mut self, s: &S) -> f64 {
+        self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
     }
 
-    fn qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

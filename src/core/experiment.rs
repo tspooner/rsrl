@@ -71,7 +71,7 @@ where
 
     fn next(&mut self) -> Option<Episode> {
         let mut domain = (self.domain_factory)();
-        let mut a = self.agent.pi(&domain.emit().state());
+        let mut a = self.agent.sample_target(&domain.emit().state());
 
         let mut e = Episode {
             steps: 1,
@@ -89,7 +89,7 @@ where
                     self.agent.handle_terminal(&t);
                     break;
                 },
-                _ => self.agent.pi(&t.to.state()),
+                _ => self.agent.sample_target(&t.to.state()),
             };
         }
 
@@ -133,7 +133,7 @@ where
 
     fn next(&mut self) -> Option<Episode> {
         let mut domain = (self.domain_factory)();
-        let mut a = self.agent.mu(domain.emit().state());
+        let mut a = self.agent.sample_behaviour(domain.emit().state());
 
         let mut e = Episode {
             steps: 1,
@@ -156,7 +156,7 @@ where
                 self.agent.handle_terminal(&t);
                 break;
             } else {
-                a = self.agent.mu(&t.to.state());
+                a = self.agent.sample_behaviour(&t.to.state());
             }
         }
 

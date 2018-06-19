@@ -1,7 +1,7 @@
-use core::{Algorithm, Predictor, Shared, Parameter, Vector, Trace};
+use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector, Trace};
 use domains::Transition;
 use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
-use policies::Policy;
+use policies::{Policy, FinitePolicy};
 use std::marker::PhantomData;
 
 /// True online variant of the SARSA(lambda) algorithm.
@@ -101,16 +101,30 @@ where
     }
 }
 
-impl<S, M, P> Predictor<S, usize> for TOSARSALambda<S, M, P>
+impl<S, M, P> Controller<S, usize> for TOSARSALambda<S, M, P>
 where
     M: Projector<S>,
     P: Policy<S, Action = usize>,
 {
-    fn qs(&mut self, s: &S) -> Vector<f64> {
+    fn sample_target(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+
+    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+}
+
+impl<S, M, P> Predictor<S, usize> for TOSARSALambda<S, M, P>
+where
+    M: Projector<S>,
+    P: FinitePolicy<S>,
+{
+    fn predict_v(&mut self, s: &S) -> f64 {
+        self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
+    }
+
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

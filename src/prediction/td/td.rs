@@ -31,8 +31,8 @@ impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
 
 impl<S, A, V: VFunction<S>> Algorithm<S, A> for TD<S, V> {
     fn handle_sample(&mut self, sample: &Transition<S, A>) {
-        let v = self.v(&sample.from.state());
-        let nv = self.v(&sample.to.state());
+        let v = self.predict_v(&sample.from.state());
+        let nv = self.predict_v(&sample.to.state());
 
         let td_error = sample.reward + self.gamma * nv - v;
 
@@ -46,5 +46,5 @@ impl<S, A, V: VFunction<S>> Algorithm<S, A> for TD<S, V> {
 }
 
 impl<S, V: VFunction<S>> Predictor<S, ()> for TD<S, V> {
-    fn v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
+    fn predict_v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }

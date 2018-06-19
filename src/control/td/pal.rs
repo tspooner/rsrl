@@ -53,12 +53,12 @@ where
     fn handle_sample(&mut self, t: &Transition<S, usize>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
-        let qs = self.q_func.borrow().evaluate(s).unwrap();
-        let nqs = self.q_func.borrow().evaluate(ns).unwrap();
+        let qs = self.predict_qs(s);
+        let nqs = self.predict_qs(s);
 
-        let qa_star = qs[self.target.sample(&s)];
+        let qa_star = qs[self.sample_target(&s)];
 
-        let td_error = t.reward + self.gamma * nqs[self.target.sample(&ns)] - qs[t.action];
+        let td_error = t.reward + self.gamma * nqs[self.sample_target(&ns)] - qs[t.action];
         let al_error = td_error - self.alpha * (qa_star - qs[t.action]);
         let pal_error = al_error.max(td_error - self.alpha * (qa_star - nqs[t.action]));
 
@@ -79,9 +79,9 @@ where
     Q: QFunction<S>,
     P: Policy<S, Action = usize>,
 {
-    fn pi(&mut self, s: &S) -> usize { self.target.sample(s) }
+    fn sample_target(&mut self, s: &S) -> usize { self.target.sample(s) }
 
-    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S, Q, P> Predictor<S, usize> for PAL<S, Q, P>
@@ -89,15 +89,15 @@ where
     Q: QFunction<S>,
     P: Policy<S, Action = usize>,
 {
-    fn v(&mut self, s: &S) -> f64 {
+    fn predict_v(&mut self, s: &S) -> f64 {
         self.q_func.borrow().evaluate(s).unwrap()[self.target.sample(s)]
     }
 
-    fn qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

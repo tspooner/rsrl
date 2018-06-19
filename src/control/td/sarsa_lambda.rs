@@ -84,20 +84,20 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for S
 }
 
 impl<S, M: Projector<S>, P: FinitePolicy<S>> Controller<S, usize> for SARSALambda<S, M, P> {
-    fn pi(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
-    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_target(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S, M: Projector<S>, P: FinitePolicy<S>> Predictor<S, usize> for SARSALambda<S, M, P> {
-    fn v(&mut self, s: &S) -> f64 {
-        self.qs(s).dot(&self.policy.borrow_mut().probabilities(s))
+    fn predict_v(&mut self, s: &S) -> f64 {
+        self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
     }
 
-    fn qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 
-    fn qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.fa_theta.borrow().evaluate_action(&s, a)
     }
 }

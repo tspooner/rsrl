@@ -46,7 +46,7 @@ impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Algorithm<S, usize> for ExpectedSAR
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qa = self.q_func.borrow().evaluate_action(s, t.action);
-        let exp_nv = self.v(ns);
+        let exp_nv = self.predict_v(ns);
         let td_error = t.reward + self.gamma * exp_nv - qa;
 
         self.q_func.borrow_mut().update_action(s, t.action, self.alpha * td_error);
@@ -61,20 +61,20 @@ impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Algorithm<S, usize> for ExpectedSAR
 }
 
 impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Controller<S, usize> for ExpectedSARSA<S, Q, P> {
-    fn pi(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
-    fn mu(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_target(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
 }
 
 impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Predictor<S, usize> for ExpectedSARSA<S, Q, P> {
-    fn v(&mut self, s: &S) -> f64 {
-        self.qs(s).dot(&self.policy.borrow_mut().probabilities(s))
+    fn predict_v(&mut self, s: &S) -> f64 {
+        self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
     }
 
-    fn qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }
