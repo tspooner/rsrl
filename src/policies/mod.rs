@@ -48,4 +48,4 @@ pub trait ParameterisedPolicy<S>: DifferentiablePolicy<S> {
 }
 
 pub mod fixed;
-pub mod parametrised;
+pub mod parameterised;
