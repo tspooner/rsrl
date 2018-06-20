@@ -37,13 +37,8 @@ pub trait DifferentiablePolicy<S>: Policy<S> {
     fn grad_log(&self, input: &S, a: Self::Action) -> Matrix<f64>;
 }
 
-pub trait ParameterisedPolicy<S>: DifferentiablePolicy<S> {
-    fn update(&mut self, input: &S, a: Self::Action, error: f64) {
-        let grad_log = self.grad_log(input, a);
-
-        self.update_raw(error*grad_log)
-    }
-
+pub trait ParameterisedPolicy<S>: Policy<S> {
+    fn update(&mut self, input: &S, a: Self::Action, error: f64);
     fn update_raw(&mut self, errors: Matrix<f64>);
 }
 

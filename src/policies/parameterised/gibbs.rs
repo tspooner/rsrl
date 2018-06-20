@@ -1,6 +1,5 @@
 use fa::{Projector, Approximator, MultiLFA};
 use geometry::{Vector, Matrix};
-use ndarray::Ix2;
 use policies::{Policy, FinitePolicy, DifferentiablePolicy, ParameterisedPolicy};
 use rand::{thread_rng, Rng, ThreadRng};
 use std::{f64, ops::AddAssign};
@@ -11,6 +10,20 @@ pub struct Gibbs<S, M: Projector<S>> {
     rng: ThreadRng,
 }
 
+fn probabilities_from_values(values: &[f64]) -> Vector<f64> {
+    let mut z = 0.0;
+    let ws: Vec<f64> = values.iter()
+        .map(|v| {
+            let v = v.exp();
+            z += v;
+
+            v
+        })
+        .collect();
+
+    ws.iter().map(|w| (w / z).min(1e50)).collect()
+}
+
 impl<S, M: Projector<S>> Gibbs<S, M> {
     pub fn new(fa: MultiLFA<S, M>) -> Self {
         Gibbs {
@@ -18,20 +31,6 @@ impl<S, M: Projector<S>> Gibbs<S, M> {
 
             rng: thread_rng(),
         }
-    }
-
-    fn probabilities_from_values(values: &[f64]) -> Vector<f64> {
-        let mut z = 0.0;
-        let ws: Vec<f64> = values.iter()
-            .map(|v| {
-                let v = v.exp();
-                z += v;
-
-                v
-            })
-            .collect();
-
-        ws.iter().map(|w| w / z).collect()
     }
 }
 
@@ -57,7 +56,7 @@ impl<S, M: Projector<S>> FinitePolicy<S> for Gibbs<S, M> {
     fn probabilities(&mut self, input: &S) -> Vector<f64> {
         let values = self.fa.evaluate(input).unwrap();
 
-        Gibbs::<S, M>::probabilities_from_values(values.as_slice().unwrap())
+        probabilities_from_values(values.as_slice().unwrap())
     }
 }
 
@@ -66,11 +65,15 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gibbs<S, M> {
         let phi = self.fa.projector.project(input);
 
         let values = self.fa.approximator.evaluate(&phi).unwrap();
-        let probabilities = Gibbs::<S, M>::probabilities_from_values(values.as_slice().unwrap());
+        let n_actions = values.len();
+        let probabilities = probabilities_from_values(
+            values.as_slice().unwrap()
+        ).into_shape((1, n_actions)).unwrap();
 
-        let phi = phi.expanded(self.fa.projector.dim()).into_dimensionality::<Ix2>().unwrap();
+        let dim = self.fa.projector.dim();
+        let phi = phi.expanded(self.fa.projector.dim());
 
-        let mut grad_log = -probabilities.into_dimensionality::<Ix2>().unwrap() * &phi;
+        let mut grad_log = phi.clone().into_shape((dim, 1)).unwrap().dot(&-probabilities);
         grad_log.column_mut(a).add_assign(&phi);
         grad_log
     }
@@ -80,7 +83,7 @@ impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<S, M> {
     fn update(&mut self, input: &S, a: usize, error: f64) {
         let grad_log = self.grad_log(input, a);
 
-        self.fa.approximator.weights.scaled_add(error, &grad_log)
+        self.fa.approximator.weights.scaled_add(error, &grad_log);
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
