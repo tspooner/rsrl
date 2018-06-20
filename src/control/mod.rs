@@ -1,7 +1,7 @@
 //! Control agents module.
 pub use core::Controller;
 
-// pub mod actor_critic;
+pub mod actor_critic;
 pub mod gtd;
 pub mod td;
 pub mod totd;

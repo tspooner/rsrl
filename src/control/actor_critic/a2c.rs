@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 type Action = usize;
 
 /// Action-value actor-critic.
-pub struct QAC<S, C, P>
+pub struct A2C<S, C, P>
 where
     C: Predictor<S, Action>,
     P: Policy<S>,
@@ -20,7 +20,7 @@ where
     phantom: PhantomData<S>,
 }
 
-impl<S, C, P> QAC<S, C, P>
+impl<S, C, P> A2C<S, C, P>
 where
     C: Predictor<S, Action>,
     P: Policy<S>,
@@ -30,7 +30,7 @@ where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
     {
-        QAC {
+        A2C {
             critic: critic,
             policy: policy,
 
@@ -42,7 +42,7 @@ where
     }
 }
 
-impl<S: Clone, C, P> Algorithm<S, Action> for QAC<S, C, P>
+impl<S: Clone, C, P> Algorithm<S, Action> for A2C<S, C, P>
 where
     C: Predictor<S, Action>,
     P: ParameterisedPolicy<S, Action = Action>,
@@ -51,9 +51,10 @@ where
         self.critic.handle_sample(t);
 
         let s = t.from.state();
+        let v = self.critic.predict_v(s);
         let qsa = self.critic.predict_qsa(s, t.action);
 
-        self.policy.borrow_mut().update(s, t.action, self.alpha * qsa);
+        self.policy.borrow_mut().update(s, t.action, self.alpha * (qsa - v));
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, Action>) {
@@ -65,7 +66,7 @@ where
     }
 }
 
-impl<S: Clone, C, P> Controller<S, Action> for QAC<S, C, P>
+impl<S: Clone, C, P> Controller<S, Action> for A2C<S, C, P>
 where
     C: Predictor<S, Action>,
     P: ParameterisedPolicy<S, Action = Action>,
