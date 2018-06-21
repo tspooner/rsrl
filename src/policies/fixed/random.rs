@@ -2,7 +2,7 @@ use geometry::{Space, Vector};
 use policies::{Policy, FinitePolicy};
 use rand::{
     thread_rng, ThreadRng,
-    distributions::{IndependentSample, Range},
+    distributions::{Distribution, Range},
 };
 
 pub struct Random(usize, ThreadRng);
@@ -21,7 +21,7 @@ impl<S> Policy<S> for Random {
     type Action = usize;
 
     fn sample(&mut self, _: &S) -> usize {
-        Range::new(0, self.0).ind_sample(&mut self.1)
+        Range::new(0, self.0).sample(&mut self.1)
     }
 
     fn probability(&mut self, _: &S, _: usize) -> f64 {

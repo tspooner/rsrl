@@ -26,7 +26,7 @@ openai = ["cpython"]
 lfa = "0.3"
 spaces = "2.0"
 
-rand = "0.4"
+rand = "0.5"
 cpython = { version = "0.1", optional = true }
 ndarray = { version = "0.11.2", features = ["blas", "serde-1"] }
 

@@ -31,7 +31,7 @@ impl<S> Policy<S> for EpsilonGreedy<S> {
     type Action = usize;
 
     fn sample(&mut self, s: &S) -> usize {
-        if self.rng.next_f64() < self.epsilon.value() {
+        if self.rng.gen_bool(self.epsilon.value()) {
             self.random.sample(s)
         } else {
             self.greedy.sample(s)

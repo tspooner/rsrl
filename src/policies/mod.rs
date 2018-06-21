@@ -1,11 +1,11 @@
 //! Agent policy module.
 use domains::Transition;
 use geometry::{Vector, Matrix};
-use rand::{Rng, ThreadRng};
+use rand::Rng;
 
 #[inline]
-pub(self) fn sample_probs(rng: &mut ThreadRng, probabilities: &[f64]) -> usize {
-    let r = rng.next_f64();
+pub(self) fn sample_probs<R: Rng + ?Sized>(rng: &mut R, probabilities: &[f64]) -> usize {
+    let r = rng.gen::<f64>();
     let n_actions = probabilities.len();
 
     match probabilities.into_iter().position(|p| *p > r) {

@@ -40,7 +40,7 @@ impl<S, M: Projector<S>> Policy<S> for Gibbs<S, M> {
     fn sample(&mut self, input: &S) -> usize {
         let ps = self.probabilities(input);
 
-        let r = self.rng.next_f64();
+        let r = self.rng.gen::<f64>();
         match ps.iter().position(|p| *p > r) {
             Some(index) => index,
             None => ps.len() - 1,
