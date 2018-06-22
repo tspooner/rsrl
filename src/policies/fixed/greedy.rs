@@ -1,4 +1,3 @@
-use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
 use policies::{Policy, FinitePolicy};

@@ -1,6 +1,6 @@
 use core::Controller;
-use domains::{Domain, Observation, Transition};
-use geometry::{dimensions::Discrete, Space};
+use domains::{Domain, Observation};
+use geometry::Space;
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
 
 /// Container for episodic statistics.
@@ -44,17 +44,17 @@ pub fn run(
 }
 
 /// Utility for running a single evaluation episode.
-pub struct Evaluation<'a, A: 'a, D> {
-    agent: &'a mut A,
+pub struct Evaluation<'a, C: 'a, D> {
+    agent: &'a mut C,
     domain_factory: Box<Fn() -> D>,
 }
 
-impl<'a, S: Space, A, D> Evaluation<'a, A, D>
+impl<'a, S: Space, A: Space, C, D> Evaluation<'a, C, D>
 where
-    A: Controller<S::Value, usize>,
-    D: Domain<StateSpace = S, ActionSpace = Discrete>,
+    C: Controller<S::Value, A::Value>,
+    D: Domain<StateSpace = S, ActionSpace = A>,
 {
-    pub fn new(agent: &'a mut A, domain_factory: Box<Fn() -> D>) -> Evaluation<'a, A, D> {
+    pub fn new(agent: &'a mut C, domain_factory: Box<Fn() -> D>) -> Evaluation<'a, C, D> {
         Evaluation {
             agent: agent,
             domain_factory: domain_factory,
@@ -62,10 +62,10 @@ where
     }
 }
 
-impl<'a, S: Space, A, D> Iterator for Evaluation<'a, A, D>
+impl<'a, S: Space, A: Space, C, D> Iterator for Evaluation<'a, C, D>
 where
-    A: Controller<S::Value, usize>,
-    D: Domain<StateSpace = S, ActionSpace = Discrete>,
+    C: Controller<S::Value, A::Value>,
+    D: Domain<StateSpace = S, ActionSpace = A>,
 {
     type Item = Episode;
 
@@ -98,23 +98,23 @@ where
 }
 
 /// Utility for running a sequence of training episodes.
-pub struct SerialExperiment<'a, A: 'a, D> {
-    agent: &'a mut A,
+pub struct SerialExperiment<'a, C: 'a, D> {
+    agent: &'a mut C,
     domain_factory: Box<Fn() -> D>,
 
     step_limit: u64,
 }
 
-impl<'a, S: Space, A, D> SerialExperiment<'a, A, D>
+impl<'a, S: Space, A: Space, C, D> SerialExperiment<'a, C, D>
 where
-    A: Controller<S::Value, usize>,
-    D: Domain<StateSpace = S, ActionSpace = Discrete>,
+    C: Controller<S::Value, A::Value>,
+    D: Domain<StateSpace = S, ActionSpace = A>,
 {
     pub fn new(
-        agent: &'a mut A,
+        agent: &'a mut C,
         domain_factory: Box<Fn() -> D>,
         step_limit: u64,
-    ) -> SerialExperiment<'a, A, D>
+    ) -> SerialExperiment<'a, C, D>
     {
         SerialExperiment {
             agent: agent,
@@ -124,10 +124,10 @@ where
     }
 }
 
-impl<'a, S: Space, A, D> Iterator for SerialExperiment<'a, A, D>
+impl<'a, S: Space, A: Space, C, D> Iterator for SerialExperiment<'a, C, D>
 where
-    A: Controller<S::Value, usize>,
-    D: Domain<StateSpace = S, ActionSpace = Discrete>,
+    C: Controller<S::Value, A::Value>,
+    D: Domain<StateSpace = S, ActionSpace = A>,
 {
     type Item = Episode;
 

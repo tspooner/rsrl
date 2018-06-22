@@ -39,8 +39,8 @@ impl<S, Q: QFunction<S>, P: Policy<S>> SARSA<S, Q, P> {
     }
 }
 
-impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for SARSA<S, Q, P> {
-    fn handle_sample(&mut self, t: &Transition<S, usize>) {
+impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, P::Action> for SARSA<S, Q, P> {
+    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let na = self.policy.borrow_mut().sample(ns);
@@ -52,7 +52,7 @@ impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for S
         self.q_func.borrow_mut().update_action(s, t.action, self.alpha * td_error);
     }
 
-    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -60,12 +60,12 @@ impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for S
     }
 }
 
-impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Controller<S, usize> for SARSA<S, Q, P> {
-    fn sample_target(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
-    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Controller<S, P::Action> for SARSA<S, Q, P> {
+    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Predictor<S, usize> for SARSA<S, Q, P> {
+impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Predictor<S, P::Action> for SARSA<S, Q, P> {
     fn predict_v(&mut self, s: &S) -> f64 {
         self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
     }
@@ -74,7 +74,7 @@ impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Predictor<S, usize> for SARSA<S, Q,
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

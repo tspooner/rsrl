@@ -106,12 +106,12 @@ struct BackupEntry<S> {
     pub mu: f64,
 }
 
-impl<S: Clone, Q, P> Algorithm<S, usize> for QSigma<S, Q, P>
+impl<S: Clone, Q, P> Algorithm<S, P::Action> for QSigma<S, Q, P>
 where
     Q: QFunction<S> + 'static,
     P: FinitePolicy<S>,
 {
-    fn handle_sample(&mut self, t: &Transition<S, usize>) {
+    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let na = self.sample_behaviour(&ns);
@@ -147,7 +147,7 @@ where
         }
     }
 
-    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
         // TODO: Handle terminal update according to Sutton's pseudocode.
         //       It's likely that this will require a change to the interface
         self.alpha = self.alpha.step();
@@ -157,17 +157,17 @@ where
     }
 }
 
-impl<S: Clone, Q, P> Controller<S, usize> for QSigma<S, Q, P>
+impl<S: Clone, Q, P> Controller<S, P::Action> for QSigma<S, Q, P>
 where
     Q: QFunction<S> + 'static,
     P: FinitePolicy<S>,
 {
-    fn sample_target(&mut self, s: &S) -> usize { self.target.sample(s) }
+    fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
-    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S: Clone, Q, P> Predictor<S, usize> for QSigma<S, Q, P>
+impl<S: Clone, Q, P> Predictor<S, P::Action> for QSigma<S, Q, P>
 where
     Q: QFunction<S> + 'static,
     P: FinitePolicy<S>,
@@ -182,7 +182,7 @@ where
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

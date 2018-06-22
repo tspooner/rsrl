@@ -29,7 +29,10 @@ impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
     }
 }
 
-impl<S, A, M: Projector<S>> Algorithm<S, A> for TDLambda<S, M> {
+impl<S, A, M: Projector<S>> Algorithm<S, A> for TDLambda<S, M>
+where
+    Self: Predictor<S, A>
+{
     fn handle_sample(&mut self, sample: &Transition<S, A>) {
         let phi_s = self.fa_theta.projector.project(&sample.from.state());
 
@@ -55,7 +58,7 @@ impl<S, A, M: Projector<S>> Algorithm<S, A> for TDLambda<S, M> {
     }
 }
 
-impl<S, P: Projector<S>> Predictor<S, ()> for TDLambda<S, P> {
+impl<S, A, P: Projector<S>> Predictor<S, A> for TDLambda<S, P> {
     fn predict_v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
 }
 

@@ -45,12 +45,12 @@ where
     }
 }
 
-impl<S, Q, P> Algorithm<S, usize> for PAL<S, Q, P>
+impl<S, Q, P> Algorithm<S, P::Action> for PAL<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy<S, Action = usize>,
 {
-    fn handle_sample(&mut self, t: &Transition<S, usize>) {
+    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.predict_qs(s);
@@ -65,7 +65,7 @@ where
         self.q_func.borrow_mut().update_action(s, t.action, self.alpha * pal_error);
     }
 
-    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -74,17 +74,17 @@ where
     }
 }
 
-impl<S, Q, P> Controller<S, usize> for PAL<S, Q, P>
+impl<S, Q, P> Controller<S, P::Action> for PAL<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy<S, Action = usize>,
 {
-    fn sample_target(&mut self, s: &S) -> usize { self.target.sample(s) }
+    fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
-    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, Q, P> Predictor<S, usize> for PAL<S, Q, P>
+impl<S, Q, P> Predictor<S, P::Action> for PAL<S, Q, P>
 where
     Q: QFunction<S>,
     P: Policy<S, Action = usize>,
@@ -97,7 +97,7 @@ where
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

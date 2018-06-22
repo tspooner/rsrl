@@ -25,6 +25,7 @@ pub trait Policy<S> {
     /// Return the probability of selecting an action for a given input.
     fn probability(&mut self, input: &S, a: Self::Action) -> f64;
 
+    #[allow(unused_variables)]
     fn handle_terminal(&mut self, sample: &Transition<S, Self::Action>) {}
 }
 

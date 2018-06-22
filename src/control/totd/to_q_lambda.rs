@@ -58,12 +58,12 @@ where
     }
 }
 
-impl<S, M, P> Algorithm<S, usize> for TOQLambda<S, M, P>
+impl<S, M, P> Algorithm<S, P::Action> for TOQLambda<S, M, P>
 where
     M: Projector<S>,
     P: Policy<S, Action = usize>,
 {
-    fn handle_sample(&mut self, t: &Transition<S, usize>) {
+    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let phi_s = self.q_func.borrow().projector.project(s);
@@ -101,7 +101,7 @@ where
         self.q_old = nqa;
     }
 
-    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, _: &Transition<S, P::Action>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -109,16 +109,16 @@ where
     }
 }
 
-impl<S, M, P> Controller<S, usize> for TOQLambda<S, M, P>
+impl<S, M, P> Controller<S, P::Action> for TOQLambda<S, M, P>
 where
     M: Projector<S>,
     P: Policy<S, Action = usize>,
 {
-    fn sample_target(&mut self, s: &S) -> usize { self.target.sample(s) }
-    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, M, P> Predictor<S, usize> for TOQLambda<S, M, P>
+impl<S, M, P> Predictor<S, P::Action> for TOQLambda<S, M, P>
 where
     M: Projector<S>,
     P: Policy<S, Action = usize>,
@@ -133,7 +133,7 @@ where
         self.q_func.borrow().evaluate(s).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
     }
 }

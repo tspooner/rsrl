@@ -53,8 +53,8 @@ impl<S: 'static, M: Projector<S> + 'static, P: Policy<S>> QLambda<S, M, P> {
     }
 }
 
-impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for QLambda<S, M, P> {
-    fn handle_sample(&mut self, t: &Transition<S, usize>) {
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, P::Action> for QLambda<S, M, P> {
+    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let phi_s = self.fa_theta.borrow().projector.project(s);
@@ -80,7 +80,7 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for Q
         );
     }
 
-    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
+    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
@@ -91,13 +91,13 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, usize> for Q
     }
 }
 
-impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Controller<S, usize> for QLambda<S, M, P> {
-    fn sample_target(&mut self, s: &S) -> usize { self.target.sample(s) }
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Controller<S, P::Action> for QLambda<S, M, P> {
+    fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
-    fn sample_behaviour(&mut self, s: &S) -> usize { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Predictor<S, usize> for QLambda<S, M, P> {
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Predictor<S, P::Action> for QLambda<S, M, P> {
     fn predict_v(&mut self, s: &S) -> f64 {
         let a = self.sample_target(s);
 
@@ -108,7 +108,7 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Predictor<S, usize> for Q
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
         self.fa_theta.borrow().evaluate_action(&s, a)
     }
 }
