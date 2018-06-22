@@ -1,5 +1,6 @@
 //! Agent policy module.
 use domains::Transition;
+use fa::Parameterised;
 use geometry::{Vector, Matrix};
 use rand::Rng;
 
@@ -37,7 +38,7 @@ pub trait DifferentiablePolicy<S>: Policy<S> {
     fn grad_log(&self, input: &S, a: Self::Action) -> Matrix<f64>;
 }
 
-pub trait ParameterisedPolicy<S>: Policy<S> {
+pub trait ParameterisedPolicy<S>: Policy<S> + Parameterised {
     fn update(&mut self, input: &S, a: Self::Action, error: f64);
     fn update_raw(&mut self, errors: Matrix<f64>);
 }

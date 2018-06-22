@@ -1,6 +1,16 @@
-use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector};
+use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Matrix};
 use domains::Transition;
-use fa::{Approximator, MultiLFA, Projection, Projector, QFunction, SimpleLFA, VFunction};
+use fa::{
+    Approximator,
+    Parameterised,
+    VFunction,
+    QFunction,
+
+    Projection,
+    Projector,
+    SimpleLFA,
+    MultiLFA
+};
 use policies::{fixed::Greedy, Policy, FinitePolicy};
 use std::marker::PhantomData;
 
@@ -106,5 +116,11 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Predictor<S, usize> for G
 
     fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.fa_theta.borrow().evaluate_action(&s, a)
+    }
+}
+
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Parameterised for GreedyGQ<S, M, P> {
+    fn weights(&self) -> Matrix<f64> {
+        self.fa_theta.borrow().weights()
     }
 }

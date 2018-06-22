@@ -15,7 +15,6 @@ where
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
-    pub gamma: Parameter,
 
     phantom: PhantomData<S>,
 }
@@ -25,17 +24,12 @@ where
     C: Predictor<S, Action>,
     P: Policy<S>,
 {
-    pub fn new<T1, T2>(critic: C, policy: Shared<P>, alpha: T1, gamma: T2) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+    pub fn new<T: Into<Parameter>>(critic: C, policy: Shared<P>, alpha: T) -> Self {
         QAC {
             critic: critic,
             policy: policy,
 
             alpha: alpha.into(),
-            gamma: gamma.into(),
 
             phantom: PhantomData,
         }
@@ -58,7 +52,6 @@ where
 
     fn handle_terminal(&mut self, t: &Transition<S, Action>) {
         self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
 
         self.critic.handle_terminal(t);
         self.policy.borrow_mut().handle_terminal(t);

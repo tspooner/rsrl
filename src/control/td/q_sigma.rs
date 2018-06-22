@@ -1,6 +1,6 @@
-use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector};
+use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Matrix};
 use domains::Transition;
-use fa::QFunction;
+use fa::{Parameterised, QFunction};
 use policies::{fixed::Greedy, Policy, FinitePolicy};
 use std::collections::VecDeque;
 
@@ -184,5 +184,15 @@ where
 
     fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
+    }
+}
+
+impl<S, Q, P> Parameterised for QSigma<S, Q, P>
+where
+    Q: QFunction<S> + Parameterised,
+    P: Policy<S, Action = usize>,
+{
+    fn weights(&self) -> Matrix<f64> {
+        self.q_func.borrow().weights()
     }
 }

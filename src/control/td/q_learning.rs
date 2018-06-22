@@ -1,6 +1,6 @@
-use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector};
+use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Matrix};
 use domains::Transition;
-use fa::QFunction;
+use fa::{Parameterised, QFunction};
 use policies::{fixed::Greedy, Policy};
 use std::marker::PhantomData;
 
@@ -83,5 +83,15 @@ impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Predictor<S, usize> for Q
 
     fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
+    }
+}
+
+impl<S, Q, P> Parameterised for QLearning<S, Q, P>
+where
+    Q: QFunction<S> + Parameterised,
+    P: Policy<S, Action = usize>,
+{
+    fn weights(&self) -> Matrix<f64> {
+        self.q_func.borrow().weights()
     }
 }

@@ -1,4 +1,4 @@
-use fa::{Projector, Approximator, MultiLFA};
+use fa::{Projector, Approximator, Parameterised, MultiLFA};
 use geometry::{Vector, Matrix};
 use policies::{Policy, FinitePolicy, DifferentiablePolicy, ParameterisedPolicy};
 use rand::{thread_rng, Rng, ThreadRng};
@@ -76,6 +76,12 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gibbs<S, M> {
         let mut grad_log = phi.clone().into_shape((dim, 1)).unwrap().dot(&-probabilities);
         grad_log.column_mut(a).add_assign(&phi);
         grad_log
+    }
+}
+
+impl<S, M: Projector<S>> Parameterised for Gibbs<S, M> {
+    fn weights(&self) -> Matrix<f64> {
+        self.fa.approximator.weights.clone()
     }
 }
 

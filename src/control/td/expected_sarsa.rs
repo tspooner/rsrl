@@ -1,6 +1,6 @@
-use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector};
+use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector, Matrix};
 use domains::Transition;
-use fa::QFunction;
+use fa::{Parameterised, QFunction};
 use policies::{Policy, FinitePolicy};
 use std::marker::PhantomData;
 
@@ -76,5 +76,15 @@ impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Predictor<S, usize> for ExpectedSAR
 
     fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
+    }
+}
+
+impl<S, Q, P> Parameterised for ExpectedSARSA<S, Q, P>
+where
+    Q: QFunction<S> + Parameterised,
+    P: FinitePolicy<S>,
+{
+    fn weights(&self) -> Matrix<f64> {
+        self.q_func.borrow().weights()
     }
 }

@@ -35,7 +35,7 @@ fn main() {
         SARSA::new(q_func, policy.clone(), 0.1, 0.99)
     };
 
-    let mut agent = A2C::new(critic, policy, 0.1, 0.99);
+    let mut agent = A2C::new(critic, policy, 0.1);
 
     let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(MountainCar::default);

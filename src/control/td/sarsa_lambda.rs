@@ -1,6 +1,6 @@
-use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector, Trace};
+use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector, Matrix, Trace};
 use domains::Transition;
-use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
+use fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
 use policies::{Policy, FinitePolicy};
 use std::marker::PhantomData;
 
@@ -99,5 +99,11 @@ impl<S, M: Projector<S>, P: FinitePolicy<S>> Predictor<S, usize> for SARSALambda
 
     fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.fa_theta.borrow().evaluate_action(&s, a)
+    }
+}
+
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Parameterised for SARSALambda<S, M, P> {
+    fn weights(&self) -> Matrix<f64> {
+        self.fa_theta.borrow().weights()
     }
 }

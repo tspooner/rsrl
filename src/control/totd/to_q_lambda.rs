@@ -1,6 +1,6 @@
-use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Trace};
+use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Matrix, Trace};
 use domains::Transition;
-use fa::{Approximator, MultiLFA, Projection, Projector, QFunction};
+use fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
 use policies::{fixed::Greedy, Policy};
 use std::marker::PhantomData;
 
@@ -135,5 +135,15 @@ where
 
     fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
         self.q_func.borrow().evaluate_action(&s, a)
+    }
+}
+
+impl<S, M, P> Parameterised for TOQLambda<S, M, P>
+where
+    M: Projector<S>,
+    P: Policy<S, Action = usize>,
+{
+    fn weights(&self) -> Matrix<f64> {
+        self.q_func.borrow().weights()
     }
 }
