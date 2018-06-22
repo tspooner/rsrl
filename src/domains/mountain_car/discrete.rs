@@ -1,8 +1,8 @@
+use domains::{Domain, Observation, Transition};
 use geometry::{
     dimensions::{Continuous, Discrete},
     RegularSpace,
 };
-use super::{Domain, Observation, Transition};
 
 const X_MIN: f64 = -1.2;
 const X_MAX: f64 = 0.6;
