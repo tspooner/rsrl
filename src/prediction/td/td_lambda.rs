@@ -1,6 +1,7 @@
 use core::{Algorithm, Predictor, Parameter, Trace};
 use domains::Transition;
-use fa::{Approximator, Projection, Projector, SimpleLFA, VFunction};
+use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA, VFunction};
+use geometry::Matrix;
 
 pub struct TDLambda<S: ?Sized, P: Projector<S>> {
     trace: Trace,
@@ -56,4 +57,10 @@ impl<S, A, M: Projector<S>> Algorithm<S, A> for TDLambda<S, M> {
 
 impl<S, P: Projector<S>> Predictor<S, ()> for TDLambda<S, P> {
     fn predict_v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+}
+
+impl<S, P: Projector<S>> Parameterised for TDLambda<S, P> {
+    fn weights(&self) -> Matrix<f64> {
+        self.fa_theta.weights()
+    }
 }

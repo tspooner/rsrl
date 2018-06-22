@@ -1,6 +1,7 @@
 use core::{Algorithm, Predictor, Parameter};
 use domains::Transition;
-use fa::VFunction;
+use fa::{Parameterised, VFunction};
+use geometry::Matrix;
 use std::marker::PhantomData;
 
 pub struct EveryVisitMC<S, V: VFunction<S>> {
@@ -57,4 +58,10 @@ impl<S: Clone, A, V: VFunction<S>> Algorithm<S, A> for EveryVisitMC<S, V> {
 
 impl<S: Clone, A, V: VFunction<S>> Predictor<S, A> for EveryVisitMC<S, V> {
     fn predict_v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
+}
+
+impl<S, V: VFunction<S> + Parameterised> Parameterised for EveryVisitMC<S, V> {
+    fn weights(&self) -> Matrix<f64> {
+        self.v_func.weights()
+    }
 }

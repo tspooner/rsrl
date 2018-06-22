@@ -1,6 +1,7 @@
 use core::{Algorithm, Predictor, Parameter};
 use domains::Transition;
-use fa::{Approximator, Projection, Projector, SimpleLFA, VFunction};
+use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA, VFunction};
+use geometry::Matrix;
 
 pub struct TDC<S: ?Sized, P: Projector<S>> {
     pub fa_theta: SimpleLFA<S, P>,
@@ -67,4 +68,10 @@ impl<S, A, M: Projector<S>> Algorithm<S, A> for TDC<S, M> {
 
 impl<S, A, P: Projector<S>> Predictor<S, A> for TDC<S, P> {
     fn predict_v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+}
+
+impl<S, P: Projector<S>> Parameterised for TDC<S, P> {
+    fn weights(&self) -> Matrix<f64> {
+        self.fa_theta.weights()
+    }
 }

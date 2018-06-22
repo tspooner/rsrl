@@ -1,6 +1,7 @@
 use core::{Algorithm, Predictor, Parameter};
 use domains::Transition;
-use fa::VFunction;
+use fa::{Parameterised, VFunction};
+use geometry::Matrix;
 use std::marker::PhantomData;
 
 pub struct TD<S: ?Sized, V: VFunction<S>> {
@@ -47,4 +48,10 @@ impl<S, A, V: VFunction<S>> Algorithm<S, A> for TD<S, V> {
 
 impl<S, V: VFunction<S>> Predictor<S, ()> for TD<S, V> {
     fn predict_v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
+}
+
+impl<S, V: VFunction<S> + Parameterised> Parameterised for TD<S, V> {
+    fn weights(&self) -> Matrix<f64> {
+        self.v_func.weights()
+    }
 }
