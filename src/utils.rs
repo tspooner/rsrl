@@ -52,7 +52,6 @@ pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
 // ///     ]
 // /// );
 // /// ```
-///
 /// Pulled from [here](https://gist.github.com/kylewlacy/115965b40e02a3325558).
 pub fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &[T]) -> Vec<Vec<T>> {
     a.into_iter()
@@ -93,7 +92,6 @@ pub fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &[T]) -> Vec<Vec<T>> {
 // ///     ]
 // /// );
 // /// ```
-///
 /// Pulled from [here](https://gist.github.com/kylewlacy/115965b40e02a3325558).
 pub fn cartesian_product<T: Clone>(lists: &[Vec<T>]) -> Vec<Vec<T>> {
     match lists.split_first() {

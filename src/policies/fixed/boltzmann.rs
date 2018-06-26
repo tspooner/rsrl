@@ -2,7 +2,7 @@ use core::Parameter;
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
-use policies::{Policy, FinitePolicy, sample_probs};
+use policies::{sample_probs, FinitePolicy, Policy};
 use rand::{thread_rng, ThreadRng};
 use std::f64;
 
@@ -33,13 +33,9 @@ impl<S> Policy<S> for Boltzmann<S> {
         sample_probs(&mut self.rng, ps.as_slice().unwrap())
     }
 
-    fn probability(&mut self, s: &S, a: usize) -> f64 {
-        self.probabilities(s)[a]
-    }
+    fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
 
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
-        self.tau = self.tau.step()
-    }
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) { self.tau = self.tau.step() }
 }
 
 impl<S> FinitePolicy<S> for Boltzmann<S> {
@@ -47,7 +43,12 @@ impl<S> FinitePolicy<S> for Boltzmann<S> {
         let tau = self.tau.value();
 
         let mut z = 0.0;
-        let ws: Vec<f64> = self.q_func.borrow().evaluate(s).unwrap().into_iter()
+        let ws: Vec<f64> = self
+            .q_func
+            .borrow()
+            .evaluate(s)
+            .unwrap()
+            .into_iter()
             .map(|v| {
                 let v = (v / tau).exp();
                 z += v;
@@ -62,11 +63,11 @@ impl<S> FinitePolicy<S> for Boltzmann<S> {
 
 #[cfg(test)]
 mod tests {
+    use super::{Boltzmann, FinitePolicy, Parameter, Policy};
     use domains::{Domain, MountainCar};
     use fa::mocking::MockQ;
     use geometry::Vector;
     use std::f64::consts::E;
-    use super::{Boltzmann, Parameter, Policy, FinitePolicy};
 
     #[test]
     #[should_panic]
@@ -94,23 +95,24 @@ mod tests {
             counts[p.sample(&vec![0.0, 1.0])] += 1.0;
         }
 
-        assert!((counts / 50000.0).all_close(&Vector::from_vec(vec![1.0 / (1.0 + E), E / (1.0 + E)]), 1e-2));
+        assert!((counts / 50000.0).all_close(
+            &Vector::from_vec(vec![1.0 / (1.0 + E), E / (1.0 + E)]),
+            1e-2
+        ));
     }
 
     #[test]
     fn test_probabilites() {
         let mut p = Boltzmann::new(MockQ::new_shared(None), 1.0);
 
-        assert!(
-            &p.probabilities(&vec![0.0, 1.0])
-                .all_close(&Vector::from_vec(vec![1.0 / (1.0 + E), E / (1.0 + E)]), 1e-6)
-        );
-        assert!(
-            p.probabilities(&vec![0.0, 2.0]).all_close(
-                &Vector::from_vec(vec![1.0 / (1.0 + E * E), E * E / (1.0 + E * E)]),
-                1e-6,
-            )
-        );
+        assert!(&p.probabilities(&vec![0.0, 1.0]).all_close(
+            &Vector::from_vec(vec![1.0 / (1.0 + E), E / (1.0 + E)]),
+            1e-6,
+        ));
+        assert!(p.probabilities(&vec![0.0, 2.0],).all_close(
+            &Vector::from_vec(vec![1.0 / (1.0 + E * E), E * E / (1.0 + E * E)]),
+            1e-6,
+        ));
     }
 
     #[test]

@@ -4,11 +4,11 @@ extern crate slog;
 
 use rsrl::{
     control::mc::REINFORCE,
-    core::{run, Evaluation, SerialExperiment, make_shared},
-    domains::{Domain, ContinuousMountainCar},
+    core::{make_shared, run, Evaluation, SerialExperiment},
+    domains::{ContinuousMountainCar, Domain},
     fa::{projectors::fixed::Fourier, LFA},
-    policies::parameterised::Gaussian1d,
     logging,
+    policies::parameterised::Gaussian1d,
 };
 
 fn main() {

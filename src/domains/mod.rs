@@ -2,7 +2,7 @@
 use geometry::Space;
 
 macro_rules! impl_into {
-    (Transition<S, $type:ty> => Transition<S, ()>) => (
+    (Transition < S, $type:ty > => Transition < S,() >) => {
         impl<S> Into<Transition<S, ()>> for Transition<S, $type> {
             fn into(self) -> Transition<S, ()> {
                 Transition {
@@ -13,7 +13,7 @@ macro_rules! impl_into {
                 }
             }
         }
-    )
+    };
 }
 
 /// Container class for data associated with a domain observation.
@@ -79,9 +79,7 @@ pub trait Domain {
     type ActionSpace: Space;
 
     /// Emit an observation of the current state of the environment.
-    fn emit(
-        &self,
-    ) -> Observation<<Self::StateSpace as Space>::Value>;
+    fn emit(&self) -> Observation<<Self::StateSpace as Space>::Value>;
 
     /// Transition the environment forward a single step given an action, `a`.
     fn step(

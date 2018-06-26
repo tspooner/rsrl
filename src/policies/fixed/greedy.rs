@@ -1,15 +1,13 @@
 use fa::SharedQFunction;
 use geometry::Vector;
-use policies::{Policy, FinitePolicy};
-use rand::{Rng, thread_rng};
+use policies::{FinitePolicy, Policy};
+use rand::{thread_rng, Rng};
 use utils::argmaxima;
 
 pub struct Greedy<S>(SharedQFunction<S>);
 
 impl<S> Greedy<S> {
-    pub fn new(q_func: SharedQFunction<S>) -> Self {
-        Greedy(q_func)
-    }
+    pub fn new(q_func: SharedQFunction<S>) -> Self { Greedy(q_func) }
 }
 
 impl<S> Policy<S> for Greedy<S> {
@@ -28,9 +26,7 @@ impl<S> Policy<S> for Greedy<S> {
         }
     }
 
-    fn probability(&mut self, s: &S, a: usize) -> f64 {
-        self.probabilities(s)[a]
-    }
+    fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
 }
 
 impl<S> FinitePolicy<S> for Greedy<S> {
@@ -51,9 +47,9 @@ impl<S> FinitePolicy<S> for Greedy<S> {
 
 #[cfg(test)]
 mod tests {
+    use super::{FinitePolicy, Greedy, Policy};
     use fa::mocking::MockQ;
     use geometry::Vector;
-    use super::{Greedy, Policy, FinitePolicy};
 
     #[test]
     #[should_panic]

@@ -1,9 +1,9 @@
+use super::{FinitePolicy, Greedy, Policy, Random};
 use core::Parameter;
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
 use rand::{thread_rng, Rng, ThreadRng};
-use super::{Policy, FinitePolicy, Greedy, Random};
 
 pub struct EpsilonGreedy<S> {
     random: Random,
@@ -38,9 +38,7 @@ impl<S> Policy<S> for EpsilonGreedy<S> {
         }
     }
 
-    fn probability(&mut self, s: &S, a: usize) -> f64 {
-        self.probabilities(s)[a]
-    }
+    fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
 
     fn handle_terminal(&mut self, t: &Transition<S, usize>) {
         self.epsilon = self.epsilon.step();
@@ -55,18 +53,16 @@ impl<S> FinitePolicy<S> for EpsilonGreedy<S> {
         let prs = self.greedy.probabilities(s);
         let pr = self.epsilon / prs.len() as f64;
 
-        prs.iter()
-            .map(|p| pr + p * (1.0 - self.epsilon))
-            .collect()
+        prs.iter().map(|p| pr + p * (1.0 - self.epsilon)).collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::{EpsilonGreedy, FinitePolicy, Parameter, Policy};
     use domains::{Domain, MountainCar};
     use fa::mocking::MockQ;
     use geometry::Vector;
-    use super::{EpsilonGreedy, Parameter, Policy, FinitePolicy};
 
     #[test]
     fn test_sampling() {
@@ -95,33 +91,25 @@ mod tests {
         let mut p = EpsilonGreedy::new(MockQ::new_shared(None), 0.5);
 
         assert!(
-            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0]).all_close(
-                &vec![0.6, 0.1, 0.1, 0.1, 0.1].into(),
-                1e-6
-            )
+            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0])
+                .all_close(&vec![0.6, 0.1, 0.1, 0.1, 0.1].into(), 1e-6)
         );
 
         assert!(
-            p.probabilities(&vec![0.0, 0.0, 0.0, 0.0, 1.0]).all_close(
-                &vec![0.1, 0.1, 0.1, 0.1, 0.6].into(),
-                1e-6
-            )
+            p.probabilities(&vec![0.0, 0.0, 0.0, 0.0, 1.0])
+                .all_close(&vec![0.1, 0.1, 0.1, 0.1, 0.6].into(), 1e-6)
         );
 
         assert!(
-            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 1.0]).all_close(
-                &vec![0.35, 0.1, 0.1, 0.1, 0.35].into(),
-                1e-6
-            )
+            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 1.0])
+                .all_close(&vec![0.35, 0.1, 0.1, 0.1, 0.35].into(), 1e-6)
         );
 
         let mut p = EpsilonGreedy::new(MockQ::new_shared(None), 1.0);
 
         assert!(
-            p.probabilities(&vec![-1.0, 0.0, 0.0, 0.0]).all_close(
-                &vec![0.25, 0.25, 0.25, 0.25].into(),
-                1e-6
-            )
+            p.probabilities(&vec![-1.0, 0.0, 0.0, 0.0])
+                .all_close(&vec![0.25, 0.25, 0.25, 0.25].into(), 1e-6)
         );
     }
 

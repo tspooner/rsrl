@@ -5,7 +5,7 @@ use std::{
     fmt::Debug,
     fs::File,
     io::{Error as IOError, Read},
-    str::FromStr
+    str::FromStr,
 };
 
 #[derive(Clone, Copy)]

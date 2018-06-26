@@ -3,14 +3,14 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    control::td::SARSA,
     control::actor_critic::A2C,
-    core::{run, Evaluation, Parameter, SerialExperiment, make_shared, Trace},
+    control::td::SARSA,
+    core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
     fa::{projectors::fixed::Fourier, LFA},
     geometry::Space,
-    policies::parameterised::Gibbs,
     logging,
+    policies::parameterised::Gibbs,
 };
 
 fn main() {

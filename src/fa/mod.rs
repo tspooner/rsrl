@@ -5,17 +5,16 @@ use geometry::Vector;
 extern crate lfa;
 use self::lfa::approximators::{Multi, Simple};
 pub use self::lfa::{
-    Approximator,
-    Parameterised,
-    LFA,
-
-    Projector,
-    Projection,
     projectors,
 
-    EvaluationResult,
-    UpdateResult,
     AdaptResult,
+    Approximator,
+    EvaluationResult,
+    Parameterised,
+    Projection,
+    Projector,
+    UpdateResult,
+    LFA,
 };
 
 #[cfg(test)]

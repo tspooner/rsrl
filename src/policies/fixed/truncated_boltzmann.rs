@@ -1,10 +1,10 @@
+use super::{sample_probs, FinitePolicy, Policy};
 use core::Parameter;
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
 use rand::{thread_rng, ThreadRng};
 use std::f64;
-use super::{sample_probs, Policy, FinitePolicy};
 
 fn kappa(c: f64, x: f64) -> f64 { c / (1.0 + (-x).exp()) }
 
@@ -35,13 +35,9 @@ impl<S> Policy<S> for TruncatedBoltzmann<S> {
         sample_probs(&mut self.rng, ps.as_slice().unwrap())
     }
 
-    fn probability(&mut self, s: &S, a: usize) -> f64 {
-        self.probabilities(s)[a]
-    }
+    fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
 
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) {
-        self.c = self.c.step();
-    }
+    fn handle_terminal(&mut self, _: &Transition<S, usize>) { self.c = self.c.step(); }
 }
 
 impl<S> FinitePolicy<S> for TruncatedBoltzmann<S> {
@@ -49,7 +45,12 @@ impl<S> FinitePolicy<S> for TruncatedBoltzmann<S> {
         let c = self.c.value();
 
         let mut z = 0.0;
-        let ws: Vec<f64> = self.q_func.borrow().evaluate(s).unwrap().into_iter()
+        let ws: Vec<f64> = self
+            .q_func
+            .borrow()
+            .evaluate(s)
+            .unwrap()
+            .into_iter()
             .map(|q| {
                 let v = kappa(c, *q).exp();
                 z += v;

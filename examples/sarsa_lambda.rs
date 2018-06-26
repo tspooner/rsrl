@@ -4,12 +4,12 @@ extern crate slog;
 
 use rsrl::{
     control::td::SARSALambda,
-    core::{run, Evaluation, Parameter, SerialExperiment, make_shared, Trace},
+    core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
     fa::{projectors::fixed::Fourier, LFA},
     geometry::Space,
-    policies::fixed::EpsilonGreedy,
     logging,
+    policies::fixed::EpsilonGreedy,
 };
 
 fn main() {

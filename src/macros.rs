@@ -24,8 +24,8 @@ macro_rules! clip {
 }
 
 macro_rules! import_all {
-    ($module:ident) => (
+    ($module:ident) => {
         mod $module;
         pub use self::$module::*;
-    )
+    };
 }

@@ -1,7 +1,7 @@
 //! Agent policy module.
 use domains::Transition;
 use fa::Parameterised;
-use geometry::{Vector, Matrix};
+use geometry::{Matrix, Vector};
 use rand::Rng;
 
 #[inline]

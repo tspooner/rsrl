@@ -1,17 +1,15 @@
+use super::pdfs::normal_pdf;
 use core::Parameter;
 use domains::Transition;
-use fa::{Projector, Projection, Approximator, Parameterised, SimpleLFA};
+use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA};
 use geometry::Matrix;
-use policies::{Policy, DifferentiablePolicy, ParameterisedPolicy};
+use policies::{DifferentiablePolicy, ParameterisedPolicy, Policy};
 use rand::{
-    thread_rng, ThreadRng,
-    distributions::{
-        Distribution,
-        normal::Normal as NormalDist,
-    },
+    distributions::{normal::Normal as NormalDist, Distribution},
+    thread_rng,
+    ThreadRng,
 };
 use std::ops::AddAssign;
-use super::pdfs::normal_pdf;
 
 pub struct Gaussian1d<S, M: Projector<S>> {
     pub fa_mean: SimpleLFA<S, M>,
@@ -32,9 +30,7 @@ impl<S, M: Projector<S>> Gaussian1d<S, M> {
 }
 
 impl<S, M: Projector<S>> Gaussian1d<S, M> {
-    pub fn mean(&self, phi: &Projection) -> f64 {
-        self.fa_mean.approximator.evaluate(phi).unwrap()
-    }
+    pub fn mean(&self, phi: &Projection) -> f64 { self.fa_mean.approximator.evaluate(phi).unwrap() }
 }
 
 impl<S, M: Projector<S>> Policy<S> for Gaussian1d<S, M> {
@@ -53,9 +49,7 @@ impl<S, M: Projector<S>> Policy<S> for Gaussian1d<S, M> {
         normal_pdf(self.mean(&phi), self.std.value(), a)
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, f64>) {
-        self.std.step();
-    }
+    fn handle_terminal(&mut self, _: &Transition<S, f64>) { self.std.step(); }
 }
 
 impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<S, M> {
@@ -70,7 +64,8 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<S, M> {
         // let grad_log_mean = phi.into_iter().map(move |x| c*x);
         // let grad_log_std = repeat(0.0).take(n_rows);
 
-        // Vector::from_iter(grad_log_mean.chain(grad_log_std)).into_shape((n_rows, 2)).unwrap()
+        // Vector::from_iter(grad_log_mean.chain(grad_log_std)).into_shape((n_rows,
+        // 2)).unwrap()
 
         let phi = self.fa_mean.projector.project(input);
         let mean = self.mean(&phi);
@@ -81,7 +76,9 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<S, M> {
         let n_rows = self.fa_mean.projector.dim();
         let phi = phi.expanded(n_rows);
 
-        (pi * (a - mean) / (std * std) * phi).into_shape((n_rows, 1)).unwrap()
+        (pi * (a - mean) / (std * std) * phi)
+            .into_shape((n_rows, 1))
+            .unwrap()
     }
 }
 
@@ -106,10 +103,16 @@ impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gaussian1d<S, M> {
     fn update(&mut self, input: &S, a: f64, error: f64) {
         let grad_log = self.grad_log(input, a);
 
-        self.fa_mean.approximator.weights.scaled_add(error, &grad_log.column(0));
+        self.fa_mean
+            .approximator
+            .weights
+            .scaled_add(error, &grad_log.column(0));
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
-        self.fa_mean.approximator.weights.add_assign(&errors.column(0))
+        self.fa_mean
+            .approximator
+            .weights
+            .add_assign(&errors.column(0))
     }
 }

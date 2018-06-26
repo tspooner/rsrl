@@ -26,13 +26,14 @@ impl KV for Episode {
 pub fn run(
     runner: impl Iterator<Item = Episode>,
     n_episodes: usize,
-    logger: Option<Logger>
+    logger: Option<Logger>,
 ) -> Vec<Episode>
 {
     let exp = runner.take(n_episodes);
 
     match logger {
-        Some(logger) => exp.zip(1..(n_episodes + 1))
+        Some(logger) => exp
+            .zip(1..(n_episodes + 1))
             .inspect(|&(ref res, i)| {
                 info!(logger, "episode {}", i; res);
             })

@@ -1,6 +1,6 @@
-use fa::{Projector, Approximator, Parameterised, MultiLFA};
-use geometry::{Vector, Matrix};
-use policies::{Policy, FinitePolicy, DifferentiablePolicy, ParameterisedPolicy};
+use fa::{Approximator, MultiLFA, Parameterised, Projector};
+use geometry::{Matrix, Vector};
+use policies::{DifferentiablePolicy, FinitePolicy, ParameterisedPolicy, Policy};
 use rand::{thread_rng, Rng, ThreadRng};
 use std::{f64, ops::AddAssign};
 
@@ -12,7 +12,8 @@ pub struct Gibbs<S, M: Projector<S>> {
 
 fn probabilities_from_values(values: &[f64]) -> Vector<f64> {
     let mut z = 0.0;
-    let ws: Vec<f64> = values.iter()
+    let ws: Vec<f64> = values
+        .iter()
         .map(|v| {
             let v = v.exp();
             z += v;
@@ -47,9 +48,7 @@ impl<S, M: Projector<S>> Policy<S> for Gibbs<S, M> {
         }
     }
 
-    fn probability(&mut self, input: &S, a: usize) -> f64 {
-        self.probabilities(input)[a]
-    }
+    fn probability(&mut self, input: &S, a: usize) -> f64 { self.probabilities(input)[a] }
 }
 
 impl<S, M: Projector<S>> FinitePolicy<S> for Gibbs<S, M> {
@@ -66,23 +65,25 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gibbs<S, M> {
 
         let values = self.fa.approximator.evaluate(&phi).unwrap();
         let n_actions = values.len();
-        let probabilities = probabilities_from_values(
-            values.as_slice().unwrap()
-        ).into_shape((1, n_actions)).unwrap();
+        let probabilities = probabilities_from_values(values.as_slice().unwrap())
+            .into_shape((1, n_actions))
+            .unwrap();
 
         let dim = self.fa.projector.dim();
         let phi = phi.expanded(self.fa.projector.dim());
 
-        let mut grad_log = phi.clone().into_shape((dim, 1)).unwrap().dot(&-probabilities);
+        let mut grad_log = phi
+            .clone()
+            .into_shape((dim, 1))
+            .unwrap()
+            .dot(&-probabilities);
         grad_log.column_mut(a).add_assign(&phi);
         grad_log
     }
 }
 
 impl<S, M: Projector<S>> Parameterised for Gibbs<S, M> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa.approximator.weights.clone()
-    }
+    fn weights(&self) -> Matrix<f64> { self.fa.approximator.weights.clone() }
 }
 
 impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<S, M> {
