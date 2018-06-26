@@ -18,6 +18,9 @@ pub use self::lfa::{
     AdaptResult,
 };
 
+#[cfg(test)]
+pub(crate) mod mocking;
+
 mod table;
 pub use self::table::Table;
 
