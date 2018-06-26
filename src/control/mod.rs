@@ -5,6 +5,7 @@ pub mod actor_critic;
 pub mod gtd;
 pub mod td;
 pub mod totd;
+pub mod mc;
 
 // TODO
 // Proximal gradient-descent methods:

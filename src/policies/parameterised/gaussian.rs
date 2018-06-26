@@ -44,9 +44,7 @@ impl<S, M: Projector<S>> Policy<S> for Gaussian1d<S, M> {
         let phi = self.fa_mean.projector.project(input);
         let mean = self.mean(&phi);
 
-        let a = NormalDist::new(mean, self.std.value()).sample(&mut self.rng);
-
-        clip!(-1.0_f64, a, 1.0_f64)
+        NormalDist::new(mean, self.std.value()).sample(&mut self.rng)
     }
 
     fn probability(&mut self, input: &S, a: f64) -> f64 {
@@ -76,11 +74,14 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<S, M> {
 
         let phi = self.fa_mean.projector.project(input);
         let mean = self.mean(&phi);
+        let std = self.std.value();
+
+        let pi = normal_pdf(mean, std, a);
 
         let n_rows = self.fa_mean.projector.dim();
         let phi = phi.expanded(n_rows);
 
-        ((a - mean) / (self.std * self.std) * phi).into_shape((n_rows, 1)).unwrap()
+        (pi * (a - mean) / (std * std) * phi).into_shape((n_rows, 1)).unwrap()
     }
 }
 
@@ -105,7 +106,7 @@ impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gaussian1d<S, M> {
     fn update(&mut self, input: &S, a: f64, error: f64) {
         let grad_log = self.grad_log(input, a);
 
-        self.fa_mean.approximator.weights.scaled_add(error, &grad_log);
+        self.fa_mean.approximator.weights.scaled_add(error, &grad_log.column(0));
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
