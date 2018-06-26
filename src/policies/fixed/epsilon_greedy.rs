@@ -63,11 +63,18 @@ impl<S> FinitePolicy<S> for EpsilonGreedy<S> {
 
 #[cfg(test)]
 mod tests {
-    use super::{EpsilonGreedy, Parameter, Policy};
+    use domains::{Domain, MountainCar};
+    use fa::mocking::MockQ;
+    use geometry::Vector;
+    use super::{EpsilonGreedy, Parameter, Policy, FinitePolicy};
 
     #[test]
     fn test_sampling() {
-        let mut p = EpsilonGreedy::new(0.5);
+        let q = MockQ::new_shared(Some(vec![0.0, 1.0].into()));
+        let mut p = EpsilonGreedy::new(q.clone(), 0.5);
+
+        q.borrow_mut().clear_output();
+
         let qs = vec![1.0, 0.0];
 
         let mut n0: f64 = 0.0;
@@ -85,39 +92,48 @@ mod tests {
 
     #[test]
     fn test_probabilites() {
-        let mut p = EpsilonGreedy::new(0.5);
+        let mut p = EpsilonGreedy::new(MockQ::new_shared(None), 0.5);
 
-        assert_eq!(
-            p.probabilities(&[1.0, 0.0, 0.0, 0.0, 0.0]),
-            vec![0.6, 0.1, 0.1, 0.1, 0.1]
+        assert!(
+            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0]).all_close(
+                &vec![0.6, 0.1, 0.1, 0.1, 0.1].into(),
+                1e-6
+            )
         );
 
-        assert_eq!(
-            p.probabilities(&[0.0, 0.0, 0.0, 0.0, 1.0]),
-            vec![0.1, 0.1, 0.1, 0.1, 0.6]
+        assert!(
+            p.probabilities(&vec![0.0, 0.0, 0.0, 0.0, 1.0]).all_close(
+                &vec![0.1, 0.1, 0.1, 0.1, 0.6].into(),
+                1e-6
+            )
         );
 
-        assert_eq!(
-            p.probabilities(&[1.0, 0.0, 0.0, 0.0, 1.0]),
-            vec![0.35, 0.1, 0.1, 0.1, 0.35]
+        assert!(
+            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 1.0]).all_close(
+                &vec![0.35, 0.1, 0.1, 0.1, 0.35].into(),
+                1e-6
+            )
         );
 
-        let mut p = EpsilonGreedy::new(1.0);
+        let mut p = EpsilonGreedy::new(MockQ::new_shared(None), 1.0);
 
-        assert_eq!(
-            p.probabilities(&[-1.0, 0.0, 0.0, 0.0]),
-            vec![0.25, 0.25, 0.25, 0.25]
+        assert!(
+            p.probabilities(&vec![-1.0, 0.0, 0.0, 0.0]).all_close(
+                &vec![0.25, 0.25, 0.25, 0.25].into(),
+                1e-6
+            )
         );
     }
 
     #[test]
     fn test_terminal() {
+        let mut domain = MountainCar::default();
         let mut epsilon = Parameter::exponential(100.0, 1.0, 0.9);
-        let mut p = EpsilonGreedy::new(epsilon);
+        let mut p = EpsilonGreedy::new(MockQ::new_shared(None), epsilon);
 
         for _ in 0..100 {
             epsilon = epsilon.step();
-            p.handle_terminal();
+            p.handle_terminal(&domain.step(0));
 
             assert_eq!(epsilon.value(), p.epsilon.value());
         }

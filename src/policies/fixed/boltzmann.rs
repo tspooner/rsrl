@@ -62,20 +62,23 @@ impl<S> FinitePolicy<S> for Boltzmann<S> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Boltzmann, Parameter, Policy};
-    use ndarray::arr1;
+    use domains::{Domain, MountainCar};
+    use fa::mocking::MockQ;
+    use geometry::Vector;
     use std::f64::consts::E;
+    use super::{Boltzmann, Parameter, Policy, FinitePolicy};
 
     #[test]
     #[should_panic]
     fn test_0d() {
-        let mut p = Boltzmann::new(1.0);
+        let mut p = Boltzmann::new(MockQ::new_shared(None), 1.0);
+
         p.sample(&vec![]);
     }
 
     #[test]
     fn test_1d() {
-        let mut p = Boltzmann::new(1.0);
+        let mut p = Boltzmann::new(MockQ::new_shared(None), 1.0);
 
         for i in 1..100 {
             assert_eq!(p.sample(&vec![i as f64]), 0);
@@ -84,25 +87,27 @@ mod tests {
 
     #[test]
     fn test_2d() {
-        let mut p = Boltzmann::new(1.0);
-        let mut counts = arr1(&vec![0.0, 0.0]);
+        let mut p = Boltzmann::new(MockQ::new_shared(None), 1.0);
+        let mut counts = Vector::from_vec(vec![0.0, 0.0]);
 
         for _ in 0..50000 {
             counts[p.sample(&vec![0.0, 1.0])] += 1.0;
         }
 
-        assert!((counts / 50000.0).all_close(&arr1(&vec![1.0 / (1.0 + E), E / (1.0 + E)]), 1e-2));
+        assert!((counts / 50000.0).all_close(&Vector::from_vec(vec![1.0 / (1.0 + E), E / (1.0 + E)]), 1e-2));
     }
 
     #[test]
     fn test_probabilites() {
+        let mut p = Boltzmann::new(MockQ::new_shared(None), 1.0);
+
         assert!(
-            arr1(&Boltzmann::new(1.0).probabilities(&vec![0.0, 1.0]))
-                .all_close(&arr1(&vec![1.0 / (1.0 + E), E / (1.0 + E)]), 1e-6)
+            &p.probabilities(&vec![0.0, 1.0])
+                .all_close(&Vector::from_vec(vec![1.0 / (1.0 + E), E / (1.0 + E)]), 1e-6)
         );
         assert!(
-            arr1(&Boltzmann::new(1.0).probabilities(&vec![0.0, 2.0])).all_close(
-                &arr1(&vec![1.0 / (1.0 + E * E), E * E / (1.0 + E * E)]),
+            p.probabilities(&vec![0.0, 2.0]).all_close(
+                &Vector::from_vec(vec![1.0 / (1.0 + E * E), E * E / (1.0 + E * E)]),
                 1e-6,
             )
         );
@@ -110,12 +115,13 @@ mod tests {
 
     #[test]
     fn test_terminal() {
+        let mut domain = MountainCar::default();
         let mut tau = Parameter::exponential(100.0, 1.0, 0.9);
-        let mut p = Boltzmann::new(tau);
+        let mut p = Boltzmann::new(MockQ::new_shared(None), tau);
 
         for _ in 0..100 {
             tau = tau.step();
-            p.handle_terminal();
+            p.handle_terminal(&domain.step(0));
 
             assert_eq!(tau.value(), p.tau.value());
         }

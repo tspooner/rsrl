@@ -1,6 +1,6 @@
 //! Agent policy module.
 use domains::Transition;
-use fa::{Projector, Parameterised};
+use fa::Parameterised;
 use geometry::{Vector, Matrix};
 use rand::Rng;
 
