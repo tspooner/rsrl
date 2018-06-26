@@ -20,7 +20,7 @@ impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
         T2: Into<Parameter>,
     {
         TD {
-            v_func: v_func,
+            v_func,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
@@ -39,8 +39,7 @@ where
         let nv = self.predict_v(&sample.to.state());
 
         let td_error = sample.reward + self.gamma * nv - v;
-
-        self.v_func.update(&sample.from.state(), self.alpha * td_error);
+        let _ = self.v_func.update(&sample.from.state(), self.alpha * td_error);
     }
 
     fn handle_terminal(&mut self, _: &Transition<S, A>) {

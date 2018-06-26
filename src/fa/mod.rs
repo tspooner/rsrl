@@ -95,9 +95,9 @@ impl<S: ?Sized, P: Projector<S>> QFunction<S> for MultiLFA<S, P> {
     fn evaluate_action_phi(&self, phi: &Projection, action: usize) -> f64 {
         let col = self.approximator.weights.column(action);
 
-        match phi {
-            &Projection::Dense(ref dense) => col.dot(&(dense / phi.z())),
-            &Projection::Sparse(ref sparse) => sparse.iter().fold(0.0, |acc, idx| acc + col[*idx]),
+        match *phi {
+            Projection::Dense(ref dense) => col.dot(&(dense / phi.z())),
+            Projection::Sparse(ref sparse) => sparse.iter().fold(0.0, |acc, idx| acc + col[*idx]),
         }
     }
 
@@ -111,9 +111,9 @@ impl<S: ?Sized, P: Projector<S>> QFunction<S> for MultiLFA<S, P> {
         let z = phi.z();
         let scaled_update = update / z;
 
-        match phi {
-            &Projection::Dense(ref dense) => col.scaled_add(scaled_update, dense),
-            &Projection::Sparse(ref sparse) => for idx in sparse {
+        match *phi {
+            Projection::Dense(ref dense) => col.scaled_add(scaled_update, dense),
+            Projection::Sparse(ref sparse) => for idx in sparse {
                 col[*idx] += scaled_update
             },
         }

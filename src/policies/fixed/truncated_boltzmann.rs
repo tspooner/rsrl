@@ -18,7 +18,7 @@ pub struct TruncatedBoltzmann<S> {
 impl<S> TruncatedBoltzmann<S> {
     pub fn new<T: Into<Parameter>>(q_func: SharedQFunction<S>, c: T) -> Self {
         TruncatedBoltzmann {
-            q_func: q_func,
+            q_func,
 
             c: c.into(),
             rng: thread_rng(),

@@ -1,4 +1,5 @@
-#[allow(unused_imports)]
+#![allow(unused_imports)]
+
 #[macro_use]
 extern crate ndarray;
 extern crate rand;

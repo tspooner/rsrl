@@ -33,7 +33,7 @@ pub struct GridWorld<T> {
 }
 
 impl<T> GridWorld<T> {
-    pub fn new(layout: Matrix<T>) -> GridWorld<T> { GridWorld { layout: layout } }
+    pub fn new(layout: Matrix<T>) -> GridWorld<T> { GridWorld { layout } }
 
     pub fn from_str(layout: &str) -> GridWorld<T>
     where

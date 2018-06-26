@@ -30,8 +30,8 @@ impl<S, Q: QFunction<S>, P: Policy<S>> ExpectedSARSA<S, Q, P> {
         T2: Into<Parameter>,
     {
         ExpectedSARSA {
-            q_func: q_func,
-            policy: policy,
+            q_func,
+            policy,
 
             alpha: alpha.into(),
             gamma: gamma.into(),

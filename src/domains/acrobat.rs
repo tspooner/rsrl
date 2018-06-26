@@ -75,7 +75,7 @@ impl Acrobat {
     }
 
     fn update_state(&mut self, a: usize) {
-        let fx = |_x, y| Acrobat::grad(ALL_ACTIONS[a], y);
+        let fx = |_x, y| Acrobat::grad(ALL_ACTIONS[a], &y);
         let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), DT);
 
         ns[StateIndex::THETA1] = wrap!(LIMITS_THETA1.0, ns[StateIndex::THETA1], LIMITS_THETA1.1);
@@ -89,7 +89,7 @@ impl Acrobat {
         self.state = ns;
     }
 
-    fn grad(torque: f64, state: Vector) -> Vector {
+    fn grad(torque: f64, state: &Vector) -> Vector {
         let theta1 = state[StateIndex::THETA1];
         let theta2 = state[StateIndex::THETA2];
         let dtheta1 = state[StateIndex::DTHETA1];
@@ -130,18 +130,18 @@ impl Domain for Acrobat {
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
-        self.update_state(a);
+        self.update_state(action);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let reward = self.reward(&from, &to);
 
         Transition {
-            from: from,
-            action: a,
-            reward: r,
-            to: to,
+            from,
+            action,
+            reward,
+            to,
         }
     }
 
@@ -153,8 +153,8 @@ impl Domain for Acrobat {
     }
 
     fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
-        match to {
-            &Observation::Terminal(_) => REWARD_TERMINAL,
+        match *to {
+            Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,
         }
     }

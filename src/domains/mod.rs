@@ -35,8 +35,8 @@ impl<S> Observation<S> {
     pub fn state(&self) -> &S {
         use self::Observation::*;
 
-        match self {
-            &Full(ref state) | &Partial(ref state) | &Terminal(ref state) => state,
+        match *self {
+            Full(ref state) | Partial(ref state) | Terminal(ref state) => state,
         }
     }
 }

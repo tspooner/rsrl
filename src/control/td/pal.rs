@@ -34,7 +34,7 @@ where
         PAL {
             q_func: q_func.clone(),
 
-            policy: policy,
+            policy,
             target: Greedy::new(q_func),
 
             alpha: alpha.into(),

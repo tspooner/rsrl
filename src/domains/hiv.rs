@@ -81,7 +81,7 @@ impl HIVTreatment {
 
     fn update_state(&mut self, a: usize) {
         let eps = ALL_ACTIONS[a];
-        let fx = |_x, y| HIVTreatment::grad(eps, y);
+        let fx = |_x, y| HIVTreatment::grad(eps, &y);
 
         self.eps = eps;
 
@@ -93,7 +93,7 @@ impl HIVTreatment {
         self.state = ns;
     }
 
-    fn grad(eps: (f64, f64), state: Vector) -> Vector {
+    fn grad(eps: (f64, f64), state: &Vector) -> Vector {
         let t1 = state[StateIndex::T1];
         let t1s = state[StateIndex::T1S];
         let t2 = state[StateIndex::T2];
@@ -121,7 +121,7 @@ impl HIVTreatment {
 }
 
 impl Default for HIVTreatment {
-    fn default() -> HIVTreatment { HIVTreatment::new(163573.0, 11945.0, 5.0, 46.0, 63919.0, 24.0) }
+    fn default() -> HIVTreatment { HIVTreatment::new(163_573.0, 11_945.0, 5.0, 46.0, 63_919.0, 24.0) }
 }
 
 impl Domain for HIVTreatment {
@@ -140,18 +140,18 @@ impl Domain for HIVTreatment {
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
-        self.update_state(a);
+        self.update_state(action);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let reward = self.reward(&from, &to);
 
         Transition {
-            from: from,
-            action: a,
-            reward: r,
-            to: to,
+            from,
+            action,
+            reward,
+            to,
         }
     }
 

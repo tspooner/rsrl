@@ -22,7 +22,7 @@ impl<S, P: ParameterisedPolicy<S>> REINFORCE<S, P> {
         T2: Into<Parameter>,
     {
         REINFORCE {
-            policy: policy,
+            policy,
 
             cache: vec![],
 

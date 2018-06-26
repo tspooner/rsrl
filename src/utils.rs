@@ -54,7 +54,7 @@ pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
 // /// ```
 ///
 /// Pulled from [here](https://gist.github.com/kylewlacy/115965b40e02a3325558).
-pub fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &Vec<T>) -> Vec<Vec<T>> {
+pub fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &[T]) -> Vec<Vec<T>> {
     a.into_iter()
         .flat_map(|xs| {
             b.iter()
@@ -95,7 +95,7 @@ pub fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &Vec<T>) -> Vec<Vec<T>> {
 // /// ```
 ///
 /// Pulled from [here](https://gist.github.com/kylewlacy/115965b40e02a3325558).
-pub fn cartesian_product<T: Clone>(lists: &Vec<Vec<T>>) -> Vec<Vec<T>> {
+pub fn cartesian_product<T: Clone>(lists: &[Vec<T>]) -> Vec<Vec<T>> {
     match lists.split_first() {
         Some((first, rest)) => {
             let init: Vec<Vec<T>> = first.iter().cloned().map(|n| vec![n]).collect();

@@ -27,7 +27,7 @@ fn probabilities_from_values(values: &[f64]) -> Vector<f64> {
 impl<S, M: Projector<S>> Gibbs<S, M> {
     pub fn new(fa: MultiLFA<S, M>) -> Self {
         Gibbs {
-            fa: fa,
+            fa,
 
             rng: thread_rng(),
         }

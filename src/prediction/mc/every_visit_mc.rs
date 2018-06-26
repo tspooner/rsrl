@@ -21,7 +21,7 @@ impl<S, V: VFunction<S>> EveryVisitMC<S, V> {
         T2: Into<Parameter>,
     {
         EveryVisitMC {
-            v_func: v_func,
+            v_func,
             cache: vec![],
 
             alpha: alpha.into(),

@@ -29,8 +29,8 @@ where
             T2: Into<Parameter>,
     {
         TDAC {
-            critic: critic,
-            policy: policy,
+            critic,
+            policy,
 
             alpha: alpha.into(),
             gamma: gamma.into(),

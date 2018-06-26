@@ -48,18 +48,18 @@ impl Domain for CliffWalk {
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<(usize, usize), usize> {
+    fn step(&mut self, action: usize) -> Transition<(usize, usize), usize> {
         let from = self.emit();
 
-        self.update_state(a);
+        self.update_state(action);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let reward = self.reward(&from, &to);
 
         Transition {
-            from: from,
-            action: a,
-            reward: r,
-            to: to,
+            from,
+            action,
+            reward,
+            to,
         }
     }
 
@@ -69,8 +69,8 @@ impl Domain for CliffWalk {
         to: &Observation<(usize, usize)>,
     ) -> f64
     {
-        match to {
-            &Observation::Terminal(_) => {
+        match *to {
+            Observation::Terminal(_) => {
                 if to.state().0 == self.gw.width() - 1 {
                     50.0
                 } else {

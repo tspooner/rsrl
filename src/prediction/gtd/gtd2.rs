@@ -25,13 +25,13 @@ impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
-        if !(fa_theta.projector.dim() == fa_w.projector.dim()) {
+        if fa_theta.projector.dim() != fa_w.projector.dim() {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
 
         GTD2 {
-            fa_theta: fa_theta,
-            fa_w: fa_w,
+            fa_theta,
+            fa_w,
 
             alpha: alpha.into(),
             beta: beta.into(),

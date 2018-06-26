@@ -23,7 +23,7 @@ pub struct Gaussian1d<S, M: Projector<S>> {
 impl<S, M: Projector<S>> Gaussian1d<S, M> {
     pub fn new<T: Into<Parameter>>(fa_mean: SimpleLFA<S, M>, std: T) -> Self {
         Gaussian1d {
-            fa_mean: fa_mean,
+            fa_mean,
             std: std.into(),
 
             rng: thread_rng(),

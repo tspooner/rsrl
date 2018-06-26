@@ -42,12 +42,12 @@ where
         T2: Into<Parameter>,
     {
         TOQLambda {
-            trace: trace,
+            trace,
             q_old: 0.0,
 
             q_func: q_func.clone(),
 
-            policy: policy,
+            policy,
             target: Greedy::new(q_func),
 
             alpha: alpha.into(),

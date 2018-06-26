@@ -16,7 +16,7 @@ pub struct Trace {
 impl Trace {
     pub fn new<T: Into<Parameter>>(trace_type: TraceType, lambda: T, activation: usize) -> Trace {
         Trace {
-            trace_type: trace_type,
+            trace_type,
 
             lambda: lambda.into(),
             eligibility: Vector::zeros((activation,)),

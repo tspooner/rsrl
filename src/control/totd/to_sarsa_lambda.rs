@@ -40,11 +40,11 @@ where
         T2: Into<Parameter>,
     {
         TOSARSALambda {
-            trace: trace,
+            trace,
             q_old: 0.0,
 
-            q_func: q_func,
-            policy: policy,
+            q_func,
+            policy,
 
             alpha: alpha.into(),
             gamma: gamma.into(),

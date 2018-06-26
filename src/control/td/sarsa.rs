@@ -28,8 +28,8 @@ impl<S, Q: QFunction<S>, P: Policy<S>> SARSA<S, Q, P> {
         T2: Into<Parameter>,
     {
         SARSA {
-            q_func: q_func,
-            policy: policy,
+            q_func,
+            policy,
 
             alpha: alpha.into(),
             gamma: gamma.into(),

@@ -16,7 +16,7 @@ pub struct Boltzmann<S> {
 impl<S> Boltzmann<S> {
     pub fn new<T: Into<Parameter>>(q_func: SharedQFunction<S>, tau: T) -> Self {
         Boltzmann {
-            q_func: q_func,
+            q_func,
 
             tau: tau.into(),
             rng: thread_rng(),

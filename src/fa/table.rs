@@ -21,7 +21,7 @@ use std::ops::AddAssign;
 ///
 /// assert_eq!(f.evaluate(&(0, 1)).unwrap(), 1.0);
 /// ```
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Table<K: Hash + Eq, V>(pub HashMap<K, V>);
 
 impl<K: Hash + Eq, V> Table<K, V> {
@@ -48,7 +48,7 @@ where
     }
 
     fn update(&mut self, input: &I, error: V) -> UpdateResult<()> {
-        *self.0.entry(*input).or_insert(V::default()) += error;
+        *self.0.entry(*input).or_insert_with(V::default) += error;
 
         Ok(())
     }

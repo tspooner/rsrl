@@ -38,71 +38,71 @@ impl Parameter {
 
     pub fn exponential(init: f64, floor: f64, tau: f64) -> Parameter {
         Parameter::Exponential {
-            init: init,
-            floor: floor,
-            tau: tau,
+            init,
+            floor,
+            tau,
             count: 0,
         }
     }
 
     pub fn polynomial(init: f64, floor: f64, tau: f64) -> Parameter {
         Parameter::Polynomial {
-            init: init,
-            floor: floor,
-            tau: tau,
+            init,
+            floor,
+            tau,
             count: 0,
         }
     }
 
     pub fn boyan(init: f64, floor: f64, n0: u32) -> Parameter {
         Parameter::Boyan {
-            init: init,
-            floor: floor,
-            n0: n0,
+            init,
+            floor,
+            n0,
             count: 0,
         }
     }
 
     pub fn ghc(init: f64, floor: f64, tau: f64) -> Parameter {
         Parameter::GHC {
-            init: init,
-            floor: floor,
-            tau: tau,
+            init,
+            floor,
+            tau,
             count: 0,
         }
     }
 
     pub fn value(&self) -> f64 {
-        match self {
-            &Parameter::Fixed(v) => v,
+        match *self {
+            Parameter::Fixed(v) => v,
 
-            &Parameter::Exponential {
+            Parameter::Exponential {
                 init: i,
                 floor: f,
                 tau: t,
                 count: c,
-            } => f64::max(i * t.powf(c as f64), f),
+            } => f64::max(i * t.powf(f64::from(c)), f),
 
-            &Parameter::Polynomial {
+            Parameter::Polynomial {
                 init: i,
                 floor: f,
                 tau: t,
                 count: c,
-            } => f64::max(i / (c as f64 + 1.0).powf(t), f),
+            } => f64::max(i / (f64::from(c) + 1.0).powf(t), f),
 
-            &Parameter::Boyan {
+            Parameter::Boyan {
                 init: i,
                 floor: f,
                 n0: n,
                 count: c,
-            } => f64::max(i * ((n + 1) as f64) / ((n + c) as f64), f),
+            } => f64::max(i * (f64::from(n + 1)) / (f64::from(n + c)), f),
 
-            &Parameter::GHC {
+            Parameter::GHC {
                 init: i,
                 floor: f,
                 tau: t,
                 count: c,
-            } => f64::max(i * t / (t + c as f64 - 1.0), f),
+            } => f64::max(i * t / (t + f64::from(c) - 1.0), f),
         }
     }
 

@@ -19,9 +19,9 @@ impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
         T2: Into<Parameter>,
     {
         TDLambda {
-            trace: trace,
+            trace,
 
-            fa_theta: fa_theta,
+            fa_theta,
 
             alpha: alpha.into(),
             gamma: gamma.into(),

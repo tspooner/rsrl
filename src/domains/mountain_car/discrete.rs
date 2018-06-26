@@ -52,7 +52,7 @@ pub struct MountainCar {
 }
 
 impl MountainCar {
-    fn new(x: f64, v: f64) -> MountainCar { MountainCar { x: x, v: v } }
+    fn new(x: f64, v: f64) -> MountainCar { MountainCar { x, v } }
 
     fn dv(x: f64, a: f64) -> f64 { FORCE_CAR * a + FORCE_G * (HILL_FREQ * x).cos() }
 
@@ -82,26 +82,26 @@ impl Domain for MountainCar {
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
-        self.update_state(a);
+        self.update_state(action);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let reward = self.reward(&from, &to);
 
         Transition {
-            from: from,
-            action: a,
-            reward: r,
-            to: to,
+            from,
+            action,
+            reward,
+            to,
         }
     }
 
     fn is_terminal(&self) -> bool { self.x >= X_MAX }
 
     fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
-        match to {
-            &Observation::Terminal(_) => REWARD_GOAL,
+        match *to {
+            Observation::Terminal(_) => REWARD_GOAL,
             _ => REWARD_STEP,
         }
     }

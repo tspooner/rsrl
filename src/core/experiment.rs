@@ -56,8 +56,8 @@ where
 {
     pub fn new(agent: &'a mut C, domain_factory: Box<Fn() -> D>) -> Evaluation<'a, C, D> {
         Evaluation {
-            agent: agent,
-            domain_factory: domain_factory,
+            agent,
+            domain_factory,
         }
     }
 }
@@ -117,9 +117,9 @@ where
     ) -> SerialExperiment<'a, C, D>
     {
         SerialExperiment {
-            agent: agent,
-            domain_factory: domain_factory,
-            step_limit: step_limit,
+            agent,
+            domain_factory,
+            step_limit,
         }
     }
 }

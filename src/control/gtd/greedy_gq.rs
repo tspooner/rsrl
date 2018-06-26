@@ -49,9 +49,9 @@ impl<S: 'static, M: Projector<S> + 'static, P: Policy<S>> GreedyGQ<S, M, P> {
     {
         GreedyGQ {
             fa_theta: fa_theta.clone(),
-            fa_w: fa_w,
+            fa_w,
 
-            policy: policy,
+            policy,
             target: Greedy::new(fa_theta),
 
             alpha: alpha.into(),

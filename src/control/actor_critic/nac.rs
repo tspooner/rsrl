@@ -26,8 +26,8 @@ where
 {
     pub fn new<T: Into<Parameter>>(critic: C, policy: Shared<P>, alpha: T) -> Self {
         NAC {
-            critic: critic,
-            policy: policy,
+            critic,
+            policy,
 
             alpha: alpha.into(),
 

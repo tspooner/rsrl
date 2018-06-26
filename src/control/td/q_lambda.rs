@@ -38,11 +38,11 @@ impl<S: 'static, M: Projector<S> + 'static, P: Policy<S>> QLambda<S, M, P> {
         T2: Into<Parameter>,
     {
         QLambda {
-            trace: trace,
+            trace,
 
             fa_theta: fa_theta.clone(),
 
-            policy: policy,
+            policy,
             target: Greedy::new(fa_theta),
 
             alpha: alpha.into(),

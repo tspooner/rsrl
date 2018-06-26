@@ -24,8 +24,8 @@ where
 {
     pub fn new<T: Into<Parameter>>(critic: C, policy: Shared<P>, alpha: T) -> Self {
         A2C {
-            critic: critic,
-            policy: policy,
+            critic,
+            policy,
 
             alpha: alpha.into(),
 

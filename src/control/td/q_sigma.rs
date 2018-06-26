@@ -54,14 +54,14 @@ where
         QSigma {
             q_func: q_func.clone(),
 
-            policy: policy,
+            policy,
             target: Greedy::new(q_func),
 
             alpha: alpha.into(),
             gamma: gamma.into(),
             sigma: sigma.into(),
 
-            n_steps: n_steps,
+            n_steps,
 
             backup: VecDeque::new(),
         }
@@ -73,8 +73,8 @@ where
         let mut rho = 1.0;
 
         for k in 0..(self.n_steps - 1) {
-            let ref b1 = self.backup[k];
-            let ref b2 = self.backup[k + 1];
+            let b1 = &self.backup[k];
+            let b2 = &self.backup[k + 1];
 
             g += z * b1.delta;
             z *= self.gamma * ((1.0 - b2.sigma) * b2.pi + b2.sigma);
@@ -136,7 +136,7 @@ where
             q: qa,
             delta: td_error,
 
-            sigma: sigma,
+            sigma,
             pi: pi[na],
             mu: self.policy.borrow_mut().probability(ns, na),
         });

@@ -37,10 +37,10 @@ impl<S, M: Projector<S>, P: Policy<S>> SARSALambda<S, M, P> {
         T2: Into<Parameter>,
     {
         SARSALambda {
-            trace: trace,
+            trace,
 
-            fa_theta: fa_theta,
-            policy: policy,
+            fa_theta,
+            policy,
 
             alpha: alpha.into(),
             gamma: gamma.into(),

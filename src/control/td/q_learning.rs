@@ -32,7 +32,7 @@ impl<S, Q: QFunction<S> + 'static, P: Policy<S>> QLearning<S, Q, P> {
         QLearning {
             q_func: q_func.clone(),
 
-            policy: policy,
+            policy,
             target: Greedy::new(q_func),
 
             alpha: alpha.into(),

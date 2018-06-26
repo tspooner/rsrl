@@ -58,7 +58,7 @@ impl CartPole {
     }
 
     fn update_state(&mut self, a: usize) {
-        let fx = |_x, y| CartPole::grad(ALL_ACTIONS[a], y);
+        let fx = |_x, y| CartPole::grad(ALL_ACTIONS[a], &y);
         let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), TAU);
 
         ns[StateIndex::X] = clip!(LIMITS_X.0, ns[StateIndex::X], LIMITS_X.1);
@@ -70,7 +70,7 @@ impl CartPole {
         self.state = ns;
     }
 
-    fn grad(force: f64, state: Vector) -> Vector {
+    fn grad(force: f64, state: &Vector) -> Vector {
         let dx = state[StateIndex::DX];
         let theta = state[StateIndex::THETA];
         let dtheta = state[StateIndex::DTHETA];
@@ -106,18 +106,18 @@ impl Domain for CartPole {
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
-        self.update_state(a);
+        self.update_state(action);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let reward = self.reward(&from, &to);
 
         Transition {
-            from: from,
-            action: a,
-            reward: r,
-            to: to,
+            from,
+            action,
+            reward,
+            to,
         }
     }
 
@@ -129,8 +129,8 @@ impl Domain for CartPole {
     }
 
     fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
-        match to {
-            &Observation::Terminal(_) => REWARD_TERMINAL,
+        match *to {
+            Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,
         }
     }
