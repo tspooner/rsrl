@@ -54,13 +54,14 @@ where
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.predict_qs(s);
-        let nqs = self.predict_qs(s);
+        let nqs = self.predict_qs(ns);
 
-        let qa_star = qs[self.sample_target(&s)];
+        let a_star = self.sample_target(s);
+        let na_star = self.sample_target(ns);
 
-        let td_error = t.reward + self.gamma * nqs[self.sample_target(&ns)] - qs[t.action];
-        let al_error = td_error - self.alpha * (qa_star - qs[t.action]);
-        let pal_error = al_error.max(td_error - self.alpha * (qa_star - nqs[t.action]));
+        let td_error = t.reward + self.gamma * nqs[a_star] - qs[t.action];
+        let al_error = td_error - self.alpha * (qs[a_star] - qs[t.action]);
+        let pal_error = al_error.max(td_error - self.alpha * (nqs[na_star] - nqs[t.action]));
 
         self.q_func.borrow_mut().update_action(s, t.action, self.alpha * pal_error);
     }
