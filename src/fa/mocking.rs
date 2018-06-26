@@ -14,8 +14,10 @@ impl MockQ {
         make_shared(Self::new(output))
     }
 
+    #[allow(dead_code)]
     pub fn set_output(&mut self, output: Vector<f64>) { self.output = Some(output) }
 
+    #[allow(dead_code)]
     pub fn clear_output(&mut self) { self.output = None }
 }
 
@@ -29,7 +31,7 @@ impl Approximator<Vec<f64>> for MockQ {
         })
     }
 
-    fn update(&mut self, p: &Vec<f64>, errors: Vector<f64>) -> UpdateResult<()> { Ok(()) }
+    fn update(&mut self, _: &Vec<f64>, _: Vector<f64>) -> UpdateResult<()> { Ok(()) }
 }
 
 impl QFunction<Vec<f64>> for MockQ {
