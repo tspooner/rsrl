@@ -3,12 +3,13 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    logging, run, Evaluation, Parameter, SerialExperiment,
-    agents::control::gtd::GreedyGQ,
+    control::gtd::GreedyGQ,
+    core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
-    fa::{MultiLinear, SimpleLinear, projection::Fourier},
+    fa::{projectors::fixed::Fourier, LFA},
     geometry::Space,
-    policies::EpsilonGreedy
+    logging,
+    policies::fixed::EpsilonGreedy,
 };
 
 fn main() {
@@ -16,16 +17,16 @@ fn main() {
 
     let domain = MountainCar::default();
     let mut agent = {
-        let n_actions = domain.action_space().span().into();
+        let n_actions = domain.action_space().card().into();
 
         // Build the linear value functions using a fourier basis projection.
         let bases = Fourier::from_space(3, domain.state_space());
-        let v_func = SimpleLinear::new(bases.clone());
-        let q_func = MultiLinear::new(bases, n_actions);
+        let v_func = make_shared(LFA::simple(bases.clone()));
+        let q_func = make_shared(LFA::multi(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
-        let policy = EpsilonGreedy::new(eps);
+        let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
 
         GreedyGQ::new(q_func, v_func, policy, 1e-1, 1e-3, 0.99)
     };

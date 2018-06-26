@@ -1,12 +1,11 @@
-use geometry::{
-    ActionSpace, PairSpace,
-    dimensions::Discrete,
-};
+use core::Matrix;
+use geometry::{dimensions::Discrete, PairSpace};
 use super::{
-    Domain, Observation, Transition,
     grid_world::{GridWorld, Motion},
+    Domain,
+    Observation,
+    Transition,
 };
-use {Matrix};
 
 const ALL_ACTIONS: [Motion; 4] = [
     Motion::North(1),
@@ -39,42 +38,39 @@ impl Default for CliffWalk {
 
 impl Domain for CliffWalk {
     type StateSpace = PairSpace<Discrete, Discrete>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
-    fn emit(&self) -> Observation<(usize, usize), usize> {
+    fn emit(&self) -> Observation<(usize, usize)> {
         if self.is_terminal() {
             Observation::Terminal(self.loc)
         } else {
-            Observation::Full {
-                state: self.loc,
-                actions: [0, 1, 2, 3].iter().cloned().collect(),
-            }
+            Observation::Full(self.loc)
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<(usize, usize), usize> {
+    fn step(&mut self, action: usize) -> Transition<(usize, usize), usize> {
         let from = self.emit();
 
-        self.update_state(a);
+        self.update_state(action);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let reward = self.reward(&from, &to);
 
         Transition {
-            from: from,
-            action: a,
-            reward: r,
-            to: to,
+            from,
+            action,
+            reward,
+            to,
         }
     }
 
     fn reward(
         &self,
-        from: &Observation<(usize, usize), usize>,
-        to: &Observation<(usize, usize), usize>,
+        from: &Observation<(usize, usize)>,
+        to: &Observation<(usize, usize)>,
     ) -> f64
     {
-        match to {
-            &Observation::Terminal(_) => {
+        match *to {
+            Observation::Terminal(_) => {
                 if to.state().0 == self.gw.width() - 1 {
                     50.0
                 } else {
@@ -100,5 +96,5 @@ impl Domain for CliffWalk {
         )
     }
 
-    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(4)) }
+    fn action_space(&self) -> Discrete { Discrete::new(4) }
 }

@@ -1,11 +1,11 @@
 use consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
+use core::Vector;
 use geometry::{
-    ActionSpace, RegularSpace,
     dimensions::{Continuous, Discrete},
+    RegularSpace,
 };
 use ndarray::{Ix1, NdIndex};
-use super::{Domain, Observation, Transition, runge_kutta4};
-use {Vector};
+use super::{runge_kutta4, Domain, Observation, Transition};
 
 const TAU: f64 = 0.02;
 
@@ -58,7 +58,7 @@ impl CartPole {
     }
 
     fn update_state(&mut self, a: usize) {
-        let fx = |_x, y| CartPole::grad(ALL_ACTIONS[a], y);
+        let fx = |_x, y| CartPole::grad(ALL_ACTIONS[a], &y);
         let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), TAU);
 
         ns[StateIndex::X] = clip!(LIMITS_X.0, ns[StateIndex::X], LIMITS_X.1);
@@ -70,7 +70,7 @@ impl CartPole {
         self.state = ns;
     }
 
-    fn grad(force: f64, state: Vector) -> Vector {
+    fn grad(force: f64, state: &Vector) -> Vector {
         let dx = state[StateIndex::DX];
         let theta = state[StateIndex::THETA];
         let dtheta = state[StateIndex::DTHETA];
@@ -96,31 +96,28 @@ impl Default for CartPole {
 
 impl Domain for CartPole {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
-    fn emit(&self) -> Observation<Vec<f64>, usize> {
+    fn emit(&self) -> Observation<Vec<f64>> {
         if self.is_terminal() {
             Observation::Terminal(self.state.to_vec())
         } else {
-            Observation::Full {
-                state: self.state.to_vec(),
-                actions: [0, 1].iter().cloned().collect(),
-            }
+            Observation::Full(self.state.to_vec())
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
-        self.update_state(a);
+        self.update_state(action);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let reward = self.reward(&from, &to);
 
         Transition {
-            from: from,
-            action: a,
-            reward: r,
-            to: to,
+            from,
+            action,
+            reward,
+            to,
         }
     }
 
@@ -131,9 +128,9 @@ impl Domain for CartPole {
         x <= LIMITS_X.0 || x >= LIMITS_X.1 || theta <= LIMITS_THETA.0 || theta >= LIMITS_THETA.1
     }
 
-    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
-        match to {
-            &Observation::Terminal(_) => REWARD_TERMINAL,
+    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
+        match *to {
+            Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,
         }
     }
@@ -145,7 +142,7 @@ impl Domain for CartPole {
             + Continuous::new(LIMITS_DTHETA.0, LIMITS_DTHETA.1)
     }
 
-    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(2)) }
+    fn action_space(&self) -> Discrete { Discrete::new(2) }
 }
 
 #[cfg(test)]
@@ -158,7 +155,7 @@ mod tests {
         let m = CartPole::default();
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert_eq!(state[0], 0.0);
                 assert_eq!(state[1], 0.0);
                 assert_eq!(state[2], 0.0);

@@ -1,11 +1,12 @@
 extern crate cpython;
 
+use geometry::{
+    dimensions::{Continuous, Discrete},
+    RegularSpace,
+};
 use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
-use super::{Domain, Observation, Transition};
-use geometry::dimensions::{Continuous, Discrete};
-use geometry::{ActionSpace, RegularSpace};
-use std::collections::HashSet;
 use std::f64;
+use super::{Domain, Observation, Transition};
 
 mod client;
 use self::client::GymClient;
@@ -80,16 +81,13 @@ impl OpenAIGym {
 
 impl Domain for OpenAIGym {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
-    fn emit(&self) -> Observation<Vec<f64>, usize> {
+    fn emit(&self) -> Observation<Vec<f64>> {
         if self.is_terminal() {
             Observation::Terminal(self.state.clone())
         } else {
-            Observation::Full {
-                state: self.state.clone(),
-                actions: HashSet::new(),
-            }
+            Observation::Full(self.state.clone())
         }
     }
 
@@ -109,7 +107,7 @@ impl Domain for OpenAIGym {
 
     fn is_terminal(&self) -> bool { self.terminal }
 
-    fn reward(&self, _: &Observation<Vec<f64>, usize>, _: &Observation<Vec<f64>, usize>) -> f64 {
+    fn reward(&self, _: &Observation<Vec<f64>>, _: &Observation<Vec<f64>>) -> f64 {
         self.last_reward
     }
 
@@ -140,7 +138,7 @@ impl Domain for OpenAIGym {
         })
     }
 
-    fn action_space(&self) -> ActionSpace {
+    fn action_space(&self) -> Discrete {
         let py = self.client.py();
         let n = self.env
             .getattr(py, "action_space")
@@ -150,6 +148,6 @@ impl Domain for OpenAIGym {
             .extract::<usize>(py)
             .unwrap();
 
-        ActionSpace::new(Discrete::new(n))
+        Discrete::new(n)
     }
 }

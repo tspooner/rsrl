@@ -1,4 +1,5 @@
-#[allow(unused_imports)]
+#![allow(unused_imports)]
+
 #[macro_use]
 extern crate ndarray;
 extern crate rand;
@@ -12,21 +13,16 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-mod consts;
-mod macros;
-pub mod utils;
-
 pub extern crate spaces as geometry;
-pub use self::geometry::{Matrix, Vector};
 
-mod parameter;
-pub use self::parameter::Parameter;
+mod macros;
+mod utils;
 
-pub mod agents;
+pub(crate) mod consts;
+pub mod control;
+pub mod core;
 pub mod domains;
 pub mod fa;
 pub mod logging;
 pub mod policies;
-
-mod experiment;
-pub use self::experiment::*;
+pub mod prediction;

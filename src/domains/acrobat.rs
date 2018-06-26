@@ -1,12 +1,12 @@
-use super::{Domain, Observation, Transition, runge_kutta4};
 use consts::{PI_OVER_2, G};
+use core::Vector;
 use geometry::{
-    ActionSpace, RegularSpace,
     dimensions::{Continuous, Discrete},
+    RegularSpace,
 };
 use ndarray::{Ix1, NdIndex};
 use std::f64::consts::PI;
-use {Vector};
+use super::{runge_kutta4, Domain, Observation, Transition};
 
 // Link masses:
 const M1: f64 = 1.0;
@@ -75,7 +75,7 @@ impl Acrobat {
     }
 
     fn update_state(&mut self, a: usize) {
-        let fx = |_x, y| Acrobat::grad(ALL_ACTIONS[a], y);
+        let fx = |_x, y| Acrobat::grad(ALL_ACTIONS[a], &y);
         let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), DT);
 
         ns[StateIndex::THETA1] = wrap!(LIMITS_THETA1.0, ns[StateIndex::THETA1], LIMITS_THETA1.1);
@@ -89,7 +89,7 @@ impl Acrobat {
         self.state = ns;
     }
 
-    fn grad(torque: f64, state: Vector) -> Vector {
+    fn grad(torque: f64, state: &Vector) -> Vector {
         let theta1 = state[StateIndex::THETA1];
         let theta2 = state[StateIndex::THETA2];
         let dtheta1 = state[StateIndex::DTHETA1];
@@ -120,31 +120,28 @@ impl Default for Acrobat {
 
 impl Domain for Acrobat {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
-    fn emit(&self) -> Observation<Vec<f64>, usize> {
+    fn emit(&self) -> Observation<Vec<f64>> {
         if self.is_terminal() {
             Observation::Terminal(self.state.to_vec())
         } else {
-            Observation::Full {
-                state: self.state.to_vec(),
-                actions: [0, 1, 2].iter().cloned().collect(),
-            }
+            Observation::Full(self.state.to_vec())
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
-        self.update_state(a);
+        self.update_state(action);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let reward = self.reward(&from, &to);
 
         Transition {
-            from: from,
-            action: a,
-            reward: r,
-            to: to,
+            from,
+            action,
+            reward,
+            to,
         }
     }
 
@@ -155,9 +152,9 @@ impl Domain for Acrobat {
         theta1.cos() + (theta1 + theta2).cos() < -1.0
     }
 
-    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
-        match to {
-            &Observation::Terminal(_) => REWARD_TERMINAL,
+    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
+        match *to {
+            Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,
         }
     }
@@ -169,7 +166,7 @@ impl Domain for Acrobat {
             + Continuous::new(LIMITS_DTHETA2.0, LIMITS_DTHETA2.1)
     }
 
-    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(3)) }
+    fn action_space(&self) -> Discrete { Discrete::new(3) }
 }
 
 #[cfg(test)]
@@ -182,7 +179,7 @@ mod tests {
         let m = Acrobat::default();
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert_eq!(state[0], 0.0);
                 assert_eq!(state[1], 0.0);
                 assert_eq!(state[2], 0.0);

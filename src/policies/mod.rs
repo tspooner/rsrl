@@ -1,27 +1,48 @@
 //! Agent policy module.
+use domains::Transition;
+use fa::Parameterised;
+use geometry::{Matrix, Vector};
+use rand::Rng;
 
-// TODO: Add support for generic action spaces representation.
-/// Policy trait for functions that select between a set of values.
-pub trait Policy {
-    /// Sample the policy distribution for a set of exogenous input values.
-    fn sample(&mut self, qs: &[f64]) -> usize;
+#[inline]
+pub(self) fn sample_probs<R: Rng + ?Sized>(rng: &mut R, probabilities: &[f64]) -> usize {
+    let r = rng.gen::<f64>();
+    let n_actions = probabilities.len();
 
-    /// Return the probability of selecting each value in a given set of input
-    /// values.
-    fn probabilities(&mut self, qs: &[f64]) -> Vec<f64>;
-
-    /// Update the policy after reaching a terminal state.
-    fn handle_terminal(&mut self) {}
+    match probabilities.into_iter().position(|p| *p > r) {
+        Some(index) => index,
+        None => n_actions - 1,
+    }
 }
 
-mod random;
-pub use self::random::Random;
+/// Policy trait for functions that select between a set of values.
+pub trait Policy<S> {
+    type Action;
 
-mod greedy;
-pub use self::greedy::Greedy;
+    /// Sample the policy distribution for a given input.
+    fn sample(&mut self, input: &S) -> Self::Action;
 
-mod epsilon_greedy;
-pub use self::epsilon_greedy::EpsilonGreedy;
+    /// Return the probability of selecting an action for a given input.
+    fn probability(&mut self, input: &S, a: Self::Action) -> f64;
 
-mod boltzmann;
-pub use self::boltzmann::{Boltzmann, TruncatedBoltzmann};
+    #[allow(unused_variables)]
+    fn handle_terminal(&mut self, sample: &Transition<S, Self::Action>) {}
+}
+
+pub trait FinitePolicy<S>: Policy<S, Action = usize> {
+    /// Return the probability of selecting each action for a given input.
+    fn probabilities(&mut self, input: &S) -> Vector<f64>;
+}
+
+pub trait DifferentiablePolicy<S>: Policy<S> {
+    /// Compute the derivative of the log probability for a single action.
+    fn grad_log(&self, input: &S, a: Self::Action) -> Matrix<f64>;
+}
+
+pub trait ParameterisedPolicy<S>: Policy<S> + Parameterised {
+    fn update(&mut self, input: &S, a: Self::Action, error: f64);
+    fn update_raw(&mut self, errors: Matrix<f64>);
+}
+
+pub mod fixed;
+pub mod parameterised;

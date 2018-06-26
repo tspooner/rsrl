@@ -3,31 +3,29 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    logging, run, Evaluation, Parameter, SerialExperiment,
-    agents::{
-        control::td::SARSALambda,
-        memory::Trace,
-    },
+    control::td::SARSALambda,
+    core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
-    fa::{MultiLinear, projection::Fourier},
+    fa::{projectors::fixed::Fourier, LFA},
     geometry::Space,
-    policies::EpsilonGreedy
+    logging,
+    policies::fixed::EpsilonGreedy,
 };
 
 fn main() {
     let domain = MountainCar::default();
     let mut agent = {
-        let n_actions = domain.action_space().span().into();
+        let n_actions = domain.action_space().card().into();
 
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
         let bases = Fourier::from_space(3, domain.state_space());
-        let trace = Trace::replacing(0.7, bases.span().into());
-        let q_func = MultiLinear::new(bases, n_actions);
+        let trace = Trace::replacing(0.7, bases.dim());
+        let q_func = make_shared(LFA::multi(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
-        let policy = EpsilonGreedy::new(eps);
+        let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
 
         SARSALambda::new(trace, q_func, policy, 0.1, 0.99)
     };

@@ -17,12 +17,17 @@ documentation = "https://docs.rs/rsrl"
 travis-ci = { repository = "tspooner/rsrl", branch = "master" }
 coveralls = { repository = "tspooner/rsrl", branch = "master", service = "github" }
 
-[dependencies]
-lfa = "0.2"
-spaces = "0.0"
+[features]
+default = []
 
-rand = "0.4"
-cpython = "0.1"
+openai = ["cpython"]
+
+[dependencies]
+lfa = "0.4"
+spaces = "2.1"
+
+rand = "0.5"
+cpython = { version = "0.1", optional = true }
 ndarray = { version = "0.11.2", features = ["blas", "serde-1"] }
 
 serde = "1.0"

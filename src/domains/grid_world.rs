@@ -1,11 +1,12 @@
 #![allow(dead_code)]
-
-use Matrix;
-use std::cmp;
-use std::fmt::Debug;
-use std::fs::File;
-use std::io::{Error as IOError, Read};
-use std::str::FromStr;
+use core::Matrix;
+use std::{
+    cmp,
+    fmt::Debug,
+    fs::File,
+    io::{Error as IOError, Read},
+    str::FromStr,
+};
 
 #[derive(Clone, Copy)]
 pub enum Motion {
@@ -32,7 +33,7 @@ pub struct GridWorld<T> {
 }
 
 impl<T> GridWorld<T> {
-    pub fn new(layout: Matrix<T>) -> GridWorld<T> { GridWorld { layout: layout } }
+    pub fn new(layout: Matrix<T>) -> GridWorld<T> { GridWorld { layout } }
 
     pub fn from_str(layout: &str) -> GridWorld<T>
     where

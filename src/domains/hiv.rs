@@ -1,9 +1,11 @@
-use super::{Domain, Observation, Transition, runge_kutta4};
-use Vector;
-use geometry::dimensions::{Continuous, Discrete};
-use geometry::{ActionSpace, RegularSpace};
+use core::Vector;
+use geometry::{
+    dimensions::{Continuous, Discrete},
+    RegularSpace,
+};
 use ndarray::{Ix1, NdIndex};
 use std::ops::Index;
+use super::{runge_kutta4, Domain, Observation, Transition};
 
 // Model parameters
 // (https://pdfs.semanticscholar.org/c030/127238b1dbad2263fba6b64b5dec7c3ffa20.pdf):
@@ -79,7 +81,7 @@ impl HIVTreatment {
 
     fn update_state(&mut self, a: usize) {
         let eps = ALL_ACTIONS[a];
-        let fx = |_x, y| HIVTreatment::grad(eps, y);
+        let fx = |_x, y| HIVTreatment::grad(eps, &y);
 
         self.eps = eps;
 
@@ -91,7 +93,7 @@ impl HIVTreatment {
         self.state = ns;
     }
 
-    fn grad(eps: (f64, f64), state: Vector) -> Vector {
+    fn grad(eps: (f64, f64), state: &Vector) -> Vector {
         let t1 = state[StateIndex::T1];
         let t1s = state[StateIndex::T1S];
         let t2 = state[StateIndex::T2];
@@ -119,14 +121,14 @@ impl HIVTreatment {
 }
 
 impl Default for HIVTreatment {
-    fn default() -> HIVTreatment { HIVTreatment::new(163573.0, 11945.0, 5.0, 46.0, 63919.0, 24.0) }
+    fn default() -> HIVTreatment { HIVTreatment::new(163_573.0, 11_945.0, 5.0, 46.0, 63_919.0, 24.0) }
 }
 
 impl Domain for HIVTreatment {
     type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = ActionSpace;
+    type ActionSpace = Discrete;
 
-    fn emit(&self) -> Observation<Vec<f64>, usize> {
+    fn emit(&self) -> Observation<Vec<f64>> {
         let s = self.state
             .mapv(|v| clip!(LIMITS.0, v.log10(), LIMITS.1))
             .to_vec();
@@ -134,31 +136,28 @@ impl Domain for HIVTreatment {
         if self.is_terminal() {
             Observation::Terminal(s)
         } else {
-            Observation::Full {
-                state: s,
-                actions: [0, 1, 2].iter().cloned().collect(),
-            }
+            Observation::Full(s)
         }
     }
 
-    fn step(&mut self, a: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
-        self.update_state(a);
+        self.update_state(action);
         let to = self.emit();
-        let r = self.reward(&from, &to);
+        let reward = self.reward(&from, &to);
 
         Transition {
-            from: from,
-            action: a,
-            reward: r,
-            to: to,
+            from,
+            action,
+            reward,
+            to,
         }
     }
 
     fn is_terminal(&self) -> bool { false }
 
-    fn reward(&self, _: &Observation<Vec<f64>, usize>, to: &Observation<Vec<f64>, usize>) -> f64 {
+    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
         let s = to.state();
         let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps.0.powf(2.0)
             - 2e3 * self.eps.1.powf(2.0);
@@ -173,7 +172,7 @@ impl Domain for HIVTreatment {
             + Continuous::new(LIMITS.0, LIMITS.1)
     }
 
-    fn action_space(&self) -> ActionSpace { ActionSpace::new(Discrete::new(3)) }
+    fn action_space(&self) -> Discrete { Discrete::new(3) }
 }
 
 #[cfg(test)]
@@ -185,7 +184,7 @@ mod tests {
         let m = HIVTreatment::new(1.0, 10.0, 100.0, 200.0, 500.0, 10000.0);
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert!((state[0] - 0.0).abs() < 1e-7);
                 assert!((state[1] - 1.0).abs() < 1e-7);
                 assert!((state[2] - 2.0).abs() < 1e-7);
@@ -202,7 +201,7 @@ mod tests {
         let m = HIVTreatment::default();
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert!((state[0] - 5.213711618903007).abs() < 1e-7);
                 assert!((state[1] - 4.077186154085897).abs() < 1e-7);
                 assert!((state[2] - 0.698970004336019).abs() < 1e-7);
@@ -219,7 +218,7 @@ mod tests {
         let m = HIVTreatment::new(1e10, 1e-10, 1.0, 1.0, 1.0, 1.0);
 
         match m.emit() {
-            Observation::Full { ref state, .. } => {
+            Observation::Full(ref state) => {
                 assert!((state[0] - LIMITS.1).abs() < 1e-7);
                 assert!((state[1] - LIMITS.0).abs() < 1e-7);
                 assert!((state[2] - 0.0).abs() < 1e-7);
