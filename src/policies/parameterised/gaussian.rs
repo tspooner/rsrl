@@ -71,12 +71,10 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<S, M> {
         let mean = self.mean(&phi);
         let std = self.std.value();
 
-        let pi = normal_pdf(mean, std, a);
-
         let n_rows = self.fa_mean.projector.dim();
         let phi = phi.expanded(n_rows);
 
-        (pi * (a - mean) / (std * std) * phi)
+        ((a - mean) / (std * std) * phi)
             .into_shape((n_rows, 1))
             .unwrap()
     }
@@ -101,12 +99,13 @@ impl<S, M: Projector<S>> Parameterised for Gaussian1d<S, M> {
 
 impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gaussian1d<S, M> {
     fn update(&mut self, input: &S, a: f64, error: f64) {
+        let pi = self.probability(input, a);
         let grad_log = self.grad_log(input, a);
 
         self.fa_mean
             .approximator
             .weights
-            .scaled_add(error, &grad_log.column(0));
+            .scaled_add(pi * error, &grad_log.column(0));
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {

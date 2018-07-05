@@ -78,6 +78,7 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gibbs<S, M> {
             .unwrap()
             .dot(&-probabilities);
         grad_log.column_mut(a).add_assign(&phi);
+
         grad_log
     }
 }
@@ -88,9 +89,10 @@ impl<S, M: Projector<S>> Parameterised for Gibbs<S, M> {
 
 impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<S, M> {
     fn update(&mut self, input: &S, a: usize, error: f64) {
+        let pi = self.probability(input, a);
         let grad_log = self.grad_log(input, a);
 
-        self.fa.approximator.weights.scaled_add(error, &grad_log);
+        self.fa.approximator.weights.scaled_add(pi * error, &grad_log);
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
