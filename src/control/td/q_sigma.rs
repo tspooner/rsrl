@@ -148,12 +148,35 @@ where
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        // TODO: Handle terminal update according to Sutton's pseudocode.
-        //       It's likely that this will require a change to the interface
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
+        {
+            let s = t.from.state();
+
+            let qa = self.predict_qsa(&s, t.action);
+            let sigma = {
+                self.sigma = self.sigma.step();
+                self.sigma.value()
+            };
+
+            // Update backup sequence:
+            self.backup.push_back(BackupEntry {
+                s: s.clone(),
+                a: t.action,
+
+                q: qa,
+                delta: t.reward - qa,
+
+                sigma,
+                pi: 0.0,
+                mu: 1.0,
+            });
+
+            self.consume_backup();
+        }
 
         self.policy.borrow_mut().handle_terminal(t);
+
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
     }
 }
 

@@ -50,6 +50,29 @@ impl<S, M: Projector<S>, P: Policy<S>> SARSALambda<S, M, P> {
     }
 }
 
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> SARSALambda<S, M, P> {
+    #[inline(always)]
+    fn update_theta(&mut self, action: P::Action, error: f64) {
+        self.fa_theta.borrow_mut().update_action_phi(
+            &Projection::Dense(self.trace.get()),
+            action,
+            self.alpha * error,
+        );
+    }
+
+    #[inline(always)]
+    fn decay_trace(&mut self) {
+        let rate = self.trace.lambda.value() * self.gamma.value();
+
+        self.trace.decay(rate);
+    }
+
+    #[inline(always)]
+    fn update_trace(&mut self, phi_s: Projection) {
+        self.trace.update(&phi_s.expanded(self.fa_theta.borrow().projector.dim()));
+    }
+}
+
 impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, P::Action> for SARSALambda<S, M, P> {
     fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
@@ -57,29 +80,32 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, P::Action> f
         let phi_s = self.fa_theta.borrow().projector.project(s);
 
         let na = self.policy.borrow_mut().sample(ns);
-        let qa = self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
-        let nqa = self.fa_theta.borrow().evaluate_action(ns, na);
+        let qsa = self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
+        let nqsna = self.fa_theta.borrow().evaluate_action(ns, na);
 
-        let rate = self.trace.lambda.value() * self.gamma.value();
-        let td_error = t.reward + self.gamma * nqa - qa;
+        let td_error = t.reward + self.gamma * nqsna - qsa;
 
-        self.trace.decay(rate);
-        self.trace
-            .update(&phi_s.expanded(self.fa_theta.borrow().projector.dim()));
-
-        self.fa_theta.borrow_mut().update_action_phi(
-            &Projection::Dense(self.trace.get()),
-            t.action,
-            self.alpha * td_error,
-        );
+        self.decay_trace();
+        self.update_trace(phi_s);
+        self.update_theta(t.action, td_error);
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
+        {
+            let s = t.from.state();
+            let phi_s = self.fa_theta.borrow().projector.project(s);
+            let qsa = self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
+
+            self.decay_trace();
+            self.update_trace(phi_s);
+            self.update_theta(t.action, t.reward - qsa);
+        }
 
         self.trace.decay(0.0);
         self.policy.borrow_mut().handle_terminal(t);
+
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
     }
 }
 
