@@ -38,28 +38,48 @@ impl<S: ?Sized, P: Projector<S>> TDC<S, P> {
             gamma: gamma.into(),
         }
     }
+
+    #[inline(always)]
+    fn update_theta(&mut self, phi_s: Projection, phi_ns: Projection,
+                    td_error: f64, td_estimate: f64)
+    {
+        let dim = self.fa_theta.projector.dim();
+        let phi =
+            td_error * phi_s.expanded(dim) -
+            td_estimate * self.gamma.value() * phi_ns.expanded(dim);
+
+        self.fa_theta.update_phi(&Projection::Dense(phi), self.alpha.value());
+    }
+
+    #[inline(always)]
+    fn update_w(&mut self, phi_s: Projection, error: f64) {
+        self.fa_w.update_phi(&phi_s, self.beta * error);
+    }
 }
 
 impl<S, A, M: Projector<S>> Algorithm<S, A> for TDC<S, M> {
-    fn handle_sample(&mut self, sample: &Transition<S, A>) {
-        let phi_s = self.fa_theta.projector.project(&sample.from.state());
-        let phi_ns = self.fa_theta.projector.project(&sample.to.state());
+    fn handle_sample(&mut self, t: &Transition<S, A>) {
+        let phi_s = self.fa_theta.projector.project(&t.from.state());
+        let phi_ns = self.fa_theta.projector.project(&t.to.state());
 
-        let td_error = sample.reward + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
+        let td_error = t.reward + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
             - self.fa_theta.evaluate_phi(&phi_s);
         let td_estimate = self.fa_w.evaluate_phi(&phi_s);
 
-        let dim = self.fa_theta.projector.dim();
-        let update = td_error * phi_s.clone().expanded(dim)
-            - self.gamma.value() * td_estimate * &phi_ns.expanded(dim);
-
-        self.fa_w
-            .update_phi(&phi_s, self.beta * (td_error - td_estimate));
-        self.fa_theta
-            .update_phi(&Projection::Dense(update), self.alpha.value());
+        self.update_w(phi_s.clone(), td_error - td_estimate);
+        self.update_theta(phi_s, phi_ns, td_error, td_estimate);
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, A>) {
+    fn handle_terminal(&mut self, t: &Transition<S, A>) {
+        let phi_s = self.fa_theta.projector.project(&t.from.state());
+        let phi_ns = self.fa_theta.projector.project(&t.to.state());
+
+        let td_error = t.reward - self.fa_theta.evaluate_phi(&phi_s);
+        let td_estimate = self.fa_w.evaluate_phi(&phi_s);
+
+        self.update_w(phi_s.clone(), td_error - td_estimate);
+        self.update_theta(phi_s, phi_ns, td_error, td_estimate);
+
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();
