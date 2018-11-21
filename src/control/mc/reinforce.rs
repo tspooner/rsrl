@@ -34,12 +34,12 @@ impl<S, P: ParameterisedPolicy<S>> REINFORCE<S, P> {
     }
 
     pub fn propagate(&mut self) {
-        let mut sum = 0.0;
+        let mut ret = 0.0;
 
         for (s, a, r) in self.cache.drain(0..).rev() {
-            sum = r + self.gamma * sum;
+            ret = r + self.gamma * ret;
 
-            self.policy.borrow_mut().update(&s, a, self.alpha * sum);
+            self.policy.borrow_mut().update(&s, a, self.alpha * ret);
         }
     }
 }

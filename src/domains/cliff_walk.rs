@@ -1,5 +1,5 @@
 use core::Matrix;
-use geometry::{dimensions::Discrete, PairSpace};
+use geometry::{discrete::Ordinal, product::PairSpace};
 use super::{
     grid_world::{GridWorld, Motion},
     Domain,
@@ -37,8 +37,8 @@ impl Default for CliffWalk {
 }
 
 impl Domain for CliffWalk {
-    type StateSpace = PairSpace<Discrete, Discrete>;
-    type ActionSpace = Discrete;
+    type StateSpace = PairSpace<Ordinal, Ordinal>;
+    type ActionSpace = Ordinal;
 
     fn emit(&self) -> Observation<(usize, usize)> {
         if self.is_terminal() {
@@ -91,10 +91,10 @@ impl Domain for CliffWalk {
 
     fn state_space(&self) -> Self::StateSpace {
         PairSpace::new(
-            Discrete::new(self.gw.width()),
-            Discrete::new(self.gw.height()),
+            Ordinal::new(self.gw.width()),
+            Ordinal::new(self.gw.height()),
         )
     }
 
-    fn action_space(&self) -> Discrete { Discrete::new(4) }
+    fn action_space(&self) -> Ordinal { Ordinal::new(4) }
 }

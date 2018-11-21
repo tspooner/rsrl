@@ -1,8 +1,9 @@
 use domains::{Domain, Observation, Transition};
 use geometry::{
-    dimensions::Continuous,
-    RegularSpace,
     Surjection,
+    Vector,
+    continuous::Interval,
+    product::LinearSpace,
 };
 
 const X_MIN: f64 = -1.2;
@@ -26,14 +27,14 @@ pub struct ContinuousMountainCar {
     x: f64,
     v: f64,
 
-    action_space: Continuous,
+    action_space: Interval,
 }
 
 impl ContinuousMountainCar {
     fn new(x: f64, v: f64) -> ContinuousMountainCar {
         ContinuousMountainCar {
             x, v,
-            action_space: Continuous::new(MIN_ACTION, MAX_ACTION),
+            action_space: Interval::bounded(MIN_ACTION, MAX_ACTION),
         }
     }
 
@@ -52,11 +53,11 @@ impl Default for ContinuousMountainCar {
 }
 
 impl Domain for ContinuousMountainCar {
-    type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = Continuous;
+    type StateSpace = LinearSpace<Interval>;
+    type ActionSpace = Interval;
 
-    fn emit(&self) -> Observation<Vec<f64>> {
-        let s = vec![self.x, self.v];
+    fn emit(&self) -> Observation<Vector<f64>> {
+        let s = Vector::from_vec(vec![self.x, self.v]);
 
         if self.is_terminal() {
             Observation::Terminal(s)
@@ -65,7 +66,7 @@ impl Domain for ContinuousMountainCar {
         }
     }
 
-    fn step(&mut self, action: f64) -> Transition<Vec<f64>, f64> {
+    fn step(&mut self, action: f64) -> Transition<Vector<f64>, f64> {
         let from = self.emit();
 
         self.update_state(action);
@@ -82,7 +83,7 @@ impl Domain for ContinuousMountainCar {
 
     fn is_terminal(&self) -> bool { self.x >= X_MAX }
 
-    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
+    fn reward(&self, _: &Observation<Vector<f64>>, to: &Observation<Vector<f64>>) -> f64 {
         match *to {
             Observation::Terminal(_) => REWARD_GOAL,
             _ => REWARD_STEP,
@@ -90,10 +91,10 @@ impl Domain for ContinuousMountainCar {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        RegularSpace::empty() + Continuous::new(X_MIN, X_MAX) + Continuous::new(V_MIN, V_MAX)
+        LinearSpace::empty() + Interval::bounded(X_MIN, X_MAX) + Interval::bounded(V_MIN, V_MAX)
     }
 
-    fn action_space(&self) -> Continuous { Continuous::new(MIN_ACTION, MAX_ACTION) }
+    fn action_space(&self) -> Interval { Interval::bounded(MIN_ACTION, MAX_ACTION) }
 }
 
 #[cfg(test)]

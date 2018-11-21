@@ -1,8 +1,9 @@
 use consts::{PI_OVER_2, G};
 use core::Vector;
 use geometry::{
-    dimensions::{Continuous, Discrete},
-    RegularSpace,
+    continuous::Interval,
+    discrete::Ordinal,
+    product::LinearSpace,
 };
 use ndarray::{Ix1, NdIndex};
 use std::f64::consts::PI;
@@ -119,18 +120,18 @@ impl Default for Acrobat {
 }
 
 impl Domain for Acrobat {
-    type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = Discrete;
+    type StateSpace = LinearSpace<Interval>;
+    type ActionSpace = Ordinal;
 
-    fn emit(&self) -> Observation<Vec<f64>> {
+    fn emit(&self) -> Observation<Vector<f64>> {
         if self.is_terminal() {
-            Observation::Terminal(self.state.to_vec())
+            Observation::Terminal(self.state.clone())
         } else {
-            Observation::Full(self.state.to_vec())
+            Observation::Full(self.state.clone())
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vector<f64>, usize> {
         let from = self.emit();
 
         self.update_state(action);
@@ -152,7 +153,7 @@ impl Domain for Acrobat {
         theta1.cos() + (theta1 + theta2).cos() < -1.0
     }
 
-    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
+    fn reward(&self, _: &Observation<Vector<f64>>, to: &Observation<Vector<f64>>) -> f64 {
         match *to {
             Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,
@@ -160,13 +161,13 @@ impl Domain for Acrobat {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        RegularSpace::empty() + Continuous::new(LIMITS_THETA1.0, LIMITS_THETA1.1)
-            + Continuous::new(LIMITS_THETA2.0, LIMITS_THETA2.1)
-            + Continuous::new(LIMITS_DTHETA1.0, LIMITS_DTHETA1.1)
-            + Continuous::new(LIMITS_DTHETA2.0, LIMITS_DTHETA2.1)
+        LinearSpace::empty() + Interval::bounded(LIMITS_THETA1.0, LIMITS_THETA1.1)
+            + Interval::bounded(LIMITS_THETA2.0, LIMITS_THETA2.1)
+            + Interval::bounded(LIMITS_DTHETA1.0, LIMITS_DTHETA1.1)
+            + Interval::bounded(LIMITS_DTHETA2.0, LIMITS_DTHETA2.1)
     }
 
-    fn action_space(&self) -> Discrete { Discrete::new(3) }
+    fn action_space(&self) -> Ordinal { Ordinal::new(3) }
 }
 
 #[cfg(test)]

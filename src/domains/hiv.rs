@@ -1,7 +1,8 @@
 use core::Vector;
 use geometry::{
-    dimensions::{Continuous, Discrete},
-    RegularSpace,
+    continuous::Interval,
+    discrete::Ordinal,
+    product::LinearSpace,
 };
 use ndarray::{Ix1, NdIndex};
 use std::ops::Index;
@@ -125,13 +126,11 @@ impl Default for HIVTreatment {
 }
 
 impl Domain for HIVTreatment {
-    type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = Discrete;
+    type StateSpace = LinearSpace<Interval>;
+    type ActionSpace = Ordinal;
 
-    fn emit(&self) -> Observation<Vec<f64>> {
-        let s = self.state
-            .mapv(|v| clip!(LIMITS.0, v.log10(), LIMITS.1))
-            .to_vec();
+    fn emit(&self) -> Observation<Vector<f64>> {
+        let s = self.state.mapv(|v| clip!(LIMITS.0, v.log10(), LIMITS.1));
 
         if self.is_terminal() {
             Observation::Terminal(s)
@@ -140,7 +139,7 @@ impl Domain for HIVTreatment {
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vector<f64>, usize> {
         let from = self.emit();
 
         self.update_state(action);
@@ -157,7 +156,7 @@ impl Domain for HIVTreatment {
 
     fn is_terminal(&self) -> bool { false }
 
-    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
+    fn reward(&self, _: &Observation<Vector<f64>>, to: &Observation<Vector<f64>>) -> f64 {
         let s = to.state();
         let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps.0.powf(2.0)
             - 2e3 * self.eps.1.powf(2.0);
@@ -166,13 +165,13 @@ impl Domain for HIVTreatment {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        RegularSpace::empty() + Continuous::new(LIMITS.0, LIMITS.1)
-            + Continuous::new(LIMITS.0, LIMITS.1) + Continuous::new(LIMITS.0, LIMITS.1)
-            + Continuous::new(LIMITS.0, LIMITS.1) + Continuous::new(LIMITS.0, LIMITS.1)
-            + Continuous::new(LIMITS.0, LIMITS.1)
+        LinearSpace::empty() + Interval::bounded(LIMITS.0, LIMITS.1)
+            + Interval::bounded(LIMITS.0, LIMITS.1) + Interval::bounded(LIMITS.0, LIMITS.1)
+            + Interval::bounded(LIMITS.0, LIMITS.1) + Interval::bounded(LIMITS.0, LIMITS.1)
+            + Interval::bounded(LIMITS.0, LIMITS.1)
     }
 
-    fn action_space(&self) -> Discrete { Discrete::new(3) }
+    fn action_space(&self) -> Ordinal { Ordinal::new(3) }
 }
 
 #[cfg(test)]
