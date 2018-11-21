@@ -49,7 +49,9 @@ impl<S: Clone, A, V: VFunction<S>> Algorithm<S, A> for GradientMC<S, V> {
     }
 
     fn handle_terminal(&mut self, _: &Transition<S, A>) {
-        self.propagate();
+        {
+            self.propagate();
+        }
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();

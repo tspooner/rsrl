@@ -57,15 +57,17 @@ where
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.fa_theta.projector.project(&t.from.state());
-        let td_error = t.reward - self.fa_theta.evaluate_phi(&phi_s);
+        {
+            let phi_s = self.fa_theta.projector.project(&t.from.state());
+            let td_error = t.reward - self.fa_theta.evaluate_phi(&phi_s);
 
-        self.update_v(phi_s, td_error);
+            self.update_v(phi_s, td_error);
+
+            self.trace.decay(0.0);
+        }
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
-
-        self.trace.decay(0.0);
     }
 }
 

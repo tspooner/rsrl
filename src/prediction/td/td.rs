@@ -50,10 +50,12 @@ where
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, A>) {
-        let s = t.from.state();
-        let td_error = t.reward - self.predict_v(&t.from.state());
+        {
+            let s = t.from.state();
+            let td_error = t.reward - self.predict_v(&t.from.state());
 
-        self.update_v(&s, td_error);
+            self.update_v(&s, td_error);
+        }
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
