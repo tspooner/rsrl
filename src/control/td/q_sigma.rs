@@ -171,9 +171,9 @@ where
             });
 
             self.consume_backup();
-        }
 
-        self.policy.borrow_mut().handle_terminal(t);
+            self.policy.borrow_mut().handle_terminal(t);
+        }
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();

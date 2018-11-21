@@ -61,14 +61,10 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> SARSALambda<S, M, P> {
     }
 
     #[inline(always)]
-    fn decay_trace(&mut self) {
+    fn update_trace(&mut self, phi_s: Projection) {
         let rate = self.trace.lambda.value() * self.gamma.value();
 
         self.trace.decay(rate);
-    }
-
-    #[inline(always)]
-    fn update_trace(&mut self, phi_s: Projection) {
         self.trace.update(&phi_s.expanded(self.fa_theta.borrow().projector.dim()));
     }
 }
@@ -85,7 +81,6 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, P::Action> f
 
         let td_error = t.reward + self.gamma * nqsna - qsa;
 
-        self.decay_trace();
         self.update_trace(phi_s);
         self.update_theta(t.action, td_error);
     }
@@ -96,13 +91,12 @@ impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, P::Action> f
             let phi_s = self.fa_theta.borrow().projector.project(s);
             let qsa = self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
 
-            self.decay_trace();
             self.update_trace(phi_s);
             self.update_theta(t.action, t.reward - qsa);
-        }
 
-        self.trace.decay(0.0);
-        self.policy.borrow_mut().handle_terminal(t);
+            self.trace.decay(0.0);
+            self.policy.borrow_mut().handle_terminal(t);
+        }
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();

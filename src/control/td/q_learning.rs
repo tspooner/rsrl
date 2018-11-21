@@ -69,12 +69,12 @@ impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, P::Action> f
             let qsa = self.predict_qsa(&s, t.action);
 
             self.update_q(&s, t.action, t.reward - qsa);
+
+            self.policy.borrow_mut().handle_terminal(t);
         }
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
-
-        self.policy.borrow_mut().handle_terminal(t);
     }
 }
 

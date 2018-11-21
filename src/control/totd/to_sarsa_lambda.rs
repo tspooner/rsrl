@@ -54,50 +54,74 @@ where
     }
 }
 
+impl<S, M: Projector<S>, P: Policy<S, Action = usize>> TOSARSALambda<S, M, P> {
+    #[inline(always)]
+    fn update_q(&mut self, phi_s: Projection, action: P::Action, error_1: f64, error_2: f64) {
+        self.q_func.borrow_mut().update_action_phi(
+            &Projection::Dense(self.trace.get()), action,
+            self.alpha * error_1,
+        );
+
+        self.q_func.borrow_mut().update_action_phi(
+            &phi_s, action,
+            self.alpha * -error_2,
+        );
+    }
+
+    #[inline(always)]
+    fn update_trace(&mut self, phi_s: Projection) {
+        let phi_s = phi_s.expanded(self.q_func.borrow().projector.dim());
+        let rate = self.trace.lambda.value() * self.gamma.value();
+        let trace_update =
+            (1.0 - self.alpha.value() * rate * self.trace.get().dot(&phi_s)) * phi_s;
+
+        self.trace.decay(rate);
+        self.trace.update(&trace_update);
+    }
+}
+
 impl<S, M, P> Algorithm<S, P::Action> for TOSARSALambda<S, M, P>
 where
     M: Projector<S>,
     P: Policy<S, Action = usize>,
 {
     fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
-        let a = t.action;
         let (s, ns) = (t.from.state(), t.to.state());
 
         let phi_s = self.q_func.borrow().projector.project(s);
+        let qsa = self.q_func.borrow().evaluate_action_phi(&phi_s, t.action);
 
-        let na = self.policy.borrow_mut().sample(ns);
-        let qsa = self.q_func.borrow().evaluate_action_phi(&phi_s, a);
-        let nqa = self.q_func.borrow().evaluate_action(ns, na);
+        let na = self.sample_behaviour(ns);
+        let nqsna = self.q_func.borrow().evaluate_action(ns, na);
 
-        let td_error = t.reward + self.gamma * nqa - qsa;
-        let phi_s = phi_s.expanded(self.q_func.borrow().projector.dim());
+        let error_1 = t.reward + self.gamma * nqsna - self.q_old;
+        let error_2 = qsa - self.q_old;
 
-        let rate = self.trace.lambda.value() * self.gamma.value();
-        let trace_update =
-            (1.0 - rate * self.alpha.value() * self.trace.get().dot(&phi_s)) * phi_s.clone();
+        self.update_trace(phi_s.clone());
+        self.update_q(phi_s, t.action, error_1, error_2);
 
-        self.trace.decay(rate);
-        self.trace.update(&trace_update);
-
-        self.q_func.borrow_mut().update_action_phi(
-            &Projection::Dense(self.trace.get()),
-            a,
-            self.alpha * (td_error + qsa - self.q_old),
-        );
-        self.q_func.borrow_mut().update_action_phi(
-            &Projection::Dense(phi_s),
-            a,
-            self.alpha * (self.q_old - qsa),
-        );
-
-        self.q_old = nqa;
+        self.q_old = nqsna;
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, P::Action>) {
+    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
+        {
+            let s = t.from.state();
+
+            let phi_s = self.q_func.borrow().projector.project(s);
+            let qsa = self.q_func.borrow().evaluate_action_phi(&phi_s, t.action);
+
+            let error_1 = t.reward - self.q_old;
+            let error_2 = qsa - self.q_old;
+
+            self.update_trace(phi_s.clone());
+            self.update_q(phi_s, t.action, error_1, error_2);
+
+            self.q_old = 0.0;
+            self.trace.decay(0.0);
+        }
+
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
-
-        self.trace.decay(0.0);
     }
 }
 

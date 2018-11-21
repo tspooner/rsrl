@@ -79,10 +79,10 @@ where
             let qsa = self.predict_qsa(s, t.action);
 
             self.update_q(s, t.action, t.reward - qsa);
-        }
 
-        self.target.handle_terminal(t);
-        self.policy.borrow_mut().handle_terminal(t);
+            self.target.handle_terminal(t);
+            self.policy.borrow_mut().handle_terminal(t);
+        }
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();

@@ -61,10 +61,12 @@ where
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        self.critic.handle_terminal(t);
+        {
+            self.critic.handle_terminal(t);
 
-        self.update_policy();
-        self.policy.borrow_mut().handle_terminal(t);
+            self.update_policy();
+            self.policy.borrow_mut().handle_terminal(t);
+        }
 
         self.alpha = self.alpha.step();
     }

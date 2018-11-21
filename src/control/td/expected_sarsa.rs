@@ -65,9 +65,9 @@ impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Algorithm<S, P::Action> for Expecte
             let qsa = self.predict_qsa(s, t.action);
 
             self.update_q(&s, t.action, t.reward - qsa);
-        }
 
-        self.policy.borrow_mut().handle_terminal(t);
+            self.policy.borrow_mut().handle_terminal(t);
+        }
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
