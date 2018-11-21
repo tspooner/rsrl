@@ -34,6 +34,21 @@ where
     }
 }
 
+impl<S, C, P> QAC<S, C, P>
+where
+    C: Predictor<S, P::Action>,
+    P: ParameterisedPolicy<S>,
+    P::Action: Copy,
+{
+    #[inline(always)]
+    fn update_policy(&mut self, t: &Transition<S, P::Action>) {
+        let s = t.from.state();
+        let qsa = self.critic.predict_qsa(s, t.action);
+
+        self.policy.borrow_mut().update(s, t.action, self.alpha * qsa);
+    }
+}
+
 impl<S: Clone, C, P> Algorithm<S, P::Action> for QAC<S, C, P>
 where
     C: Predictor<S, P::Action>,
@@ -42,18 +57,16 @@ where
 {
     fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
         self.critic.handle_sample(t);
-
-        let s = t.from.state();
-        let qsa = self.critic.predict_qsa(s, t.action);
-
-        self.policy.borrow_mut().update(s, t.action, self.alpha * qsa);
+        self.update_policy(t);
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        self.alpha = self.alpha.step();
-
         self.critic.handle_terminal(t);
+
+        self.update_policy(t);
         self.policy.borrow_mut().handle_terminal(t);
+
+        self.alpha = self.alpha.step();
     }
 }
 

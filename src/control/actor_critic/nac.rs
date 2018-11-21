@@ -36,6 +36,20 @@ where
     }
 }
 
+impl<S, C, P> NAC<S, C, P>
+where
+    C: Predictor<S, P::Action> + Parameterised,
+    P: ParameterisedPolicy<S>,
+{
+    #[inline(always)]
+    fn update_policy(&mut self) {
+        let w = self.critic.weights();
+        let z = l1(w.as_slice().unwrap());
+
+        self.policy.borrow_mut().update_raw(self.alpha.value() * w / z);
+    }
+}
+
 impl<S: Clone, C, P> Algorithm<S, P::Action> for NAC<S, C, P>
 where
     C: Predictor<S, P::Action> + Parameterised,
@@ -43,18 +57,16 @@ where
 {
     fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
         self.critic.handle_sample(t);
-
-        let w = self.critic.weights();
-        let z = l1(w.as_slice().unwrap());
-
-        self.policy.borrow_mut().update_raw(self.alpha.value() * w / z);
+        self.update_policy();
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        self.alpha = self.alpha.step();
-
         self.critic.handle_terminal(t);
+
+        self.update_policy();
         self.policy.borrow_mut().handle_terminal(t);
+
+        self.alpha = self.alpha.step();
     }
 }
 
