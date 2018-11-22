@@ -25,7 +25,7 @@ fn main() {
         let q_func = make_shared(LFA::vector_valued(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
-        let eps = Parameter::exponential(0.99, 0.05, 0.99);
+        let eps = Parameter::exponential(0.75, 0.001, 0.99);
         let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
 
         GreedyGQ::new(q_func, v_func, policy, 1e-3, 1e-4, 0.99)
@@ -39,7 +39,7 @@ fn main() {
         let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
 
         // Realise 1000 episodes of the experiment generator.
-        run(e, 1000, Some(logger.clone()))
+        run(e, 2000, Some(logger.clone()))
     };
 
     // Testing phase:
