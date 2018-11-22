@@ -17,7 +17,7 @@ implementations of existing methods for rapid prototyping.
 ## Installation
 ```toml
 [dependencies]
-rsrl = "0.5"
+rsrl = "0.6"
 ```
 
 ## Usage
