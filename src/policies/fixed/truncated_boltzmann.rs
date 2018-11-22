@@ -3,7 +3,7 @@ use core::Parameter;
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
-use rand::{thread_rng, rngs::ThreadRng};
+use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
 
 fn kappa(c: f64, x: f64) -> f64 { c / (1.0 + (-x).exp()) }

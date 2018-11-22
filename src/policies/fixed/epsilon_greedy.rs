@@ -3,7 +3,7 @@ use core::Parameter;
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
-use rand::{thread_rng, Rng, rngs::ThreadRng};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 
 pub struct EpsilonGreedy<S> {
     random: Random,
@@ -90,27 +90,23 @@ mod tests {
     fn test_probabilites() {
         let mut p = EpsilonGreedy::new(MockQ::new_shared(None), 0.5);
 
-        assert!(
-            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0].into())
-                .all_close(&vec![0.6, 0.1, 0.1, 0.1, 0.1].into(), 1e-6)
-        );
+        assert!(p
+            .probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0].into())
+            .all_close(&vec![0.6, 0.1, 0.1, 0.1, 0.1].into(), 1e-6));
 
-        assert!(
-            p.probabilities(&vec![0.0, 0.0, 0.0, 0.0, 1.0].into())
-                .all_close(&vec![0.1, 0.1, 0.1, 0.1, 0.6].into(), 1e-6)
-        );
+        assert!(p
+            .probabilities(&vec![0.0, 0.0, 0.0, 0.0, 1.0].into())
+            .all_close(&vec![0.1, 0.1, 0.1, 0.1, 0.6].into(), 1e-6));
 
-        assert!(
-            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 1.0].into())
-                .all_close(&vec![0.35, 0.1, 0.1, 0.1, 0.35].into(), 1e-6)
-        );
+        assert!(p
+            .probabilities(&vec![1.0, 0.0, 0.0, 0.0, 1.0].into())
+            .all_close(&vec![0.35, 0.1, 0.1, 0.1, 0.35].into(), 1e-6));
 
         let mut p = EpsilonGreedy::new(MockQ::new_shared(None), 1.0);
 
-        assert!(
-            p.probabilities(&vec![-1.0, 0.0, 0.0, 0.0].into())
-                .all_close(&vec![0.25, 0.25, 0.25, 0.25].into(), 1e-6)
-        );
+        assert!(p
+            .probabilities(&vec![-1.0, 0.0, 0.0, 0.0].into())
+            .all_close(&vec![0.25, 0.25, 0.25, 0.25].into(), 1e-6));
     }
 
     #[test]

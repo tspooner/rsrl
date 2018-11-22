@@ -5,7 +5,7 @@ use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA};
 use geometry::Matrix;
 use policies::{DifferentiablePolicy, ParameterisedPolicy, Policy};
 use rand::{
-    distributions::{Normal as NormalDist, Distribution},
+    distributions::{Distribution, Normal as NormalDist},
     rngs::ThreadRng,
     thread_rng,
 };

@@ -1,7 +1,7 @@
 use fa::{Approximator, MultiLFA, Parameterised, Projector};
 use geometry::{Matrix, Vector};
 use policies::{DifferentiablePolicy, FinitePolicy, ParameterisedPolicy, Policy};
-use rand::{thread_rng, Rng, rngs::ThreadRng};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 use std::{f64, ops::AddAssign};
 
 pub struct Gibbs<S, M: Projector<S>> {
@@ -92,7 +92,10 @@ impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<S, M> {
         let pi = self.probability(input, a);
         let grad_log = self.grad_log(input, a);
 
-        self.fa.approximator.weights.scaled_add(pi * error, &grad_log);
+        self.fa
+            .approximator
+            .weights
+            .scaled_add(pi * error, &grad_log);
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {

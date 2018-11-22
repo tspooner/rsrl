@@ -28,7 +28,6 @@ pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
 
 /// Given a vector containing a partial Cartesian product, and a list of items,
 /// return a vector adding the list of items to the partial Cartesian product.
-///
 // /// # Example
 // ///
 // /// ```
@@ -69,7 +68,6 @@ pub fn partial_cartesian<T: Clone>(a: Vec<Vec<T>>, b: &[T]) -> Vec<Vec<T>> {
 }
 
 /// Computes the Cartesian product of lists[0] * lists[1] * ... * lists[n].
-///
 // /// # Example
 // ///
 // /// ```

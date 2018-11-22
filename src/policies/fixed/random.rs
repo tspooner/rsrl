@@ -54,21 +54,18 @@ mod tests {
     fn test_probabilites() {
         let mut p = Random::new(4);
 
-        assert!(
-            p.probabilities(&[1.0, 0.0, 0.0, 1.0])
-                .all_close(&Vector::from_vec(vec![0.25; 4]), 1e-6)
-        );
+        assert!(p
+            .probabilities(&[1.0, 0.0, 0.0, 1.0])
+            .all_close(&Vector::from_vec(vec![0.25; 4]), 1e-6));
 
         let mut p = Random::new(5);
 
-        assert!(
-            p.probabilities(&[1.0, 0.0, 0.0, 0.0, 0.0])
-                .all_close(&Vector::from_vec(vec![0.2; 5]), 1e-6)
-        );
+        assert!(p
+            .probabilities(&[1.0, 0.0, 0.0, 0.0, 0.0])
+            .all_close(&Vector::from_vec(vec![0.2; 5]), 1e-6));
 
-        assert!(
-            p.probabilities(&[0.0, 0.0, 0.0, 0.0, 1.0])
-                .all_close(&Vector::from_vec(vec![0.2; 5]), 1e-6)
-        );
+        assert!(p
+            .probabilities(&[0.0, 0.0, 0.0, 0.0, 1.0])
+            .all_close(&Vector::from_vec(vec![0.2; 5]), 1e-6));
     }
 }

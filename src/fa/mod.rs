@@ -5,17 +5,15 @@ use geometry::Vector;
 extern crate lfa;
 use self::lfa::approximators::{ScalarFunction, VectorFunction};
 pub use self::lfa::{
-    LFA,
-    Projection,
-    Projector,
-
+    basis,
     AdaptResult,
     Approximator,
     EvaluationResult,
     Parameterised,
+    Projection,
+    Projector,
     UpdateResult,
-
-    basis,
+    LFA,
 };
 
 #[cfg(test)]
@@ -110,8 +108,10 @@ impl<S: ?Sized, P: Projector<S>> QFunction<S> for MultiLFA<S, P> {
 
         match *phi {
             Projection::Dense(ref dense) => col.scaled_add(update, dense),
-            Projection::Sparse(ref sparse) => for idx in sparse {
-                col[*idx] += update
+            Projection::Sparse(ref sparse) => {
+                for idx in sparse {
+                    col[*idx] += update
+                }
             },
         }
     }
