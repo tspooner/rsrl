@@ -74,7 +74,7 @@ mod tests {
     fn test_0d() {
         let mut p = Boltzmann::new(MockQ::new_shared(None), 1.0);
 
-        p.sample(&vec![]);
+        p.sample(&vec![].into());
     }
 
     #[test]
@@ -82,7 +82,7 @@ mod tests {
         let mut p = Boltzmann::new(MockQ::new_shared(None), 1.0);
 
         for i in 1..100 {
-            assert_eq!(p.sample(&vec![i as f64]), 0);
+            assert_eq!(p.sample(&vec![i as f64].into()), 0);
         }
     }
 
@@ -92,7 +92,7 @@ mod tests {
         let mut counts = Vector::from_vec(vec![0.0, 0.0]);
 
         for _ in 0..50000 {
-            counts[p.sample(&vec![0.0, 1.0])] += 1.0;
+            counts[p.sample(&vec![0.0, 1.0].into())] += 1.0;
         }
 
         assert!((counts / 50000.0).all_close(
@@ -105,11 +105,11 @@ mod tests {
     fn test_probabilites() {
         let mut p = Boltzmann::new(MockQ::new_shared(None), 1.0);
 
-        assert!(&p.probabilities(&vec![0.0, 1.0]).all_close(
+        assert!(&p.probabilities(&vec![0.0, 1.0].into()).all_close(
             &Vector::from_vec(vec![1.0 / (1.0 + E), E / (1.0 + E)]),
             1e-6,
         ));
-        assert!(p.probabilities(&vec![0.0, 2.0],).all_close(
+        assert!(p.probabilities(&vec![0.0, 2.0].into()).all_close(
             &Vector::from_vec(vec![1.0 / (1.0 + E * E), E * E / (1.0 + E * E)]),
             1e-6,
         ));

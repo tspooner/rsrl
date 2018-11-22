@@ -71,7 +71,7 @@ mod tests {
 
         q.borrow_mut().clear_output();
 
-        let qs = vec![1.0, 0.0];
+        let qs = vec![1.0, 0.0].into();
 
         let mut n0: f64 = 0.0;
         let mut n1: f64 = 0.0;
@@ -91,24 +91,24 @@ mod tests {
         let mut p = EpsilonGreedy::new(MockQ::new_shared(None), 0.5);
 
         assert!(
-            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0])
+            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0].into())
                 .all_close(&vec![0.6, 0.1, 0.1, 0.1, 0.1].into(), 1e-6)
         );
 
         assert!(
-            p.probabilities(&vec![0.0, 0.0, 0.0, 0.0, 1.0])
+            p.probabilities(&vec![0.0, 0.0, 0.0, 0.0, 1.0].into())
                 .all_close(&vec![0.1, 0.1, 0.1, 0.1, 0.6].into(), 1e-6)
         );
 
         assert!(
-            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 1.0])
+            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 1.0].into())
                 .all_close(&vec![0.35, 0.1, 0.1, 0.1, 0.35].into(), 1e-6)
         );
 
         let mut p = EpsilonGreedy::new(MockQ::new_shared(None), 1.0);
 
         assert!(
-            p.probabilities(&vec![-1.0, 0.0, 0.0, 0.0])
+            p.probabilities(&vec![-1.0, 0.0, 0.0, 0.0].into())
                 .all_close(&vec![0.25, 0.25, 0.25, 0.25].into(), 1e-6)
         );
     }

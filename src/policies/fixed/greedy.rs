@@ -56,55 +56,55 @@ mod tests {
     fn test_0d() {
         let mut p = Greedy::new(MockQ::new_shared(None));
 
-        p.sample(&vec![]);
+        p.sample(&vec![].into());
     }
 
     #[test]
     fn test_1d() {
         let mut p = Greedy::new(MockQ::new_shared(None));
 
-        assert!(p.sample(&vec![1.0]) == 0);
-        assert!(p.sample(&vec![-100.0]) == 0);
+        assert!(p.sample(&vec![1.0].into()) == 0);
+        assert!(p.sample(&vec![-100.0].into()) == 0);
     }
 
     #[test]
     fn test_two_positive() {
         let mut p = Greedy::new(MockQ::new_shared(None));
 
-        assert!(p.sample(&vec![10.0, 1.0]) == 0);
-        assert!(p.sample(&vec![1.0, 10.0]) == 1);
+        assert!(p.sample(&vec![10.0, 1.0].into()) == 0);
+        assert!(p.sample(&vec![1.0, 10.0].into()) == 1);
     }
 
     #[test]
     fn test_two_negative() {
         let mut p = Greedy::new(MockQ::new_shared(None));
 
-        assert!(p.sample(&vec![-10.0, -1.0]) == 1);
-        assert!(p.sample(&vec![-1.0, -10.0]) == 0);
+        assert!(p.sample(&vec![-10.0, -1.0].into()) == 1);
+        assert!(p.sample(&vec![-1.0, -10.0].into()) == 0);
     }
 
     #[test]
     fn test_two_alt() {
         let mut p = Greedy::new(MockQ::new_shared(None));
 
-        assert!(p.sample(&vec![10.0, -1.0]) == 0);
-        assert!(p.sample(&vec![-10.0, 1.0]) == 1);
-        assert!(p.sample(&vec![1.0, -10.0]) == 0);
-        assert!(p.sample(&vec![-1.0, 10.0]) == 1);
+        assert!(p.sample(&vec![10.0, -1.0].into()) == 0);
+        assert!(p.sample(&vec![-10.0, 1.0].into()) == 1);
+        assert!(p.sample(&vec![1.0, -10.0].into()) == 0);
+        assert!(p.sample(&vec![-1.0, 10.0].into()) == 1);
     }
 
     #[test]
     fn test_long() {
         let mut p = Greedy::new(MockQ::new_shared(None));
 
-        assert!(p.sample(&vec![-123.1, 123.1, 250.5, -1240.0, -4500.0, 10000.0, 20.1]) == 5);
+        assert!(p.sample(&vec![-123.1, 123.1, 250.5, -1240.0, -4500.0, 10000.0, 20.1].into()) == 5);
     }
 
     #[test]
     fn test_precision() {
         let mut p = Greedy::new(MockQ::new_shared(None));
 
-        assert!(p.sample(&vec![1e-7, 2e-7]) == 1);
+        assert!(p.sample(&vec![1e-7, 2e-7].into()) == 1);
     }
 
     #[test]
@@ -112,12 +112,12 @@ mod tests {
         let mut p = Greedy::new(MockQ::new_shared(None));
 
         assert_eq!(
-            p.probabilities(&vec![1e-7, 2e-7, 3e-7, 4e-7]),
+            p.probabilities(&vec![1e-7, 2e-7, 3e-7, 4e-7].into()),
             Vector::from_vec(vec![0.0, 0.0, 0.0, 1.0])
         );
 
         assert_eq!(
-            p.probabilities(&vec![1e-7, 1e-7, 1e-7, 1e-7]),
+            p.probabilities(&vec![1e-7, 1e-7, 1e-7, 1e-7].into()),
             Vector::from_vec(vec![0.25, 0.25, 0.25, 0.25])
         );
     }
