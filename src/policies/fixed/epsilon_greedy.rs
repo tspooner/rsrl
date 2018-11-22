@@ -3,7 +3,7 @@ use core::Parameter;
 use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
-use rand::{thread_rng, Rng, ThreadRng};
+use rand::{thread_rng, Rng, rngs::ThreadRng};
 
 pub struct EpsilonGreedy<S> {
     random: Random,

@@ -5,9 +5,9 @@ use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA};
 use geometry::Matrix;
 use policies::{DifferentiablePolicy, ParameterisedPolicy, Policy};
 use rand::{
-    distributions::{normal::Normal as NormalDist, Distribution},
+    distributions::{Normal as NormalDist, Distribution},
+    rngs::ThreadRng,
     thread_rng,
-    ThreadRng,
 };
 use std::ops::AddAssign;
 

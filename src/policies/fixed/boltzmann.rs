@@ -3,7 +3,7 @@ use domains::Transition;
 use fa::SharedQFunction;
 use geometry::Vector;
 use policies::{sample_probs, FinitePolicy, Policy};
-use rand::{thread_rng, ThreadRng};
+use rand::{thread_rng, rngs::ThreadRng};
 use std::f64;
 
 pub struct Boltzmann<S> {

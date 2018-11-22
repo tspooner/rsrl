@@ -1,7 +1,7 @@
 use fa::{Approximator, MultiLFA, Parameterised, Projector};
 use geometry::{Matrix, Vector};
 use policies::{DifferentiablePolicy, FinitePolicy, ParameterisedPolicy, Policy};
-use rand::{thread_rng, Rng, ThreadRng};
+use rand::{thread_rng, Rng, rngs::ThreadRng};
 use std::{f64, ops::AddAssign};
 
 pub struct Gibbs<S, M: Projector<S>> {

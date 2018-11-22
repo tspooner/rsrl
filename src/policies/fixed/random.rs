@@ -1,9 +1,9 @@
 use geometry::{Space, Vector};
 use policies::{FinitePolicy, Policy};
 use rand::{
-    distributions::{Distribution, Range},
+    distributions::{Distribution, Uniform},
+    rngs::ThreadRng,
     thread_rng,
-    ThreadRng,
 };
 
 pub struct Random(usize, ThreadRng);
@@ -17,7 +17,7 @@ impl Random {
 impl<S> Policy<S> for Random {
     type Action = usize;
 
-    fn sample(&mut self, _: &S) -> usize { Range::new(0, self.0).sample(&mut self.1) }
+    fn sample(&mut self, _: &S) -> usize { Uniform::new(0, self.0).sample(&mut self.1) }
 
     fn probability(&mut self, _: &S, _: usize) -> f64 { 1.0 / self.0 as f64 }
 }

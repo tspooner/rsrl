@@ -26,14 +26,14 @@ openai = ["cpython"]
 spaces = "4.1"
 lfa = "0.6"
 
-rand = "0.5"
+rand = "0.6"
 cpython = { version = "0.2", optional = true }
 ndarray = { version = "0.12", features = ["blas", "serde-1"] }
 
 serde = "1.0"
 serde_derive = "1.0"
 
-slog = "2.3"
+slog = "2.4"
 slog-term = "2.4"
 slog-async = "2.3"
 
