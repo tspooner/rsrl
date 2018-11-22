@@ -40,15 +40,14 @@ where
     }
 }
 
-impl<S: Clone, C, P> Algorithm<S, P::Action> for TDAC<S, C, P>
+impl<S, C, P> TDAC<S, C, P>
 where
     C: Predictor<S, P::Action>,
     P: ParameterisedPolicy<S>,
     P::Action: Copy,
 {
-    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
-        self.critic.handle_sample(t);
-
+    #[inline(always)]
+    fn update_policy(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let v = self.critic.predict_v(s);
@@ -57,13 +56,29 @@ where
 
         self.policy.borrow_mut().update(s, t.action, self.alpha * td_error);
     }
+}
+
+impl<S: Clone, C, P> Algorithm<S, P::Action> for TDAC<S, C, P>
+where
+    C: Predictor<S, P::Action>,
+    P: ParameterisedPolicy<S>,
+    P::Action: Copy,
+{
+    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
+        self.critic.handle_sample(t);
+        self.update_policy(t);
+    }
 
     fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
+        {
+            self.critic.handle_terminal(t);
+
+            self.update_policy(t);
+            self.policy.borrow_mut().handle_terminal(t);
+        }
+
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
-
-        self.critic.handle_terminal(t);
-        self.policy.borrow_mut().handle_terminal(t);
     }
 }
 

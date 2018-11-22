@@ -1,8 +1,9 @@
 use consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
-use core::Vector;
 use geometry::{
-    dimensions::{Continuous, Discrete},
-    RegularSpace,
+    continuous::Interval,
+    discrete::Ordinal,
+    product::LinearSpace,
+    Vector,
 };
 use ndarray::{Ix1, NdIndex};
 use super::{runge_kutta4, Domain, Observation, Transition};
@@ -95,18 +96,18 @@ impl Default for CartPole {
 }
 
 impl Domain for CartPole {
-    type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = Discrete;
+    type StateSpace = LinearSpace<Interval>;
+    type ActionSpace = Ordinal;
 
-    fn emit(&self) -> Observation<Vec<f64>> {
+    fn emit(&self) -> Observation<Vector<f64>> {
         if self.is_terminal() {
-            Observation::Terminal(self.state.to_vec())
+            Observation::Terminal(self.state.clone())
         } else {
-            Observation::Full(self.state.to_vec())
+            Observation::Full(self.state.clone())
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vector<f64>, usize> {
         let from = self.emit();
 
         self.update_state(action);
@@ -128,7 +129,7 @@ impl Domain for CartPole {
         x <= LIMITS_X.0 || x >= LIMITS_X.1 || theta <= LIMITS_THETA.0 || theta >= LIMITS_THETA.1
     }
 
-    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
+    fn reward(&self, _: &Observation<Vector<f64>>, to: &Observation<Vector<f64>>) -> f64 {
         match *to {
             Observation::Terminal(_) => REWARD_TERMINAL,
             _ => REWARD_STEP,
@@ -136,13 +137,13 @@ impl Domain for CartPole {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        RegularSpace::empty() + Continuous::new(LIMITS_X.0, LIMITS_X.1)
-            + Continuous::new(LIMITS_DX.0, LIMITS_DX.1)
-            + Continuous::new(LIMITS_THETA.0, LIMITS_THETA.1)
-            + Continuous::new(LIMITS_DTHETA.0, LIMITS_DTHETA.1)
+        LinearSpace::empty() + Interval::bounded(LIMITS_X.0, LIMITS_X.1)
+            + Interval::bounded(LIMITS_DX.0, LIMITS_DX.1)
+            + Interval::bounded(LIMITS_THETA.0, LIMITS_THETA.1)
+            + Interval::bounded(LIMITS_DTHETA.0, LIMITS_DTHETA.1)
     }
 
-    fn action_space(&self) -> Discrete { Discrete::new(2) }
+    fn action_space(&self) -> Ordinal { Ordinal::new(2) }
 }
 
 #[cfg(test)]

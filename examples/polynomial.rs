@@ -6,7 +6,7 @@ use rsrl::{
     control::td::SARSALambda,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
-    fa::{projectors::fixed::Polynomial, LFA},
+    fa::{basis::fixed::Chebyshev, LFA},
     geometry::Space,
     logging,
     policies::fixed::EpsilonGreedy,
@@ -19,15 +19,15 @@ fn main() {
 
         // Build the linear value function using a polynomial basis projection and the
         // appropriate eligibility trace.
-        let bases = Polynomial::from_space(5, domain.state_space());
+        let bases = Chebyshev::from_space(5, domain.state_space());
         let trace = Trace::replacing(0.7, bases.dim());
-        let q_func = make_shared(LFA::multi(bases, n_actions));
+        let q_func = make_shared(LFA::vector_valued(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
         let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
 
-        SARSALambda::new(trace, q_func, policy, 0.1, 0.99)
+        SARSALambda::new(trace, q_func, policy, 0.001, 0.99)
     };
 
     let logger = logging::root(logging::stdout());

@@ -45,6 +45,13 @@ where
     }
 }
 
+impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> PAL<S, Q, P> {
+    #[inline(always)]
+    fn update_q(&mut self, state: &S, action: P::Action, error: f64) {
+        self.q_func.borrow_mut().update_action(state, action, self.alpha * error);
+    }
+}
+
 impl<S, Q, P> Algorithm<S, P::Action> for PAL<S, Q, P>
 where
     Q: QFunction<S>,
@@ -63,15 +70,22 @@ where
         let al_error = td_error - self.alpha * (qs[a_star] - qs[t.action]);
         let pal_error = al_error.max(td_error - self.alpha * (nqs[na_star] - nqs[t.action]));
 
-        self.q_func.borrow_mut().update_action(s, t.action, self.alpha * pal_error);
+        self.update_q(s, t.action, pal_error);
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
+        {
+            let s = t.from.state();
+            let qsa = self.predict_qsa(s, t.action);
+
+            self.update_q(s, t.action, t.reward - qsa);
+
+            self.target.handle_terminal(t);
+            self.policy.borrow_mut().handle_terminal(t);
+        }
+
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
-
-        self.target.handle_terminal(t);
-        self.policy.borrow_mut().handle_terminal(t);
     }
 }
 

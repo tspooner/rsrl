@@ -4,7 +4,7 @@ use fa::{Parameterised, VFunction};
 use geometry::Matrix;
 use std::marker::PhantomData;
 
-pub struct EveryVisitMC<S, V: VFunction<S>> {
+pub struct GradientMC<S, V: VFunction<S>> {
     pub v_func: V,
     pub cache: Vec<(S, f64)>,
 
@@ -14,13 +14,13 @@ pub struct EveryVisitMC<S, V: VFunction<S>> {
     phantom: PhantomData<S>,
 }
 
-impl<S, V: VFunction<S>> EveryVisitMC<S, V> {
+impl<S, V: VFunction<S>> GradientMC<S, V> {
     pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
     {
-        EveryVisitMC {
+        GradientMC {
             v_func,
             cache: vec![],
 
@@ -43,24 +43,26 @@ impl<S, V: VFunction<S>> EveryVisitMC<S, V> {
     }
 }
 
-impl<S: Clone, A, V: VFunction<S>> Algorithm<S, A> for EveryVisitMC<S, V> {
+impl<S: Clone, A, V: VFunction<S>> Algorithm<S, A> for GradientMC<S, V> {
     fn handle_sample(&mut self, sample: &Transition<S, A>) {
         self.cache.push((sample.from.state().clone(), sample.reward));
     }
 
     fn handle_terminal(&mut self, _: &Transition<S, A>) {
-        self.propagate();
+        {
+            self.propagate();
+        }
 
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S: Clone, A, V: VFunction<S>> Predictor<S, A> for EveryVisitMC<S, V> {
+impl<S: Clone, A, V: VFunction<S>> Predictor<S, A> for GradientMC<S, V> {
     fn predict_v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }
 
-impl<S, V: VFunction<S> + Parameterised> Parameterised for EveryVisitMC<S, V> {
+impl<S, V: VFunction<S> + Parameterised> Parameterised for GradientMC<S, V> {
     fn weights(&self) -> Matrix<f64> {
         self.v_func.weights()
     }

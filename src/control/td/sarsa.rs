@@ -39,24 +39,38 @@ impl<S, Q: QFunction<S>, P: Policy<S>> SARSA<S, Q, P> {
     }
 }
 
+impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> SARSA<S, Q, P> {
+    #[inline(always)]
+    fn update_q(&mut self, state: &S, action: P::Action, error: f64) {
+        self.q_func.borrow_mut().update_action(state, action, self.alpha * error);
+    }
+}
+
 impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> Algorithm<S, P::Action> for SARSA<S, Q, P> {
     fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let na = self.policy.borrow_mut().sample(ns);
-        let qa = self.q_func.borrow().evaluate_action(s, t.action);
-        let nqa = self.q_func.borrow().evaluate_action(ns, na);
+        let qsa = self.q_func.borrow().evaluate_action(s, t.action);
+        let nqsna = self.q_func.borrow().evaluate_action(ns, na);
 
-        let td_error = t.reward + self.gamma * nqa - qa;
+        let td_error = t.reward + self.gamma * nqsna - qsa;
 
-        self.q_func.borrow_mut().update_action(s, t.action, self.alpha * td_error);
+        self.update_q(s, t.action, td_error);
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
+        {
+            let s = t.from.state();
+            let qsa = self.q_func.borrow().evaluate_action(s, t.action);
+
+            self.update_q(s, t.action, t.reward - qsa);
+
+            self.policy.borrow_mut().handle_terminal(t);
+        }
+
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
-
-        self.policy.borrow_mut().handle_terminal(t);
     }
 }
 

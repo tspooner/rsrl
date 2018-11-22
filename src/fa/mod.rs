@@ -3,18 +3,19 @@ use core::Shared;
 use geometry::Vector;
 
 extern crate lfa;
-use self::lfa::approximators::{Multi, Simple};
+use self::lfa::approximators::{ScalarFunction, VectorFunction};
 pub use self::lfa::{
-    projectors,
+    LFA,
+    Projection,
+    Projector,
 
     AdaptResult,
     Approximator,
     EvaluationResult,
     Parameterised,
-    Projection,
-    Projector,
     UpdateResult,
-    LFA,
+
+    basis,
 };
 
 #[cfg(test)]
@@ -23,8 +24,8 @@ pub(crate) mod mocking;
 mod table;
 pub use self::table::Table;
 
-pub type SimpleLFA<S, P> = LFA<S, P, Simple>;
-pub type MultiLFA<S, P> = LFA<S, P, Multi>;
+pub type SimpleLFA<S, P> = LFA<S, P, ScalarFunction>;
+pub type MultiLFA<S, P> = LFA<S, P, VectorFunction>;
 
 pub type SharedVFunction<S> = Shared<VFunction<S, Value = f64>>;
 pub type SharedQFunction<S> = Shared<QFunction<S, Value = Vector<f64>>>;
@@ -95,7 +96,7 @@ impl<S: ?Sized, P: Projector<S>> QFunction<S> for MultiLFA<S, P> {
         let col = self.approximator.weights.column(action);
 
         match *phi {
-            Projection::Dense(ref dense) => col.dot(&(dense / phi.z())),
+            Projection::Dense(ref dense) => col.dot(dense),
             Projection::Sparse(ref sparse) => sparse.iter().fold(0.0, |acc, idx| acc + col[*idx]),
         }
     }
@@ -107,13 +108,10 @@ impl<S: ?Sized, P: Projector<S>> QFunction<S> for MultiLFA<S, P> {
     fn update_action_phi(&mut self, phi: &Projection, action: usize, update: f64) {
         let mut col = self.approximator.weights.column_mut(action);
 
-        let z = phi.z();
-        let scaled_update = update / z;
-
         match *phi {
-            Projection::Dense(ref dense) => col.scaled_add(scaled_update, dense),
+            Projection::Dense(ref dense) => col.scaled_add(update, dense),
             Projection::Sparse(ref sparse) => for idx in sparse {
-                col[*idx] += scaled_update
+                col[*idx] += update
             },
         }
     }

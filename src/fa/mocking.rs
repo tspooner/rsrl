@@ -21,20 +21,20 @@ impl MockQ {
     pub fn clear_output(&mut self) { self.output = None }
 }
 
-impl Approximator<Vec<f64>> for MockQ {
+impl Approximator<Vector<f64>> for MockQ {
     type Value = Vector<f64>;
 
-    fn evaluate(&self, s: &Vec<f64>) -> EvaluationResult<Vector<f64>> {
+    fn evaluate(&self, s: &Vector<f64>) -> EvaluationResult<Vector<f64>> {
         Ok(match self.output {
             Some(ref vector) => vector.clone(),
             None => s.clone().into(),
         })
     }
 
-    fn update(&mut self, _: &Vec<f64>, _: Vector<f64>) -> UpdateResult<()> { Ok(()) }
+    fn update(&mut self, _: &Vector<f64>, _: Vector<f64>) -> UpdateResult<()> { Ok(()) }
 }
 
-impl QFunction<Vec<f64>> for MockQ {
+impl QFunction<Vector<f64>> for MockQ {
     fn n_actions(&self) -> usize {
         match self.output {
             Some(ref vector) => vector.len(),

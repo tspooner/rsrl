@@ -6,7 +6,7 @@ use rsrl::{
     control::td::PAL,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
-    fa::{projectors::fixed::Fourier, LFA},
+    fa::{basis::fixed::Fourier, LFA},
     geometry::Space,
     logging,
     policies::fixed::EpsilonGreedy,
@@ -20,7 +20,7 @@ fn main() {
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
         let bases = Fourier::from_space(3, domain.state_space());
-        let q_func = make_shared(LFA::multi(bases, n_actions));
+        let q_func = make_shared(LFA::vector_valued(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let eps = Parameter::exponential(0.99, 0.05, 0.99);

@@ -147,16 +147,16 @@ where
             e.steps = j;
             e.reward += t.reward;
 
-            self.agent.handle_sample(&t);
-
             // TODO: Clean this mess up!
             if let Observation::Terminal(_) = t.to {
                 self.agent.handle_terminal(&t);
                 break;
             } else if j >= self.step_limit {
-                self.agent.handle_terminal(&t);
+                self.agent.handle_sample(&t);
                 break;
             } else {
+                self.agent.handle_sample(&t);
+
                 a = self.agent.sample_behaviour(&t.to.state());
             }
         }

@@ -7,7 +7,7 @@ use rsrl::{
     control::td::SARSA,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
-    fa::{projectors::fixed::Fourier, LFA},
+    fa::{basis::fixed::Fourier, LFA},
     geometry::Space,
     logging,
     policies::parameterised::Gibbs,
@@ -22,7 +22,7 @@ fn main() {
     let policy = {
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
-        let fa = LFA::multi(bases.clone(), n_actions);
+        let fa = LFA::vector_valued(bases.clone(), n_actions);
 
         // Build a stochastic behaviour policy with exponential epsilon.
         make_shared(Gibbs::new(fa))
@@ -30,12 +30,12 @@ fn main() {
     let critic = {
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
-        let q_func = make_shared(LFA::multi(bases, n_actions));
+        let q_func = make_shared(LFA::vector_valued(bases, n_actions));
 
-        SARSA::new(q_func, policy.clone(), 0.1, 0.99)
+        SARSA::new(q_func, policy.clone(), 0.001, 0.99)
     };
 
-    let mut agent = NAC::new(critic, policy, 0.1);
+    let mut agent = NAC::new(critic, policy, 0.01);
 
     let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(MountainCar::default);

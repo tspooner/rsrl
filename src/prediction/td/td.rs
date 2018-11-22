@@ -28,21 +28,35 @@ impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
             phantom: PhantomData,
         }
     }
+
+    #[inline(always)]
+    fn update_v(&mut self, s: &S, error: f64) {
+        let _ = self.v_func.update(s, self.alpha * error);
+    }
 }
 
 impl<S, A, V: VFunction<S>> Algorithm<S, A> for TD<S, V>
 where
     Self: Predictor<S, A>
 {
-    fn handle_sample(&mut self, sample: &Transition<S, A>) {
-        let v = self.predict_v(&sample.from.state());
-        let nv = self.predict_v(&sample.to.state());
+    fn handle_sample(&mut self, t: &Transition<S, A>) {
+        let s = t.from.state();
+        let v = self.predict_v(&s);
+        let nv = self.predict_v(&t.to.state());
 
-        let td_error = sample.reward + self.gamma * nv - v;
-        let _ = self.v_func.update(&sample.from.state(), self.alpha * td_error);
+        let td_error = t.reward + self.gamma * nv - v;
+
+        self.update_v(&s, td_error);
     }
 
-    fn handle_terminal(&mut self, _: &Transition<S, A>) {
+    fn handle_terminal(&mut self, t: &Transition<S, A>) {
+        {
+            let s = t.from.state();
+            let td_error = t.reward - self.predict_v(&t.from.state());
+
+            self.update_v(&s, td_error);
+        }
+
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }

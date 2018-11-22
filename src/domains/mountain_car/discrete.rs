@@ -1,7 +1,9 @@
 use domains::{Domain, Observation, Transition};
 use geometry::{
-    dimensions::{Continuous, Discrete},
-    RegularSpace,
+    Vector,
+    continuous::Interval,
+    discrete::Ordinal,
+    product::LinearSpace,
 };
 
 const X_MIN: f64 = -1.2;
@@ -32,7 +34,7 @@ const ALL_ACTIONS: [f64; 3] = [-1.0, 0.0, 1.0];
 /// [^1]: See [https://en.wikipedia.org/wiki/Mountain_car_problem](https://en.wikipedia.org/wiki/Mountain_car_problem)
 ///
 /// # Technical details
-/// The **state** is represented by a `Vec` with components:
+/// The **state** is represented by a `Vector` with components:
 ///
 /// | Index | Name     | Min   | Max   |
 /// | ----- | -------- | ----- | ----- |
@@ -69,11 +71,11 @@ impl Default for MountainCar {
 }
 
 impl Domain for MountainCar {
-    type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = Discrete;
+    type StateSpace = LinearSpace<Interval>;
+    type ActionSpace = Ordinal;
 
-    fn emit(&self) -> Observation<Vec<f64>> {
-        let s = vec![self.x, self.v];
+    fn emit(&self) -> Observation<Vector<f64>> {
+        let s = Vector::from_vec(vec![self.x, self.v]);
 
         if self.is_terminal() {
             Observation::Terminal(s)
@@ -82,7 +84,7 @@ impl Domain for MountainCar {
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vector<f64>, usize> {
         let from = self.emit();
 
         self.update_state(action);
@@ -99,7 +101,7 @@ impl Domain for MountainCar {
 
     fn is_terminal(&self) -> bool { self.x >= X_MAX }
 
-    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
+    fn reward(&self, _: &Observation<Vector<f64>>, to: &Observation<Vector<f64>>) -> f64 {
         match *to {
             Observation::Terminal(_) => REWARD_GOAL,
             _ => REWARD_STEP,
@@ -107,10 +109,10 @@ impl Domain for MountainCar {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        RegularSpace::empty() + Continuous::new(X_MIN, X_MAX) + Continuous::new(V_MIN, V_MAX)
+        LinearSpace::empty() + Interval::bounded(X_MIN, X_MAX) + Interval::bounded(V_MIN, V_MAX)
     }
 
-    fn action_space(&self) -> Discrete { Discrete::new(3) }
+    fn action_space(&self) -> Ordinal { Ordinal::new(3) }
 }
 
 #[cfg(test)]
