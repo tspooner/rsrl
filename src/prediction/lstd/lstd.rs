@@ -37,9 +37,7 @@ impl<S, P: Projector<S>> LSTD<S, P> {
 impl<S, P: Projector<S>> LSTD<S, P> {
     #[inline(always)]
     fn compute_dense_fv(&self, s: &S) -> Vector<f64> {
-        let dim = self.a.rows();
-
-        self.fa_theta.borrow().projector.project(s).expanded(dim)
+        self.fa_theta.borrow().projector.project(s).expanded(self.a.rows())
     }
 
     #[inline(always)]
@@ -78,8 +76,7 @@ impl<S, A, P: Projector<S>> Algorithm<S, A> for LSTD<S, P> {
 
     fn handle_terminal(&mut self, t: &Transition<S, A>) {
         {
-            let s = t.from.state();
-            let phi_s = self.compute_dense_fv(s);
+            let phi_s = self.compute_dense_fv(t.from.state());
 
             self.do_update(phi_s.clone(), phi_s, t.reward);
             self.solve();

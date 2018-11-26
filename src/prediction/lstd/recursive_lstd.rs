@@ -83,9 +83,7 @@ impl<S, A, P: Projector<S>> Algorithm<S, A> for RecursiveLSTD<S, P> {
 
     fn handle_terminal(&mut self, t: &Transition<S, A>) {
         {
-            let s = t.from.state();
-
-            let phi_s = self.fa_theta.borrow().projector.project(s);
+            let phi_s = self.fa_theta.borrow().projector.project(t.from.state());
             let residual = t.reward - self.fa_theta.borrow().evaluate_phi(&phi_s);
 
             let phi_s = self.expand_phi(phi_s);
