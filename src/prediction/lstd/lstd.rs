@@ -47,6 +47,19 @@ impl<S, P: Projector<S>> LSTD<S, P> {
         self.b.scaled_add(reward, &phi_s);
         self.a += &phi_s.insert_axis(Axis(1)).dot(&(pd.insert_axis(Axis(0))));
     }
+
+    pub fn solve(&mut self) {
+        // First try the clean approach:
+        if let Ok(theta) = self.a.solve(&self.b) {
+            self.fa_theta.borrow_mut().approximator.weights.assign(&theta);
+
+        // Otherwise solve via SVD:
+        } else if let Ok(ainv) = pinv(&self.a) {
+            let theta = ainv.dot(&self.b);
+
+            self.fa_theta.borrow_mut().approximator.weights.assign(&theta);
+        }
+    }
 }
 
 impl<S, A, P: Projector<S>> Algorithm<S, A> for LSTD<S, P> {
@@ -69,17 +82,7 @@ impl<S, A, P: Projector<S>> Algorithm<S, A> for LSTD<S, P> {
             let phi_s = self.compute_dense_fv(s);
 
             self.do_update(phi_s.clone(), phi_s, t.reward);
-
-            // First try the clean approach:
-            if let Ok(theta) = self.a.solve(&self.b) {
-                self.fa_theta.borrow_mut().approximator.weights.assign(&theta);
-
-            // Otherwise solve via SVD:
-            } else if let Ok(ainv) = pinv(&self.a) {
-                let theta = ainv.dot(&self.b);
-
-                self.fa_theta.borrow_mut().approximator.weights.assign(&theta);
-            }
+            self.solve();
         }
 
         self.gamma = self.gamma.step();
