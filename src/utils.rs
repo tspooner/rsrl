@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use geometry::Matrix;
 use std::f64;
 
 pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
@@ -24,6 +25,37 @@ pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
 
     d_it.zip(i_it)
         .fold(inds.last().cloned().unwrap(), |acc, (d, i)| i + d * acc)
+}
+
+/// Compute the pseudo-inverse of a real matrix using SVD.
+#[inline]
+pub fn pinv(m: &Matrix<f64>) -> Result<Matrix<f64>, ndarray_linalg::error::LinalgError> {
+    use ndarray::Axis;
+    use ndarray_linalg::svd::SVD;
+
+    let m_dim = m.dim();
+    let max_dim = m_dim.0.max(m_dim.1);
+
+    m.svd(true, true).map(|(u, s, vt)| {
+        // u: (M x M)
+        // s: diag{(M x N)} => (max{M, N} x 1)
+        // vt: (N x N)
+        let u = u.unwrap();
+        let vt = vt.unwrap();
+
+        let threshold = f64::EPSILON * max_dim as f64 * s.fold(unsafe { *s.uget(0) }, |acc, &v| {
+            if v > acc { v }
+            else { acc }
+        });
+
+        // (max{M, N} x 1)
+        let sinv = s.mapv(|v| {
+            if v > threshold { 1.0 / v }
+            else { 0.0 }
+        }).insert_axis(Axis(1));
+
+        vt.t().dot(&(&u.t() * &sinv))
+    })
 }
 
 /// Given a vector containing a partial Cartesian product, and a list of items,
