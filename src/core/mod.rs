@@ -7,7 +7,7 @@ pub trait Algorithm<S, A> {
 }
 
 pub trait BatchAlgorithm<S, A>: Algorithm<S, A> {
-    fn solve(&mut self);
+    fn consolidate(&mut self);
 
     fn handle_batch(&mut self, transitions: &Vec<Transition<S, A>>) {
         use domains::Observation::Terminal;
@@ -20,7 +20,7 @@ pub trait BatchAlgorithm<S, A>: Algorithm<S, A> {
             }
         });
 
-        self.solve();
+        self.consolidate();
     }
 }
 
