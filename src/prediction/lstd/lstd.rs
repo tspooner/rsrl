@@ -41,7 +41,7 @@ impl<S, P: Projector<S>> LSTD<S, P> {
     }
 
     #[inline(always)]
-    fn do_update(&mut self, phi_s: Vector<f64>, pd: Vector<f64>, reward: f64) {
+    fn update_matrices(&mut self, phi_s: Vector<f64>, pd: Vector<f64>, reward: f64) {
         self.b.scaled_add(reward, &phi_s);
         self.a += &phi_s.insert_axis(Axis(1)).dot(&(pd.insert_axis(Axis(0))));
     }
@@ -71,14 +71,15 @@ impl<S, A, P: Projector<S>> Algorithm<S, A> for LSTD<S, P> {
         // (1 x D)
         let pd = phi_s.clone() - self.gamma.value()*phi_ns;
 
-        self.do_update(phi_s, pd, t.reward);
+        self.update_matrices(phi_s, pd, t.reward);
     }
 
     fn handle_terminal(&mut self, t: &Transition<S, A>) {
         {
             let phi_s = self.compute_dense_fv(t.from.state());
 
-            self.do_update(phi_s.clone(), phi_s, t.reward);
+            self.update_matrices(phi_s.clone(), phi_s, t.reward);
+
             self.solve();
         }
 
