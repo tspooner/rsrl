@@ -4,12 +4,12 @@ use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA, VFunctio
 use geometry::Matrix;
 
 pub struct TDLambda<S: ?Sized, P: Projector<S>> {
-    trace: Trace,
-
     pub fa_theta: SimpleLFA<S, P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
+
+    trace: Trace,
 }
 
 impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
@@ -19,12 +19,12 @@ impl<S: ?Sized, P: Projector<S>> TDLambda<S, P> {
         T2: Into<Parameter>,
     {
         TDLambda {
-            trace,
-
             fa_theta,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
+
+            trace,
         }
     }
 
