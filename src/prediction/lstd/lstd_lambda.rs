@@ -85,11 +85,12 @@ impl<S, A, P: Projector<S>> Algorithm<S, A> for LSTDLambda<S, P> {
 
     fn handle_terminal(&mut self, t: &Transition<S, A>) {
         {
-            let phi_s = self.compute_dense_fv(t.from.state());
+            self.handle_sample(t);
 
-            let z = self.update_trace(&phi_s);
+            let phi_terminal = self.compute_dense_fv(t.to.state());
+            let z = self.update_trace(&phi_terminal);
 
-            self.update_matrices(z.clone(), phi_s.clone(), t.reward);
+            self.update_matrices(z.clone(), phi_terminal, 0.0);
             self.solve();
 
             self.trace.decay(0.0);

@@ -89,9 +89,11 @@ impl<S, A, P: Projector<S>> Algorithm<S, A> for iLSTD<S, P> {
 
     fn handle_terminal(&mut self, t: &Transition<S, A>) {
         {
-            let phi_s = self.compute_dense_fv(t.from.state());
+            self.handle_sample(t);
 
-            self.do_update(phi_s.clone(), phi_s, t.reward);
+            let phi_terminal = self.compute_dense_fv(t.to.state());
+
+            self.do_update(phi_terminal.clone(), phi_terminal, 0.0);
             self.consolidate();
         }
 

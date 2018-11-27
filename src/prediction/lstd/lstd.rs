@@ -71,10 +71,11 @@ impl<S, A, P: Projector<S>> Algorithm<S, A> for LSTD<S, P> {
 
     fn handle_terminal(&mut self, t: &Transition<S, A>) {
         {
-            let phi_s = self.compute_dense_fv(t.from.state());
+            self.handle_sample(t);
 
-            self.update_matrices(phi_s.clone(), phi_s, t.reward);
+            let phi_terminal = self.compute_dense_fv(t.to.state());
 
+            self.update_matrices(phi_terminal.clone(), phi_terminal, 0.0);
             self.solve();
         }
 
