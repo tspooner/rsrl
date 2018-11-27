@@ -3,4 +3,5 @@
 import_all!(lstd);
 import_all!(ilstd);
 import_all!(lstd_lambda);
+import_all!(lambda_lspe);
 import_all!(recursive_lstd);
