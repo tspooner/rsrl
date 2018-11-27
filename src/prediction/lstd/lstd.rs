@@ -4,7 +4,6 @@ use fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLF
 use geometry::{Space, Vector, Matrix};
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
-use std::marker::PhantomData;
 use utils::{argmaxima, pinv};
 
 
@@ -14,8 +13,6 @@ pub struct LSTD<S, P: Projector<S>> {
 
     a: Matrix<f64>,
     b: Vector<f64>,
-
-    phantom: PhantomData<S>,
 }
 
 impl<S, P: Projector<S>> LSTD<S, P> {
@@ -28,8 +25,6 @@ impl<S, P: Projector<S>> LSTD<S, P> {
 
             a: Matrix::zeros((n_features, n_features)),
             b: Vector::zeros((n_features,)),
-
-            phantom: PhantomData,
         }
     }
 }

@@ -2,7 +2,6 @@ use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Matrix, 
 use domains::Transition;
 use fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
 use policies::{fixed::Greedy, Policy};
-use std::marker::PhantomData;
 
 /// Watkins' Q-learning with eligibility traces.
 ///
@@ -12,8 +11,6 @@ use std::marker::PhantomData;
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
 pub struct QLambda<S, M: Projector<S>, P: Policy<S>> {
-    trace: Trace,
-
     pub fa_theta: Shared<MultiLFA<S, M>>,
 
     pub policy: Shared<P>,
@@ -22,7 +19,7 @@ pub struct QLambda<S, M: Projector<S>, P: Policy<S>> {
     pub alpha: Parameter,
     pub gamma: Parameter,
 
-    phantom: PhantomData<S>,
+    trace: Trace,
 }
 
 impl<S: 'static, M: Projector<S> + 'static, P: Policy<S>> QLambda<S, M, P> {
@@ -38,8 +35,6 @@ impl<S: 'static, M: Projector<S> + 'static, P: Policy<S>> QLambda<S, M, P> {
         T2: Into<Parameter>,
     {
         QLambda {
-            trace,
-
             fa_theta: fa_theta.clone(),
 
             policy,
@@ -48,7 +43,7 @@ impl<S: 'static, M: Projector<S> + 'static, P: Policy<S>> QLambda<S, M, P> {
             alpha: alpha.into(),
             gamma: gamma.into(),
 
-            phantom: PhantomData,
+            trace,
         }
     }
 }

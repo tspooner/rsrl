@@ -2,7 +2,6 @@ use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector, Matrix, 
 use domains::Transition;
 use fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
 use policies::{Policy, FinitePolicy};
-use std::marker::PhantomData;
 
 /// True online variant of the SARSA(lambda) algorithm.
 ///
@@ -11,16 +10,14 @@ use std::marker::PhantomData;
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
 pub struct TOSARSALambda<S, M: Projector<S>, P: Policy<S>> {
-    trace: Trace,
-    q_old: f64,
-
     pub q_func: Shared<MultiLFA<S, M>>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 
-    phantom: PhantomData<S>,
+    trace: Trace,
+    q_old: f64,
 }
 
 impl<S, M, P> TOSARSALambda<S, M, P>
@@ -40,16 +37,14 @@ where
         T2: Into<Parameter>,
     {
         TOSARSALambda {
-            trace,
-            q_old: 0.0,
-
             q_func,
             policy,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
 
-            phantom: PhantomData,
+            trace,
+            q_old: 0.0,
         }
     }
 }

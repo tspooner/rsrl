@@ -3,7 +3,6 @@ use domains::Transition;
 use geometry::Matrix;
 use fa::Parameterised;
 use policies::{Policy, ParameterisedPolicy};
-use std::marker::PhantomData;
 
 pub struct REINFORCE<S, P: Policy<S>> {
     pub policy: Shared<P>,
@@ -11,8 +10,6 @@ pub struct REINFORCE<S, P: Policy<S>> {
 
     pub alpha: Parameter,
     pub gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
 impl<S, P: ParameterisedPolicy<S>> REINFORCE<S, P> {
@@ -28,8 +25,6 @@ impl<S, P: ParameterisedPolicy<S>> REINFORCE<S, P> {
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 
@@ -85,8 +80,6 @@ pub struct BaselineREINFORCE<S, P: Policy<S>, C: Predictor<S, P::Action>> {
 
     pub alpha: Parameter,
     pub gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
 impl<S, P, C> BaselineREINFORCE<S, P, C>
@@ -107,8 +100,6 @@ where
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 

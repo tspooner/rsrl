@@ -2,7 +2,6 @@ use core::{Algorithm, Predictor, Parameter};
 use domains::Transition;
 use fa::{Parameterised, VFunction};
 use geometry::Matrix;
-use std::marker::PhantomData;
 
 pub struct GradientMC<S, V: VFunction<S>> {
     pub v_func: V,
@@ -10,8 +9,6 @@ pub struct GradientMC<S, V: VFunction<S>> {
 
     pub alpha: Parameter,
     pub gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
 impl<S, V: VFunction<S>> GradientMC<S, V> {
@@ -26,8 +23,6 @@ impl<S, V: VFunction<S>> GradientMC<S, V> {
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 

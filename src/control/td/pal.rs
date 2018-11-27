@@ -2,7 +2,6 @@ use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Matrix};
 use domains::Transition;
 use fa::{Parameterised, QFunction};
 use policies::{fixed::Greedy, Policy};
-use std::marker::PhantomData;
 
 /// Persistent Advantage Learning
 ///
@@ -17,8 +16,6 @@ pub struct PAL<S, Q: QFunction<S>, P: Policy<S>> {
 
     pub alpha: Parameter,
     pub gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
 impl<S, Q, P> PAL<S, Q, P>
@@ -39,8 +36,6 @@ where
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }

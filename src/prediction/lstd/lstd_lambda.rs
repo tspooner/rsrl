@@ -4,7 +4,6 @@ use fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLF
 use geometry::{Space, Vector, Matrix};
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
-use std::marker::PhantomData;
 use utils::{argmaxima, pinv};
 
 pub struct LSTDLambda<S, P: Projector<S>> {
@@ -15,8 +14,6 @@ pub struct LSTDLambda<S, P: Projector<S>> {
     b: Vector<f64>,
 
     trace: Trace,
-
-    phantom: PhantomData<S>,
 }
 
 impl<S, P: Projector<S>> LSTDLambda<S, P> {
@@ -33,8 +30,6 @@ impl<S, P: Projector<S>> LSTDLambda<S, P> {
             b: Vector::zeros((n_features,)),
 
             trace,
-
-            phantom: PhantomData,
         }
     }
 }

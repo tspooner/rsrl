@@ -3,7 +3,6 @@ use domains::Transition;
 use fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
 use geometry::{Space, Vector, Matrix};
 use ndarray::Axis;
-use std::marker::PhantomData;
 use utils::argmaxima;
 
 #[allow(non_camel_case_types)]

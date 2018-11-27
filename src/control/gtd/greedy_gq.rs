@@ -12,7 +12,6 @@ use fa::{
     MultiLFA
 };
 use policies::{fixed::Greedy, Policy, FinitePolicy};
-use std::marker::PhantomData;
 
 /// Greedy GQ control algorithm.
 ///
@@ -29,8 +28,6 @@ pub struct GreedyGQ<S, M: Projector<S>, P: Policy<S>> {
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
 impl<S: 'static, M: Projector<S> + 'static, P: Policy<S>> GreedyGQ<S, M, P> {
@@ -57,8 +54,6 @@ impl<S: 'static, M: Projector<S> + 'static, P: Policy<S>> GreedyGQ<S, M, P> {
             alpha: alpha.into(),
             beta: beta.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }

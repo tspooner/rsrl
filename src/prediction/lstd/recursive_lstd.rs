@@ -3,7 +3,6 @@ use domains::Transition;
 use fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
 use geometry::{Space, Vector, Matrix};
 use ndarray::Axis;
-use std::marker::PhantomData;
 use utils::argmaxima;
 
 
@@ -12,8 +11,6 @@ pub struct RecursiveLSTD<S, P: Projector<S>> {
     pub gamma: Parameter,
 
     c_mat: Matrix<f64>,
-
-    phantom: PhantomData<S>,
 }
 
 impl<S, P: Projector<S>> RecursiveLSTD<S, P> {
@@ -25,8 +22,6 @@ impl<S, P: Projector<S>> RecursiveLSTD<S, P> {
             gamma: gamma.into(),
 
             c_mat: Matrix::eye(n_features)*1e-6,
-
-            phantom: PhantomData,
         }
     }
 }

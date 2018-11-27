@@ -2,7 +2,6 @@ use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Matrix, 
 use domains::Transition;
 use fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
 use policies::{fixed::Greedy, Policy};
-use std::marker::PhantomData;
 
 /// True online variant of the Q(lambda) algorithm.
 ///
@@ -11,9 +10,6 @@ use std::marker::PhantomData;
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
 pub struct TOQLambda<S, M: Projector<S>, P: Policy<S>> {
-    trace: Trace,
-    q_old: f64,
-
     pub q_func: Shared<MultiLFA<S, M>>,
 
     pub policy: Shared<P>,
@@ -22,7 +18,8 @@ pub struct TOQLambda<S, M: Projector<S>, P: Policy<S>> {
     pub alpha: Parameter,
     pub gamma: Parameter,
 
-    phantom: PhantomData<S>,
+    trace: Trace,
+    q_old: f64,
 }
 
 impl<S: 'static, M, P> TOQLambda<S, M, P>
@@ -42,9 +39,6 @@ where
         T2: Into<Parameter>,
     {
         TOQLambda {
-            trace,
-            q_old: 0.0,
-
             q_func: q_func.clone(),
 
             policy,
@@ -53,7 +47,8 @@ where
             alpha: alpha.into(),
             gamma: gamma.into(),
 
-            phantom: PhantomData,
+            trace,
+            q_old: 0.0,
         }
     }
 }

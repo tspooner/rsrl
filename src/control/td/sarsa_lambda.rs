@@ -2,7 +2,6 @@ use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector, Matrix, 
 use domains::Transition;
 use fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
 use policies::{Policy, FinitePolicy};
-use std::marker::PhantomData;
 
 /// On-policy variant of Watkins' Q-learning with eligibility traces (aka
 /// "modified Q-learning").
@@ -13,15 +12,13 @@ use std::marker::PhantomData;
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
 pub struct SARSALambda<S, M: Projector<S>, P: Policy<S>> {
-    trace: Trace,
-
     pub fa_theta: Shared<MultiLFA<S, M>>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 
-    phantom: PhantomData<S>,
+    trace: Trace,
 }
 
 impl<S, M: Projector<S>, P: Policy<S>> SARSALambda<S, M, P> {
@@ -37,15 +34,13 @@ impl<S, M: Projector<S>, P: Policy<S>> SARSALambda<S, M, P> {
         T2: Into<Parameter>,
     {
         SARSALambda {
-            trace,
-
             fa_theta,
             policy,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
 
-            phantom: PhantomData,
+            trace,
         }
     }
 }
