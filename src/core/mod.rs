@@ -2,20 +2,21 @@
 use domains::Transition;
 
 pub trait Algorithm<S, A> {
-    fn handle_sample(&mut self, sample: &Transition<S, A>);
-    fn handle_terminal(&mut self, sample: &Transition<S, A>);
+    fn handle_transition(&mut self, transition: &Transition<S, A>);
+    fn handle_terminal(&mut self, sample: &S);
 }
 
 pub trait BatchAlgorithm<S, A>: Algorithm<S, A> {
     fn solve(&mut self);
 
-    fn handle_batch(&mut self, samples: &Vec<Transition<S, A>>) {
-        use domains::Observation;
+    fn handle_batch(&mut self, transitions: &Vec<Transition<S, A>>) {
+        use domains::Observation::Terminal;
 
-        samples.into_iter().rev().for_each(|s| {
-            match s.to {
-                Observation::Terminal(_) => self.handle_terminal(s),
-                _ => self.handle_sample(s),
+        transitions.into_iter().rev().for_each(|t| {
+            self.handle_transition(t);
+
+            if let Terminal(s) = t.to {
+                self.handle_terminal(s);
             }
         });
 
