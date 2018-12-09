@@ -1,9 +1,8 @@
-use super::{FinitePolicy, Greedy, Policy, Random};
-use core::Parameter;
+use core::*;
 use domains::Transition;
 use fa::SharedQFunction;
-use geometry::Vector;
 use rand::{rngs::ThreadRng, thread_rng, Rng};
+use super::{FinitePolicy, Greedy, Policy, Random};
 
 pub struct EpsilonGreedy<S> {
     random: Random,
@@ -27,6 +26,15 @@ impl<S> EpsilonGreedy<S> {
     }
 }
 
+impl<S> Algorithm for EpsilonGreedy<S> {
+    fn step_hyperparams(&mut self) {
+        self.epsilon = self.epsilon.step();
+
+        self.greedy.step_hyperparams();
+        self.random.step_hyperparams();
+    }
+}
+
 impl<S> Policy<S> for EpsilonGreedy<S> {
     type Action = usize;
 
@@ -39,13 +47,6 @@ impl<S> Policy<S> for EpsilonGreedy<S> {
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
-
-    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
-        self.epsilon = self.epsilon.step();
-
-        self.greedy.handle_terminal(t);
-        self.random.handle_terminal(t);
-    }
 }
 
 impl<S> FinitePolicy<S> for EpsilonGreedy<S> {

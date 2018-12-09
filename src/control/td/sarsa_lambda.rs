@@ -1,4 +1,4 @@
-use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector, Matrix, Trace};
+use core::*;
 use domains::Transition;
 use fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
 use policies::{Policy, FinitePolicy};
@@ -11,7 +11,7 @@ use policies::{Policy, FinitePolicy};
 /// thesis, Cambridge University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
-pub struct SARSALambda<S, M: Projector<S>, P: Policy<S>> {
+pub struct SARSALambda<S, M: Projector<S>, P> {
     pub fa_theta: Shared<MultiLFA<S, M>>,
     pub policy: Shared<P>,
 
@@ -21,11 +21,11 @@ pub struct SARSALambda<S, M: Projector<S>, P: Policy<S>> {
     trace: Trace,
 }
 
-impl<S, M: Projector<S>, P: Policy<S>> SARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P> SARSALambda<S, M, P> {
     pub fn new<T1, T2>(
-        trace: Trace,
         fa_theta: Shared<MultiLFA<S, M>>,
         policy: Shared<P>,
+        trace: Trace,
         alpha: T1,
         gamma: T2,
     ) -> Self
@@ -43,71 +43,95 @@ impl<S, M: Projector<S>, P: Policy<S>> SARSALambda<S, M, P> {
             trace,
         }
     }
-}
-
-impl<S, M: Projector<S>, P: Policy<S, Action = usize>> SARSALambda<S, M, P> {
-    #[inline(always)]
-    fn update_theta(&mut self, action: P::Action, error: f64) {
-        self.fa_theta.borrow_mut().update_action_phi(
-            &Projection::Dense(self.trace.get()),
-            action,
-            self.alpha * error,
-        );
-    }
 
     #[inline(always)]
-    fn update_trace(&mut self, phi_s: Projection) {
-        let rate = self.trace.lambda.value() * self.gamma.value();
+    fn update_trace(&mut self, phi: Vector<f64>) {
+        let decay_rate = self.trace.lambda.value() * self.gamma.value();
 
-        self.trace.decay(rate);
-        self.trace.update(&phi_s.expanded(self.fa_theta.borrow().projector.dim()));
+        self.trace.decay(decay_rate);
+        self.trace.update(&phi);
     }
 }
 
-impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Algorithm<S, P::Action> for SARSALambda<S, M, P> {
-    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
+impl<S, M, P> Algorithm for SARSALambda<S, M, P>
+where
+    M: Projector<S>,
+    P: Algorithm,
+{
+    fn step_hyperparams(&mut self) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
+
+        self.policy.borrow_mut().step_hyperparams();
+    }
+}
+
+impl<S, M, P> OnlineLearner<S, P::Action> for SARSALambda<S, M, P>
+where
+    M: Projector<S>,
+    P: FinitePolicy<S>,
+{
+    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let phi_s = self.fa_theta.borrow().projector.project(s);
-
-        let na = self.policy.borrow_mut().sample(ns);
         let qsa = self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
-        let nqsna = self.fa_theta.borrow().evaluate_action(ns, na);
 
-        let td_error = t.reward + self.gamma * nqsna - qsa;
+        // Update trace:
+        let n_bases = self.fa_theta.borrow().projector.dim();
 
-        self.update_trace(phi_s);
-        self.update_theta(t.action, td_error);
-    }
+        self.update_trace(phi_s.expanded(n_bases));
 
-    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        {
-            let s = t.from.state();
-            let phi_s = self.fa_theta.borrow().projector.project(s);
-            let qsa = self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
-
-            self.update_trace(phi_s);
-            self.update_theta(t.action, t.reward - qsa);
-
+        // Update weight vectors:
+        let z = self.trace.get();
+        let residual = if t.terminated() {
             self.trace.decay(0.0);
-            self.policy.borrow_mut().handle_terminal(t);
-        }
 
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
+            t.reward - qsa
+        } else {
+            let na = self.policy.borrow_mut().sample(ns);
+            let nqsna = self.fa_theta.borrow().evaluate_action(ns, na);
+
+            t.reward + self.gamma * nqsna - qsa
+        };
+
+        self.fa_theta.borrow_mut().update_action_phi(
+            &Projection::Dense(z),
+            t.action,
+            self.alpha * residual,
+        );
     }
 }
 
-impl<S, M: Projector<S>, P: FinitePolicy<S>> Controller<S, P::Action> for SARSALambda<S, M, P> {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+impl<S, M, P> Controller<S, P::Action> for SARSALambda<S, M, P>
+where
+    M: Projector<S>,
+    P: FinitePolicy<S>,
+{
+    fn sample_target(&mut self, s: &S) -> P::Action {
+        self.policy.borrow_mut().sample(s)
+    }
+
+    fn sample_behaviour(&mut self, s: &S) -> P::Action {
+        self.policy.borrow_mut().sample(s)
+    }
 }
 
-impl<S, M: Projector<S>, P: FinitePolicy<S>> Predictor<S, P::Action> for SARSALambda<S, M, P> {
+impl<S, M, P> ValuePredictor<S> for SARSALambda<S, M, P>
+where
+    M: Projector<S>,
+    P: FinitePolicy<S>,
+{
     fn predict_v(&mut self, s: &S) -> f64 {
         self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
     }
+}
 
+impl<S, M, P> ActionValuePredictor<S, P::Action> for SARSALambda<S, M, P>
+where
+    M: Projector<S>,
+    P: FinitePolicy<S>,
+{
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
@@ -117,7 +141,7 @@ impl<S, M: Projector<S>, P: FinitePolicy<S>> Predictor<S, P::Action> for SARSALa
     }
 }
 
-impl<S, M: Projector<S>, P: Policy<S, Action = usize>> Parameterised for SARSALambda<S, M, P> {
+impl<S, M: Projector<S>, P> Parameterised for SARSALambda<S, M, P> {
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.borrow().weights()
     }

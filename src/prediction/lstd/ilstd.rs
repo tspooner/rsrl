@@ -1,17 +1,17 @@
-use core::{Algorithm, Predictor, Parameter, Trace, Shared};
+use core::*;
 use domains::Transition;
 use fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
-use geometry::{Space, Vector, Matrix};
+use geometry::Space;
 use ndarray::Axis;
 use utils::argmaxima;
 
 #[allow(non_camel_case_types)]
 pub struct iLSTD<S, P: Projector<S>> {
     pub fa_theta: Shared<SimpleLFA<S, P>>,
-    pub n_updates: usize,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
+    pub n_updates: usize,
 
     a: Matrix<f64>,
     mu: Vector<f64>,
@@ -27,10 +27,11 @@ impl<S, P: Projector<S>> iLSTD<S, P> {
         let n_features = fa_theta.borrow().projector.dim();
 
         iLSTD {
-            fa_theta, n_updates,
+            fa_theta,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
+            n_updates,
 
             a: Matrix::zeros((n_features, n_features)),
             mu: Vector::zeros((n_features,)),
@@ -44,18 +45,7 @@ impl<S, P: Projector<S>> iLSTD<S, P> {
         self.fa_theta.borrow().projector.project(s).expanded(self.a.rows())
     }
 
-    #[inline(always)]
-    fn do_update(&mut self, phi_s: Vector<f64>, pd: Vector<f64>, reward: f64) {
-        // (D x D)
-        let delta_a = phi_s.clone().insert_axis(Axis(1)).dot(&(pd.insert_axis(Axis(0))));
-
-        self.a += &delta_a;
-
-        self.mu.scaled_add(reward, &phi_s);
-        self.mu -= &delta_a.dot(&self.fa_theta.borrow().approximator.weights);
-    }
-
-    fn consolidate(&mut self) {
+    fn solve(&mut self) {
         let mut fa = self.fa_theta.borrow_mut();
         let alpha = self.alpha.value();
 
@@ -74,39 +64,47 @@ impl<S, P: Projector<S>> iLSTD<S, P> {
     }
 }
 
-impl<S, A, P: Projector<S>> Algorithm<S, A> for iLSTD<S, P> {
-    fn handle_sample(&mut self, t: &Transition<S, A>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
-        let phi_s = self.compute_dense_fv(s);
-        let phi_ns = self.compute_dense_fv(ns);
-
-        let pd = phi_s.clone() - self.gamma.value()*phi_ns;
-
-        self.do_update(phi_s, pd, t.reward);
-        self.consolidate();
-    }
-
-    fn handle_terminal(&mut self, t: &Transition<S, A>) {
-        {
-            self.handle_sample(t);
-
-            let phi_terminal = self.compute_dense_fv(t.to.state());
-
-            self.do_update(phi_terminal.clone(), phi_terminal, 0.0);
-            self.consolidate();
-        }
-
+impl<S, P: Projector<S>> Algorithm for iLSTD<S, P> {
+    fn step_hyperparams(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, P: Projector<S>> Predictor<S, A> for iLSTD<S, P> {
+impl<S, A, P: Projector<S>> OnlineLearner<S, A> for iLSTD<S, P> {
+    fn handle_transition(&mut self, t: &Transition<S, A>) {
+        let (s, ns) = (t.from.state(), t.to.state());
+
+        // (D x 1)
+        let phi_s = self.compute_dense_fv(s);
+        let phi_ns = self.compute_dense_fv(ns);
+
+        // (1 x D)
+        let pd = if t.terminated() {
+            phi_s.clone().insert_axis(Axis(0))
+        } else {
+            (phi_s.clone() - self.gamma.value()*phi_ns).insert_axis(Axis(0))
+        };
+
+        // (D x D)
+        let delta_a = phi_s.clone().insert_axis(Axis(1)).dot(&pd);
+
+        self.a += &delta_a;
+
+        self.mu.scaled_add(t.reward, &phi_s);
+        self.mu -= &delta_a.dot(&self.fa_theta.borrow().approximator.weights);
+
+        self.solve();
+    }
+}
+
+impl<S, P: Projector<S>> ValuePredictor<S> for iLSTD<S, P> {
     fn predict_v(&mut self, s: &S) -> f64 {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 }
+
+impl<S, A, P: Projector<S>> ActionValuePredictor<S, A> for iLSTD<S, P> {}
 
 impl<S, P: Projector<S>> Parameterised for iLSTD<S, P> {
     fn weights(&self) -> Matrix<f64> {

@@ -1,4 +1,4 @@
-use core::{Algorithm, Controller, Predictor, Parameter, Shared};
+use core::*;
 use domains::Transition;
 use fa::Parameterised;
 use geometry::norms::l1;
@@ -6,12 +6,8 @@ use policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
 /// Natural actor-critic.
-pub struct NAC<S, C, P>
-where
-    C: Predictor<S, P::Action>,
-    P: Policy<S>,
-{
-    pub critic: C,
+pub struct NAC<S, C, P> {
+    pub critic: Shared<C>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
@@ -19,12 +15,8 @@ where
     phantom: PhantomData<S>,
 }
 
-impl<S, C, P> NAC<S, C, P>
-where
-    C: Predictor<S, P::Action>,
-    P: Policy<S>,
-{
-    pub fn new<T: Into<Parameter>>(critic: C, policy: Shared<P>, alpha: T) -> Self {
+impl<S, C, P> NAC<S, C, P> {
+    pub fn new<T: Into<Parameter>>(critic: Shared<C>, policy: Shared<P>, alpha: T) -> Self {
         NAC {
             critic,
             policy,
@@ -38,46 +30,75 @@ where
 
 impl<S, C, P> NAC<S, C, P>
 where
-    C: Predictor<S, P::Action> + Parameterised,
+    C: Parameterised,
     P: ParameterisedPolicy<S>,
 {
     #[inline(always)]
     fn update_policy(&mut self) {
-        let w = self.critic.weights();
+        let w = self.critic.borrow().weights();
         let z = l1(w.as_slice().unwrap());
 
         self.policy.borrow_mut().update_raw(self.alpha.value() * w / z);
     }
 }
 
-impl<S: Clone, C, P> Algorithm<S, P::Action> for NAC<S, C, P>
+impl<S, C, P> Algorithm for NAC<S, C, P>
 where
-    C: Predictor<S, P::Action> + Parameterised,
-    P: ParameterisedPolicy<S>,
+    C: Algorithm,
+    P: Algorithm,
 {
-    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
-        self.critic.handle_sample(t);
-        self.update_policy();
-    }
-
-    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        {
-            self.critic.handle_terminal(t);
-
-            self.update_policy();
-            self.policy.borrow_mut().handle_terminal(t);
-        }
-
+    fn step_hyperparams(&mut self) {
         self.alpha = self.alpha.step();
+
+        self.critic.borrow_mut().step_hyperparams();
+        self.policy.borrow_mut().step_hyperparams();
     }
 }
 
-impl<S: Clone, C, P> Controller<S, P::Action> for NAC<S, C, P>
+impl<S, C, P> OnlineLearner<S, P::Action> for NAC<S, C, P>
 where
-    C: Predictor<S, P::Action> + Parameterised,
+    C: OnlineLearner<S, P::Action> + Parameterised,
     P: ParameterisedPolicy<S>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+        self.critic.borrow_mut().handle_transition(t);
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+        self.update_policy();
+    }
+}
+
+impl<S, C, P> ValuePredictor<S> for NAC<S, C, P>
+where
+    C: ValuePredictor<S>,
+{
+    fn predict_v(&mut self, s: &S) -> f64 {
+        self.critic.borrow_mut().predict_v(s)
+    }
+}
+
+impl<S, C, P> ActionValuePredictor<S, P::Action> for NAC<S, C, P>
+where
+    C: ActionValuePredictor<S, P::Action>,
+    P: Policy<S>,
+{
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+        self.critic.borrow_mut().predict_qs(s)
+    }
+
+    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
+        self.critic.borrow_mut().predict_qsa(s, a)
+    }
+}
+
+impl<S, C, P> Controller<S, P::Action> for NAC<S, C, P>
+where
+    P: Policy<S>,
+{
+    fn sample_target(&mut self, s: &S) -> P::Action {
+        self.policy.borrow_mut().sample(s)
+    }
+
+    fn sample_behaviour(&mut self, s: &S) -> P::Action {
+        self.policy.borrow_mut().sample(s)
+    }
 }

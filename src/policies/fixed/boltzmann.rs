@@ -1,7 +1,6 @@
-use core::Parameter;
+use core::*;
 use domains::Transition;
 use fa::SharedQFunction;
-use geometry::Vector;
 use policies::{sample_probs, FinitePolicy, Policy};
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
@@ -24,6 +23,10 @@ impl<S> Boltzmann<S> {
     }
 }
 
+impl<S> Algorithm for Boltzmann<S> {
+    fn step_hyperparams(&mut self) { self.tau = self.tau.step() }
+}
+
 impl<S> Policy<S> for Boltzmann<S> {
     type Action = usize;
 
@@ -34,8 +37,6 @@ impl<S> Policy<S> for Boltzmann<S> {
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
-
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) { self.tau = self.tau.step() }
 }
 
 impl<S> FinitePolicy<S> for Boltzmann<S> {

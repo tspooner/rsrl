@@ -1,7 +1,7 @@
+use core::*;
 use fa::SharedQFunction;
-use geometry::Vector;
 use policies::{FinitePolicy, Policy};
-use rand::{thread_rng, Rng};
+use rand::{thread_rng, Rng, seq::SliceRandom};
 use utils::argmaxima;
 
 pub struct Greedy<S>(SharedQFunction<S>);
@@ -9,6 +9,8 @@ pub struct Greedy<S>(SharedQFunction<S>);
 impl<S> Greedy<S> {
     pub fn new(q_func: SharedQFunction<S>) -> Self { Greedy(q_func) }
 }
+
+impl<S> Algorithm for Greedy<S> {}
 
 impl<S> Policy<S> for Greedy<S> {
     type Action = usize;
@@ -20,8 +22,8 @@ impl<S> Policy<S> for Greedy<S> {
         if maxima.len() == 1 {
             maxima[0]
         } else {
-            *thread_rng()
-                .choose(&maxima)
+            *maxima
+                .choose(&mut thread_rng())
                 .expect("No valid actions to choose from in `Greedy.sample(qs)`")
         }
     }

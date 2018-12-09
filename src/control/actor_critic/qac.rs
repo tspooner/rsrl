@@ -1,15 +1,11 @@
-use core::{Algorithm, Controller, Predictor, Parameter, Shared};
+use core::*;
 use domains::Transition;
 use policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
 /// Action-value actor-critic.
-pub struct QAC<S, C, P>
-where
-    C: Predictor<S, P::Action>,
-    P: Policy<S>,
-{
-    pub critic: C,
+pub struct QAC<S, C, P> {
+    pub critic: Shared<C>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
@@ -17,12 +13,8 @@ where
     phantom: PhantomData<S>,
 }
 
-impl<S, C, P> QAC<S, C, P>
-where
-    C: Predictor<S, P::Action>,
-    P: Policy<S>,
-{
-    pub fn new<T: Into<Parameter>>(critic: C, policy: Shared<P>, alpha: T) -> Self {
+impl<S, C, P> QAC<S, C, P> {
+    pub fn new<T: Into<Parameter>>(critic: Shared<C>, policy: Shared<P>, alpha: T) -> Self {
         QAC {
             critic,
             policy,
@@ -34,51 +26,67 @@ where
     }
 }
 
-impl<S, C, P> QAC<S, C, P>
+impl<S, C, P> Algorithm for QAC<S, C, P>
 where
-    C: Predictor<S, P::Action>,
-    P: ParameterisedPolicy<S>,
-    P::Action: Copy,
+    C: Algorithm,
+    P: Algorithm,
 {
-    #[inline(always)]
-    fn update_policy(&mut self, t: &Transition<S, P::Action>) {
-        let s = t.from.state();
-        let qsa = self.critic.predict_qsa(s, t.action);
-
-        self.policy.borrow_mut().update(s, t.action, self.alpha * qsa);
-    }
-}
-
-impl<S: Clone, C, P> Algorithm<S, P::Action> for QAC<S, C, P>
-where
-    C: Predictor<S, P::Action>,
-    P: ParameterisedPolicy<S>,
-    P::Action: Copy,
-{
-    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
-        self.critic.handle_sample(t);
-        self.update_policy(t);
-    }
-
-    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        {
-            self.critic.handle_terminal(t);
-
-            self.update_policy(t);
-            self.policy.borrow_mut().handle_terminal(t);
-        }
-
+    fn step_hyperparams(&mut self) {
         self.alpha = self.alpha.step();
+
+        self.critic.borrow_mut().step_hyperparams();
+        self.policy.borrow_mut().step_hyperparams();
     }
 }
 
-impl<S: Clone, C, P> Controller<S, P::Action> for QAC<S, C, P>
+impl<S, C, P> OnlineLearner<S, P::Action> for QAC<S, C, P>
 where
-    C: Predictor<S, P::Action>,
+    C: OnlineLearner<S, P::Action> + ActionValuePredictor<S, P::Action>,
     P: ParameterisedPolicy<S>,
-    P::Action: Copy,
+    P::Action: Clone,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+        self.critic.borrow_mut().handle_transition(t);
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+        let s = t.from.state();
+        let qsa = self.critic.borrow_mut().predict_qsa(s, t.action.clone());
+
+        self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * qsa);
+    }
+}
+
+impl<S, C, P> ValuePredictor<S> for QAC<S, C, P>
+where
+    C: ValuePredictor<S>,
+{
+    fn predict_v(&mut self, s: &S) -> f64 {
+        self.critic.borrow_mut().predict_v(s)
+    }
+}
+
+impl<S, C, P> ActionValuePredictor<S, P::Action> for QAC<S, C, P>
+where
+    C: ActionValuePredictor<S, P::Action>,
+    P: Policy<S>,
+{
+    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+        self.critic.borrow_mut().predict_qs(s)
+    }
+
+    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
+        self.critic.borrow_mut().predict_qsa(s, a)
+    }
+}
+
+impl<S, C, P> Controller<S, P::Action> for QAC<S, C, P>
+where
+    P: ParameterisedPolicy<S>,
+{
+    fn sample_target(&mut self, s: &S) -> P::Action {
+        self.policy.borrow_mut().sample(s)
+    }
+
+    fn sample_behaviour(&mut self, s: &S) -> P::Action {
+        self.policy.borrow_mut().sample(s)
+    }
 }

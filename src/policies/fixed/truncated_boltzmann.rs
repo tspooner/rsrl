@@ -1,10 +1,9 @@
-use super::{sample_probs, FinitePolicy, Policy};
-use core::Parameter;
+use core::*;
 use domains::Transition;
 use fa::SharedQFunction;
-use geometry::Vector;
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
+use super::{sample_probs, FinitePolicy, Policy};
 
 fn kappa(c: f64, x: f64) -> f64 { c / (1.0 + (-x).exp()) }
 
@@ -26,6 +25,10 @@ impl<S> TruncatedBoltzmann<S> {
     }
 }
 
+impl<S> Algorithm for TruncatedBoltzmann<S> {
+    fn step_hyperparams(&mut self) { self.c = self.c.step(); }
+}
+
 impl<S> Policy<S> for TruncatedBoltzmann<S> {
     type Action = usize;
 
@@ -36,8 +39,6 @@ impl<S> Policy<S> for TruncatedBoltzmann<S> {
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
-
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) { self.c = self.c.step(); }
 }
 
 impl<S> FinitePolicy<S> for TruncatedBoltzmann<S> {

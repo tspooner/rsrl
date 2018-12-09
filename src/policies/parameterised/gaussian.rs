@@ -1,8 +1,6 @@
-use super::pdfs::normal_pdf;
-use core::Parameter;
+use core::*;
 use domains::Transition;
 use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA};
-use geometry::Matrix;
 use policies::{DifferentiablePolicy, ParameterisedPolicy, Policy};
 use rand::{
     distributions::{Distribution, Normal as NormalDist},
@@ -10,6 +8,7 @@ use rand::{
     thread_rng,
 };
 use std::ops::AddAssign;
+use super::pdfs::normal_pdf;
 
 pub struct Gaussian1d<S, M: Projector<S>> {
     pub fa_mean: SimpleLFA<S, M>,
@@ -33,6 +32,10 @@ impl<S, M: Projector<S>> Gaussian1d<S, M> {
     pub fn mean(&self, phi: &Projection) -> f64 { self.fa_mean.approximator.evaluate(phi).unwrap() }
 }
 
+impl<S, M: Projector<S>> Algorithm for Gaussian1d<S, M> {
+    fn step_hyperparams(&mut self) { self.std.step(); }
+}
+
 impl<S, M: Projector<S>> Policy<S> for Gaussian1d<S, M> {
     type Action = f64;
 
@@ -48,8 +51,6 @@ impl<S, M: Projector<S>> Policy<S> for Gaussian1d<S, M> {
 
         normal_pdf(self.mean(&phi), self.std.value(), a)
     }
-
-    fn handle_terminal(&mut self, _: &Transition<S, f64>) { self.std.step(); }
 }
 
 impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<S, M> {

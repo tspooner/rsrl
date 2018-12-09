@@ -1,4 +1,5 @@
-use geometry::{Space, Vector};
+use core::*;
+use geometry::Space;
 use policies::{FinitePolicy, Policy};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -13,6 +14,8 @@ impl Random {
 
     pub fn from_space<S: Space>(space: S) -> Self { Self::new(space.dim()) }
 }
+
+impl Algorithm for Random {}
 
 impl<S> Policy<S> for Random {
     type Action = usize;

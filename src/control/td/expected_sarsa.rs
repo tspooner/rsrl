@@ -1,4 +1,4 @@
-use core::{Algorithm, Predictor, Controller, Shared, Parameter, Vector, Matrix};
+use core::*;
 use domains::Transition;
 use fa::{Parameterised, QFunction};
 use policies::{Policy, FinitePolicy};
@@ -13,7 +13,7 @@ use std::marker::PhantomData;
 /// theoretical and empirical analysis of Expected Sarsa. In Proceedings of the
 /// IEEE Symposium on Adaptive Dynamic Programming and Reinforcement Learning,
 /// pp. 177–184.
-pub struct ExpectedSARSA<S, Q: QFunction<S>, P: Policy<S>> {
+pub struct ExpectedSARSA<S, Q, P> {
     pub q_func: Shared<Q>,
     pub policy: Shared<P>,
 
@@ -23,7 +23,7 @@ pub struct ExpectedSARSA<S, Q: QFunction<S>, P: Policy<S>> {
     phantom: PhantomData<S>,
 }
 
-impl<S, Q: QFunction<S>, P: Policy<S>> ExpectedSARSA<S, Q, P> {
+impl<S, Q, P> ExpectedSARSA<S, Q, P> {
     pub fn new<T1, T2>(q_func: Shared<Q>, policy: Shared<P>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
@@ -41,49 +41,60 @@ impl<S, Q: QFunction<S>, P: Policy<S>> ExpectedSARSA<S, Q, P> {
     }
 }
 
-impl<S, Q: QFunction<S>, P: FinitePolicy<S>> ExpectedSARSA<S, Q, P> {
-    #[inline(always)]
-    fn update_q(&mut self, state: &S, action: P::Action, error: f64) {
-        self.q_func.borrow_mut().update_action(state, action, self.alpha * error);
+impl<S, Q, P: Algorithm> Algorithm for ExpectedSARSA<S, Q, P> {
+    fn step_hyperparams(&mut self) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
+
+        self.policy.borrow_mut().step_hyperparams();
     }
 }
 
-impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Algorithm<S, P::Action> for ExpectedSARSA<S, Q, P> {
-    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
+impl<S, Q, P> OnlineLearner<S, P::Action> for ExpectedSARSA<S, Q, P>
+where
+    Q: QFunction<S>,
+    P: FinitePolicy<S>,
+{
+    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qsa = self.predict_qsa(s, t.action);
-        let exp_nv = self.predict_v(ns);
-        let td_error = t.reward + self.gamma * exp_nv - qsa;
+        let residual = if t.terminated() {
+            t.reward - qsa
+        } else {
+            let exp_nv = self.predict_v(ns);
 
-        self.update_q(&s, t.action, td_error);
-    }
+            t.reward + self.gamma * exp_nv - qsa
+        };
 
-    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        {
-            let s = t.from.state();
-            let qsa = self.predict_qsa(s, t.action);
-
-            self.update_q(&s, t.action, t.reward - qsa);
-
-            self.policy.borrow_mut().handle_terminal(t);
-        }
-
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
+        self.q_func.borrow_mut().update_action(s, t.action, self.alpha * residual);
     }
 }
 
-impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Controller<S, P::Action> for ExpectedSARSA<S, Q, P> {
+impl<S, Q, P> Controller<S, P::Action> for ExpectedSARSA<S, Q, P>
+where
+    P: Policy<S>,
+{
     fn sample_target(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+
     fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Predictor<S, P::Action> for ExpectedSARSA<S, Q, P> {
+impl<S, Q, P> ValuePredictor<S> for ExpectedSARSA<S, Q, P>
+where
+    Q: QFunction<S>,
+    P: FinitePolicy<S>,
+{
     fn predict_v(&mut self, s: &S) -> f64 {
         self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
     }
+}
 
+impl<S, Q, P> ActionValuePredictor<S, P::Action> for ExpectedSARSA<S, Q, P>
+where
+    Q: QFunction<S>,
+    P: FinitePolicy<S>,
+{
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
@@ -95,8 +106,7 @@ impl<S, Q: QFunction<S>, P: FinitePolicy<S>> Predictor<S, P::Action> for Expecte
 
 impl<S, Q, P> Parameterised for ExpectedSARSA<S, Q, P>
 where
-    Q: QFunction<S> + Parameterised,
-    P: FinitePolicy<S>,
+    Q: Parameterised,
 {
     fn weights(&self) -> Matrix<f64> {
         self.q_func.borrow().weights()

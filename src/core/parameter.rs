@@ -1,5 +1,4 @@
 //! Variable parameters module.
-
 use std::f64;
 use std::ops::{Add, Div, Mul, Sub};
 

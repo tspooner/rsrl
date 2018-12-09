@@ -1,4 +1,4 @@
-use core::Controller;
+use core::*;
 use domains::{Domain, Observation};
 use geometry::Space;
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
@@ -86,10 +86,7 @@ where
             e.reward += t.reward;
 
             a = match t.to {
-                Observation::Terminal(_) => {
-                    self.agent.handle_terminal(&t);
-                    break;
-                },
+                Observation::Terminal(_) => break,
                 _ => self.agent.sample_target(&t.to.state()),
             };
         }
@@ -127,7 +124,7 @@ where
 
 impl<'a, S: Space, A: Space, C, D> Iterator for SerialExperiment<'a, C, D>
 where
-    C: Controller<S::Value, A::Value>,
+    C: OnlineLearner<S::Value, A::Value> + Controller<S::Value, A::Value>,
     D: Domain<StateSpace = S, ActionSpace = A>,
 {
     type Item = Episode;
@@ -147,16 +144,17 @@ where
             e.steps = j;
             e.reward += t.reward;
 
-            // TODO: Clean this mess up!
-            if let Observation::Terminal(_) = t.to {
-                self.agent.handle_terminal(&t);
-                break;
-            } else if j >= self.step_limit {
-                self.agent.handle_sample(&t);
-                break;
-            } else {
-                self.agent.handle_sample(&t);
+            self.agent.handle_transition(&t);
 
+            if t.terminated() {
+                self.agent.step_hyperparams();
+
+                break
+
+            } else if j >= self.step_limit {
+                break
+
+            } else {
                 a = self.agent.sample_behaviour(&t.to.state());
             }
         }

@@ -1,5 +1,5 @@
 //! Prediction agents module.
-pub use core::Predictor;
+pub use core::{ValuePredictor, ActionValuePredictor};
 
 pub mod gtd;
 pub mod mc;

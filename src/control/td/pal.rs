@@ -1,4 +1,4 @@
-use core::{Algorithm, Controller, Predictor, Shared, Parameter, Vector, Matrix};
+use core::*;
 use domains::Transition;
 use fa::{Parameterised, QFunction};
 use policies::{fixed::Greedy, Policy};
@@ -8,7 +8,7 @@ use policies::{fixed::Greedy, Policy};
 /// # References
 /// - Bellemare, Marc G., et al. "Increasing the Action Gap: New Operators for
 /// Reinforcement Learning." AAAI. 2016.
-pub struct PAL<S, Q: QFunction<S>, P: Policy<S>> {
+pub struct PAL<S, Q, P> {
     pub q_func: Shared<Q>,
 
     pub policy: Shared<P>,
@@ -40,69 +40,70 @@ where
     }
 }
 
-impl<S, Q: QFunction<S>, P: Policy<S, Action = usize>> PAL<S, Q, P> {
-    #[inline(always)]
-    fn update_q(&mut self, state: &S, action: P::Action, error: f64) {
-        self.q_func.borrow_mut().update_action(state, action, self.alpha * error);
+impl<S, Q, P: Algorithm> Algorithm for PAL<S, Q, P> {
+    fn step_hyperparams(&mut self) {
+        self.alpha = self.alpha.step();
+        self.gamma = self.gamma.step();
+
+        self.policy.borrow_mut().step_hyperparams();
+        self.target.step_hyperparams();
     }
 }
 
-impl<S, Q, P> Algorithm<S, P::Action> for PAL<S, Q, P>
+impl<S, Q, P> OnlineLearner<S, P::Action> for PAL<S, Q, P>
 where
     Q: QFunction<S>,
-    P: Policy<S, Action = usize>,
+    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
 {
-    fn handle_sample(&mut self, t: &Transition<S, P::Action>) {
+    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
 
         let qs = self.predict_qs(s);
-        let nqs = self.predict_qs(ns);
 
-        let a_star = self.sample_target(s);
-        let na_star = self.sample_target(ns);
+        let residual = if t.terminated() {
+            t.reward - qs[t.action]
 
-        let td_error = t.reward + self.gamma * nqs[a_star] - qs[t.action];
-        let al_error = td_error - self.alpha * (qs[a_star] - qs[t.action]);
-        let pal_error = al_error.max(td_error - self.alpha * (nqs[na_star] - nqs[t.action]));
+        } else {
+            let nqs = self.predict_qs(ns);
+            let a_star = self.sample_target(s);
+            let na_star = self.sample_target(ns);
 
-        self.update_q(s, t.action, pal_error);
-    }
+            let td_error = t.reward + self.gamma * nqs[a_star] - qs[t.action];
+            let al_error = td_error - self.alpha * (qs[a_star] - qs[t.action]);
 
-    fn handle_terminal(&mut self, t: &Transition<S, P::Action>) {
-        {
-            let s = t.from.state();
-            let qsa = self.predict_qsa(s, t.action);
+            al_error.max(td_error - self.alpha * (nqs[na_star] - nqs[t.action]))
+        };
 
-            self.update_q(s, t.action, t.reward - qsa);
-
-            self.target.handle_terminal(t);
-            self.policy.borrow_mut().handle_terminal(t);
-        }
-
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
+        self.q_func.borrow_mut().update_action(s, t.action, self.alpha * residual);
     }
 }
 
 impl<S, Q, P> Controller<S, P::Action> for PAL<S, Q, P>
 where
-    Q: QFunction<S>,
-    P: Policy<S, Action = usize>,
+    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
     fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, Q, P> Predictor<S, P::Action> for PAL<S, Q, P>
+impl<S, Q, P> ValuePredictor<S> for PAL<S, Q, P>
 where
     Q: QFunction<S>,
-    P: Policy<S, Action = usize>,
+    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.q_func.borrow().evaluate(s).unwrap()[self.target.sample(s)]
-    }
+        let a = self.target.sample(s);
 
+        self.predict_qsa(s, a)
+    }
+}
+
+impl<S, Q, P> ActionValuePredictor<S, P::Action> for PAL<S, Q, P>
+where
+    Q: QFunction<S>,
+    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+{
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
     }
@@ -114,8 +115,7 @@ where
 
 impl<S, Q, P> Parameterised for PAL<S, Q, P>
 where
-    Q: QFunction<S> + Parameterised,
-    P: Policy<S, Action = usize>,
+    Q: Parameterised,
 {
     fn weights(&self) -> Matrix<f64> {
         self.q_func.borrow().weights()
