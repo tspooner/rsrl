@@ -28,20 +28,6 @@ impl<S, C, P> NAC<S, C, P> {
     }
 }
 
-impl<S, C, P> NAC<S, C, P>
-where
-    C: Parameterised,
-    P: ParameterisedPolicy<S>,
-{
-    #[inline(always)]
-    fn update_policy(&mut self) {
-        let w = self.critic.borrow().weights();
-        let z = l1(w.as_slice().unwrap());
-
-        self.policy.borrow_mut().update_raw(self.alpha.value() * w / z);
-    }
-}
-
 impl<S, C, P> Algorithm for NAC<S, C, P>
 where
     C: Algorithm,
@@ -63,7 +49,10 @@ where
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         self.critic.borrow_mut().handle_transition(t);
 
-        self.update_policy();
+        let w = self.critic.borrow().weights();
+        let z = l1(w.as_slice().unwrap());
+
+        self.policy.borrow_mut().update_raw(self.alpha.value() * w / z);
     }
 }
 

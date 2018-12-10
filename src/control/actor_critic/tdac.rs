@@ -59,7 +59,11 @@ where
 
         let v = self.critic.borrow_mut().predict_v(s);
         let nv = self.critic.borrow_mut().predict_v(ns);
-        let td_error = t.reward + self.gamma*nv - v;
+        let td_error = if t.terminated() {
+            t.reward - v
+        } else {
+            t.reward + self.gamma * nv - v
+        };
 
         self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * td_error);
     }
