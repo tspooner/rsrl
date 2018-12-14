@@ -33,7 +33,7 @@ impl<S, M: Projector<S>> Gaussian1d<S, M> {
 }
 
 impl<S, M: Projector<S>> Algorithm for Gaussian1d<S, M> {
-    fn step_hyperparams(&mut self) { self.std.step(); }
+    fn handle_terminal(&mut self) { self.std = self.std.step(); }
 }
 
 impl<S, M: Projector<S>> Policy<S> for Gaussian1d<S, M> {

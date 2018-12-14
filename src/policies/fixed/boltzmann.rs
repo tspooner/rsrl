@@ -24,7 +24,7 @@ impl<S> Boltzmann<S> {
 }
 
 impl<S> Algorithm for Boltzmann<S> {
-    fn step_hyperparams(&mut self) { self.tau = self.tau.step() }
+    fn handle_terminal(&mut self) { self.tau = self.tau.step() }
 }
 
 impl<S> Policy<S> for Boltzmann<S> {
@@ -124,7 +124,7 @@ mod tests {
 
         for _ in 0..100 {
             tau = tau.step();
-            p.handle_terminal(&domain.step(0));
+            p.handle_terminal();
 
             assert_eq!(tau.value(), p.tau.value());
         }

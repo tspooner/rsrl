@@ -40,7 +40,7 @@ impl<S, P: Projector<S>> TDC<S, P> {
 }
 
 impl<S, M: Projector<S>> Algorithm for TDC<S, M> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();

@@ -3,8 +3,8 @@ use domains::{Transition, Observation::Terminal};
 use geometry::Vector;
 
 pub trait Algorithm {
-    /// Step `Self`'s hyperparameter values forward once.
-    fn step_hyperparams(&mut self) {}
+    /// Perform housekeeping after terminal state observation.
+    fn handle_terminal(&mut self) {}
 }
 
 pub trait OnlineLearner<S, A>: Algorithm {

@@ -41,12 +41,12 @@ where
 }
 
 impl<S, Q, P: Algorithm> Algorithm for PAL<S, Q, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().step_hyperparams();
-        self.target.step_hyperparams();
+        self.policy.borrow_mut().handle_terminal();
+        self.target.handle_terminal();
     }
 }
 

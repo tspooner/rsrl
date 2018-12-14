@@ -53,7 +53,7 @@ where
 }
 
 impl<S, M: Projector<S>, P> Algorithm for GreedyGQ<S, M, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.beta = self.beta.step();
         self.gamma = self.gamma.step();

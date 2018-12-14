@@ -30,7 +30,7 @@ impl<S, V: VFunction<S>> GradientMC<S, V> {
 }
 
 impl<S, V: VFunction<S>> Algorithm for GradientMC<S, V> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }

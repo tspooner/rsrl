@@ -67,7 +67,7 @@ impl<S, P: Projector<S>> LSTDLambda<S, P> {
 }
 
 impl<S, P: Projector<S>> Algorithm for LSTDLambda<S, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.gamma = self.gamma.step();
     }
 }

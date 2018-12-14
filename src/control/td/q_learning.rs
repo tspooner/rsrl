@@ -47,11 +47,11 @@ where
 }
 
 impl<S, Q, P: Algorithm> Algorithm for QLearning<S, Q, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().step_hyperparams();
+        self.policy.borrow_mut().handle_terminal();
     }
 }
 

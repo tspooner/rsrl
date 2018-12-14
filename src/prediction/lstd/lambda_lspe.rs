@@ -69,8 +69,10 @@ impl<S, P: Projector<S>> LambdaLSPE<S, P> {
 }
 
 impl<S, P: Projector<S>> Algorithm for LambdaLSPE<S, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
+        self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+        self.lambda = self.lambda.step();
     }
 }
 

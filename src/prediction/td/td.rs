@@ -31,7 +31,7 @@ impl<S, V: VFunction<S>> TD<S, V> {
 }
 
 impl<S, V: VFunction<S>> Algorithm for TD<S, V> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }

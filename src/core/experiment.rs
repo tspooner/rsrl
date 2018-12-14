@@ -147,7 +147,7 @@ where
             self.agent.handle_transition(&t);
 
             if t.terminated() {
-                self.agent.step_hyperparams();
+                self.agent.handle_terminal();
 
                 break
 
@@ -155,7 +155,7 @@ where
                 break
 
             } else {
-                a = self.agent.sample_behaviour(&t.to.state());
+                a = self.agent.sample_behaviour(t.to.state());
             }
         }
 

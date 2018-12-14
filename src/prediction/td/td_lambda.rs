@@ -35,7 +35,7 @@ impl<S, P: Projector<S>> TDLambda<S, P> {
 }
 
 impl<S, M: Projector<S>> Algorithm for TDLambda<S, M> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }

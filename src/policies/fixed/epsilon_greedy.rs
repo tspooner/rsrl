@@ -27,11 +27,11 @@ impl<S> EpsilonGreedy<S> {
 }
 
 impl<S> Algorithm for EpsilonGreedy<S> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.epsilon = self.epsilon.step();
 
-        self.greedy.step_hyperparams();
-        self.random.step_hyperparams();
+        self.greedy.handle_terminal();
+        self.random.handle_terminal();
     }
 }
 

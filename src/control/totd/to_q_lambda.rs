@@ -70,7 +70,7 @@ where
 }
 
 impl<S, M: Projector<S>, P> Algorithm for TOQLambda<S, M, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }

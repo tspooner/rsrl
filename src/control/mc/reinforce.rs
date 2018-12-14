@@ -32,11 +32,11 @@ impl<S, P> REINFORCE<S, P> {
 }
 
 impl<S, P: Algorithm> Algorithm for REINFORCE<S, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().step_hyperparams();
+        self.policy.borrow_mut().handle_terminal();
     }
 }
 

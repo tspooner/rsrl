@@ -65,7 +65,7 @@ impl<S, P: Projector<S>> iLSTD<S, P> {
 }
 
 impl<S, P: Projector<S>> Algorithm for iLSTD<S, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }

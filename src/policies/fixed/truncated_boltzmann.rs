@@ -26,7 +26,7 @@ impl<S> TruncatedBoltzmann<S> {
 }
 
 impl<S> Algorithm for TruncatedBoltzmann<S> {
-    fn step_hyperparams(&mut self) { self.c = self.c.step(); }
+    fn handle_terminal(&mut self) { self.c = self.c.step(); }
 }
 
 impl<S> Policy<S> for TruncatedBoltzmann<S> {

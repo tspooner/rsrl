@@ -40,11 +40,11 @@ impl<S, Q, P> SARSA<S, Q, P> {
 }
 
 impl<S, Q, P: Algorithm> Algorithm for SARSA<S, Q, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().step_hyperparams();
+        self.policy.borrow_mut().handle_terminal();
     }
 }
 

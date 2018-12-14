@@ -35,7 +35,7 @@ impl<S, P: Projector<S>> RecursiveLSTD<S, P> {
 }
 
 impl<S, P: Projector<S>> Algorithm for RecursiveLSTD<S, P> {
-    fn step_hyperparams(&mut self) {
+    fn handle_terminal(&mut self) {
         self.gamma = self.gamma.step();
     }
 }
