@@ -1,4 +1,4 @@
-<img align="right" width="120" title="RSRL logo" src="https://github.com/tspooner/rsrl/raw/master/logo.png">
+<img align="left" width="120" title="RSRL logo" src="https://github.com/tspooner/rsrl/raw/master/logo.png">
 
 # RSRL ([api](https://docs.rs/rsrl/))
 
