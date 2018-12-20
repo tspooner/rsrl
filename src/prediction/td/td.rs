@@ -1,11 +1,11 @@
-use core::{Algorithm, Predictor, Parameter};
+use core::*;
 use domains::Transition;
 use fa::{Parameterised, VFunction};
 use geometry::Matrix;
 use std::marker::PhantomData;
 
-pub struct TD<S: ?Sized, V: VFunction<S>> {
-    pub v_func: V,
+pub struct TD<S, V> {
+    pub v_func: Shared<V>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -13,8 +13,8 @@ pub struct TD<S: ?Sized, V: VFunction<S>> {
     phantom: PhantomData<S>,
 }
 
-impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
-    pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
+impl<S, V: VFunction<S>> TD<S, V> {
+    pub fn new<T1, T2>(v_func: Shared<V>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -28,46 +28,38 @@ impl<S: ?Sized, V: VFunction<S>> TD<S, V> {
             phantom: PhantomData,
         }
     }
-
-    #[inline(always)]
-    fn update_v(&mut self, s: &S, error: f64) {
-        let _ = self.v_func.update(s, self.alpha * error);
-    }
 }
 
-impl<S, A, V: VFunction<S>> Algorithm<S, A> for TD<S, V>
-where
-    Self: Predictor<S, A>
-{
-    fn handle_sample(&mut self, t: &Transition<S, A>) {
-        let s = t.from.state();
-        let v = self.predict_v(&s);
-        let nv = self.predict_v(&t.to.state());
-
-        let td_error = t.reward + self.gamma * nv - v;
-
-        self.update_v(&s, td_error);
-    }
-
-    fn handle_terminal(&mut self, t: &Transition<S, A>) {
-        {
-            let s = t.from.state();
-            let td_error = t.reward - self.predict_v(&t.from.state());
-
-            self.update_v(&s, td_error);
-        }
-
+impl<S, V: VFunction<S>> Algorithm for TD<S, V> {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, V: VFunction<S>> Predictor<S, A> for TD<S, V> {
-    fn predict_v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
+impl<S, A, V: VFunction<S>> OnlineLearner<S, A> for TD<S, V> {
+    fn handle_transition(&mut self, t: &Transition<S, A>) {
+        let s = t.from.state();
+        let v = self.predict_v(s);
+
+        let td_error = if t.terminated() {
+            t.reward - v
+        } else {
+            t.reward + self.gamma * self.predict_v(t.to.state()) - v
+        };
+
+        self.v_func.borrow_mut().update(s, self.alpha * td_error).ok();
+    }
 }
 
-impl<S, V: VFunction<S> + Parameterised> Parameterised for TD<S, V> {
+impl<S, V: VFunction<S>> ValuePredictor<S> for TD<S, V> {
+    fn predict_v(&mut self, s: &S) -> f64 { self.v_func.borrow().evaluate(s).unwrap() }
+}
+
+impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for TD<S, V> {}
+
+impl<S, V: Parameterised> Parameterised for TD<S, V> {
     fn weights(&self) -> Matrix<f64> {
-        self.v_func.weights()
+        self.v_func.borrow().weights()
     }
 }

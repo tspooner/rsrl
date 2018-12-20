@@ -1,7 +1,7 @@
 //! Agent policy module.
+use core::*;
 use domains::Transition;
 use fa::Parameterised;
-use geometry::{Matrix, Vector};
 use rand::Rng;
 
 #[inline]
@@ -16,7 +16,7 @@ pub(self) fn sample_probs<R: Rng + ?Sized>(rng: &mut R, probabilities: &[f64]) -
 }
 
 /// Policy trait for functions that select between a set of values.
-pub trait Policy<S> {
+pub trait Policy<S>: Algorithm {
     type Action;
 
     /// Sample the policy distribution for a given input.
@@ -24,9 +24,6 @@ pub trait Policy<S> {
 
     /// Return the probability of selecting an action for a given input.
     fn probability(&mut self, input: &S, a: Self::Action) -> f64;
-
-    #[allow(unused_variables)]
-    fn handle_terminal(&mut self, sample: &Transition<S, Self::Action>) {}
 }
 
 pub trait FinitePolicy<S>: Policy<S, Action = usize> {

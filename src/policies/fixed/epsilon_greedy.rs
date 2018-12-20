@@ -1,9 +1,8 @@
-use super::{FinitePolicy, Greedy, Policy, Random};
-use core::Parameter;
+use core::*;
 use domains::Transition;
 use fa::SharedQFunction;
-use geometry::Vector;
 use rand::{rngs::ThreadRng, thread_rng, Rng};
+use super::{FinitePolicy, Greedy, Policy, Random};
 
 pub struct EpsilonGreedy<S> {
     random: Random,
@@ -27,6 +26,15 @@ impl<S> EpsilonGreedy<S> {
     }
 }
 
+impl<S> Algorithm for EpsilonGreedy<S> {
+    fn handle_terminal(&mut self) {
+        self.epsilon = self.epsilon.step();
+
+        self.greedy.handle_terminal();
+        self.random.handle_terminal();
+    }
+}
+
 impl<S> Policy<S> for EpsilonGreedy<S> {
     type Action = usize;
 
@@ -39,13 +47,6 @@ impl<S> Policy<S> for EpsilonGreedy<S> {
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
-
-    fn handle_terminal(&mut self, t: &Transition<S, usize>) {
-        self.epsilon = self.epsilon.step();
-
-        self.greedy.handle_terminal(t);
-        self.random.handle_terminal(t);
-    }
 }
 
 impl<S> FinitePolicy<S> for EpsilonGreedy<S> {
@@ -59,7 +60,7 @@ impl<S> FinitePolicy<S> for EpsilonGreedy<S> {
 
 #[cfg(test)]
 mod tests {
-    use super::{EpsilonGreedy, FinitePolicy, Parameter, Policy};
+    use super::{Algorithm, EpsilonGreedy, FinitePolicy, Parameter, Policy};
     use domains::{Domain, MountainCar};
     use fa::mocking::MockQ;
     use geometry::Vector;
@@ -111,13 +112,12 @@ mod tests {
 
     #[test]
     fn test_terminal() {
-        let mut domain = MountainCar::default();
         let mut epsilon = Parameter::exponential(100.0, 1.0, 0.9);
         let mut p = EpsilonGreedy::new(MockQ::new_shared(None), epsilon);
 
         for _ in 0..100 {
             epsilon = epsilon.step();
-            p.handle_terminal(&domain.step(0));
+            p.handle_terminal();
 
             assert_eq!(epsilon.value(), p.epsilon.value());
         }

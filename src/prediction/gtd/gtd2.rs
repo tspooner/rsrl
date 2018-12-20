@@ -1,21 +1,20 @@
-use core::{Algorithm, Predictor, Parameter};
+use core::*;
 use domains::Transition;
 use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA, VFunction};
-use geometry::Matrix;
 
-pub struct GTD2<S: ?Sized, P: Projector<S>> {
-    pub fa_theta: SimpleLFA<S, P>,
-    pub fa_w: SimpleLFA<S, P>,
+pub struct GTD2<S, P: Projector<S>> {
+    pub fa_theta: Shared<SimpleLFA<S, P>>,
+    pub fa_w: Shared<SimpleLFA<S, P>>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
 }
 
-impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
+impl<S, P: Projector<S>> GTD2<S, P> {
     pub fn new<T1, T2, T3>(
-        fa_theta: SimpleLFA<S, P>,
-        fa_w: SimpleLFA<S, P>,
+        fa_theta: Shared<SimpleLFA<S, P>>,
+        fa_w: Shared<SimpleLFA<S, P>>,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -25,7 +24,7 @@ impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
-        if fa_theta.projector.dim() != fa_w.projector.dim() {
+        if fa_theta.borrow().projector.dim() != fa_w.borrow().projector.dim() {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
 
@@ -38,58 +37,49 @@ impl<S: ?Sized, P: Projector<S>> GTD2<S, P> {
             gamma: gamma.into(),
         }
     }
-
-    #[inline(always)]
-    fn update_theta(&mut self, phi_s: Projection, phi_ns: Projection, td_estimate: f64) {
-        let dim = self.fa_theta.projector.dim();
-        let phi = phi_s.expanded(dim) - self.gamma.value() * phi_ns.expanded(dim);
-
-        self.fa_theta.update_phi(&Projection::Dense(phi), self.alpha * td_estimate);
-    }
-
-    #[inline(always)]
-    fn update_w(&mut self, phi_s: &Projection, error: f64) {
-        self.fa_w.update_phi(phi_s, self.beta * error);
-    }
 }
 
-impl<S, A, M: Projector<S>> Algorithm<S, A> for GTD2<S, M> {
-    fn handle_sample(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.fa_theta.projector.project(&t.from.state());
-        let phi_ns = self.fa_theta.projector.project(&t.to.state());
-
-        let td_error = t.reward + self.gamma * self.fa_theta.evaluate_phi(&phi_ns)
-            - self.fa_theta.evaluate_phi(&phi_s);
-        let td_estimate = self.fa_w.evaluate_phi(&phi_s);
-
-        self.update_w(&phi_s, td_error - td_estimate);
-        self.update_theta(phi_s, phi_ns, td_estimate);
-    }
-
-    fn handle_terminal(&mut self, t: &Transition<S, A>) {
-        {
-            let phi_s = self.fa_theta.projector.project(&t.from.state());
-            let phi_ns = self.fa_theta.projector.project(&t.to.state());
-
-            let td_error = t.reward - self.fa_theta.evaluate_phi(&phi_s);
-            let td_estimate = self.fa_w.evaluate_phi(&phi_s);
-
-            self.update_w(&phi_s, td_error - td_estimate);
-            self.update_theta(phi_s, phi_ns, td_estimate);
-        }
-
+impl<S, M: Projector<S>> Algorithm for GTD2<S, M> {
+    fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, P: Projector<S>> Predictor<S, A> for GTD2<S, P> {
-    fn predict_v(&mut self, s: &S) -> f64 { self.fa_theta.evaluate(s).unwrap() }
+impl<S, A, M: Projector<S>> OnlineLearner<S, A> for GTD2<S, M> {
+    fn handle_transition(&mut self, t: &Transition<S, A>) {
+        let phi_s = self.fa_theta.borrow().projector.project(&t.from.state());
+        let phi_ns = self.fa_theta.borrow().projector.project(&t.to.state());
+
+        let v = self.fa_theta.borrow().evaluate_phi(&phi_s);
+
+        let td_estimate = self.fa_w.borrow().evaluate_phi(&phi_s);
+        let td_error = if t.terminated() {
+            t.reward - v
+        } else {
+            t.reward + self.gamma * self.fa_theta.borrow().evaluate_phi(&phi_ns) - v
+        };
+
+        self.fa_w.borrow_mut().update_phi(&phi_s, self.beta * (td_error - td_estimate));
+
+        let dim = self.fa_theta.borrow().projector.dim();
+        let pd = phi_s.expanded(dim) - self.gamma.value() * phi_ns.expanded(dim);
+
+        self.fa_theta.borrow_mut().update_phi(&Projection::Dense(pd), self.alpha * td_estimate);
+    }
 }
+
+impl<S, P: Projector<S>> ValuePredictor<S> for GTD2<S, P> {
+    fn predict_v(&mut self, s: &S) -> f64 {
+        self.fa_theta.borrow().evaluate(s).unwrap()
+    }
+}
+
+impl<S, A, P: Projector<S>> ActionValuePredictor<S, A> for GTD2<S, P> {}
 
 impl<S, P: Projector<S>> Parameterised for GTD2<S, P> {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
+        self.fa_theta.borrow().weights()
     }
 }

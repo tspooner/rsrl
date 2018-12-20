@@ -39,6 +39,16 @@ impl<S> Observation<S> {
             Full(ref state) | Partial(ref state) | Terminal(ref state) => state,
         }
     }
+
+    /// Returns true if the observation is terminal.
+    pub fn is_terminal(&self) -> bool {
+        use self::Observation::Terminal;
+
+        match self {
+            &Terminal(_) => true,
+            _ => false,
+        }
+    }
 }
 
 /// Container class for data associated with a domain transition.
@@ -55,6 +65,22 @@ pub struct Transition<S, A> {
 
     /// State transitioned _to_, `s'`.
     pub to: Observation<S>,
+}
+
+impl<S, A> Transition<S, A> {
+    /// Returns true if the transition ends in a terminal state.
+    pub fn terminated(&self) -> bool {
+        self.to.is_terminal()
+    }
+
+    pub fn replace_action<T>(self, action: T) -> Transition<S, T> {
+        Transition {
+            from: self.from,
+            action: action,
+            reward: self.reward,
+            to: self.to,
+        }
+    }
 }
 
 impl_into!(Transition<S, u8> => Transition<S, ()>);

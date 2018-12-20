@@ -5,7 +5,7 @@ extern crate slog;
 use rsrl::{
     control::actor_critic::A2C,
     control::td::SARSA,
-    core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
+    core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{Domain, MountainCar},
     fa::{basis::fixed::Fourier, LFA},
     geometry::Space,
@@ -19,21 +19,21 @@ fn main() {
     let n_actions = domain.action_space().card().into();
     let bases = Fourier::from_space(3, domain.state_space());
 
-    let policy = {
+    let policy = make_shared({
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
         let fa = LFA::vector_valued(bases.clone(), n_actions);
 
         // Build a stochastic behaviour policy with exponential epsilon.
-        make_shared(Gibbs::new(fa))
-    };
-    let critic = {
+        Gibbs::new(fa)
+    });
+    let critic = make_shared({
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
         let q_func = make_shared(LFA::vector_valued(bases, n_actions));
 
         SARSA::new(q_func, policy.clone(), 0.001, 0.99)
-    };
+    });
 
     let mut agent = A2C::new(critic, policy, 0.01);
 

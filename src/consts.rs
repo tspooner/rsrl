@@ -15,4 +15,5 @@ pub const SIX_DEGREES: f64 = f64::consts::PI / 30.0;
 pub const TWELVE_DEGREES: f64 = f64::consts::PI / 15.0;
 
 // Radians
+pub const PI_2: f64 = 2.0 * f64::consts::PI;
 pub const PI_OVER_2: f64 = f64::consts::PI / 2.0;

@@ -1,5 +1,5 @@
+use core::*;
 use fa::{Approximator, MultiLFA, Parameterised, Projector};
-use geometry::{Matrix, Vector};
 use policies::{DifferentiablePolicy, FinitePolicy, ParameterisedPolicy, Policy};
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use std::{f64, ops::AddAssign};
@@ -34,6 +34,8 @@ impl<S, M: Projector<S>> Gibbs<S, M> {
         }
     }
 }
+
+impl<S, M: Projector<S>> Algorithm for Gibbs<S, M> {}
 
 impl<S, M: Projector<S>> Policy<S> for Gibbs<S, M> {
     type Action = usize;

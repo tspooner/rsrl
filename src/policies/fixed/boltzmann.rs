@@ -1,7 +1,6 @@
-use core::Parameter;
+use core::*;
 use domains::Transition;
 use fa::SharedQFunction;
-use geometry::Vector;
 use policies::{sample_probs, FinitePolicy, Policy};
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
@@ -24,6 +23,10 @@ impl<S> Boltzmann<S> {
     }
 }
 
+impl<S> Algorithm for Boltzmann<S> {
+    fn handle_terminal(&mut self) { self.tau = self.tau.step() }
+}
+
 impl<S> Policy<S> for Boltzmann<S> {
     type Action = usize;
 
@@ -34,8 +37,6 @@ impl<S> Policy<S> for Boltzmann<S> {
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
-
-    fn handle_terminal(&mut self, _: &Transition<S, usize>) { self.tau = self.tau.step() }
 }
 
 impl<S> FinitePolicy<S> for Boltzmann<S> {
@@ -63,7 +64,7 @@ impl<S> FinitePolicy<S> for Boltzmann<S> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Boltzmann, FinitePolicy, Parameter, Policy};
+    use super::{Algorithm, Boltzmann, FinitePolicy, Parameter, Policy};
     use domains::{Domain, MountainCar};
     use fa::mocking::MockQ;
     use geometry::Vector;
@@ -117,13 +118,12 @@ mod tests {
 
     #[test]
     fn test_terminal() {
-        let mut domain = MountainCar::default();
         let mut tau = Parameter::exponential(100.0, 1.0, 0.9);
         let mut p = Boltzmann::new(MockQ::new_shared(None), tau);
 
         for _ in 0..100 {
             tau = tau.step();
-            p.handle_terminal(&domain.step(0));
+            p.handle_terminal();
 
             assert_eq!(tau.value(), p.tau.value());
         }
