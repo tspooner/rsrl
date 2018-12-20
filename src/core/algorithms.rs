@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
-use domains::{Transition, Observation::Terminal};
-use geometry::Vector;
+use crate::domains::{Transition, Observation::Terminal};
+use crate::geometry::Vector;
 
 pub trait Algorithm {
     /// Perform housekeeping after terminal state observation.

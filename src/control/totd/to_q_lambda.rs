@@ -1,7 +1,7 @@
-use core::*;
-use domains::Transition;
-use fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
-use policies::{fixed::Greedy, Policy};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
+use crate::policies::{fixed::Greedy, Policy};
 
 /// True online variant of the Q(lambda) algorithm.
 ///

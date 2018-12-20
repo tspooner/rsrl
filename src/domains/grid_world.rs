@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use core::Matrix;
+use crate::core::Matrix;
 use std::{
     cmp,
     fmt::Debug,

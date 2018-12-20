@@ -1,7 +1,7 @@
-use core::*;
-use domains::Transition;
-use fa::{Parameterised, QFunction};
-use policies::{fixed::Greedy, Policy, FinitePolicy};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::{Parameterised, QFunction};
+use crate::policies::{fixed::Greedy, Policy, FinitePolicy};
 use std::collections::VecDeque;
 
 struct BackupEntry<S> {

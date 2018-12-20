@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use geometry::Matrix;
+use crate::geometry::Matrix;
 use std::f64;
 
 pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {

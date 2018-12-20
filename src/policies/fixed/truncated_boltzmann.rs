@@ -1,6 +1,6 @@
-use core::*;
-use domains::Transition;
-use fa::SharedQFunction;
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::SharedQFunction;
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
 use super::{sample_probs, FinitePolicy, Policy};

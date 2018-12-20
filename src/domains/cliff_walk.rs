@@ -1,5 +1,5 @@
-use core::Matrix;
-use geometry::{discrete::Ordinal, product::PairSpace};
+use crate::core::Matrix;
+use crate::geometry::{discrete::Ordinal, product::PairSpace};
 use super::{
     grid_world::{GridWorld, Motion},
     Domain,

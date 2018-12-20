@@ -1,6 +1,6 @@
-use core::*;
-use domains::Transition;
-use policies::{Policy, ParameterisedPolicy};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
 /// Advantage actor-critic.

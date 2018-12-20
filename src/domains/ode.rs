@@ -1,4 +1,4 @@
-use core::Vector;
+use crate::core::Vector;
 
 pub(crate) fn runge_kutta4(fx: &Fn(f64, Vector) -> Vector, x: f64, y: Vector, dx: f64) -> Vector {
     let k1 = dx * fx(x, y.clone());

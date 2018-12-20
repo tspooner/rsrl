@@ -1,8 +1,8 @@
-use core::*;
-use domains::Transition;
-use geometry::Matrix;
-use fa::Parameterised;
-use policies::{Policy, ParameterisedPolicy};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::geometry::Matrix;
+use crate::fa::Parameterised;
+use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
 pub struct REINFORCE<S, P> {

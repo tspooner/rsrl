@@ -1,6 +1,6 @@
-use core::*;
-use geometry::Space;
-use policies::{FinitePolicy, Policy};
+use crate::core::*;
+use crate::geometry::Space;
+use crate::policies::{FinitePolicy, Policy};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::ThreadRng,
@@ -32,7 +32,7 @@ impl<S> FinitePolicy<S> for Random {
 #[cfg(test)]
 mod tests {
     use super::{FinitePolicy, Policy, Random};
-    use geometry::Vector;
+    use crate::geometry::Vector;
 
     #[test]
     fn test_sampling() {

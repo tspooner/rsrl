@@ -1,5 +1,5 @@
-use consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
-use geometry::{
+use crate::consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
+use crate::geometry::{
     continuous::Interval,
     discrete::Ordinal,
     product::LinearSpace,
@@ -149,7 +149,7 @@ impl Domain for CartPole {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use domains::{Domain, Observation};
+    use crate::domains::{Domain, Observation};
 
     #[test]
     fn test_initial_observation() {

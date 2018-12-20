@@ -1,6 +1,6 @@
-use core::*;
-use domains::Transition;
-use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA, VFunction};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA, VFunction};
 
 pub struct GTD2<S, P: Projector<S>> {
     pub fa_theta: Shared<SimpleLFA<S, P>>,

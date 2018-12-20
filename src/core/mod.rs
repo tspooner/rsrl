@@ -1,4 +1,4 @@
-pub use geometry::{Matrix, Vector};
+pub use crate::geometry::{Matrix, Vector};
 
 import_all!(trace);
 import_all!(memory);

@@ -1,6 +1,6 @@
-use core::*;
-use domains::{Domain, Observation};
-use geometry::Space;
+use crate::core::*;
+use crate::domains::{Domain, Observation};
+use crate::geometry::Space;
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
 
 /// Container for episodic statistics.

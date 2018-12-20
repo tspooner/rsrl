@@ -1,5 +1,5 @@
 //! Learning benchmark domains module.
-use geometry::Space;
+use crate::geometry::Space;
 
 macro_rules! impl_into {
     (Transition < S, $type:ty > => Transition < S,() >) => {

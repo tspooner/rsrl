@@ -1,5 +1,5 @@
-use domains::{Domain, Observation, Transition};
-use geometry::{
+use crate::domains::{Domain, Observation, Transition};
+use crate::geometry::{
     Vector,
     continuous::Interval,
     discrete::Ordinal,
@@ -118,7 +118,7 @@ impl Domain for MountainCar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use domains::{Domain, Observation};
+    use crate::domains::{Domain, Observation};
 
     #[test]
     fn test_initial_observation() {

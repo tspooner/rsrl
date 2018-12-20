@@ -1,7 +1,7 @@
-use core::*;
-use domains::Transition;
-use fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
-use policies::{Policy, FinitePolicy};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
+use crate::policies::{Policy, FinitePolicy};
 
 /// True online variant of the SARSA(lambda) algorithm.
 ///

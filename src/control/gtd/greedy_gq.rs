@@ -1,7 +1,7 @@
-use core::*;
-use domains::Transition;
-use fa::*;
-use policies::{fixed::Greedy, Policy, FinitePolicy};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::*;
+use crate::policies::{fixed::Greedy, Policy, FinitePolicy};
 
 /// Greedy GQ control algorithm.
 ///

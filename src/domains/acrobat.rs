@@ -1,6 +1,6 @@
-use consts::{PI_OVER_2, G};
-use core::Vector;
-use geometry::{
+use crate::consts::{PI_OVER_2, G};
+use crate::core::Vector;
+use crate::geometry::{
     continuous::Interval,
     discrete::Ordinal,
     product::LinearSpace,
@@ -173,7 +173,7 @@ impl Domain for Acrobat {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use domains::{Domain, Observation};
+    use crate::domains::{Domain, Observation};
 
     #[test]
     fn test_initial_observation() {

@@ -1,8 +1,8 @@
-use core::*;
-use domains::Transition;
-use fa::Parameterised;
-use geometry::norms::l1;
-use policies::{Policy, ParameterisedPolicy};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::Parameterised;
+use crate::geometry::norms::l1;
+use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
 /// Natural actor-critic.

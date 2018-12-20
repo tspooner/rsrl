@@ -1,5 +1,5 @@
 //! Control agents module.
-pub use core::Controller;
+pub use crate::core::Controller;
 
 pub mod actor_critic;
 pub mod gtd;

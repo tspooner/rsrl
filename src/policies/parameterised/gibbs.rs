@@ -1,6 +1,6 @@
-use core::*;
-use fa::{Approximator, MultiLFA, Parameterised, Projector};
-use policies::{DifferentiablePolicy, FinitePolicy, ParameterisedPolicy, Policy};
+use crate::core::*;
+use crate::fa::{Approximator, MultiLFA, Parameterised, Projector};
+use crate::policies::{DifferentiablePolicy, FinitePolicy, ParameterisedPolicy, Policy};
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use std::{f64, ops::AddAssign};
 

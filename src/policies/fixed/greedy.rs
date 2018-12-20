@@ -1,8 +1,8 @@
-use core::*;
-use fa::SharedQFunction;
-use policies::{FinitePolicy, Policy};
+use crate::core::*;
+use crate::fa::SharedQFunction;
+use crate::policies::{FinitePolicy, Policy};
 use rand::{thread_rng, Rng, seq::SliceRandom};
-use utils::argmaxima;
+use crate::utils::argmaxima;
 
 pub struct Greedy<S>(SharedQFunction<S>);
 
@@ -50,8 +50,8 @@ impl<S> FinitePolicy<S> for Greedy<S> {
 #[cfg(test)]
 mod tests {
     use super::{FinitePolicy, Greedy, Policy};
-    use fa::mocking::MockQ;
-    use geometry::Vector;
+    use crate::fa::mocking::MockQ;
+    use crate::geometry::Vector;
 
     #[test]
     #[should_panic]

@@ -1,5 +1,5 @@
 //! Eligibility trace types
-use core::{Parameter, Vector};
+use crate::core::{Parameter, Vector};
 
 pub enum TraceType {
     Accumulating,
