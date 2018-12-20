@@ -1,7 +1,7 @@
-use core::*;
-use domains::Transition;
-use fa::{Parameterised, VFunction};
-use geometry::Matrix;
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::{Parameterised, VFunction};
+use crate::geometry::Matrix;
 use std::marker::PhantomData;
 
 pub struct TD<S, V> {

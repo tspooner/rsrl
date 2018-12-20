@@ -1,7 +1,7 @@
-use core::*;
-use domains::Transition;
-use fa::{Parameterised, QFunction};
-use policies::{Policy, FinitePolicy};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::{Parameterised, QFunction};
+use crate::policies::{Policy, FinitePolicy};
 use std::marker::PhantomData;
 
 /// Action probability-weighted variant of SARSA (aka "summation Q-learning").

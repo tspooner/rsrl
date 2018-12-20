@@ -1,6 +1,6 @@
-use core::*;
-use domains::Transition;
-use fa::SharedQFunction;
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::SharedQFunction;
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use super::{FinitePolicy, Greedy, Policy, Random};
 
@@ -61,9 +61,9 @@ impl<S> FinitePolicy<S> for EpsilonGreedy<S> {
 #[cfg(test)]
 mod tests {
     use super::{Algorithm, EpsilonGreedy, FinitePolicy, Parameter, Policy};
-    use domains::{Domain, MountainCar};
-    use fa::mocking::MockQ;
-    use geometry::Vector;
+    use crate::domains::{Domain, MountainCar};
+    use crate::fa::mocking::MockQ;
+    use crate::geometry::Vector;
 
     #[test]
     fn test_sampling() {

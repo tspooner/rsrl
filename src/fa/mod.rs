@@ -1,6 +1,6 @@
 //! Function approximation and value function representation module.
-use core::Shared;
-use geometry::Vector;
+use crate::core::Shared;
+use crate::geometry::Vector;
 
 extern crate lfa;
 use self::lfa::approximators::{ScalarFunction, VectorFunction};

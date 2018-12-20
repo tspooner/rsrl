@@ -1,5 +1,5 @@
-use core::Vector;
-use geometry::{
+use crate::core::Vector;
+use crate::geometry::{
     continuous::Interval,
     discrete::Ordinal,
     product::LinearSpace,

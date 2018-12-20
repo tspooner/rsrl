@@ -1,8 +1,8 @@
-use core::*;
-use domains::Transition;
-use fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA};
 use ndarray::Axis;
-use policies::{DifferentiablePolicy, ParameterisedPolicy, Policy};
+use crate::policies::{DifferentiablePolicy, ParameterisedPolicy, Policy};
 use rand::{
     distributions::{Distribution, Normal as NormalDist},
     rngs::ThreadRng,

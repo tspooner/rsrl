@@ -1,7 +1,7 @@
 //! Agent policy module.
-use core::*;
-use domains::Transition;
-use fa::Parameterised;
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::Parameterised;
 use rand::Rng;
 
 #[inline]

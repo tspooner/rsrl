@@ -1,9 +1,9 @@
-use core::*;
-use domains::Transition;
-use fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
-use geometry::Space;
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
+use crate::geometry::Space;
 use ndarray::Axis;
-use utils::argmaxima;
+use crate::utils::argmaxima;
 
 #[allow(non_camel_case_types)]
 pub struct iLSTD<S, P: Projector<S>> {

@@ -1,7 +1,7 @@
-use core::*;
-use domains::Transition;
-use fa::SharedQFunction;
-use policies::{sample_probs, FinitePolicy, Policy};
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::SharedQFunction;
+use crate::policies::{sample_probs, FinitePolicy, Policy};
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
 
@@ -65,9 +65,9 @@ impl<S> FinitePolicy<S> for Boltzmann<S> {
 #[cfg(test)]
 mod tests {
     use super::{Algorithm, Boltzmann, FinitePolicy, Parameter, Policy};
-    use domains::{Domain, MountainCar};
-    use fa::mocking::MockQ;
-    use geometry::Vector;
+    use crate::domains::{Domain, MountainCar};
+    use crate::fa::mocking::MockQ;
+    use crate::geometry::Vector;
     use std::f64::consts::E;
 
     #[test]

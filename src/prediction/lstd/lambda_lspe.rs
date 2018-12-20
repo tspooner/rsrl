@@ -1,10 +1,10 @@
-use core::*;
-use domains::Transition;
-use fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
-use geometry::Space;
+use crate::core::*;
+use crate::domains::Transition;
+use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
+use crate::geometry::Space;
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
-use utils::{argmaxima, pinv};
+use crate::utils::{argmaxima, pinv};
 
 pub struct LambdaLSPE<S, P: Projector<S>> {
     pub fa_theta: Shared<SimpleLFA<S, P>>,

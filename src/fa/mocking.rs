@@ -1,6 +1,6 @@
-use core::{make_shared, Shared};
-use fa::{Approximator, EvaluationResult, QFunction, UpdateResult, VFunction};
-use geometry::Vector;
+use crate::core::{make_shared, Shared};
+use crate::fa::{Approximator, EvaluationResult, QFunction, UpdateResult, VFunction};
+use crate::geometry::Vector;
 use std::marker::PhantomData;
 
 pub struct MockQ {

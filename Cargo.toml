@@ -13,6 +13,8 @@ keywords = ["machine", "reinforcement", "learning", "rl", "ai"]
 repository = "https://github.com/tspooner/rsrl"
 documentation = "https://docs.rs/rsrl"
 
+edition = "2018"
+
 [badges]
 travis-ci = { repository = "tspooner/rsrl", branch = "master" }
 coveralls = { repository = "tspooner/rsrl", branch = "master", service = "github" }
