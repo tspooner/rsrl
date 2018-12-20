@@ -27,7 +27,7 @@ fn main() {
         let eps = Parameter::exponential(0.99, 0.05, 0.99);
         let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
 
-        SARSALambda::new(trace, q_func, policy, 0.001, 0.99)
+        SARSALambda::new(q_func, policy, trace, 0.001, 0.99)
     };
 
     let logger = logging::root(logging::stdout());

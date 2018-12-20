@@ -64,7 +64,7 @@ impl<S> FinitePolicy<S> for Boltzmann<S> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Boltzmann, FinitePolicy, Parameter, Policy};
+    use super::{Algorithm, Boltzmann, FinitePolicy, Parameter, Policy};
     use domains::{Domain, MountainCar};
     use fa::mocking::MockQ;
     use geometry::Vector;
@@ -118,7 +118,6 @@ mod tests {
 
     #[test]
     fn test_terminal() {
-        let mut domain = MountainCar::default();
         let mut tau = Parameter::exponential(100.0, 1.0, 0.9);
         let mut p = Boltzmann::new(MockQ::new_shared(None), tau);
 

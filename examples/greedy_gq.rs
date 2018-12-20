@@ -4,7 +4,7 @@ extern crate slog;
 
 use rsrl::{
     control::gtd::GreedyGQ,
-    core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
+    core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
     fa::{basis::fixed::Fourier, LFA},
     geometry::Space,
@@ -25,7 +25,7 @@ fn main() {
         let q_func = make_shared(LFA::vector_valued(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
-        let eps = Parameter::exponential(0.75, 0.001, 0.99);
+        let eps = Parameter::exponential(0.3, 0.001, 0.99);
         let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
 
         GreedyGQ::new(q_func, v_func, policy, 1e-3, 1e-4, 0.99)

@@ -60,7 +60,7 @@ impl<S> FinitePolicy<S> for EpsilonGreedy<S> {
 
 #[cfg(test)]
 mod tests {
-    use super::{EpsilonGreedy, FinitePolicy, Parameter, Policy};
+    use super::{Algorithm, EpsilonGreedy, FinitePolicy, Parameter, Policy};
     use domains::{Domain, MountainCar};
     use fa::mocking::MockQ;
     use geometry::Vector;
@@ -112,13 +112,12 @@ mod tests {
 
     #[test]
     fn test_terminal() {
-        let mut domain = MountainCar::default();
         let mut epsilon = Parameter::exponential(100.0, 1.0, 0.9);
         let mut p = EpsilonGreedy::new(MockQ::new_shared(None), epsilon);
 
         for _ in 0..100 {
             epsilon = epsilon.step();
-            p.handle_terminal(&domain.step(0));
+            p.handle_terminal();
 
             assert_eq!(epsilon.value(), p.epsilon.value());
         }

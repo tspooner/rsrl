@@ -4,7 +4,7 @@ extern crate slog;
 
 use rsrl::{
     control::td::PAL,
-    core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
+    core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
     fa::{basis::fixed::Fourier, LFA},
     geometry::Space,
