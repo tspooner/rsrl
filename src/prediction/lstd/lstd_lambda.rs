@@ -78,19 +78,20 @@ impl<S, A, P: Projector<S>> BatchLearner<S, A> for LSTDLambda<S, P> {
             let (s, ns) = (t.from.state(), t.to.state());
 
             let phi_s = self.compute_dense_fv(s);
-            let phi_ns = self.compute_dense_fv(ns);
-
             let z = self.update_trace(&phi_s);
+
+            self.b.scaled_add(t.reward, &z);
+
             let pd = if t.terminated() {
                 self.trace.decay(0.0);
 
                 phi_s
-
             } else {
+                let phi_ns = self.compute_dense_fv(ns);
+
                 phi_s - self.gamma.value()*phi_ns
             }.insert_axis(Axis(0));
 
-            self.b.scaled_add(t.reward, &z);
             self.a += &z.insert_axis(Axis(1)).dot(&pd);
         });
 

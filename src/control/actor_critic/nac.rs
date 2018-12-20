@@ -50,9 +50,8 @@ where
         self.critic.borrow_mut().handle_transition(t);
 
         let w = self.critic.borrow().weights();
-        let z = l1(w.as_slice().unwrap());
 
-        self.policy.borrow_mut().update_raw(self.alpha.value() * w / z);
+        self.policy.borrow_mut().update_raw(self.alpha.value() * w);
     }
 }
 

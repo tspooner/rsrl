@@ -3,7 +3,7 @@ use domains::Transition;
 use policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
-/// Action-value actor-critic.
+/// TD-error actor-critic.
 pub struct TDAC<S, C, P> {
     pub critic: Shared<C>,
     pub policy: Shared<P>,
@@ -46,6 +46,28 @@ where
     }
 }
 
+impl<S, C, P> TDAC<S, C, P>
+where
+    C: ValuePredictor<S>,
+    P: ParameterisedPolicy<S>,
+    P::Action: Clone,
+{
+    fn update_policy(&mut self, t: &Transition<S, P::Action>) {
+        let (s, ns) = (t.from.state(), t.to.state());
+
+        let v = self.critic.borrow_mut().predict_v(s);
+        let nv = self.critic.borrow_mut().predict_v(ns);
+
+        let residual = if t.terminated() {
+            t.reward - v
+        } else {
+            t.reward + self.gamma * nv - v
+        };
+
+        self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * residual);
+    }
+}
+
 impl<S, C, P> OnlineLearner<S, P::Action> for TDAC<S, C, P>
 where
     C: OnlineLearner<S, P::Action> + ValuePredictor<S>,
@@ -53,19 +75,16 @@ where
     P::Action: Clone,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
         self.critic.borrow_mut().handle_transition(t);
+        self.update_policy(t);
+    }
 
-        let v = self.critic.borrow_mut().predict_v(s);
-        let nv = self.critic.borrow_mut().predict_v(ns);
-        let td_error = if t.terminated() {
-            t.reward - v
-        } else {
-            t.reward + self.gamma * nv - v
-        };
+    fn handle_sequence(&mut self, sequence: &[Transition<S, P::Action>]) {
+        self.critic.borrow_mut().handle_sequence(sequence);
 
-        self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * td_error);
+        sequence.into_iter().for_each(|ref t| {
+            self.update_policy(t);
+        });
     }
 }
 

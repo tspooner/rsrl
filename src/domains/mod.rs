@@ -72,6 +72,15 @@ impl<S, A> Transition<S, A> {
     pub fn terminated(&self) -> bool {
         self.to.is_terminal()
     }
+
+    pub fn replace_action<T>(self, action: T) -> Transition<S, T> {
+        Transition {
+            from: self.from,
+            action: action,
+            reward: self.reward,
+            to: self.to,
+        }
+    }
 }
 
 impl_into!(Transition<S, u8> => Transition<S, ()>);
