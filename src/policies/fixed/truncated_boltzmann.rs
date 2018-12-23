@@ -3,7 +3,7 @@ use crate::domains::Transition;
 use crate::fa::SharedQFunction;
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
-use super::{sample_probs, FinitePolicy, Policy};
+use super::{sample_probs_with_rng, FinitePolicy, Policy};
 
 fn kappa(c: f64, x: f64) -> f64 { c / (1.0 + (-x).exp()) }
 
@@ -35,7 +35,7 @@ impl<S> Policy<S> for TruncatedBoltzmann<S> {
     fn sample(&mut self, s: &S) -> usize {
         let ps = self.probabilities(s);
 
-        sample_probs(&mut self.rng, ps.as_slice().unwrap())
+        sample_probs_with_rng(&mut self.rng, ps.as_slice().unwrap())
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }

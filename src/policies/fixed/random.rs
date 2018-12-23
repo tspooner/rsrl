@@ -7,6 +7,10 @@ use rand::{
     thread_rng,
 };
 
+// TODO: Generalise the random policy to work on any `Space`. This won't be hard at all, just use
+// T: Into<Space>. Just make sure that you add all the relevant From implementations for the
+// different spaces in the `spaces` crate; i.e. From<usize> for Ordinal etc etc...
+
 pub struct Random(usize, ThreadRng);
 
 impl Random {
