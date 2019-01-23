@@ -34,7 +34,7 @@ pub struct QSigma<S, Q, P> {
     pub q_func: Shared<Q>,
 
     pub policy: Shared<P>,
-    pub target: Greedy<S>,
+    pub target: Greedy<Q>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -44,7 +44,7 @@ pub struct QSigma<S, Q, P> {
     backup: VecDeque<BackupEntry<S>>,
 }
 
-impl<S, Q: QFunction<S> + 'static, P> QSigma<S, Q, P> {
+impl<S, Q, P> QSigma<S, Q, P> {
     pub fn new<T1, T2, T3>(
         q_func: Shared<Q>,
         policy: Shared<P>,
@@ -72,7 +72,9 @@ impl<S, Q: QFunction<S> + 'static, P> QSigma<S, Q, P> {
             backup: VecDeque::new(),
         }
     }
+}
 
+impl<S, Q: QFunction<S>, P> QSigma<S, Q, P> {
     fn consume_backup(&mut self) {
         let mut g = self.backup[0].q;
         let mut z = 1.0;
@@ -122,8 +124,8 @@ impl<S, Q, P: Algorithm> Algorithm for QSigma<S, Q, P> {
 impl<S, Q, P> OnlineLearner<S, P::Action> for QSigma<S, Q, P>
 where
     S: Clone,
-    Q: QFunction<S> + 'static,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    Q: QFunction<S>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
@@ -178,7 +180,8 @@ where
 
 impl<S, Q, P> Controller<S, P::Action> for QSigma<S, Q, P>
 where
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    Q: QFunction<S>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
@@ -188,7 +191,7 @@ where
 impl<S, Q, P> ValuePredictor<S> for QSigma<S, Q, P>
 where
     Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
         let a = self.target.sample(s);
@@ -200,7 +203,7 @@ where
 impl<S, Q, P> ActionValuePredictor<S, P::Action> for QSigma<S, Q, P>
 where
     Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
@@ -211,10 +214,7 @@ where
     }
 }
 
-impl<S, Q, P> Parameterised for QSigma<S, Q, P>
-where
-    Q: Parameterised,
-{
+impl<S, Q: Parameterised, P> Parameterised for QSigma<S, Q, P> {
     fn weights(&self) -> Matrix<f64> {
         self.q_func.borrow().weights()
     }

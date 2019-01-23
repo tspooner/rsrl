@@ -3,16 +3,19 @@ use crate::core::Shared;
 use crate::geometry::Vector;
 
 extern crate lfa;
-use self::lfa::approximators::{ScalarFunction, VectorFunction};
 pub use self::lfa::{
-    basis,
-    AdaptResult,
-    Approximator,
-    EvaluationResult,
-    Parameterised,
-    Projection,
-    Projector,
-    UpdateResult,
+    approximators::*,
+    basis::{
+        self,
+        Projector,
+        Projection,
+    },
+    core::{
+        AdaptResult,
+        EvaluationResult,
+        UpdateResult,
+        Parameterised,
+    },
     LFA,
 };
 
@@ -22,8 +25,8 @@ pub(crate) mod mocking;
 mod table;
 pub use self::table::Table;
 
-pub type SimpleLFA<S, P> = LFA<S, P, ScalarFunction>;
-pub type MultiLFA<S, P> = LFA<S, P, VectorFunction>;
+pub type ScalarLFA<P> = LFA<P, ScalarFunction>;
+pub type VectorLFA<P> = LFA<P, VectorFunction>;
 
 pub type SharedVFunction<S> = Shared<VFunction<S, Value = f64>>;
 pub type SharedQFunction<S> = Shared<QFunction<S, Value = Vector<f64>>>;
@@ -37,18 +40,18 @@ pub trait VFunction<S: ?Sized>: Approximator<S, Value = f64> {
     fn update_phi(&mut self, phi: &Projection, update: f64) { unimplemented!() }
 }
 
-impl<S: ?Sized, P: Projector<S>> VFunction<S> for SimpleLFA<S, P> {
-    fn evaluate_phi(&self, phi: &Projection) -> f64 { self.approximator.evaluate(phi).unwrap() }
+impl<S: ?Sized, P: Projector<S>> VFunction<S> for ScalarLFA<P> {
+    fn evaluate_phi(&self, phi: &Projection) -> f64 {
+        self.evaluate_primal(phi).unwrap()
+    }
 
     fn update_phi(&mut self, phi: &Projection, update: f64) {
-        let _ = self.approximator.update(phi, update);
+        let _ = self.update_primal(phi, update);
     }
 }
 
 /// An interface for action-value functions.
 pub trait QFunction<S: ?Sized>: Approximator<S, Value = Vector<f64>> {
-    fn n_actions(&self) -> usize;
-
     fn evaluate_action(&self, input: &S, action: usize) -> f64 {
         self.evaluate(input).unwrap()[action]
     }
@@ -71,9 +74,7 @@ pub trait QFunction<S: ?Sized>: Approximator<S, Value = Vector<f64>> {
     }
 }
 
-impl<S: ?Sized, P: Projector<S>> QFunction<S> for MultiLFA<S, P> {
-    fn n_actions(&self) -> usize { self.approximator.weights.cols() }
-
+impl<S: ?Sized, P: Projector<S>> QFunction<S> for VectorLFA<P> {
     fn evaluate_action(&self, input: &S, action: usize) -> f64 {
         let p = self.projector.project(input);
 

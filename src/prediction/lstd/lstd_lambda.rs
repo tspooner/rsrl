@@ -1,14 +1,13 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
+use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA};
 use crate::geometry::Space;
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
 use crate::utils::{argmaxima, pinv};
 
-pub struct LSTDLambda<S, P: Projector<S>> {
-    pub fa_theta: Shared<SimpleLFA<S, P>>,
-
+pub struct LSTDLambda<M> {
+    pub fa_theta: Shared<ScalarLFA<M>>,
     pub gamma: Parameter,
 
     trace: Trace,
@@ -17,10 +16,9 @@ pub struct LSTDLambda<S, P: Projector<S>> {
     b: Vector<f64>,
 }
 
-impl<S, P: Projector<S>> LSTDLambda<S, P> {
-    pub fn new<T: Into<Parameter>>(fa_theta: Shared<SimpleLFA<S, P>>,
-                                   trace: Trace,
-                                   gamma: T) -> Self {
+impl<M: Space> LSTDLambda<M> {
+    pub fn new<T: Into<Parameter>>(fa_theta: Shared<ScalarLFA<M>>,
+                                   trace: Trace, gamma: T) -> Self {
         let n_features = fa_theta.borrow().projector.dim();
 
         LSTDLambda {
@@ -36,12 +34,7 @@ impl<S, P: Projector<S>> LSTDLambda<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> LSTDLambda<S, P> {
-    #[inline(always)]
-    fn compute_dense_fv(&self, s: &S) -> Vector<f64> {
-        self.fa_theta.borrow().projector.project(s).expanded(self.a.rows())
-    }
-
+impl<M> LSTDLambda<M> {
     #[inline]
     fn update_trace(&mut self, phi: &Vector<f64>) -> Vector<f64> {
         let decay_rate = self.trace.lambda.value() * self.gamma.value();
@@ -66,18 +59,18 @@ impl<S, P: Projector<S>> LSTDLambda<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Algorithm for LSTDLambda<S, P> {
+impl<M> Algorithm for LSTDLambda<M> {
     fn handle_terminal(&mut self) {
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, P: Projector<S>> BatchLearner<S, A> for LSTDLambda<S, P> {
+impl<S, A, M: Projector<S>> BatchLearner<S, A> for LSTDLambda<M> {
     fn handle_batch(&mut self, ts: &[Transition<S, A>]) {
         ts.into_iter().for_each(|t| {
             let (s, ns) = (t.from.state(), t.to.state());
 
-            let phi_s = self.compute_dense_fv(s);
+            let phi_s = self.fa_theta.borrow().projector.project(s).expanded(self.a.rows());
             let z = self.update_trace(&phi_s);
 
             self.b.scaled_add(t.reward, &z);
@@ -87,7 +80,7 @@ impl<S, A, P: Projector<S>> BatchLearner<S, A> for LSTDLambda<S, P> {
 
                 phi_s
             } else {
-                let phi_ns = self.compute_dense_fv(ns);
+                let phi_ns = self.fa_theta.borrow().projector.project(ns).expanded(self.a.rows());
 
                 phi_s - self.gamma.value()*phi_ns
             }.insert_axis(Axis(0));
@@ -99,15 +92,24 @@ impl<S, A, P: Projector<S>> BatchLearner<S, A> for LSTDLambda<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> ValuePredictor<S> for LSTDLambda<S, P> {
+impl<S, M> ValuePredictor<S> for LSTDLambda<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{
     fn predict_v(&mut self, s: &S) -> f64 {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 }
 
-impl<S, A, P: Projector<S>> ActionValuePredictor<S, A> for LSTDLambda<S, P> {}
+impl<S, A, M> ActionValuePredictor<S, A> for LSTDLambda<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{}
 
-impl<S, P: Projector<S>> Parameterised for LSTDLambda<S, P> {
+impl<M> Parameterised for LSTDLambda<M>
+where
+    ScalarLFA<M>: Parameterised,
+{
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.borrow().weights()
     }

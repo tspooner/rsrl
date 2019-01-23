@@ -1,21 +1,21 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::SharedQFunction;
+use crate::fa::QFunction;
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
 use super::{sample_probs_with_rng, FinitePolicy, Policy};
 
 fn kappa(c: f64, x: f64) -> f64 { c / (1.0 + (-x).exp()) }
 
-pub struct TruncatedBoltzmann<S> {
-    q_func: SharedQFunction<S>,
+pub struct TruncatedBoltzmann<Q> {
+    q_func: Shared<Q>,
 
     c: Parameter,
     rng: ThreadRng,
 }
 
-impl<S> TruncatedBoltzmann<S> {
-    pub fn new<T: Into<Parameter>>(q_func: SharedQFunction<S>, c: T) -> Self {
+impl<Q> TruncatedBoltzmann<Q> {
+    pub fn new<T: Into<Parameter>>(q_func: Shared<Q>, c: T) -> Self {
         TruncatedBoltzmann {
             q_func,
 
@@ -25,11 +25,13 @@ impl<S> TruncatedBoltzmann<S> {
     }
 }
 
-impl<S> Algorithm for TruncatedBoltzmann<S> {
-    fn handle_terminal(&mut self) { self.c = self.c.step(); }
+impl<Q> Algorithm for TruncatedBoltzmann<Q> {
+    fn handle_terminal(&mut self) {
+        self.c = self.c.step();
+    }
 }
 
-impl<S> Policy<S> for TruncatedBoltzmann<S> {
+impl<S, Q: QFunction<S>> Policy<S> for TruncatedBoltzmann<Q> {
     type Action = usize;
 
     fn sample(&mut self, s: &S) -> usize {
@@ -41,7 +43,11 @@ impl<S> Policy<S> for TruncatedBoltzmann<S> {
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
 }
 
-impl<S> FinitePolicy<S> for TruncatedBoltzmann<S> {
+impl<S, Q: QFunction<S>> FinitePolicy<S> for TruncatedBoltzmann<Q> {
+    fn n_actions(&self) -> usize {
+        self.q_func.borrow().n_outputs()
+    }
+
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
         let c = self.c.value();
 

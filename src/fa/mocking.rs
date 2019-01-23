@@ -24,6 +24,13 @@ impl MockQ {
 impl Approximator<Vector<f64>> for MockQ {
     type Value = Vector<f64>;
 
+    fn n_outputs(&self) -> usize {
+        match self.output {
+            Some(ref vector) => vector.len(),
+            None => 0,
+        }
+    }
+
     fn evaluate(&self, s: &Vector<f64>) -> EvaluationResult<Vector<f64>> {
         Ok(match self.output {
             Some(ref vector) => vector.clone(),
@@ -34,11 +41,4 @@ impl Approximator<Vector<f64>> for MockQ {
     fn update(&mut self, _: &Vector<f64>, _: Vector<f64>) -> UpdateResult<()> { Ok(()) }
 }
 
-impl QFunction<Vector<f64>> for MockQ {
-    fn n_actions(&self) -> usize {
-        match self.output {
-            Some(ref vector) => vector.len(),
-            None => 0,
-        }
-    }
-}
+impl QFunction<Vector<f64>> for MockQ {}

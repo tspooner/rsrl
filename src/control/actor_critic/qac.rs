@@ -4,29 +4,25 @@ use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
 /// Action-value actor-critic.
-pub struct QAC<S, C, P> {
+pub struct QAC<C, P> {
     pub critic: Shared<C>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S, C, P> QAC<S, C, P> {
+impl<C, P> QAC<C, P> {
     pub fn new<T: Into<Parameter>>(critic: Shared<C>, policy: Shared<P>, alpha: T) -> Self {
         QAC {
             critic,
             policy,
 
             alpha: alpha.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
-impl<S, C, P> Algorithm for QAC<S, C, P>
+impl<C, P> Algorithm for QAC<C, P>
 where
     C: Algorithm,
     P: Algorithm,
@@ -39,7 +35,7 @@ where
     }
 }
 
-impl<S, C, P> OnlineLearner<S, P::Action> for QAC<S, C, P>
+impl<S, C, P> OnlineLearner<S, P::Action> for QAC<C, P>
 where
     C: OnlineLearner<S, P::Action> + ActionValuePredictor<S, P::Action>,
     P: ParameterisedPolicy<S>,
@@ -53,9 +49,20 @@ where
 
         self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * qsa);
     }
+
+    fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
+        self.critic.borrow_mut().handle_sequence(seq);
+
+        for t in seq {
+            let s = t.from.state();
+            let qsa = self.critic.borrow_mut().predict_qsa(s, t.action.clone());
+
+            self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * qsa);
+        }
+    }
 }
 
-impl<S, C, P> ValuePredictor<S> for QAC<S, C, P>
+impl<S, C, P> ValuePredictor<S> for QAC<C, P>
 where
     C: ValuePredictor<S>,
 {
@@ -64,7 +71,7 @@ where
     }
 }
 
-impl<S, C, P> ActionValuePredictor<S, P::Action> for QAC<S, C, P>
+impl<S, C, P> ActionValuePredictor<S, P::Action> for QAC<C, P>
 where
     C: ActionValuePredictor<S, P::Action>,
     P: Policy<S>,
@@ -78,7 +85,7 @@ where
     }
 }
 
-impl<S, C, P> Controller<S, P::Action> for QAC<S, C, P>
+impl<S, C, P> Controller<S, P::Action> for QAC<C, P>
 where
     P: ParameterisedPolicy<S>,
 {

@@ -8,21 +8,17 @@ use crate::policies::{fixed::Greedy, Policy};
 /// # References
 /// - Bellemare, Marc G., et al. "Increasing the Action Gap: New Operators for
 /// Reinforcement Learning." AAAI. 2016.
-pub struct PAL<S, Q, P> {
+pub struct PAL<Q, P> {
     pub q_func: Shared<Q>,
 
     pub policy: Shared<P>,
-    pub target: Greedy<S>,
+    pub target: Greedy<Q>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
-impl<S, Q, P> PAL<S, Q, P>
-where
-    Q: QFunction<S> + 'static,
-    P: Policy<S>,
-{
+impl<Q, P> PAL<Q, P> {
     pub fn new<T1, T2>(q_func: Shared<Q>, policy: Shared<P>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
@@ -40,7 +36,7 @@ where
     }
 }
 
-impl<S, Q, P: Algorithm> Algorithm for PAL<S, Q, P> {
+impl<Q, P: Algorithm> Algorithm for PAL<Q, P> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
@@ -50,10 +46,10 @@ impl<S, Q, P: Algorithm> Algorithm for PAL<S, Q, P> {
     }
 }
 
-impl<S, Q, P> OnlineLearner<S, P::Action> for PAL<S, Q, P>
+impl<S, Q, P> OnlineLearner<S, P::Action> for PAL<Q, P>
 where
     Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
@@ -78,19 +74,20 @@ where
     }
 }
 
-impl<S, Q, P> Controller<S, P::Action> for PAL<S, Q, P>
+impl<S, Q, P> Controller<S, P::Action> for PAL<Q, P>
 where
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    Q: QFunction<S>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
     fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, Q, P> ValuePredictor<S> for PAL<S, Q, P>
+impl<S, Q, P> ValuePredictor<S> for PAL<Q, P>
 where
     Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
         let a = self.target.sample(s);
@@ -99,10 +96,10 @@ where
     }
 }
 
-impl<S, Q, P> ActionValuePredictor<S, P::Action> for PAL<S, Q, P>
+impl<S, Q, P> ActionValuePredictor<S, P::Action> for PAL<Q, P>
 where
     Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
@@ -113,10 +110,7 @@ where
     }
 }
 
-impl<S, Q, P> Parameterised for PAL<S, Q, P>
-where
-    Q: Parameterised,
-{
+impl<Q: Parameterised, P> Parameterised for PAL<Q, P> {
     fn weights(&self) -> Matrix<f64> {
         self.q_func.borrow().weights()
     }

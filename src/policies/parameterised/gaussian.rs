@@ -1,6 +1,6 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA};
+use crate::fa::{Approximator, VFunction, Parameterised, Projection, Projector, ScalarLFA};
 use ndarray::Axis;
 use crate::policies::{DifferentiablePolicy, ParameterisedPolicy, Policy};
 use rand::{
@@ -11,16 +11,22 @@ use rand::{
 use std::ops::AddAssign;
 use super::pdfs::normal_pdf;
 
-struct Mean<S, M: Projector<S>> {
-    pub fa: SimpleLFA<S, M>,
+pub struct Mean<F> {
+    pub fa: F,
 }
 
-impl<S, M: Projector<S>> Mean<S, M> {
-    fn evaluate(&self, input: &S) -> f64 {
+impl<F> Mean<F> {
+    fn evaluate<S>(&self, input: &S) -> f64
+        where F: VFunction<S>,
+    {
         self.fa.evaluate(input).unwrap()
     }
+}
 
-    fn grad_log(&self, input: &S, a: f64) -> Vector<f64> {
+impl<M> Mean<ScalarLFA<M>> {
+    fn grad_log<S>(&self, input: &S, a: f64) -> Vector<f64>
+        where M: Projector<S>,
+    {
         let phi = self.fa.projector.project(input);
         let mean = self.fa.approximator.evaluate(&phi).unwrap();
         let phi = phi.expanded(self.fa.projector.dim());
@@ -29,15 +35,15 @@ impl<S, M: Projector<S>> Mean<S, M> {
     }
 }
 
-pub struct Gaussian1d<S, M: Projector<S>> {
-    mean: Mean<S, M>,
-    std: Parameter,
+pub struct Gaussian1d<F> {
+    pub mean: Mean<F>,
+    pub std: Parameter,
 
     rng: ThreadRng,
 }
 
-impl<S, M: Projector<S>> Gaussian1d<S, M> {
-    pub fn new<T: Into<Parameter>>(fa_mean: SimpleLFA<S, M>, std: T) -> Self {
+impl<F> Gaussian1d<F> {
+    pub fn new<T: Into<Parameter>>(fa_mean: F, std: T) -> Self {
         Gaussian1d {
             mean: Mean { fa: fa_mean, },
             std: std.into(),
@@ -47,7 +53,9 @@ impl<S, M: Projector<S>> Gaussian1d<S, M> {
     }
 
     #[inline]
-    pub fn mean(&self, input: &S) -> f64 {
+    pub fn mean<S>(&self, input: &S) -> f64
+        where F: VFunction<S>,
+    {
         self.mean.evaluate(input)
     }
 
@@ -64,11 +72,13 @@ impl<S, M: Projector<S>> Gaussian1d<S, M> {
     }
 }
 
-impl<S, M: Projector<S>> Algorithm for Gaussian1d<S, M> {
-    fn handle_terminal(&mut self) { self.std = self.std.step(); }
+impl<F> Algorithm for Gaussian1d<F> {
+    fn handle_terminal(&mut self) {
+        self.std = self.std.step();
+    }
 }
 
-impl<S, M: Projector<S>> Policy<S> for Gaussian1d<S, M> {
+impl<S, F: VFunction<S>> Policy<S> for Gaussian1d<F> {
     type Action = f64;
 
     fn sample(&mut self, input: &S) -> f64 {
@@ -84,28 +94,27 @@ impl<S, M: Projector<S>> Policy<S> for Gaussian1d<S, M> {
     }
 }
 
-impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<S, M> {
+impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<ScalarLFA<M>> {
     fn grad_log(&self, input: &S, a: f64) -> Matrix<f64> {
         self.mean.grad_log(input, a).insert_axis(Axis(1))
     }
 }
 
-impl<S, M: Projector<S>> Parameterised for Gaussian1d<S, M> {
+impl<F: Parameterised> Parameterised for Gaussian1d<F> {
     fn weights(&self) -> Matrix<f64> {
         self.mean.fa.weights()
     }
 }
 
-impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gaussian1d<S, M> {
+impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gaussian1d<ScalarLFA<M>> {
     fn update(&mut self, input: &S, a: f64, error: f64) {
-        let pi = self.probability(input, a);
         let grad_log = self.grad_log(input, a);
 
         self.mean
             .fa
             .approximator
             .weights
-            .scaled_add(pi * error, &grad_log.column(0));
+            .scaled_add(error, &grad_log.column(0));
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {

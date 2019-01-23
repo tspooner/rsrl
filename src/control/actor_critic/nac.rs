@@ -6,29 +6,25 @@ use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
 /// Natural actor-critic.
-pub struct NAC<S, C, P> {
+pub struct NAC<C, P> {
     pub critic: Shared<C>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S, C, P> NAC<S, C, P> {
+impl<C, P> NAC<C, P> {
     pub fn new<T: Into<Parameter>>(critic: Shared<C>, policy: Shared<P>, alpha: T) -> Self {
         NAC {
             critic,
             policy,
 
             alpha: alpha.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
-impl<S, C, P> Algorithm for NAC<S, C, P>
+impl<C, P> Algorithm for NAC<C, P>
 where
     C: Algorithm,
     P: Algorithm,
@@ -41,21 +37,27 @@ where
     }
 }
 
-impl<S, C, P> OnlineLearner<S, P::Action> for NAC<S, C, P>
+impl<S, C, P> OnlineLearner<S, P::Action> for NAC<C, P>
 where
     C: OnlineLearner<S, P::Action> + Parameterised,
     P: ParameterisedPolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         self.critic.borrow_mut().handle_transition(t);
+        self.policy.borrow_mut().update_raw(
+            self.alpha.value() * self.critic.borrow().weights()
+        );
+    }
 
-        let w = self.critic.borrow().weights();
-
-        self.policy.borrow_mut().update_raw(self.alpha.value() * w);
+    fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
+        self.critic.borrow_mut().handle_sequence(seq);
+        self.policy.borrow_mut().update_raw(
+            self.alpha.value() * self.critic.borrow().weights()
+        );
     }
 }
 
-impl<S, C, P> ValuePredictor<S> for NAC<S, C, P>
+impl<S, C, P> ValuePredictor<S> for NAC<C, P>
 where
     C: ValuePredictor<S>,
 {
@@ -64,7 +66,7 @@ where
     }
 }
 
-impl<S, C, P> ActionValuePredictor<S, P::Action> for NAC<S, C, P>
+impl<S, C, P> ActionValuePredictor<S, P::Action> for NAC<C, P>
 where
     C: ActionValuePredictor<S, P::Action>,
     P: Policy<S>,
@@ -78,7 +80,7 @@ where
     }
 }
 
-impl<S, C, P> Controller<S, P::Action> for NAC<S, C, P>
+impl<S, C, P> Controller<S, P::Action> for NAC<C, P>
 where
     P: Policy<S>,
 {

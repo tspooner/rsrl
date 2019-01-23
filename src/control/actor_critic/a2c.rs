@@ -4,29 +4,25 @@ use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
 /// Advantage actor-critic.
-pub struct A2C<S, C, P> {
+pub struct A2C<C, P> {
     pub critic: Shared<C>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S, C, P> A2C<S, C, P> {
+impl<C, P> A2C<C, P> {
     pub fn new<T: Into<Parameter>>(critic: Shared<C>, policy: Shared<P>, alpha: T) -> Self {
         A2C {
             critic,
             policy,
 
             alpha: alpha.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
-impl<S, C, P> Algorithm for A2C<S, C, P>
+impl<C, P> Algorithm for A2C<C, P>
 where
     C: Algorithm,
     P: Algorithm,
@@ -39,7 +35,7 @@ where
     }
 }
 
-impl<S, C, P> OnlineLearner<S, P::Action> for A2C<S, C, P>
+impl<S, C, P> OnlineLearner<S, P::Action> for A2C<C, P>
 where
     C: OnlineLearner<S, P::Action> + ActionValuePredictor<S, P::Action>,
     P: ParameterisedPolicy<S>,
@@ -54,9 +50,21 @@ where
 
         self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * (qsa - v));
     }
+
+    fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
+        self.critic.borrow_mut().handle_sequence(seq);
+
+        for t in seq {
+            let s = t.from.state();
+            let v = self.critic.borrow_mut().predict_v(s);
+            let qsa = self.critic.borrow_mut().predict_qsa(s, t.action.clone());
+
+            self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * (qsa - v));
+        }
+    }
 }
 
-impl<S, C, P> ValuePredictor<S> for A2C<S, C, P>
+impl<S, C, P> ValuePredictor<S> for A2C<C, P>
 where
     C: ValuePredictor<S>,
 {
@@ -65,7 +73,7 @@ where
     }
 }
 
-impl<S, C, P> ActionValuePredictor<S, P::Action> for A2C<S, C, P>
+impl<S, C, P> ActionValuePredictor<S, P::Action> for A2C<C, P>
 where
     C: ActionValuePredictor<S, P::Action>,
     P: Policy<S>,
@@ -79,7 +87,7 @@ where
     }
 }
 
-impl<S, C, P> Controller<S, P::Action> for A2C<S, C, P>
+impl<S, C, P> Controller<S, P::Action> for A2C<C, P>
 where
     P: Policy<S>,
 {

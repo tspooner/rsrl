@@ -1,6 +1,6 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
+use crate::fa::{Approximator, Parameterised, VectorLFA, Projection, Projector, QFunction};
 use crate::policies::{fixed::Greedy, Policy};
 
 /// True online variant of the Q(lambda) algorithm.
@@ -9,11 +9,11 @@ use crate::policies::{fixed::Greedy, Policy};
 /// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., &
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
-pub struct TOQLambda<S, M: Projector<S>, P> {
-    pub q_func: Shared<MultiLFA<S, M>>,
+pub struct TOQLambda<M, P> {
+    pub q_func: Shared<VectorLFA<M>>,
 
     pub policy: Shared<P>,
-    pub target: Greedy<S>,
+    pub target: Greedy<VectorLFA<M>>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -22,13 +22,10 @@ pub struct TOQLambda<S, M: Projector<S>, P> {
     q_old: f64,
 }
 
-impl<S: 'static, M, P> TOQLambda<S, M, P>
-where
-    M: Projector<S> + 'static,
-{
+impl<M, P> TOQLambda<M, P> {
     pub fn new<T1, T2>(
         trace: Trace,
-        q_func: Shared<MultiLFA<S, M>>,
+        q_func: Shared<VectorLFA<M>>,
         policy: Shared<P>,
         alpha: T1,
         gamma: T2,
@@ -50,13 +47,7 @@ where
             q_old: 0.0,
         }
     }
-}
 
-impl<S, M, P> TOQLambda<S, M, P>
-where
-    M: Projector<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
-{
     #[inline(always)]
     fn update_traces(&mut self, phi: Vector<f64>, decay_rate: f64, update_rate: f64) {
         let trace_update = (
@@ -69,17 +60,17 @@ where
     }
 }
 
-impl<S, M: Projector<S>, P> Algorithm for TOQLambda<S, M, P> {
+impl<M, P> Algorithm for TOQLambda<M, P> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, M, P> OnlineLearner<S, P::Action> for TOQLambda<S, M, P>
+impl<S, M, P> OnlineLearner<S, P::Action> for TOQLambda<M, P>
 where
     M: Projector<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    P: Policy<S, Action = <Greedy<VectorLFA<M>> as Policy<S>>::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let (s, ns) = (t.from.state(), t.to.state());
@@ -129,10 +120,10 @@ where
     }
 }
 
-impl<S, M, P> Controller<S, P::Action> for TOQLambda<S, M, P>
+impl<S, M, P> Controller<S, P::Action> for TOQLambda<M, P>
 where
-    M: Projector<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    VectorLFA<M>: QFunction<S>,
+    P: Policy<S, Action = <Greedy<VectorLFA<M>> as Policy<S>>::Action>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action {
         self.target.sample(s)
@@ -143,10 +134,10 @@ where
     }
 }
 
-impl<S, M, P> ValuePredictor<S> for TOQLambda<S, M, P>
+impl<S, M, P> ValuePredictor<S> for TOQLambda<M, P>
 where
-    M: Projector<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    VectorLFA<M>: QFunction<S>,
+    P: Policy<S, Action = <Greedy<VectorLFA<M>> as Policy<S>>::Action>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
         let a = self.sample_target(s);
@@ -155,10 +146,10 @@ where
     }
 }
 
-impl<S, M, P> ActionValuePredictor<S, P::Action> for TOQLambda<S, M, P>
+impl<S, M, P> ActionValuePredictor<S, P::Action> for TOQLambda<M, P>
 where
-    M: Projector<S>,
-    P: Policy<S, Action = <Greedy<S> as Policy<S>>::Action>,
+    VectorLFA<M>: QFunction<S>,
+    P: Policy<S, Action = <Greedy<VectorLFA<M>> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.q_func.borrow().evaluate(s).unwrap()
@@ -169,10 +160,7 @@ where
     }
 }
 
-impl<S, M, P> Parameterised for TOQLambda<S, M, P>
-where
-    M: Projector<S>,
-{
+impl<M, P> Parameterised for TOQLambda<M, P> {
     fn weights(&self) -> Matrix<f64> {
         self.q_func.borrow().weights()
     }

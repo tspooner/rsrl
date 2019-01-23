@@ -2,18 +2,15 @@ use crate::core::*;
 use crate::domains::Transition;
 use crate::fa::{Parameterised, VFunction};
 use crate::geometry::Matrix;
-use std::marker::PhantomData;
 
-pub struct TD<S, V> {
+pub struct TD<V> {
     pub v_func: Shared<V>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S, V: VFunction<S>> TD<S, V> {
+impl<V> TD<V> {
     pub fn new<T1, T2>(v_func: Shared<V>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
@@ -24,20 +21,18 @@ impl<S, V: VFunction<S>> TD<S, V> {
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
-impl<S, V: VFunction<S>> Algorithm for TD<S, V> {
+impl<V> Algorithm for TD<V> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, V: VFunction<S>> OnlineLearner<S, A> for TD<S, V> {
+impl<S, A, V: VFunction<S>> OnlineLearner<S, A> for TD<V> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
         let s = t.from.state();
         let v = self.predict_v(s);
@@ -52,13 +47,13 @@ impl<S, A, V: VFunction<S>> OnlineLearner<S, A> for TD<S, V> {
     }
 }
 
-impl<S, V: VFunction<S>> ValuePredictor<S> for TD<S, V> {
+impl<S, V: VFunction<S>> ValuePredictor<S> for TD<V> {
     fn predict_v(&mut self, s: &S) -> f64 { self.v_func.borrow().evaluate(s).unwrap() }
 }
 
-impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for TD<S, V> {}
+impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for TD<V> {}
 
-impl<S, V: Parameterised> Parameterised for TD<S, V> {
+impl<V: Parameterised> Parameterised for TD<V> {
     fn weights(&self) -> Matrix<f64> {
         self.v_func.borrow().weights()
     }

@@ -9,7 +9,7 @@ use rsrl::{
     fa::{basis::fixed::Fourier, LFA},
     geometry::Space,
     logging,
-    policies::fixed::EpsilonGreedy,
+    policies::fixed::{Greedy, Random, EpsilonGreedy},
 };
 
 fn main() {
@@ -21,12 +21,15 @@ fn main() {
 
         // Build the linear value functions using a fourier basis projection.
         let bases = Fourier::from_space(3, domain.state_space());
-        let v_func = make_shared(LFA::scalar_valued(bases.clone()));
-        let q_func = make_shared(LFA::vector_valued(bases, n_actions));
+        let v_func = make_shared(LFA::scalar_output(bases.clone()));
+        let q_func = make_shared(LFA::vector_output(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
-        let eps = Parameter::exponential(0.3, 0.001, 0.99);
-        let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
+        let policy = make_shared(EpsilonGreedy::new(
+            Greedy::new(q_func.clone()),
+            Random::new(n_actions),
+            Parameter::exponential(0.3, 0.001, 0.99),
+        ));
 
         GreedyGQ::new(q_func, v_func, policy, 1e-3, 1e-4, 0.99)
     };

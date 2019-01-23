@@ -1,6 +1,6 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
+use crate::fa::{Approximator, Parameterised, VectorLFA, Projection, Projector, QFunction};
 use crate::policies::{Policy, FinitePolicy};
 
 /// On-policy variant of Watkins' Q-learning with eligibility traces (aka
@@ -11,8 +11,8 @@ use crate::policies::{Policy, FinitePolicy};
 /// thesis, Cambridge University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
-pub struct SARSALambda<S, M: Projector<S>, P> {
-    pub fa_theta: Shared<MultiLFA<S, M>>,
+pub struct SARSALambda<F, P> {
+    pub fa_theta: Shared<F>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
@@ -21,9 +21,9 @@ pub struct SARSALambda<S, M: Projector<S>, P> {
     trace: Trace,
 }
 
-impl<S, M: Projector<S>, P> SARSALambda<S, M, P> {
+impl<F, P> SARSALambda<F, P> {
     pub fn new<T1, T2>(
-        fa_theta: Shared<MultiLFA<S, M>>,
+        fa_theta: Shared<F>,
         policy: Shared<P>,
         trace: Trace,
         alpha: T1,
@@ -53,11 +53,7 @@ impl<S, M: Projector<S>, P> SARSALambda<S, M, P> {
     }
 }
 
-impl<S, M, P> Algorithm for SARSALambda<S, M, P>
-where
-    M: Projector<S>,
-    P: Algorithm,
-{
+impl<F, P: Algorithm> Algorithm for SARSALambda<F, P> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
@@ -66,7 +62,7 @@ where
     }
 }
 
-impl<S, M, P> OnlineLearner<S, P::Action> for SARSALambda<S, M, P>
+impl<S, M, P> OnlineLearner<S, P::Action> for SARSALambda<VectorLFA<M>, P>
 where
     M: Projector<S>,
     P: FinitePolicy<S>,
@@ -103,11 +99,7 @@ where
     }
 }
 
-impl<S, M, P> Controller<S, P::Action> for SARSALambda<S, M, P>
-where
-    M: Projector<S>,
-    P: FinitePolicy<S>,
-{
+impl<S, F, P: FinitePolicy<S>> Controller<S, P::Action> for SARSALambda<F, P> {
     fn sample_target(&mut self, s: &S) -> P::Action {
         self.policy.borrow_mut().sample(s)
     }
@@ -117,9 +109,9 @@ where
     }
 }
 
-impl<S, M, P> ValuePredictor<S> for SARSALambda<S, M, P>
+impl<S, F, P> ValuePredictor<S> for SARSALambda<F, P>
 where
-    M: Projector<S>,
+    F: QFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
@@ -127,9 +119,9 @@ where
     }
 }
 
-impl<S, M, P> ActionValuePredictor<S, P::Action> for SARSALambda<S, M, P>
+impl<S, F, P> ActionValuePredictor<S, P::Action> for SARSALambda<F, P>
 where
-    M: Projector<S>,
+    F: QFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
@@ -141,7 +133,7 @@ where
     }
 }
 
-impl<S, M: Projector<S>, P> Parameterised for SARSALambda<S, M, P> {
+impl<F: Parameterised, P> Parameterised for SARSALambda<F, P> {
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.borrow().weights()
     }
