@@ -67,17 +67,20 @@ impl<M> Algorithm for iLSTD<M> {
 
 impl<S, A, M: Projector<S>> OnlineLearner<S, A> for iLSTD<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
         // (D x 1)
-        let phi_s = self.fa_theta.borrow().projector.project(s).expanded(self.a.rows());
-        let phi_ns = self.fa_theta.borrow().projector.project(ns).expanded(self.a.rows());
+        let phi_s = self.fa_theta.borrow().projector
+            .project(t.from.state())
+            .expanded(self.a.rows());
 
         // (1 x D)
         let pd = if t.terminated() {
             phi_s.clone().insert_axis(Axis(0))
         } else {
-            (phi_s.clone() - self.gamma.value()*phi_ns).insert_axis(Axis(0))
+            let phi_ns = self.fa_theta.borrow().projector
+                .project(t.to.state())
+                .expanded(self.a.rows());
+
+            (phi_s.clone() - self.gamma.value() * phi_ns).insert_axis(Axis(0))
         };
 
         // (D x D)

@@ -39,14 +39,16 @@ impl<M> Algorithm for LSTD<M> {
 impl<S, A, M: Projector<S>> BatchLearner<S, A> for LSTD<M> {
     fn handle_batch(&mut self, ts: &[Transition<S, A>]) {
         ts.into_iter().for_each(|ref t| {
-            let (s, ns) = (t.from.state(), t.to.state());
-
-            let phi_s = self.fa_theta.borrow().projector.project(s).expanded(self.a.rows());
-            let phi_ns = self.fa_theta.borrow().projector.project(ns).expanded(self.a.rows());
-
+            let phi_s = self.fa_theta.borrow().projector
+                .project(t.from.state())
+                .expanded(self.a.rows());
             let pd = if t.terminated() {
                 phi_s.clone()
             } else {
+                let phi_ns = self.fa_theta.borrow().projector
+                    .project(t.to.state())
+                    .expanded(self.a.rows());
+
                 phi_s.clone() - self.gamma.value()*phi_ns.clone()
             }.insert_axis(Axis(0));
 

@@ -74,11 +74,9 @@ impl<M> Algorithm for LambdaLSPE<M> {
 impl<S, A, M: Projector<S>> BatchLearner<S, A> for LambdaLSPE<M> {
     fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
         batch.into_iter().rev().for_each(|ref t| {
-            let (s, ns) = (t.from.state(), t.to.state());
-
-            let phi_s = self.fa_theta.borrow().projector.project(s).expanded(self.a.rows());
-            let phi_ns = self.fa_theta.borrow().projector.project(ns).expanded(self.a.rows());
-
+            let phi_s = self.fa_theta.borrow().projector
+                .project(t.from.state())
+                .expanded(self.a.rows());
             let v = self.compute_v(&phi_s);
 
             if t.terminated() {
@@ -88,6 +86,9 @@ impl<S, A, M: Projector<S>> BatchLearner<S, A> for LambdaLSPE<M> {
                 self.a += &phi_s.clone().insert_axis(Axis(1)).dot(&(phi_s.insert_axis(Axis(0))));
 
             } else {
+                let phi_ns = self.fa_theta.borrow().projector
+                    .project(t.to.state())
+                    .expanded(self.a.rows());
                 let residual = t.reward + self.gamma * self.compute_v(&phi_ns) - v;
 
                 self.delta = self.gamma * self.lambda * self.delta + residual;

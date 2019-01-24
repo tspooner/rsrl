@@ -40,16 +40,14 @@ impl<M> Algorithm for RecursiveLSTD<M> {
 
 impl<S, A, M: Projector<S>> OnlineLearner<S, A> for RecursiveLSTD<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
-        let phi_s = self.fa_theta.borrow().projector.project(s);
+        let phi_s = self.fa_theta.borrow().projector.project(t.from.state());
         let v = self.fa_theta.borrow().evaluate_phi(&phi_s);
         let phi_s = self.expand_phi(phi_s);
 
         let (pd, residual) = if t.terminated() {
             (phi_s.clone(), t.reward - v)
         } else {
-            let phi_ns = self.fa_theta.borrow().projector.project(ns);
+            let phi_ns = self.fa_theta.borrow().projector.project(t.to.state());
             let nv = self.fa_theta.borrow().evaluate_phi(&phi_ns);
             let phi_ns = self.expand_phi(phi_ns);
 

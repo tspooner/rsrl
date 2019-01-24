@@ -73,8 +73,7 @@ where
     P: Policy<S, Action = <Greedy<VectorLFA<M>> as Policy<S>>::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
+        let s = t.from.state();
         let phi_s = self.q_func.borrow().projector.project(s);
 
         // Update traces:
@@ -100,6 +99,7 @@ where
             t.reward - q_old
 
         } else {
+            let ns = t.to.state();
             let na = self.sample_behaviour(ns);
             let nqsna = self.q_func.borrow().evaluate_action(ns, na);
 

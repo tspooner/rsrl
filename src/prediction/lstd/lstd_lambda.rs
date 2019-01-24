@@ -68,9 +68,9 @@ impl<M> Algorithm for LSTDLambda<M> {
 impl<S, A, M: Projector<S>> BatchLearner<S, A> for LSTDLambda<M> {
     fn handle_batch(&mut self, ts: &[Transition<S, A>]) {
         ts.into_iter().for_each(|t| {
-            let (s, ns) = (t.from.state(), t.to.state());
-
-            let phi_s = self.fa_theta.borrow().projector.project(s).expanded(self.a.rows());
+            let phi_s = self.fa_theta.borrow().projector
+                .project(t.from.state())
+                .expanded(self.a.rows());
             let z = self.update_trace(&phi_s);
 
             self.b.scaled_add(t.reward, &z);
@@ -80,7 +80,9 @@ impl<S, A, M: Projector<S>> BatchLearner<S, A> for LSTDLambda<M> {
 
                 phi_s
             } else {
-                let phi_ns = self.fa_theta.borrow().projector.project(ns).expanded(self.a.rows());
+                let phi_ns = self.fa_theta.borrow().projector
+                    .project(t.to.state())
+                    .expanded(self.a.rows());
 
                 phi_s - self.gamma.value()*phi_ns
             }.insert_axis(Axis(0));

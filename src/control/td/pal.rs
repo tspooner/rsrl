@@ -52,15 +52,14 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
+        let s = t.from.state();
         let qs = self.predict_qs(s);
-
         let residual = if t.terminated() {
             t.reward - qs[t.action]
-
         } else {
+            let ns = t.to.state();
             let nqs = self.predict_qs(ns);
+
             let a_star = self.sample_target(s);
             let na_star = self.sample_target(ns);
 

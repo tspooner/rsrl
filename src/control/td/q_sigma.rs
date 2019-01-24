@@ -128,8 +128,7 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
+        let s = t.from.state();
         let qa = self.predict_qsa(&s, t.action);
         let sigma = {
             self.sigma = self.sigma.step();
@@ -152,6 +151,7 @@ where
             self.backup.clear();
 
         } else {
+            let ns = t.to.state();
             let na = self.sample_behaviour(&ns);
             let nqs = self.q_func.borrow().evaluate(&ns).unwrap();
             let nqa = nqs[na];

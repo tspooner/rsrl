@@ -50,8 +50,7 @@ impl<M> Algorithm for GTD2<M> {
 
 impl<S, A, M: Projector<S>> OnlineLearner<S, A> for GTD2<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.fa_theta.borrow().projector.project(&t.from.state());
-        let phi_ns = self.fa_theta.borrow().projector.project(&t.to.state());
+        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.borrow().projector.project(s));
 
         let v = self.fa_theta.borrow().evaluate_phi(&phi_s);
 
