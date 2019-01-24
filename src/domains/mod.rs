@@ -5,12 +5,7 @@ macro_rules! impl_into {
     (Transition < S, $type:ty > => Transition < S,() >) => {
         impl<S> Into<Transition<S, ()>> for Transition<S, $type> {
             fn into(self) -> Transition<S, ()> {
-                Transition {
-                    from: self.from,
-                    action: (),
-                    reward: self.reward,
-                    to: self.to.into(),
-                }
+                self.drop_action()
             }
         }
     };
@@ -35,17 +30,31 @@ impl<S> Observation<S> {
     pub fn state(&self) -> &S {
         use self::Observation::*;
 
-        match *self {
+        match self {
             Full(ref state) | Partial(ref state) | Terminal(ref state) => state,
         }
     }
 
-    /// Returns true if the observation is terminal.
-    pub fn is_terminal(&self) -> bool {
-        use self::Observation::Terminal;
-
+    /// Returns true if the state was fully observed, otherwise false.
+    pub fn is_full(&self) -> bool {
         match self {
-            &Terminal(_) => true,
+            Observation::Full(_) => true,
+            _ => false,
+        }
+    }
+
+    /// Returns true if the state was only partially observed, otherwise false.
+    pub fn is_partial(&self) -> bool {
+        match self {
+            Observation::Partial(_) => true,
+            _ => false,
+        }
+    }
+
+    /// Returns true if the observation is the terminal state, otherwise false.
+    pub fn is_terminal(&self) -> bool {
+        match self {
+            Observation::Terminal(_) => true,
             _ => false,
         }
     }
@@ -68,11 +77,22 @@ pub struct Transition<S, A> {
 }
 
 impl<S, A> Transition<S, A> {
+    /// Return references to the `from` and `to` states associated with this transition.
+    pub fn states(&self) -> (&S, &S) {
+        (self.from.state(), self.to.state())
+    }
+
+    /// Apply a closure to the `from` and `to` states associated with this transition.
+    pub fn map_states<O>(&self, f: impl Fn(&S) -> O) -> (O, O) {
+        (f(self.from.state()), f(self.to.state()))
+    }
+
     /// Returns true if the transition ends in a terminal state.
     pub fn terminated(&self) -> bool {
         self.to.is_terminal()
     }
 
+    /// Replace the action associated with this transition and return a new instance.
     pub fn replace_action<T>(self, action: T) -> Transition<S, T> {
         Transition {
             from: self.from,
@@ -80,6 +100,11 @@ impl<S, A> Transition<S, A> {
             reward: self.reward,
             to: self.to,
         }
+    }
+
+    /// Drop the action associated with this transition and return a new instance.
+    pub fn drop_action(self) -> Transition<S, ()> {
+        self.replace_action(())
     }
 }
 
