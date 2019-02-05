@@ -49,28 +49,16 @@ where
     P::Action: Clone,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
+        let s = t.from.state();
         let v = self.critic.borrow_mut().predict_v(s);
-        let nv = self.critic.borrow_mut().predict_v(ns);
-        let residual = t.reward + self.gamma * nv - v;
+        let td_error = if t.terminated() {
+            t.reward - v
+        } else {
+            t.reward + self.gamma * self.predict_v(t.to.state()) - v
+        };
 
         self.critic.borrow_mut().handle_transition(t);
-        self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * residual);
-    }
-
-    fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
-        self.critic.borrow_mut().handle_sequence(seq);
-
-        for t in seq {
-            let (s, ns) = (t.from.state(), t.to.state());
-
-            let v = self.critic.borrow_mut().predict_v(s);
-            let nv = self.critic.borrow_mut().predict_v(ns);
-            let residual = t.reward + self.gamma * nv - v;
-
-            self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * residual);
-        }
+        self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * td_error);
     }
 }
 
