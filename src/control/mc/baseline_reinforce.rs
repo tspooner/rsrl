@@ -5,17 +5,15 @@ use crate::fa::Parameterised;
 use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
-pub struct BaselineREINFORCE<S, P, B> {
+pub struct BaselineREINFORCE<B, P> {
     pub policy: Shared<P>,
     pub baseline: Shared<B>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S, P, B> BaselineREINFORCE<S, P, B> {
+impl<B, P> BaselineREINFORCE<B, P> {
     pub fn new<T1, T2>(policy: Shared<P>, baseline: Shared<B>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
@@ -27,16 +25,14 @@ impl<S, P, B> BaselineREINFORCE<S, P, B> {
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
-impl<S, P, B> Algorithm for BaselineREINFORCE<S, P, B>
+impl<B, P> Algorithm for BaselineREINFORCE<B, P>
 where
-    P: Algorithm,
     B: Algorithm,
+    P: Algorithm,
 {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
@@ -47,7 +43,7 @@ where
     }
 }
 
-impl<S, P, B> BatchLearner<S, P::Action> for BaselineREINFORCE<S, P, B>
+impl<S, B, P> BatchLearner<S, P::Action> for BaselineREINFORCE<B, P>
 where
     S: Clone,
     P: ParameterisedPolicy<S>,
@@ -70,19 +66,13 @@ where
     }
 }
 
-impl<S, P, B> Controller<S, P::Action> for BaselineREINFORCE<S, P, B>
-where
-    P: ParameterisedPolicy<S>,
-{
+impl<S, B, P: ParameterisedPolicy<S>> Controller<S, P::Action> for BaselineREINFORCE<B, P> {
     fn sample_target(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 
     fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<S, P, B> Parameterised for BaselineREINFORCE<S, P, B>
-where
-    P: ParameterisedPolicy<S>,
-{
+impl<B, P: Parameterised> Parameterised for BaselineREINFORCE<B, P> {
     fn weights(&self) -> Matrix<f64> {
         self.policy.borrow().weights()
     }

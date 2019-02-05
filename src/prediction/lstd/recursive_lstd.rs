@@ -1,25 +1,23 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
+use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA};
 use crate::geometry::Space;
 use ndarray::Axis;
 use crate::utils::argmaxima;
 
-pub struct RecursiveLSTD<S, P: Projector<S>> {
-    pub fa_theta: Shared<SimpleLFA<S, P>>,
-
+pub struct RecursiveLSTD<M> {
+    pub fa_theta: Shared<ScalarLFA<M>>,
     pub gamma: Parameter,
 
     c_mat: Matrix<f64>,
 }
 
-impl<S, P: Projector<S>> RecursiveLSTD<S, P> {
-    pub fn new<T: Into<Parameter>>(fa_theta: Shared<SimpleLFA<S, P>>, gamma: T) -> Self {
+impl<M: Space> RecursiveLSTD<M> {
+    pub fn new<T: Into<Parameter>>(fa_theta: Shared<ScalarLFA<M>>, gamma: T) -> Self {
         let n_features = fa_theta.borrow().projector.dim();
 
         RecursiveLSTD {
             fa_theta,
-
             gamma: gamma.into(),
 
             c_mat: Matrix::eye(n_features)*1e-6,
@@ -27,31 +25,29 @@ impl<S, P: Projector<S>> RecursiveLSTD<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> RecursiveLSTD<S, P> {
+impl<M> RecursiveLSTD<M> {
     #[inline(always)]
     fn expand_phi(&self, phi: Projection) -> /* (D x 1) */ Matrix<f64> {
         phi.expanded(self.c_mat.rows()).insert_axis(Axis(1))
     }
 }
 
-impl<S, P: Projector<S>> Algorithm for RecursiveLSTD<S, P> {
+impl<M> Algorithm for RecursiveLSTD<M> {
     fn handle_terminal(&mut self) {
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, P: Projector<S>> OnlineLearner<S, A> for RecursiveLSTD<S, P> {
+impl<S, A, M: Projector<S>> OnlineLearner<S, A> for RecursiveLSTD<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
-        let phi_s = self.fa_theta.borrow().projector.project(s);
+        let phi_s = self.fa_theta.borrow().projector.project(t.from.state());
         let v = self.fa_theta.borrow().evaluate_phi(&phi_s);
         let phi_s = self.expand_phi(phi_s);
 
         let (pd, residual) = if t.terminated() {
             (phi_s.clone(), t.reward - v)
         } else {
-            let phi_ns = self.fa_theta.borrow().projector.project(ns);
+            let phi_ns = self.fa_theta.borrow().projector.project(t.to.state());
             let nv = self.fa_theta.borrow().evaluate_phi(&phi_ns);
             let phi_ns = self.expand_phi(phi_ns);
 
@@ -81,15 +77,24 @@ impl<S, A, P: Projector<S>> OnlineLearner<S, A> for RecursiveLSTD<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> ValuePredictor<S> for RecursiveLSTD<S, P> {
+impl<S, M> ValuePredictor<S> for RecursiveLSTD<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{
     fn predict_v(&mut self, s: &S) -> f64 {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 }
 
-impl<S, A, P: Projector<S>> ActionValuePredictor<S, A> for RecursiveLSTD<S, P> {}
+impl<S, A, M> ActionValuePredictor<S, A> for RecursiveLSTD<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{}
 
-impl<S, P: Projector<S>> Parameterised for RecursiveLSTD<S, P> {
+impl<M> Parameterised for RecursiveLSTD<M>
+where
+    ScalarLFA<M>: Parameterised,
+{
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.borrow().weights()
     }

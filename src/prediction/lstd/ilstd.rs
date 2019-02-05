@@ -1,13 +1,13 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
+use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA};
 use crate::geometry::Space;
 use ndarray::Axis;
 use crate::utils::argmaxima;
 
 #[allow(non_camel_case_types)]
-pub struct iLSTD<S, P: Projector<S>> {
-    pub fa_theta: Shared<SimpleLFA<S, P>>,
+pub struct iLSTD<M> {
+    pub fa_theta: Shared<ScalarLFA<M>>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -17,10 +17,9 @@ pub struct iLSTD<S, P: Projector<S>> {
     mu: Vector<f64>,
 }
 
-impl<S, P: Projector<S>> iLSTD<S, P> {
-    pub fn new<T1, T2>(fa_theta: Shared<SimpleLFA<S, P>>,
-                       n_updates: usize,
-                       alpha: T1, gamma: T2) -> Self
+impl<M: Space> iLSTD<M> {
+    pub fn new<T1, T2>(fa_theta: Shared<ScalarLFA<M>>,
+                       n_updates: usize, alpha: T1, gamma: T2) -> Self
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
@@ -39,12 +38,7 @@ impl<S, P: Projector<S>> iLSTD<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> iLSTD<S, P> {
-    #[inline(always)]
-    fn compute_dense_fv(&self, s: &S) -> Vector<f64> {
-        self.fa_theta.borrow().projector.project(s).expanded(self.a.rows())
-    }
-
+impl<M> iLSTD<M> {
     fn solve(&mut self) {
         let mut fa = self.fa_theta.borrow_mut();
         let alpha = self.alpha.value();
@@ -64,26 +58,29 @@ impl<S, P: Projector<S>> iLSTD<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Algorithm for iLSTD<S, P> {
+impl<M> Algorithm for iLSTD<M> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, P: Projector<S>> OnlineLearner<S, A> for iLSTD<S, P> {
+impl<S, A, M: Projector<S>> OnlineLearner<S, A> for iLSTD<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
         // (D x 1)
-        let phi_s = self.compute_dense_fv(s);
-        let phi_ns = self.compute_dense_fv(ns);
+        let phi_s = self.fa_theta.borrow().projector
+            .project(t.from.state())
+            .expanded(self.a.rows());
 
         // (1 x D)
         let pd = if t.terminated() {
             phi_s.clone().insert_axis(Axis(0))
         } else {
-            (phi_s.clone() - self.gamma.value()*phi_ns).insert_axis(Axis(0))
+            let phi_ns = self.fa_theta.borrow().projector
+                .project(t.to.state())
+                .expanded(self.a.rows());
+
+            (phi_s.clone() - self.gamma.value() * phi_ns).insert_axis(Axis(0))
         };
 
         // (D x D)
@@ -98,15 +95,24 @@ impl<S, A, P: Projector<S>> OnlineLearner<S, A> for iLSTD<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> ValuePredictor<S> for iLSTD<S, P> {
+impl<S, M> ValuePredictor<S> for iLSTD<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{
     fn predict_v(&mut self, s: &S) -> f64 {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 }
 
-impl<S, A, P: Projector<S>> ActionValuePredictor<S, A> for iLSTD<S, P> {}
+impl<S, A, M> ActionValuePredictor<S, A> for iLSTD<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{}
 
-impl<S, P: Projector<S>> Parameterised for iLSTD<S, P> {
+impl<M> Parameterised for iLSTD<M>
+where
+    ScalarLFA<M>: Parameterised,
+{
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.borrow().weights()
     }

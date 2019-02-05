@@ -3,42 +3,40 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    control::actor_critic::A2C,
-    control::td::SARSA,
+    control::actor_critic::TDAC,
     core::{make_shared, run, Evaluation, SerialExperiment},
-    domains::{Domain, MountainCar},
+    domains::{Domain, ContinuousMountainCar},
     fa::{basis::fixed::Fourier, LFA},
     geometry::Space,
     logging,
-    policies::parameterised::Gibbs,
+    prediction::td::TD,
+    policies::parameterised::Gaussian1d,
 };
 
 fn main() {
-    let domain = MountainCar::default();
-
-    let n_actions = domain.action_space().card().into();
+    let domain = ContinuousMountainCar::default();
     let bases = Fourier::from_space(3, domain.state_space());
 
     let policy = make_shared({
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
-        let fa = LFA::vector_output(bases.clone(), n_actions);
+        let fa = LFA::scalar_output(bases.clone());
 
         // Build a stochastic behaviour policy with exponential epsilon.
-        Gibbs::new(fa)
+        Gaussian1d::new(fa, 1.0)
     });
     let critic = make_shared({
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
-        let q_func = make_shared(LFA::vector_output(bases, n_actions));
+        let v_func = make_shared(LFA::scalar_output(bases));
 
-        SARSA::new(q_func, policy.clone(), 0.001, 0.99)
+        TD::new(v_func, 0.01, 0.99)
     });
 
-    let mut agent = A2C::new(critic, policy, 0.01);
+    let mut agent = TDAC::new(critic, policy, 0.005, 0.99);
 
     let logger = logging::root(logging::stdout());
-    let domain_builder = Box::new(MountainCar::default);
+    let domain_builder = Box::new(ContinuousMountainCar::default);
 
     // Training phase:
     let _training_result = {
@@ -46,7 +44,7 @@ fn main() {
         let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
 
         // Realise 1000 episodes of the experiment generator.
-        run(e, 1000, Some(logger.clone()))
+        run(e, 10000, Some(logger.clone()))
     };
 
     // Testing phase:

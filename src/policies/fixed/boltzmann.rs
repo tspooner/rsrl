@@ -1,19 +1,19 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::SharedQFunction;
-use crate::policies::{sample_probs, FinitePolicy, Policy};
+use crate::fa::QFunction;
+use crate::policies::{sample_probs_with_rng, FinitePolicy, Policy};
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
 
-pub struct Boltzmann<S> {
-    q_func: SharedQFunction<S>,
+pub struct Boltzmann<Q> {
+    q_func: Shared<Q>,
 
     tau: Parameter,
     rng: ThreadRng,
 }
 
-impl<S> Boltzmann<S> {
-    pub fn new<T: Into<Parameter>>(q_func: SharedQFunction<S>, tau: T) -> Self {
+impl<Q> Boltzmann<Q> {
+    pub fn new<T: Into<Parameter>>(q_func: Shared<Q>, tau: T) -> Self {
         Boltzmann {
             q_func,
 
@@ -23,23 +23,29 @@ impl<S> Boltzmann<S> {
     }
 }
 
-impl<S> Algorithm for Boltzmann<S> {
-    fn handle_terminal(&mut self) { self.tau = self.tau.step() }
+impl<Q> Algorithm for Boltzmann<Q> {
+    fn handle_terminal(&mut self) {
+        self.tau = self.tau.step();
+    }
 }
 
-impl<S> Policy<S> for Boltzmann<S> {
+impl<S, Q: QFunction<S>> Policy<S> for Boltzmann<Q> {
     type Action = usize;
 
     fn sample(&mut self, s: &S) -> usize {
         let ps = self.probabilities(s);
 
-        sample_probs(&mut self.rng, ps.as_slice().unwrap())
+        sample_probs_with_rng(&mut self.rng, ps.as_slice().unwrap())
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
 }
 
-impl<S> FinitePolicy<S> for Boltzmann<S> {
+impl<S, Q: QFunction<S>> FinitePolicy<S> for Boltzmann<Q> {
+    fn n_actions(&self) -> usize {
+        self.q_func.borrow().n_outputs()
+    }
+
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
         let tau = self.tau.value();
 

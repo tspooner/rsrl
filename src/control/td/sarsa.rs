@@ -11,17 +11,15 @@ use std::marker::PhantomData;
 /// thesis, Cambridge University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
-pub struct SARSA<S, Q, P> {
+pub struct SARSA<Q, P> {
     pub q_func: Shared<Q>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S, Q, P> SARSA<S, Q, P> {
+impl<Q, P> SARSA<Q, P> {
     pub fn new<T1, T2>(q_func: Shared<Q>, policy: Shared<P>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
@@ -33,13 +31,11 @@ impl<S, Q, P> SARSA<S, Q, P> {
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
-impl<S, Q, P: Algorithm> Algorithm for SARSA<S, Q, P> {
+impl<Q, P: Algorithm> Algorithm for SARSA<Q, P> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
@@ -48,18 +44,18 @@ impl<S, Q, P: Algorithm> Algorithm for SARSA<S, Q, P> {
     }
 }
 
-impl<S, Q, P> OnlineLearner<S, P::Action> for SARSA<S, Q, P>
+impl<S, Q, P> OnlineLearner<S, P::Action> for SARSA<Q, P>
 where
     Q: QFunction<S>,
     P: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
+        let s = t.from.state();
         let qsa = self.q_func.borrow().evaluate_action(s, t.action);
         let residual = if t.terminated() {
             t.reward - qsa
         } else {
+            let ns = t.to.state();
             let na = self.policy.borrow_mut().sample(ns);
             let nqsna = self.q_func.borrow().evaluate_action(ns, na);
 
@@ -70,10 +66,7 @@ where
     }
 }
 
-impl<S, Q, P> Controller<S, P::Action> for SARSA<S, Q, P>
-where
-    P: Policy<S>,
-{
+impl<S, Q, P: Policy<S>> Controller<S, P::Action> for SARSA<Q, P> {
     fn sample_target(&mut self, s: &S) -> P::Action {
         self.policy.borrow_mut().sample(s)
     }
@@ -83,7 +76,7 @@ where
     }
 }
 
-impl<S, Q, P> ValuePredictor<S> for SARSA<S, Q, P>
+impl<S, Q, P> ValuePredictor<S> for SARSA<Q, P>
 where
     Q: QFunction<S>,
     P: FinitePolicy<S>,
@@ -93,7 +86,7 @@ where
     }
 }
 
-impl<S, Q, P> ActionValuePredictor<S, P::Action> for SARSA<S, Q, P>
+impl<S, Q, P> ActionValuePredictor<S, P::Action> for SARSA<Q, P>
 where
     Q: QFunction<S>,
     P: FinitePolicy<S>,
@@ -107,10 +100,7 @@ where
     }
 }
 
-impl<S, Q, P> Parameterised for SARSA<S, Q, P>
-where
-    Q: Parameterised,
-{
+impl<Q: Parameterised, P> Parameterised for SARSA<Q, P> {
     fn weights(&self) -> Matrix<f64> {
         self.q_func.borrow().weights()
     }

@@ -26,7 +26,7 @@ openai = ["cpython"]
 
 [dependencies]
 spaces = "4.1"
-lfa = "0.6"
+lfa = "0.8"
 
 rand = "0.6"
 cpython = { version = "0.2", optional = true }

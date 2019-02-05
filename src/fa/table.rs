@@ -39,6 +39,10 @@ where
 {
     type Value = V;
 
+    fn n_outputs(&self) -> usize {
+        unimplemented!()
+    }
+
     fn evaluate(&self, input: &I) -> EvaluationResult<V> {
         if self.0.contains_key(input) {
             Ok(self.0[input])

@@ -1,13 +1,13 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, SimpleLFA};
+use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA};
 use crate::geometry::Space;
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
 use crate::utils::{argmaxima, pinv};
 
-pub struct LambdaLSPE<S, P: Projector<S>> {
-    pub fa_theta: Shared<SimpleLFA<S, P>>,
+pub struct LambdaLSPE<M> {
+    pub fa_theta: Shared<ScalarLFA<M>>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -18,9 +18,9 @@ pub struct LambdaLSPE<S, P: Projector<S>> {
     delta: f64,
 }
 
-impl<S, P: Projector<S>> LambdaLSPE<S, P> {
-    pub fn new<T1, T2, T3>(fa_theta: Shared<SimpleLFA<S, P>>, alpha: T1, gamma: T2,
-                           lambda: T3) -> Self
+impl<M: Space> LambdaLSPE<M> {
+    pub fn new<T1, T2, T3>(fa_theta: Shared<ScalarLFA<M>>,
+                           alpha: T1, gamma: T2, lambda: T3) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -42,12 +42,7 @@ impl<S, P: Projector<S>> LambdaLSPE<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> LambdaLSPE<S, P> {
-    #[inline(always)]
-    fn compute_dense_fv(&self, s: &S) -> Vector<f64> {
-        self.fa_theta.borrow().projector.project(s).expanded(self.a.rows())
-    }
-
+impl<M> LambdaLSPE<M> {
     #[inline(always)]
     fn compute_v(&self, phi: &Vector<f64>) -> f64 {
         self.fa_theta.borrow().approximator.weights.dot(phi)
@@ -68,7 +63,7 @@ impl<S, P: Projector<S>> LambdaLSPE<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> Algorithm for LambdaLSPE<S, P> {
+impl<M> Algorithm for LambdaLSPE<M> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
@@ -76,12 +71,12 @@ impl<S, P: Projector<S>> Algorithm for LambdaLSPE<S, P> {
     }
 }
 
-impl<S, A, P: Projector<S>> BatchLearner<S, A> for LambdaLSPE<S, P> {
+impl<S, A, M: Projector<S>> BatchLearner<S, A> for LambdaLSPE<M> {
     fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
         batch.into_iter().rev().for_each(|ref t| {
-            let phi_s = self.compute_dense_fv(t.from.state());
-            let phi_ns = self.compute_dense_fv(t.to.state());
-
+            let phi_s = self.fa_theta.borrow().projector
+                .project(t.from.state())
+                .expanded(self.a.rows());
             let v = self.compute_v(&phi_s);
 
             if t.terminated() {
@@ -91,6 +86,9 @@ impl<S, A, P: Projector<S>> BatchLearner<S, A> for LambdaLSPE<S, P> {
                 self.a += &phi_s.clone().insert_axis(Axis(1)).dot(&(phi_s.insert_axis(Axis(0))));
 
             } else {
+                let phi_ns = self.fa_theta.borrow().projector
+                    .project(t.to.state())
+                    .expanded(self.a.rows());
                 let residual = t.reward + self.gamma * self.compute_v(&phi_ns) - v;
 
                 self.delta = self.gamma * self.lambda * self.delta + residual;
@@ -104,15 +102,24 @@ impl<S, A, P: Projector<S>> BatchLearner<S, A> for LambdaLSPE<S, P> {
     }
 }
 
-impl<S, P: Projector<S>> ValuePredictor<S> for LambdaLSPE<S, P> {
+impl<S, M> ValuePredictor<S> for LambdaLSPE<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{
     fn predict_v(&mut self, s: &S) -> f64 {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 }
 
-impl<S, A, P: Projector<S>> ActionValuePredictor<S, A> for LambdaLSPE<S, P> {}
+impl<S, A, M> ActionValuePredictor<S, A> for LambdaLSPE<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{}
 
-impl<S, P: Projector<S>> Parameterised for LambdaLSPE<S, P> {
+impl<M> Parameterised for LambdaLSPE<M>
+where
+    ScalarLFA<M>: Parameterised,
+{
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.borrow().weights()
     }

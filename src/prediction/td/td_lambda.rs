@@ -1,10 +1,10 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA, VFunction};
+use crate::fa::{Approximator, Parameterised, Projection, Projector, ScalarLFA, VFunction};
 use crate::geometry::Matrix;
 
-pub struct TDLambda<S, P: Projector<S>> {
-    pub fa_theta: Shared<SimpleLFA<S, P>>,
+pub struct TDLambda<M> {
+    pub fa_theta: Shared<ScalarLFA<M>>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -12,12 +12,12 @@ pub struct TDLambda<S, P: Projector<S>> {
     trace: Trace,
 }
 
-impl<S, P: Projector<S>> TDLambda<S, P> {
+impl<M> TDLambda<M> {
     pub fn new<T1, T2>(
-        fa_theta: Shared<SimpleLFA<S, P>>,
+        fa_theta: Shared<ScalarLFA<M>>,
         trace: Trace,
         alpha: T1,
-        gamma: T2
+        gamma: T2,
     ) -> Self
     where
         T1: Into<Parameter>,
@@ -34,14 +34,14 @@ impl<S, P: Projector<S>> TDLambda<S, P> {
     }
 }
 
-impl<S, M: Projector<S>> Algorithm for TDLambda<S, M> {
+impl<M> Algorithm for TDLambda<M> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, M: Projector<S>> OnlineLearner<S, A> for TDLambda<S, M> {
+impl<S, A, M: Projector<S>> OnlineLearner<S, A> for TDLambda<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
         let phi_s = self.fa_theta.borrow().projector.project(t.from.state());
         let v = self.fa_theta.borrow().evaluate_phi(&phi_s);
@@ -64,15 +64,24 @@ impl<S, A, M: Projector<S>> OnlineLearner<S, A> for TDLambda<S, M> {
     }
 }
 
-impl<S, P: Projector<S>> ValuePredictor<S> for TDLambda<S, P> {
+impl<S, M> ValuePredictor<S> for TDLambda<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{
     fn predict_v(&mut self, s: &S) -> f64 {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 }
 
-impl<S, A, P: Projector<S>> ActionValuePredictor<S, A> for TDLambda<S, P> {}
+impl<S, A, M> ActionValuePredictor<S, A> for TDLambda<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{}
 
-impl<S, P: Projector<S>> Parameterised for TDLambda<S, P> {
+impl<M> Parameterised for TDLambda<M>
+where
+    ScalarLFA<M>: Parameterised
+{
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.borrow().weights()
     }

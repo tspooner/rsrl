@@ -9,7 +9,7 @@ use rsrl::{
     fa::{basis::fixed::Chebyshev, LFA},
     geometry::Space,
     logging,
-    policies::fixed::EpsilonGreedy,
+    policies::fixed::{Greedy, Random, EpsilonGreedy},
 };
 
 fn main() {
@@ -21,11 +21,14 @@ fn main() {
         // appropriate eligibility trace.
         let bases = Chebyshev::from_space(5, domain.state_space());
         let trace = Trace::replacing(0.7, bases.dim());
-        let q_func = make_shared(LFA::vector_valued(bases, n_actions));
+        let q_func = make_shared(LFA::vector_output(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
-        let eps = Parameter::exponential(0.99, 0.05, 0.99);
-        let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
+        let policy = make_shared(EpsilonGreedy::new(
+            Greedy::new(q_func.clone()),
+            Random::new(n_actions),
+            Parameter::exponential(0.5, 0.001, 0.9),
+        ));
 
         SARSALambda::new(q_func, policy, trace, 0.001, 0.99)
     };

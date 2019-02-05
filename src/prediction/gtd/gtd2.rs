@@ -1,20 +1,21 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Projection, Projector, SimpleLFA, VFunction};
+use crate::fa::{Approximator, Parameterised, Projection, Projector, ScalarLFA, VFunction};
+use crate::geometry::Space;
 
-pub struct GTD2<S, P: Projector<S>> {
-    pub fa_theta: Shared<SimpleLFA<S, P>>,
-    pub fa_w: Shared<SimpleLFA<S, P>>,
+pub struct GTD2<M> {
+    pub fa_theta: Shared<ScalarLFA<M>>,
+    pub fa_w: Shared<ScalarLFA<M>>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
 }
 
-impl<S, P: Projector<S>> GTD2<S, P> {
+impl<M: Space> GTD2<M> {
     pub fn new<T1, T2, T3>(
-        fa_theta: Shared<SimpleLFA<S, P>>,
-        fa_w: Shared<SimpleLFA<S, P>>,
+        fa_theta: Shared<ScalarLFA<M>>,
+        fa_w: Shared<ScalarLFA<M>>,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -39,7 +40,7 @@ impl<S, P: Projector<S>> GTD2<S, P> {
     }
 }
 
-impl<S, M: Projector<S>> Algorithm for GTD2<S, M> {
+impl<M> Algorithm for GTD2<M> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
@@ -47,10 +48,9 @@ impl<S, M: Projector<S>> Algorithm for GTD2<S, M> {
     }
 }
 
-impl<S, A, M: Projector<S>> OnlineLearner<S, A> for GTD2<S, M> {
+impl<S, A, M: Projector<S>> OnlineLearner<S, A> for GTD2<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.fa_theta.borrow().projector.project(&t.from.state());
-        let phi_ns = self.fa_theta.borrow().projector.project(&t.to.state());
+        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.borrow().projector.project(s));
 
         let v = self.fa_theta.borrow().evaluate_phi(&phi_s);
 
@@ -70,15 +70,24 @@ impl<S, A, M: Projector<S>> OnlineLearner<S, A> for GTD2<S, M> {
     }
 }
 
-impl<S, P: Projector<S>> ValuePredictor<S> for GTD2<S, P> {
+impl<S, M> ValuePredictor<S> for GTD2<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{
     fn predict_v(&mut self, s: &S) -> f64 {
         self.fa_theta.borrow().evaluate(s).unwrap()
     }
 }
 
-impl<S, A, P: Projector<S>> ActionValuePredictor<S, A> for GTD2<S, P> {}
+impl<S, A, M> ActionValuePredictor<S, A> for GTD2<M>
+where
+    ScalarLFA<M>: VFunction<S>,
+{}
 
-impl<S, P: Projector<S>> Parameterised for GTD2<S, P> {
+impl<M> Parameterised for GTD2<M>
+where
+    ScalarLFA<M>: Parameterised,
+{
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.borrow().weights()
     }

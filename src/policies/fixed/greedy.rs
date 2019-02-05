@@ -1,18 +1,18 @@
 use crate::core::*;
-use crate::fa::SharedQFunction;
+use crate::fa::QFunction;
 use crate::policies::{FinitePolicy, Policy};
 use rand::{thread_rng, Rng, seq::SliceRandom};
 use crate::utils::argmaxima;
 
-pub struct Greedy<S>(SharedQFunction<S>);
+pub struct Greedy<Q>(Shared<Q>);
 
-impl<S> Greedy<S> {
-    pub fn new(q_func: SharedQFunction<S>) -> Self { Greedy(q_func) }
+impl<Q> Greedy<Q> {
+    pub fn new(q_func: Shared<Q>) -> Self { Greedy(q_func) }
 }
 
-impl<S> Algorithm for Greedy<S> {}
+impl<Q> Algorithm for Greedy<Q> {}
 
-impl<S> Policy<S> for Greedy<S> {
+impl<S, Q: QFunction<S>> Policy<S> for Greedy<Q> {
     type Action = usize;
 
     fn sample(&mut self, s: &S) -> usize {
@@ -31,7 +31,11 @@ impl<S> Policy<S> for Greedy<S> {
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
 }
 
-impl<S> FinitePolicy<S> for Greedy<S> {
+impl<S, Q: QFunction<S>> FinitePolicy<S> for Greedy<Q> {
+    fn n_actions(&self) -> usize {
+        self.0.borrow().n_outputs()
+    }
+
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
         let qs = self.0.borrow().evaluate(s).unwrap();
         let mut ps = vec![0.0; qs.len()];

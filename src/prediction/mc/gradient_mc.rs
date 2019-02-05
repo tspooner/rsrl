@@ -1,18 +1,15 @@
 use crate::core::*;
 use crate::domains::Transition;
 use crate::fa::{Parameterised, VFunction};
-use std::marker::PhantomData;
 
-pub struct GradientMC<S, V> {
+pub struct GradientMC<V> {
     pub v_func: Shared<V>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
-
-    phantom: PhantomData<S>,
 }
 
-impl<S, V: VFunction<S>> GradientMC<S, V> {
+impl<V> GradientMC<V> {
     pub fn new<T1, T2>(v_func: Shared<V>, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
@@ -23,20 +20,18 @@ impl<S, V: VFunction<S>> GradientMC<S, V> {
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-
-            phantom: PhantomData,
         }
     }
 }
 
-impl<S, V: VFunction<S>> Algorithm for GradientMC<S, V> {
+impl<V> Algorithm for GradientMC<V> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, V: VFunction<S>> BatchLearner<S, A> for GradientMC<S, V> {
+impl<S, A, V: VFunction<S>> BatchLearner<S, A> for GradientMC<V> {
     fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
         let mut sum = 0.0;
 
@@ -50,15 +45,15 @@ impl<S, A, V: VFunction<S>> BatchLearner<S, A> for GradientMC<S, V> {
     }
 }
 
-impl<S, V: VFunction<S>> ValuePredictor<S> for GradientMC<S, V> {
+impl<S, V: VFunction<S>> ValuePredictor<S> for GradientMC<V> {
     fn predict_v(&mut self, s: &S) -> f64 {
         self.v_func.borrow().evaluate(s).unwrap()
     }
 }
 
-impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for GradientMC<S, V> {}
+impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for GradientMC<V> {}
 
-impl<S, V: Parameterised> Parameterised for GradientMC<S, V> {
+impl<V: Parameterised> Parameterised for GradientMC<V> {
     fn weights(&self) -> Matrix<f64> {
         self.v_func.borrow().weights()
     }

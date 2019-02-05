@@ -1,7 +1,4 @@
-mod gibbs;
-pub use self::gibbs::*;
-
-mod gaussian;
-pub use self::gaussian::*;
+import_all!(gibbs);
+import_all!(gaussian);
 
 pub(self) mod pdfs;

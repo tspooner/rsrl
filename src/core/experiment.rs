@@ -146,14 +146,10 @@ where
 
             self.agent.handle_transition(&t);
 
-            if t.terminated() {
+            if t.terminated() || j >= self.step_limit {
                 self.agent.handle_terminal();
 
                 break
-
-            } else if j >= self.step_limit {
-                break
-
             } else {
                 a = self.agent.sample_behaviour(t.to.state());
             }

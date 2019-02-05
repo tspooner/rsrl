@@ -1,6 +1,6 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, MultiLFA, Projection, Projector, QFunction};
+use crate::fa::{Approximator, Parameterised, VectorLFA, Projection, Projector, QFunction};
 use crate::policies::{Policy, FinitePolicy};
 
 /// True online variant of the SARSA(lambda) algorithm.
@@ -9,8 +9,8 @@ use crate::policies::{Policy, FinitePolicy};
 /// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., &
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
-pub struct TOSARSALambda<S, M: Projector<S>, P> {
-    pub q_func: Shared<MultiLFA<S, M>>,
+pub struct TOSARSALambda<M, P> {
+    pub q_func: Shared<VectorLFA<M>>,
     pub policy: Shared<P>,
 
     pub alpha: Parameter,
@@ -20,13 +20,10 @@ pub struct TOSARSALambda<S, M: Projector<S>, P> {
     q_old: f64,
 }
 
-impl<S, M, P> TOSARSALambda<S, M, P>
-where
-    M: Projector<S>,
-{
+impl<M, P> TOSARSALambda<M, P> {
     pub fn new<T1, T2>(
         trace: Trace,
-        q_func: Shared<MultiLFA<S, M>>,
+        q_func: Shared<VectorLFA<M>>,
         policy: Shared<P>,
         alpha: T1,
         gamma: T2,
@@ -59,21 +56,20 @@ where
     }
 }
 
-impl<S, M: Projector<S>, P> Algorithm for TOSARSALambda<S, M, P> {
+impl<M, P> Algorithm for TOSARSALambda<M, P> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, M, P> OnlineLearner<S, P::Action> for TOSARSALambda<S, M, P>
+impl<S, M, P> OnlineLearner<S, P::Action> for TOSARSALambda<M, P>
 where
     M: Projector<S>,
     P: Policy<S, Action = usize>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        let (s, ns) = (t.from.state(), t.to.state());
-
+        let s = t.from.state();
         let phi_s = self.q_func.borrow().projector.project(s);
 
         // Update traces:
@@ -94,6 +90,7 @@ where
             t.reward - q_old
 
         } else {
+            let ns = t.to.state();
             let na = self.sample_behaviour(ns);
             let nqsna = self.q_func.borrow().evaluate_action(ns, na);
 
@@ -114,9 +111,9 @@ where
     }
 }
 
-impl<S, M, P> Controller<S, P::Action> for TOSARSALambda<S, M, P>
+impl<S, M, P> Controller<S, P::Action> for TOSARSALambda<M, P>
 where
-    M: Projector<S>,
+    VectorLFA<M>: QFunction<S>,
     P: Policy<S>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action {
@@ -128,9 +125,9 @@ where
     }
 }
 
-impl<S, M, P> ValuePredictor<S> for TOSARSALambda<S, M, P>
+impl<S, M, P> ValuePredictor<S> for TOSARSALambda<M, P>
 where
-    M: Projector<S>,
+    VectorLFA<M>: QFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
@@ -138,9 +135,9 @@ where
     }
 }
 
-impl<S, M, P> ActionValuePredictor<S, P::Action> for TOSARSALambda<S, M, P>
+impl<S, M, P> ActionValuePredictor<S, P::Action> for TOSARSALambda<M, P>
 where
-    M: Projector<S>,
+    VectorLFA<M>: QFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
@@ -152,10 +149,7 @@ where
     }
 }
 
-impl<S, M, P> Parameterised for TOSARSALambda<S, M, P>
-where
-    M: Projector<S>,
-{
+impl<M, P> Parameterised for TOSARSALambda<M, P> {
     fn weights(&self) -> Matrix<f64> {
         self.q_func.borrow().weights()
     }
