@@ -39,7 +39,7 @@ impl<S, A, V: VFunction<S>> BatchLearner<S, A> for GradientMC<V> {
             sum = t.reward + self.gamma * sum;
 
             let s = t.from.state();
-            let v_est = self.v_func.borrow().evaluate(s).unwrap();
+            let v_est = self.v_func.evaluate(s).unwrap();
             let _ = self.v_func.borrow_mut().update(s, self.alpha * (sum - v_est));
         })
     }
@@ -47,7 +47,7 @@ impl<S, A, V: VFunction<S>> BatchLearner<S, A> for GradientMC<V> {
 
 impl<S, V: VFunction<S>> ValuePredictor<S> for GradientMC<V> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.v_func.borrow().evaluate(s).unwrap()
+        self.v_func.evaluate(s).unwrap()
     }
 }
 
@@ -55,6 +55,6 @@ impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for GradientMC<V> {}
 
 impl<V: Parameterised> Parameterised for GradientMC<V> {
     fn weights(&self) -> Matrix<f64> {
-        self.v_func.borrow().weights()
+        self.v_func.weights()
     }
 }

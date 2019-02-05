@@ -74,6 +74,6 @@ impl<S, B, P: ParameterisedPolicy<S>> Controller<S, P::Action> for BaselineREINF
 
 impl<B, P: Parameterised> Parameterised for BaselineREINFORCE<B, P> {
     fn weights(&self) -> Matrix<f64> {
-        self.policy.borrow().weights()
+        self.policy.weights()
     }
 }

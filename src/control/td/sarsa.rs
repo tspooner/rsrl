@@ -51,13 +51,13 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let qsa = self.q_func.borrow().evaluate_action(s, t.action);
+        let qsa = self.q_func.evaluate_action(s, t.action);
         let residual = if t.terminated() {
             t.reward - qsa
         } else {
             let ns = t.to.state();
             let na = self.policy.borrow_mut().sample(ns);
-            let nqsna = self.q_func.borrow().evaluate_action(ns, na);
+            let nqsna = self.q_func.evaluate_action(ns, na);
 
             t.reward + self.gamma * nqsna - qsa
         };
@@ -92,16 +92,16 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.borrow().evaluate(s).unwrap()
+        self.q_func.evaluate(s).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.borrow().evaluate_action(&s, a)
+        self.q_func.evaluate_action(&s, a)
     }
 }
 
 impl<Q: Parameterised, P> Parameterised for SARSA<Q, P> {
     fn weights(&self) -> Matrix<f64> {
-        self.q_func.borrow().weights()
+        self.q_func.weights()
     }
 }

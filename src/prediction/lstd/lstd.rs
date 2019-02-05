@@ -17,7 +17,7 @@ pub struct LSTD<M> {
 
 impl<M: Space> LSTD<M> {
     pub fn new<T: Into<Parameter>>(fa_theta: Shared<ScalarLFA<M>>, gamma: T) -> Self {
-        let n_features = fa_theta.borrow().projector.dim();
+        let n_features = fa_theta.projector.dim();
 
         LSTD {
             fa_theta,
@@ -39,13 +39,13 @@ impl<M> Algorithm for LSTD<M> {
 impl<S, A, M: Projector<S>> BatchLearner<S, A> for LSTD<M> {
     fn handle_batch(&mut self, ts: &[Transition<S, A>]) {
         ts.into_iter().for_each(|ref t| {
-            let phi_s = self.fa_theta.borrow().projector
+            let phi_s = self.fa_theta.projector
                 .project(t.from.state())
                 .expanded(self.a.rows());
             let pd = if t.terminated() {
                 phi_s.clone()
             } else {
-                let phi_ns = self.fa_theta.borrow().projector
+                let phi_ns = self.fa_theta.projector
                     .project(t.to.state())
                     .expanded(self.a.rows());
 
@@ -74,7 +74,7 @@ where
     ScalarLFA<M>: VFunction<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.borrow().evaluate(s).unwrap()
+        self.fa_theta.evaluate(s).unwrap()
     }
 }
 
@@ -88,6 +88,6 @@ where
     ScalarLFA<M>: Parameterised
 {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.borrow().weights()
+        self.fa_theta.weights()
     }
 }

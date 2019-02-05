@@ -63,13 +63,13 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let dim = self.fa_theta.borrow().projector.dim();
-        let phi_s = self.fa_w.borrow().projector.project(s);
+        let dim = self.fa_theta.projector.dim();
+        let phi_s = self.fa_w.projector.project(s);
 
-        let estimate = self.fa_w.borrow().evaluate_phi(&phi_s);
+        let estimate = self.fa_w.evaluate_phi(&phi_s);
 
         if t.terminated() {
-            let residual = t.reward - self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
+            let residual = t.reward - self.fa_theta.evaluate_action_phi(&phi_s, t.action);
 
             self.fa_w.borrow_mut().update_phi(
                 &phi_s,
@@ -83,12 +83,12 @@ where
         } else {
             let ns = t.from.state();
             let na = self.sample_target(ns);
-            let phi_ns = self.fa_w.borrow().projector.project(ns);
+            let phi_ns = self.fa_w.projector.project(ns);
 
             let residual =
                 t.reward
-                + self.gamma.value() * self.fa_theta.borrow().evaluate_action_phi(&phi_ns, na)
-                - self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
+                + self.gamma.value() * self.fa_theta.evaluate_action_phi(&phi_ns, na)
+                - self.fa_theta.evaluate_action_phi(&phi_s, t.action);
 
             let update_q = residual * phi_s.clone().expanded(dim)
                 - estimate * self.gamma.value() * phi_ns.expanded(dim);
@@ -122,11 +122,11 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_theta.borrow().evaluate(s).unwrap()
+        self.fa_theta.evaluate(s).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.borrow().evaluate_action(&s, a)
+        self.fa_theta.evaluate_action(&s, a)
     }
 }
 
@@ -142,6 +142,6 @@ where
 
 impl<M, P> Parameterised for GreedyGQ<M, P> {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.borrow().weights()
+        self.fa_theta.weights()
     }
 }

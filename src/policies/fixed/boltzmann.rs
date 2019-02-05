@@ -43,7 +43,7 @@ impl<S, Q: QFunction<S>> Policy<S> for Boltzmann<Q> {
 
 impl<S, Q: QFunction<S>> FinitePolicy<S> for Boltzmann<Q> {
     fn n_actions(&self) -> usize {
-        self.q_func.borrow().n_outputs()
+        self.q_func.n_outputs()
     }
 
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
@@ -52,7 +52,6 @@ impl<S, Q: QFunction<S>> FinitePolicy<S> for Boltzmann<Q> {
         let mut z = 0.0;
         let ws: Vec<f64> = self
             .q_func
-            .borrow()
             .evaluate(s)
             .unwrap()
             .into_iter()

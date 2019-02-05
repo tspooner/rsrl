@@ -45,14 +45,14 @@ where
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         self.critic.borrow_mut().handle_transition(t);
         self.policy.borrow_mut().update_raw(
-            self.alpha.value() * self.critic.borrow().weights()
+            self.alpha.value() * self.critic.weights()
         );
     }
 
     fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
         self.critic.borrow_mut().handle_sequence(seq);
         self.policy.borrow_mut().update_raw(
-            self.alpha.value() * self.critic.borrow().weights()
+            self.alpha.value() * self.critic.weights()
         );
     }
 }

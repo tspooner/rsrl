@@ -43,13 +43,13 @@ impl<M> Algorithm for TDLambda<M> {
 
 impl<S, A, M: Projector<S>> OnlineLearner<S, A> for TDLambda<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.fa_theta.borrow().projector.project(t.from.state());
-        let v = self.fa_theta.borrow().evaluate_phi(&phi_s);
+        let phi_s = self.fa_theta.projector.project(t.from.state());
+        let v = self.fa_theta.evaluate_phi(&phi_s);
 
         let decay_rate = self.trace.lambda.value() * self.gamma.value();
 
         self.trace.decay(decay_rate);
-        self.trace.update(&phi_s.expanded(self.fa_theta.borrow().projector.dim()));
+        self.trace.update(&phi_s.expanded(self.fa_theta.projector.dim()));
 
         let z = self.trace.get();
         let td_error = if t.terminated() {
@@ -69,7 +69,7 @@ where
     ScalarLFA<M>: VFunction<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.borrow().evaluate(s).unwrap()
+        self.fa_theta.evaluate(s).unwrap()
     }
 }
 
@@ -83,6 +83,6 @@ where
     ScalarLFA<M>: Parameterised
 {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.borrow().weights()
+        self.fa_theta.weights()
     }
 }

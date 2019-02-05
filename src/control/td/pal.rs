@@ -101,16 +101,16 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.borrow().evaluate(s).unwrap()
+        self.q_func.evaluate(s).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.borrow().evaluate_action(&s, a)
+        self.q_func.evaluate_action(&s, a)
     }
 }
 
 impl<Q: Parameterised, P> Parameterised for PAL<Q, P> {
     fn weights(&self) -> Matrix<f64> {
-        self.q_func.borrow().weights()
+        self.q_func.weights()
     }
 }

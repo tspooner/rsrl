@@ -48,13 +48,13 @@ impl<S, A, V: VFunction<S>> OnlineLearner<S, A> for TD<V> {
 }
 
 impl<S, V: VFunction<S>> ValuePredictor<S> for TD<V> {
-    fn predict_v(&mut self, s: &S) -> f64 { self.v_func.borrow().evaluate(s).unwrap() }
+    fn predict_v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
 }
 
 impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for TD<V> {}
 
 impl<V: Parameterised> Parameterised for TD<V> {
     fn weights(&self) -> Matrix<f64> {
-        self.v_func.borrow().weights()
+        self.v_func.weights()
     }
 }
