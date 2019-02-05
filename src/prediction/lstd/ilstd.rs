@@ -23,7 +23,7 @@ impl<M: Space> iLSTD<M> {
         where T1: Into<Parameter>,
               T2: Into<Parameter>
     {
-        let n_features = fa_theta.borrow().projector.dim();
+        let n_features = fa_theta.projector.dim();
 
         iLSTD {
             fa_theta,
@@ -68,7 +68,7 @@ impl<M> Algorithm for iLSTD<M> {
 impl<S, A, M: Projector<S>> OnlineLearner<S, A> for iLSTD<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
         // (D x 1)
-        let phi_s = self.fa_theta.borrow().projector
+        let phi_s = self.fa_theta.projector
             .project(t.from.state())
             .expanded(self.a.rows());
 
@@ -76,7 +76,7 @@ impl<S, A, M: Projector<S>> OnlineLearner<S, A> for iLSTD<M> {
         let pd = if t.terminated() {
             phi_s.clone().insert_axis(Axis(0))
         } else {
-            let phi_ns = self.fa_theta.borrow().projector
+            let phi_ns = self.fa_theta.projector
                 .project(t.to.state())
                 .expanded(self.a.rows());
 
@@ -89,7 +89,7 @@ impl<S, A, M: Projector<S>> OnlineLearner<S, A> for iLSTD<M> {
         self.a += &delta_a;
 
         self.mu.scaled_add(t.reward, &phi_s);
-        self.mu -= &delta_a.dot(&self.fa_theta.borrow().approximator.weights);
+        self.mu -= &delta_a.dot(&self.fa_theta.approximator.weights);
 
         self.solve();
     }
@@ -100,7 +100,7 @@ where
     ScalarLFA<M>: VFunction<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.borrow().evaluate(s).unwrap()
+        self.fa_theta.evaluate(s).unwrap()
     }
 }
 
@@ -114,6 +114,6 @@ where
     ScalarLFA<M>: Parameterised,
 {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.borrow().weights()
+        self.fa_theta.weights()
     }
 }

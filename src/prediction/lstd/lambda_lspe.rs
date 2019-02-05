@@ -26,7 +26,7 @@ impl<M: Space> LambdaLSPE<M> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
-        let n_features = fa_theta.borrow().projector.dim();
+        let n_features = fa_theta.projector.dim();
 
         LambdaLSPE {
             fa_theta,
@@ -45,7 +45,7 @@ impl<M: Space> LambdaLSPE<M> {
 impl<M> LambdaLSPE<M> {
     #[inline(always)]
     fn compute_v(&self, phi: &Vector<f64>) -> f64 {
-        self.fa_theta.borrow().approximator.weights.dot(phi)
+        self.fa_theta.approximator.weights.dot(phi)
     }
 
     fn solve(&mut self) {
@@ -74,7 +74,7 @@ impl<M> Algorithm for LambdaLSPE<M> {
 impl<S, A, M: Projector<S>> BatchLearner<S, A> for LambdaLSPE<M> {
     fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
         batch.into_iter().rev().for_each(|ref t| {
-            let phi_s = self.fa_theta.borrow().projector
+            let phi_s = self.fa_theta.projector
                 .project(t.from.state())
                 .expanded(self.a.rows());
             let v = self.compute_v(&phi_s);
@@ -86,7 +86,7 @@ impl<S, A, M: Projector<S>> BatchLearner<S, A> for LambdaLSPE<M> {
                 self.a += &phi_s.clone().insert_axis(Axis(1)).dot(&(phi_s.insert_axis(Axis(0))));
 
             } else {
-                let phi_ns = self.fa_theta.borrow().projector
+                let phi_ns = self.fa_theta.projector
                     .project(t.to.state())
                     .expanded(self.a.rows());
                 let residual = t.reward + self.gamma * self.compute_v(&phi_ns) - v;
@@ -107,7 +107,7 @@ where
     ScalarLFA<M>: VFunction<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.borrow().evaluate(s).unwrap()
+        self.fa_theta.evaluate(s).unwrap()
     }
 }
 
@@ -121,6 +121,6 @@ where
     ScalarLFA<M>: Parameterised,
 {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.borrow().weights()
+        self.fa_theta.weights()
     }
 }

@@ -14,7 +14,7 @@ pub struct RecursiveLSTD<M> {
 
 impl<M: Space> RecursiveLSTD<M> {
     pub fn new<T: Into<Parameter>>(fa_theta: Shared<ScalarLFA<M>>, gamma: T) -> Self {
-        let n_features = fa_theta.borrow().projector.dim();
+        let n_features = fa_theta.projector.dim();
 
         RecursiveLSTD {
             fa_theta,
@@ -40,15 +40,15 @@ impl<M> Algorithm for RecursiveLSTD<M> {
 
 impl<S, A, M: Projector<S>> OnlineLearner<S, A> for RecursiveLSTD<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.fa_theta.borrow().projector.project(t.from.state());
-        let v = self.fa_theta.borrow().evaluate_phi(&phi_s);
+        let phi_s = self.fa_theta.projector.project(t.from.state());
+        let v = self.fa_theta.evaluate_phi(&phi_s);
         let phi_s = self.expand_phi(phi_s);
 
         let (pd, residual) = if t.terminated() {
             (phi_s.clone(), t.reward - v)
         } else {
-            let phi_ns = self.fa_theta.borrow().projector.project(t.to.state());
-            let nv = self.fa_theta.borrow().evaluate_phi(&phi_ns);
+            let phi_ns = self.fa_theta.projector.project(t.to.state());
+            let nv = self.fa_theta.evaluate_phi(&phi_ns);
             let phi_ns = self.expand_phi(phi_ns);
 
             (
@@ -82,7 +82,7 @@ where
     ScalarLFA<M>: VFunction<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.borrow().evaluate(s).unwrap()
+        self.fa_theta.evaluate(s).unwrap()
     }
 }
 
@@ -96,6 +96,6 @@ where
     ScalarLFA<M>: Parameterised,
 {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.borrow().weights()
+        self.fa_theta.weights()
     }
 }

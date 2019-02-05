@@ -16,7 +16,7 @@ impl<S, Q: QFunction<S>> Policy<S> for Greedy<Q> {
     type Action = usize;
 
     fn sample(&mut self, s: &S) -> usize {
-        let qs = self.0.borrow().evaluate(s).unwrap();
+        let qs = self.0.evaluate(s).unwrap();
         let maxima = argmaxima(qs.as_slice().unwrap()).1;
 
         if maxima.len() == 1 {
@@ -33,11 +33,11 @@ impl<S, Q: QFunction<S>> Policy<S> for Greedy<Q> {
 
 impl<S, Q: QFunction<S>> FinitePolicy<S> for Greedy<Q> {
     fn n_actions(&self) -> usize {
-        self.0.borrow().n_outputs()
+        self.0.n_outputs()
     }
 
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
-        let qs = self.0.borrow().evaluate(s).unwrap();
+        let qs = self.0.evaluate(s).unwrap();
         let mut ps = vec![0.0; qs.len()];
 
         let maxima = argmaxima(qs.as_slice().unwrap()).1;

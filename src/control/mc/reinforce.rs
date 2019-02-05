@@ -65,6 +65,6 @@ impl<S, P: ParameterisedPolicy<S>> Controller<S, P::Action> for REINFORCE<P> {
 
 impl<P: Parameterised> Parameterised for REINFORCE<P> {
     fn weights(&self) -> Matrix<f64> {
-        self.policy.borrow().weights()
+        self.policy.weights()
     }
 }

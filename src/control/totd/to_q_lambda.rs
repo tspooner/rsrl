@@ -74,10 +74,10 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.q_func.borrow().projector.project(s);
+        let phi_s = self.q_func.projector.project(s);
 
         // Update traces:
-        let n_bases = self.q_func.borrow().projector.dim();
+        let n_bases = self.q_func.projector.dim();
         let update_rate = self.trace.lambda.value() * self.gamma.value();
         let decay_rate = if t.action == self.sample_target(s) {
             update_rate
@@ -89,7 +89,7 @@ where
 
         // Update weight vectors:
         let z = self.trace.get();
-        let qsa = self.q_func.borrow().evaluate_action_phi(&phi_s, t.action);
+        let qsa = self.q_func.evaluate_action_phi(&phi_s, t.action);
         let q_old = self.q_old;
 
         let residual = if t.terminated() {
@@ -101,7 +101,7 @@ where
         } else {
             let ns = t.to.state();
             let na = self.sample_behaviour(ns);
-            let nqsna = self.q_func.borrow().evaluate_action(ns, na);
+            let nqsna = self.q_func.evaluate_action(ns, na);
 
             self.q_old = nqsna;
 
@@ -152,16 +152,16 @@ where
     P: Policy<S, Action = <Greedy<VectorLFA<M>> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.borrow().evaluate(s).unwrap()
+        self.q_func.evaluate(s).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.borrow().evaluate_action(&s, a)
+        self.q_func.evaluate_action(&s, a)
     }
 }
 
 impl<M, P> Parameterised for TOQLambda<M, P> {
     fn weights(&self) -> Matrix<f64> {
-        self.q_func.borrow().weights()
+        self.q_func.weights()
     }
 }

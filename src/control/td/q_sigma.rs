@@ -89,8 +89,7 @@ impl<S, Q: QFunction<S>, P> QSigma<S, Q, P> {
             rho *= 1.0 - b1.sigma + b1.sigma * b1.pi / b1.mu;
         }
 
-        let qsa = self.q_func.borrow()
-            .evaluate_action(&self.backup[0].s, self.backup[0].a);
+        let qsa = self.q_func.evaluate_action(&self.backup[0].s, self.backup[0].a);
 
         self.q_func.borrow_mut().update_action(
             &self.backup[0].s,
@@ -153,7 +152,7 @@ where
         } else {
             let ns = t.to.state();
             let na = self.sample_behaviour(&ns);
-            let nqs = self.q_func.borrow().evaluate(&ns).unwrap();
+            let nqs = self.q_func.evaluate(&ns).unwrap();
             let nqa = nqs[na];
 
             let pi = self.target.probabilities(&ns);
@@ -206,16 +205,16 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.borrow().evaluate(s).unwrap()
+        self.q_func.evaluate(s).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.borrow().evaluate_action(&s, a)
+        self.q_func.evaluate_action(&s, a)
     }
 }
 
 impl<S, Q: Parameterised, P> Parameterised for QSigma<S, Q, P> {
     fn weights(&self) -> Matrix<f64> {
-        self.q_func.borrow().weights()
+        self.q_func.weights()
     }
 }

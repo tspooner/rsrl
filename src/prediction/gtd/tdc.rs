@@ -25,7 +25,7 @@ impl<M: Space> TDC<M> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
-        if fa_theta.borrow().projector.dim() != fa_w.borrow().projector.dim() {
+        if fa_theta.projector.dim() != fa_w.projector.dim() {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
 
@@ -50,20 +50,20 @@ impl<M> Algorithm for TDC<M> {
 
 impl<S, A, M: Projector<S>> OnlineLearner<S, A> for TDC<M> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.borrow().projector.project(s));
+        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.projector.project(s));
 
-        let v = self.fa_theta.borrow().evaluate_phi(&phi_s);
+        let v = self.fa_theta.evaluate_phi(&phi_s);
 
-        let td_estimate = self.fa_w.borrow().evaluate_phi(&phi_s);
+        let td_estimate = self.fa_w.evaluate_phi(&phi_s);
         let td_error = if t.terminated() {
             t.reward - v
         } else {
-            t.reward + self.gamma * self.fa_theta.borrow().evaluate_phi(&phi_ns) - v
+            t.reward + self.gamma * self.fa_theta.evaluate_phi(&phi_ns) - v
         };
 
         self.fa_w.borrow_mut().update_phi(&phi_s, self.beta * (td_error - td_estimate));
 
-        let dim = self.fa_theta.borrow().projector.dim();
+        let dim = self.fa_theta.projector.dim();
         let phi =
             td_error * phi_s.expanded(dim) -
             td_estimate * self.gamma.value() * phi_ns.expanded(dim);
@@ -77,7 +77,7 @@ where
     ScalarLFA<M>: VFunction<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.borrow().evaluate(s).unwrap()
+        self.fa_theta.evaluate(s).unwrap()
     }
 }
 
@@ -91,6 +91,6 @@ where
     ScalarLFA<M>: Parameterised,
 {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.borrow().weights()
+        self.fa_theta.weights()
     }
 }

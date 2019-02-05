@@ -69,11 +69,11 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.fa_theta.borrow().projector.project(s);
-        let qsa = self.fa_theta.borrow().evaluate_action_phi(&phi_s, t.action);
+        let phi_s = self.fa_theta.projector.project(s);
+        let qsa = self.fa_theta.evaluate_action_phi(&phi_s, t.action);
 
         // Update trace:
-        let n_bases = self.fa_theta.borrow().projector.dim();
+        let n_bases = self.fa_theta.projector.dim();
 
         self.update_trace(phi_s.expanded(n_bases));
 
@@ -86,7 +86,7 @@ where
         } else {
             let ns = t.to.state();
             let na = self.policy.borrow_mut().sample(ns);
-            let nqsna = self.fa_theta.borrow().evaluate_action(ns, na);
+            let nqsna = self.fa_theta.evaluate_action(ns, na);
 
             t.reward + self.gamma * nqsna - qsa
         };
@@ -125,16 +125,16 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_theta.borrow().evaluate(s).unwrap()
+        self.fa_theta.evaluate(s).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.borrow().evaluate_action(&s, a)
+        self.fa_theta.evaluate_action(&s, a)
     }
 }
 
 impl<F: Parameterised, P> Parameterised for SARSALambda<F, P> {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.borrow().weights()
+        self.fa_theta.weights()
     }
 }
