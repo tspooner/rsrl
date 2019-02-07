@@ -1,10 +1,14 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::QFunction;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::QFunction,
+    policies::{sample_probs_with_rng, FinitePolicy, Policy},
+    utils::argmax_choose,
+};
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
-use super::{sample_probs_with_rng, FinitePolicy, Policy};
 
+#[inline(always)]
 fn kappa(c: f64, x: f64) -> f64 { c / (1.0 + (-x).exp()) }
 
 pub struct TruncatedBoltzmann<Q> {
@@ -38,6 +42,12 @@ impl<S, Q: QFunction<S>> Policy<S> for TruncatedBoltzmann<Q> {
         let ps = self.probabilities(s);
 
         sample_probs_with_rng(&mut self.rng, ps.as_slice().unwrap())
+    }
+
+    fn mpa(&mut self, s: &S) -> usize {
+        let ps = self.probabilities(s);
+
+        argmax_choose(&mut self.rng, ps.as_slice().unwrap()).1
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }

@@ -53,6 +53,10 @@ impl<S, Q: QFunction<S>> Policy<S> for EpsilonGreedy<Q> {
         }
     }
 
+    fn mpa(&mut self, s: &S) -> usize {
+        self.greedy.mpa(s)
+    }
+
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
 }
 

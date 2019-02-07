@@ -11,10 +11,12 @@
 //! policies may be considered a special case of stochastic policies in which all probability mass
 //! is placed on a single action _u'_ for any given state _x_. For continuous policies, this can be
 //! seen as a dirac delta distribution, _δ(u' - u)_.
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::Parameterised;
-use rand::{thread_rng, Rng};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::Parameterised,
+};
+use rand::{thread_rng, Rng, seq::SliceRandom};
 
 #[allow(dead_code)]
 #[inline]
@@ -23,13 +25,16 @@ pub(self) fn sample_probs(probabilities: &[f64]) -> usize {
 }
 
 #[inline]
-pub(self) fn sample_probs_with_rng<R: Rng + ?Sized>(rng: &mut R, probabilities: &[f64]) -> usize {
+pub(self) fn sample_probs_with_rng(rng: &mut impl Rng, probabilities: &[f64]) -> usize {
     let r = rng.gen::<f64>();
-    let n_actions = probabilities.len();
 
-    match probabilities.into_iter().position(|p| *p > r) {
+    match probabilities.into_iter().scan(0.0, |state, &p| {
+        *state = *state + p;
+
+        Some(*state)
+    }).position(|p| p > r) {
         Some(index) => index,
-        None => n_actions - 1,
+        None => probabilities.len() - 1,
     }
 }
 
@@ -37,8 +42,15 @@ pub(self) fn sample_probs_with_rng<R: Rng + ?Sized>(rng: &mut R, probabilities: 
 pub trait Policy<S>: Algorithm {
     type Action;
 
-    /// Sample the policy distribution for a given input.
-    fn sample(&mut self, input: &S) -> Self::Action;
+    /// Sample the (possibly stochastic) policy distribution for a given input.
+    fn sample(&mut self, input: &S) -> Self::Action {
+        self.mpa(input)
+    }
+
+    /// Return the "most probable action" according to the policy distribution, if well-defined.
+    fn mpa(&mut self, input: &S) -> Self::Action {
+        unimplemented!()
+    }
 
     /// Return the probability of selecting an action for a given input.
     fn probability(&mut self, input: &S, a: Self::Action) -> f64;

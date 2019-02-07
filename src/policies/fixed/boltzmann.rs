@@ -1,7 +1,10 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::QFunction;
-use crate::policies::{sample_probs_with_rng, FinitePolicy, Policy};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::QFunction,
+    policies::{sample_probs_with_rng, FinitePolicy, Policy},
+    utils::argmax_choose,
+};
 use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
 
@@ -36,6 +39,12 @@ impl<S, Q: QFunction<S>> Policy<S> for Boltzmann<Q> {
         let ps = self.probabilities(s);
 
         sample_probs_with_rng(&mut self.rng, ps.as_slice().unwrap())
+    }
+
+    fn mpa(&mut self, s: &S) -> usize {
+        let ps = self.probabilities(s);
+
+        argmax_choose(&mut self.rng, ps.as_slice().unwrap()).1
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }

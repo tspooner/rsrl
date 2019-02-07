@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::geometry::Matrix;
+use rand::{Rng, seq::SliceRandom};
 use std::f64;
 
 pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
@@ -19,6 +20,18 @@ pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
     (max, ixs)
 }
 
+pub fn argmax_choose(rng: &mut impl Rng, values: &[f64]) -> (f64, usize) {
+    let (value, maxima) = argmaxima(values);
+
+    let maximum = if maxima.len() == 1 {
+        maxima[0]
+    } else {
+        *maxima.choose(rng).expect("No valid maxima to choose from in `argmax_choose`.")
+    };
+
+    (value, maximum)
+}
+
 pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
     let d_it = dims.iter().rev().skip(1);
     let i_it = inds.iter().rev().skip(1);
@@ -28,7 +41,6 @@ pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
 }
 
 /// Compute the pseudo-inverse of a real matrix using SVD.
-#[inline]
 pub fn pinv(m: &Matrix<f64>) -> Result<Matrix<f64>, ndarray_linalg::error::LinalgError> {
     use ndarray::Axis;
     use ndarray_linalg::svd::SVD;
