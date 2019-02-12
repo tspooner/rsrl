@@ -48,7 +48,7 @@ pub trait Policy<S>: Algorithm {
     }
 
     /// Return the "most probable action" according to the policy distribution, if well-defined.
-    fn mpa(&mut self, input: &S) -> Self::Action {
+    fn mpa(&mut self, _: &S) -> Self::Action {
         unimplemented!()
     }
 
