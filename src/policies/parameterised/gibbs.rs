@@ -1,6 +1,5 @@
 use crate::{
     core::*,
-    domains::Transition,
     fa::{Approximator, VectorLFA, Parameterised, Projector},
     policies::{
         sample_probs_with_rng,
@@ -107,13 +106,12 @@ impl<F: Parameterised> Parameterised for Gibbs<F> {
 
 impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<VectorLFA<M>> {
     fn update(&mut self, input: &S, a: usize, error: f64) {
-        let pi = self.probability(input, a);
         let grad_log = self.grad_log(input, a);
 
         self.fa
             .approximator
             .weights
-            .scaled_add(pi * error, &grad_log);
+            .scaled_add(error, &grad_log);
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
