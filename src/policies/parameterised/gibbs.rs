@@ -122,20 +122,21 @@ impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<VectorLFA<M>> {
 #[cfg(test)]
 mod tests {
     use crate::fa::{LFA, Parameterised, basis::fixed::Polynomial};
-    use crate::policies::{Policy, ParameterisedPolicy};
+    use crate::policies::{Policy, ParameterisedPolicy, FinitePolicy};
     use super::Gibbs;
 
     #[test]
-    fn test_sample() {
-        let fa = LFA::vector_output(Polynomial::new(1, vec![(0.0, 1.0)]), 3);
+    fn test_probabilities() {
+        let fa = LFA::vector_output(Polynomial::new(0, vec![(0.0, 1.0)]), 3);
         let mut p = Gibbs::new(fa);
 
-        for _ in 0..10 {
-            p.update(&vec![0.0], 0, -100.0);
-            p.update(&vec![0.0], 1, 100.0);
-            p.update(&vec![0.0], 2, -100.0);
-        }
+        p.update(&vec![0.0], 0, -1.0);
+        p.update(&vec![0.0], 1, 1.0);
+        p.update(&vec![0.0], 2, -1.0);
 
-        assert_eq!(p.sample(&vec![0.0]), 1);
+        let ps = p.probabilities(&vec![0.0]);
+
+        assert!(ps[0] < ps[1]);
+        assert!(ps[2] < ps[1]);
     }
 }
