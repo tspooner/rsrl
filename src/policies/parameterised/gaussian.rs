@@ -87,6 +87,10 @@ impl<S, F: VFunction<S>> Policy<S> for Gaussian1d<F> {
         NormalDist::new(mean, self.std()).sample(&mut self.rng)
     }
 
+    fn mpa(&mut self, input: &S) -> f64 {
+        self.mean(input)
+    }
+
     fn probability(&mut self, input: &S, a: f64) -> f64 {
         let mean = self.mean(input);
 

@@ -1,8 +1,8 @@
 use crate::core::*;
 use crate::fa::QFunction;
 use crate::policies::{FinitePolicy, Policy};
-use rand::{thread_rng, Rng, seq::SliceRandom};
-use crate::utils::argmaxima;
+use crate::utils::{argmaxima, argmax_choose};
+use rand::thread_rng;
 
 pub struct Greedy<Q>(Shared<Q>);
 
@@ -15,17 +15,10 @@ impl<Q> Algorithm for Greedy<Q> {}
 impl<S, Q: QFunction<S>> Policy<S> for Greedy<Q> {
     type Action = usize;
 
-    fn sample(&mut self, s: &S) -> usize {
+    fn mpa(&mut self, s: &S) -> usize {
         let qs = self.0.evaluate(s).unwrap();
-        let maxima = argmaxima(qs.as_slice().unwrap()).1;
 
-        if maxima.len() == 1 {
-            maxima[0]
-        } else {
-            *maxima
-                .choose(&mut thread_rng())
-                .expect("No valid actions to choose from in `Greedy.sample(qs)`")
-        }
+        argmax_choose(&mut thread_rng(), qs.as_slice().unwrap()).1
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
@@ -40,7 +33,7 @@ impl<S, Q: QFunction<S>> FinitePolicy<S> for Greedy<Q> {
         let qs = self.0.evaluate(s).unwrap();
         let mut ps = vec![0.0; qs.len()];
 
-        let maxima = argmaxima(qs.as_slice().unwrap()).1;
+        let (_, maxima) = argmaxima(qs.as_slice().unwrap());
 
         let p = 1.0 / maxima.len() as f64;
         for i in maxima {

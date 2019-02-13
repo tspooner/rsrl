@@ -1,6 +1,15 @@
-use crate::core::*;
-use crate::fa::{Approximator, VectorLFA, Parameterised, Projector};
-use crate::policies::{DifferentiablePolicy, FinitePolicy, ParameterisedPolicy, Policy};
+use crate::{
+    core::*,
+    fa::{Approximator, VectorLFA, Parameterised, Projector},
+    policies::{
+        sample_probs_with_rng,
+        DifferentiablePolicy,
+        ParameterisedPolicy,
+        FinitePolicy,
+        Policy
+    },
+    utils::argmax_choose,
+};
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use std::{f64, ops::AddAssign};
 
@@ -40,18 +49,16 @@ impl<F> Algorithm for Gibbs<F> {}
 impl<S, M: Projector<S>> Policy<S> for Gibbs<VectorLFA<M>> {
     type Action = usize;
 
-    fn sample(&mut self, input: &S) -> usize {
-        let ps = self.probabilities(input);
+    fn sample(&mut self, s: &S) -> usize {
+        let ps = self.probabilities(s);
 
-        let r = self.rng.gen::<f64>();
-        match ps.iter().scan(0.0, |state, &p| {
-            *state = *state + p;
+        sample_probs_with_rng(&mut self.rng, ps.as_slice().unwrap())
+    }
 
-            Some(*state)
-        }).position(|p| p > r) {
-            Some(index) => index,
-            None => ps.len() - 1,
-        }
+    fn mpa(&mut self, s: &S) -> usize {
+        let ps = self.probabilities(s);
+
+        argmax_choose(&mut self.rng, ps.as_slice().unwrap()).1
     }
 
     fn probability(&mut self, input: &S, a: usize) -> f64 { self.probabilities(input)[a] }
@@ -99,13 +106,12 @@ impl<F: Parameterised> Parameterised for Gibbs<F> {
 
 impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<VectorLFA<M>> {
     fn update(&mut self, input: &S, a: usize, error: f64) {
-        let pi = self.probability(input, a);
         let grad_log = self.grad_log(input, a);
 
         self.fa
             .approximator
             .weights
-            .scaled_add(pi * error, &grad_log);
+            .scaled_add(error, &grad_log);
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
@@ -116,20 +122,21 @@ impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<VectorLFA<M>> {
 #[cfg(test)]
 mod tests {
     use crate::fa::{LFA, Parameterised, basis::fixed::Polynomial};
-    use crate::policies::{Policy, ParameterisedPolicy};
+    use crate::policies::{Policy, ParameterisedPolicy, FinitePolicy};
     use super::Gibbs;
 
     #[test]
-    fn test_sample() {
-        let fa = LFA::vector_output(Polynomial::new(1, vec![(0.0, 1.0)]), 3);
+    fn test_probabilities() {
+        let fa = LFA::vector_output(Polynomial::new(0, vec![(0.0, 1.0)]), 3);
         let mut p = Gibbs::new(fa);
 
-        for _ in 0..10 {
-            p.update(&vec![0.0], 0, -100.0);
-            p.update(&vec![0.0], 1, 100.0);
-            p.update(&vec![0.0], 2, -100.0);
-        }
+        p.update(&vec![0.0], 0, -1.0);
+        p.update(&vec![0.0], 1, 1.0);
+        p.update(&vec![0.0], 2, -1.0);
 
-        assert_eq!(p.sample(&vec![0.0]), 1);
+        let ps = p.probabilities(&vec![0.0]);
+
+        assert!(ps[0] < ps[1]);
+        assert!(ps[2] < ps[1]);
     }
 }

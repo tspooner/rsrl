@@ -21,10 +21,9 @@ rsrl = "0.6"
 ```
 
 ## Usage
-The code below shows how one could use `rsrl` to evaluate a
-[GreedyGQ](http://old.sztaki.hu/~szcsaba/papers/ICML10_controlGQ.pdf) agent
-using a Fourier basis function approximator to solve the canonical mountain car
-problem.
+The code below shows how one could use `rsrl` to evaluate a QLearning agent
+using a linear function approximator with Fourier basis projection to solve the
+canonical mountain car problem.
 
 > See [examples/](https://github.com/tspooner/rsrl/tree/master/examples) for
 > more...
@@ -35,39 +34,40 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    control::gtd::GreedyGQ,
-    core::{run, Evaluation, Parameter, SerialExperiment, make_shared, Trace},
+    control::td::QLearning,
+    core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{projectors::fixed::Fourier, LFA},
+    fa::{basis::fixed::Fourier, LFA},
     geometry::Space,
-    policies::fixed::EpsilonGreedy,
     logging,
+    policies::fixed::{Greedy, Random, EpsilonGreedy},
 };
 
 fn main() {
-    let logger = logging::root(logging::stdout());
-
     let domain = MountainCar::default();
     let mut agent = {
         let n_actions = domain.action_space().card().into();
 
-        // Build the linear value functions using a fourier basis projection.
+        // Build the linear value function using a 3rd-order fourier basis projection.
         let bases = Fourier::from_space(3, domain.state_space());
-        let v_func = make_shared(LFA::simple(bases.clone()));
-        let q_func = make_shared(LFA::multi(bases, n_actions));
+        let q_func = make_shared(LFA::vector_output(bases, n_actions));
 
-        // Build a stochastic behaviour policy with exponential epsilon.
-        let eps = Parameter::exponential(0.99, 0.05, 0.99);
-        let policy = make_shared(EpsilonGreedy::new(q_func.clone(), eps));
+        // Build an epsilon-greedy behaviour policy with exponentially annealed exploration.
+        let policy = make_shared(EpsilonGreedy::new(
+            Greedy::new(q_func.clone()),
+            Random::new(n_actions),
+            Parameter::exponential(0.7, 0.001, 0.99),
+        ));
 
-        GreedyGQ::new(q_func, v_func, policy, 1e-1, 1e-3, 0.99)
+        QLearning::new(q_func, policy, 0.005, 1.0)
     };
 
+    let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(MountainCar::default);
 
     // Training phase:
     let _training_result = {
-        // Start a serial learning experiment up to 1000 steps per episode.
+        // Start a serial learning experiment with up to 1000 steps per episode.
         let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
 
         // Realise 1000 episodes of the experiment generator.
@@ -85,7 +85,9 @@ fn main() {
 Pull requests are welcome. For major changes, please open an issue first to
 discuss what you would like to change.
 
-Please make sure to update tests as appropriate and adhere to the angularjs commit message conventions (see [here](https://gist.github.com/stephenparish/9941e89d80e2bc58a153)).
+Please make sure to update tests as appropriate and adhere to the angularjs
+commit message conventions (see
+[here](https://gist.github.com/stephenparish/9941e89d80e2bc58a153)).
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
