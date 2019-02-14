@@ -81,3 +81,5 @@ pub trait ParameterisedPolicy<S>: Policy<S> + Parameterised {
 
 pub mod fixed;
 pub mod parameterised;
+
+import_all!(perturbation);
