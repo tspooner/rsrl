@@ -38,7 +38,11 @@ impl<P, D, R> PerturbedPolicy<P, D, R> {
     }
 }
 
-impl<P, D, R> Algorithm for PerturbedPolicy<P, D, R> {}
+impl<P: Algorithm, D, R> Algorithm for PerturbedPolicy<P, D, R> {
+    fn handle_terminal(&mut self) {
+        self.base_policy.borrow_mut().handle_terminal();
+    }
+}
 
 impl<S, P, D, R> Policy<S> for PerturbedPolicy<P, D, R>
 where
