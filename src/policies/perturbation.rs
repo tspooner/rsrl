@@ -2,7 +2,7 @@ use crate::core::*;
 use crate::geometry::Space;
 use crate::policies::{FinitePolicy, Policy};
 use rand::{
-    distributions::Distribution,
+    distributions::{Distribution, Normal},
     rngs::ThreadRng,
     Rng,
     thread_rng,
@@ -19,6 +19,12 @@ pub struct PerturbedPolicy<P, D, R = ThreadRng> {
 impl<P, D> PerturbedPolicy<P, D> {
     pub fn new(base_policy: P, noise_dist: D) -> Self {
         PerturbedPolicy::with_rng(base_policy, noise_dist, thread_rng())
+    }
+}
+
+impl<P> PerturbedPolicy<P, Normal> {
+    pub fn normal(base_policy: P, std_dev: f64) -> Self {
+        PerturbedPolicy::with_rng(base_policy, Normal::new(0.0, std_dev), thread_rng())
     }
 }
 
