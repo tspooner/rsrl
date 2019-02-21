@@ -10,14 +10,20 @@ pub fn stdout() -> Fuse<slog_async::Async> {
     let decorator = slog_term::TermDecorator::new().build();
     let drain = slog_term::FullFormat::new(decorator).build().fuse();
 
-    slog_async::Async::new(drain).build().fuse()
+    slog_async::Async::new(drain)
+        .overflow_strategy(slog_async::OverflowStrategy::Block)
+        .build()
+        .fuse()
 }
 
 pub fn file(file: File) -> Fuse<slog_async::Async> {
     let decorator = slog_term::PlainDecorator::new(file);
     let drain = slog_term::FullFormat::new(decorator).build().fuse();
 
-    slog_async::Async::new(drain).build().fuse()
+    slog_async::Async::new(drain)
+        .overflow_strategy(slog_async::OverflowStrategy::Block)
+        .build()
+        .fuse()
 }
 
 pub fn combine<D1, D2>(drain1: D1, drain2: D2) -> Fuse<Duplicate<D1, D2>>
