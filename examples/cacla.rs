@@ -10,21 +10,28 @@ use rsrl::{
     geometry::Space,
     logging,
     prediction::td::TD,
-    policies::parameterised::Dirac,
+    policies::{
+        parameterised::Dirac,
+        PerturbedPolicy,
+    },
 };
 
 fn main() {
     let domain = ContinuousMountainCar::default();
     let bases = Fourier::from_space(3, domain.state_space());
 
-    let policy = make_shared({
+    // Build target policy.
+    let target_policy = {
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
-        let fa = LFA::scalar_output(bases.clone());
+        let policy_fa = LFA::scalar_output(bases.clone());
 
-        // Build a stochastic behaviour policy with exponential epsilon.
-        Dirac::new(fa)
-    });
+        make_shared(Dirac::new(policy_fa))
+    };
+
+    // Build behaviour policy as noisy variant of our target.
+    let behaviour_policy = make_shared(PerturbedPolicy::normal(target_policy.clone(), 1.0));
+
     let critic = make_shared({
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
@@ -33,7 +40,7 @@ fn main() {
         TD::new(v_func, 0.01, 1.0)
     });
 
-    let mut agent = CACLA::new(critic, policy, 0.005, 1.0);
+    let mut agent = CACLA::new(critic, target_policy, behaviour_policy, 0.005, 1.0);
 
     let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(ContinuousMountainCar::default);
