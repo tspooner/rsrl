@@ -24,14 +24,16 @@ impl<F> Mean<F> {
 }
 
 impl<M> Mean<ScalarLFA<M>> {
-    fn grad_log<S>(&self, input: &S, a: f64) -> Vector<f64>
+    fn grad_log<S>(&self, input: &S, a: f64, std: f64) -> Vector<f64>
         where M: Projector<S>,
     {
         let phi = self.fa.projector.project(input);
         let mean = self.fa.approximator.evaluate(&phi).unwrap();
         let phi = phi.expanded(self.fa.projector.dim());
 
-        (a - mean) * phi
+        let prob = normal_pdf(mean, std, a);
+
+        prob * (a - mean) * phi
     }
 }
 
@@ -100,7 +102,7 @@ impl<S, F: VFunction<S>> Policy<S> for Gaussian1d<F> {
 
 impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<ScalarLFA<M>> {
     fn grad_log(&self, input: &S, a: f64) -> Matrix<f64> {
-        self.mean.grad_log(input, a).insert_axis(Axis(1))
+        self.mean.grad_log(input, a, self.std()).insert_axis(Axis(1))
     }
 }
 
