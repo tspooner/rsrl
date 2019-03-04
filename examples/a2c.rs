@@ -22,7 +22,7 @@ fn main() {
     let policy = make_shared({
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
-        let fa = LFA::vector_output(bases.clone(), n_actions);
+        let fa = LFA::vector(bases.clone(), n_actions);
 
         // Build a stochastic behaviour policy with exponential epsilon.
         Gibbs::new(fa)
@@ -30,7 +30,7 @@ fn main() {
     let critic = make_shared({
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
-        let q_func = make_shared(LFA::vector_output(bases, n_actions));
+        let q_func = make_shared(LFA::vector(bases, n_actions));
 
         SARSA::new(q_func, policy.clone(), 0.001, 0.99)
     });

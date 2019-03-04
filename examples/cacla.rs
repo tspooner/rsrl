@@ -4,36 +4,26 @@ extern crate slog;
 
 use rsrl::{
     control::actor_critic::CACLA,
-    core::{make_shared, run, Evaluation, SerialExperiment, Parameter},
+    core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{Domain, ContinuousMountainCar},
     fa::{basis::fixed::Fourier, LFA},
-    geometry::Space,
     logging,
     prediction::td::TD,
-    policies::parameterised::Dirac,
+    policies::parameterised::{Dirac, Gaussian1d},
 };
 
 fn main() {
     let domain = ContinuousMountainCar::default();
     let bases = Fourier::from_space(3, domain.state_space());
 
-    let policy = make_shared({
-        // Build the linear value function using a fourier basis projection and the
-        // appropriate eligibility trace.
-        let fa = LFA::scalar_output(bases.clone());
+    let mean_fa = make_shared(LFA::scalar(bases.clone()));
 
-        // Build a stochastic behaviour policy with exponential epsilon.
-        Dirac::new(fa)
-    });
-    let critic = make_shared({
-        // Build the linear value function using a fourier basis projection and the
-        // appropriate eligibility trace.
-        let v_func = make_shared(LFA::scalar_output(bases));
+    // Build a stochastic behaviour policy with exponential epsilon.
+    let target_policy = make_shared(Dirac::new(mean_fa.clone()));
+    let behaviour_policy = make_shared(Gaussian1d::new(mean_fa, 1.0));
+    let critic = make_shared(TD::new(make_shared(LFA::scalar(bases)), 0.01, 1.0));
 
-        TD::new(v_func, 0.01, 1.0)
-    });
-
-    let mut agent = CACLA::new(critic, policy, 0.005, 1.0);
+    let mut agent = CACLA::new(critic, target_policy, behaviour_policy, 0.001, 1.0);
 
     let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(ContinuousMountainCar::default);

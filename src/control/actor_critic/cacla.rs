@@ -19,7 +19,8 @@ impl<C, PT, PB> CACLA<C, PT, PB> {
         critic: Shared<C>,
         target_policy: Shared<PT>,
         behaviour_policy: Shared<PB>,
-        alpha: T1, gamma: T2
+        alpha: T1,
+        gamma: T2
     ) -> Self
     where
         T1: Into<Parameter>,

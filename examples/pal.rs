@@ -20,7 +20,7 @@ fn main() {
         // Build the linear value function using a fourier basis projection and the
         // appropriate eligibility trace.
         let bases = Fourier::from_space(3, domain.state_space());
-        let q_func = make_shared(LFA::vector_output(bases, n_actions));
+        let q_func = make_shared(LFA::vector(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let policy = make_shared(EpsilonGreedy::new(

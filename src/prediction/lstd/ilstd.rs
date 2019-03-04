@@ -1,9 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA};
-use crate::geometry::Space;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA},
+    geometry::Space,
+    utils::argmaxima,
+};
 use ndarray::Axis;
-use crate::utils::argmaxima;
 
 #[allow(non_camel_case_types)]
 pub struct iLSTD<M> {
@@ -50,7 +52,7 @@ impl<M> iLSTD<M> {
                 unsafe {
                     let update = alpha * self.mu.uget(j);
 
-                    *fa.approximator.weights.uget_mut(j) += update;
+                    *fa.evaluator.weights.uget_mut(j) += update;
                     self.mu.scaled_add(-update, &self.a.column(j));
                 }
             }
@@ -89,7 +91,7 @@ impl<S, A, M: Projector<S>> OnlineLearner<S, A> for iLSTD<M> {
         self.a += &delta_a;
 
         self.mu.scaled_add(t.reward, &phi_s);
-        self.mu -= &delta_a.dot(&self.fa_theta.approximator.weights);
+        self.mu -= &delta_a.dot(&self.fa_theta.evaluator.weights);
 
         self.solve();
     }

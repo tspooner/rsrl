@@ -21,8 +21,8 @@ fn main() {
 
         // Build the linear value functions using a fourier basis projection.
         let bases = Fourier::from_space(3, domain.state_space());
-        let v_func = make_shared(LFA::scalar_output(bases.clone()));
-        let q_func = make_shared(LFA::vector_output(bases, n_actions));
+        let v_func = make_shared(LFA::scalar(bases.clone()));
+        let q_func = make_shared(LFA::vector(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
         let policy = make_shared(EpsilonGreedy::new(

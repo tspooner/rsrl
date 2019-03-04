@@ -11,14 +11,12 @@ use ndarray::Axis;
 use std::ops::AddAssign;
 
 pub struct Dirac<F> {
-    pub fa: F,
+    pub fa: Shared<F>,
 }
 
 impl<F> Dirac<F> {
-    pub fn new(fa: F) -> Self {
-        Dirac {
-            fa,
-        }
+    pub fn new(fa: Shared<F>) -> Self {
+        Dirac { fa, }
     }
 }
 
@@ -54,10 +52,10 @@ impl<F: Parameterised> Parameterised for Dirac<F> {
 
 impl<S, M: Projector<S>> ParameterisedPolicy<S> for Dirac<ScalarLFA<M>> {
     fn update(&mut self, input: &S, _: f64, error: f64) {
-        self.fa.update(input, error).ok();
+        self.fa.borrow_mut().update(input, error).ok();
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
-        self.fa.approximator.weights.add_assign(&errors)
+        self.fa.borrow_mut().evaluator.weights.add_assign(&errors)
     }
 }

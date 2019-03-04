@@ -1,10 +1,12 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA};
-use crate::geometry::Space;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA},
+    geometry::Space,
+    utils::{argmaxima, pinv},
+};
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
-use crate::utils::{argmaxima, pinv};
 
 pub struct LambdaLSPE<M> {
     pub fa_theta: Shared<ScalarLFA<M>>,
@@ -44,8 +46,8 @@ impl<M: Space> LambdaLSPE<M> {
 
 impl<M> LambdaLSPE<M> {
     #[inline(always)]
-    fn compute_v(&self, phi: &Vector<f64>) -> f64 {
-        self.fa_theta.approximator.weights.dot(phi)
+    fn compute_v(&self, phi: &Projection) -> f64 {
+        self.fa_theta.evaluator.evaluate(phi).unwrap()
     }
 
     fn solve(&mut self) {
@@ -53,8 +55,8 @@ impl<M> LambdaLSPE<M> {
         if let Ok(theta) = self.a.solve(&self.b).or_else(|_| {
             pinv(&self.a).map(|ainv| ainv.dot(&self.b))
         }) {
-            self.fa_theta.borrow_mut().approximator.weights *= 1.0 - self.alpha;
-            self.fa_theta.borrow_mut().approximator.weights.scaled_add(self.alpha.value(), &theta);
+            self.fa_theta.borrow_mut().evaluator.weights *= 1.0 - self.alpha;
+            self.fa_theta.borrow_mut().evaluator.weights.scaled_add(self.alpha.value(), &theta);
 
             self.a.fill(0.0);
             self.b.fill(0.0);
@@ -75,9 +77,9 @@ impl<S, A, M: Projector<S>> BatchLearner<S, A> for LambdaLSPE<M> {
     fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
         batch.into_iter().rev().for_each(|ref t| {
             let phi_s = self.fa_theta.projector
-                .project(t.from.state())
-                .expanded(self.a.rows());
+                .project(t.from.state());
             let v = self.compute_v(&phi_s);
+            let phi_s = phi_s.expanded(self.a.rows());
 
             if t.terminated() {
                 let residual = t.reward - v;
@@ -86,9 +88,7 @@ impl<S, A, M: Projector<S>> BatchLearner<S, A> for LambdaLSPE<M> {
                 self.a += &phi_s.clone().insert_axis(Axis(1)).dot(&(phi_s.insert_axis(Axis(0))));
 
             } else {
-                let phi_ns = self.fa_theta.projector
-                    .project(t.to.state())
-                    .expanded(self.a.rows());
+                let phi_ns = self.fa_theta.projector.project(t.to.state());
                 let residual = t.reward + self.gamma * self.compute_v(&phi_ns) - v;
 
                 self.delta = self.gamma * self.lambda * self.delta + residual;

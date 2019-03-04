@@ -1,10 +1,12 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA};
-use crate::geometry::Space;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA},
+    geometry::Space,
+    utils::{argmaxima, pinv},
+};
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
-use crate::utils::{argmaxima, pinv};
 
 pub struct LSTDLambda<M> {
     pub fa_theta: Shared<ScalarLFA<M>>,
@@ -48,13 +50,13 @@ impl<M> LSTDLambda<M> {
     pub fn solve(&mut self) {
         // First try the clean approach:
         if let Ok(theta) = self.a.solve(&self.b) {
-            self.fa_theta.borrow_mut().approximator.weights.assign(&theta);
+            self.fa_theta.borrow_mut().evaluator.weights.assign(&theta);
 
         // Otherwise solve via SVD:
         } else if let Ok(ainv) = pinv(&self.a) {
             let theta = ainv.dot(&self.b);
 
-            self.fa_theta.borrow_mut().approximator.weights.assign(&theta);
+            self.fa_theta.borrow_mut().evaluator.weights.assign(&theta);
         }
     }
 }

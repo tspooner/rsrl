@@ -1,8 +1,10 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projection, Projector, ScalarLFA};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Approximator, VFunction, Parameterised, Projection, Projector, ScalarLFA},
+    policies::{DifferentiablePolicy, ParameterisedPolicy, Policy},
+};
 use ndarray::Axis;
-use crate::policies::{DifferentiablePolicy, ParameterisedPolicy, Policy};
 use rand::{
     distributions::{Distribution, Normal as NormalDist},
     rngs::ThreadRng,
@@ -12,7 +14,7 @@ use std::ops::AddAssign;
 use super::pdfs::normal_pdf;
 
 pub struct Mean<F> {
-    pub fa: F,
+    pub fa: Shared<F>,
 }
 
 impl<F> Mean<F> {
@@ -28,7 +30,7 @@ impl<M> Mean<ScalarLFA<M>> {
         where M: Projector<S>,
     {
         let phi = self.fa.projector.project(input);
-        let mean = self.fa.approximator.evaluate(&phi).unwrap();
+        let mean = self.fa.evaluator.evaluate(&phi).unwrap();
         let phi = phi.expanded(self.fa.projector.dim());
 
         let prob = normal_pdf(mean, std, a);
@@ -45,7 +47,7 @@ pub struct Gaussian1d<F> {
 }
 
 impl<F> Gaussian1d<F> {
-    pub fn new<T: Into<Parameter>>(fa_mean: F, std: T) -> Self {
+    pub fn new<T: Into<Parameter>>(fa_mean: Shared<F>, std: T) -> Self {
         Gaussian1d {
             mean: Mean { fa: fa_mean, },
             std: std.into(),
@@ -118,7 +120,8 @@ impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gaussian1d<ScalarLFA<M>> {
 
         self.mean
             .fa
-            .approximator
+            .borrow_mut()
+            .evaluator
             .weights
             .scaled_add(error, &grad_log.column(0));
     }
@@ -126,7 +129,8 @@ impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gaussian1d<ScalarLFA<M>> {
     fn update_raw(&mut self, errors: Matrix<f64>) {
         self.mean
             .fa
-            .approximator
+            .borrow_mut()
+            .evaluator
             .weights
             .add_assign(&errors.column(0))
     }

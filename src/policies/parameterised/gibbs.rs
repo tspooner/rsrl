@@ -80,7 +80,7 @@ impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gibbs<VectorLFA<M>> {
     fn grad_log(&self, input: &S, a: usize) -> Matrix<f64> {
         let phi = self.fa.projector.project(input);
 
-        let values = self.fa.evaluate_primal(&phi).unwrap();
+        let values = self.fa.evaluator.evaluate(&phi).unwrap();
         let n_actions = values.len();
         let probabilities = probabilities_from_values(values.as_slice().unwrap())
             .into_shape((1, n_actions))
@@ -109,25 +109,27 @@ impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gibbs<VectorLFA<M>> {
         let grad_log = self.grad_log(input, a);
 
         self.fa
-            .approximator
+            .evaluator
             .weights
             .scaled_add(error, &grad_log);
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
-        self.fa.approximator.weights.add_assign(&errors)
+        self.fa.evaluator.weights.add_assign(&errors)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::fa::{LFA, Parameterised, basis::fixed::Polynomial};
-    use crate::policies::{Policy, ParameterisedPolicy, FinitePolicy};
+    use crate::{
+        fa::{LFA, Parameterised, basis::fixed::Polynomial},
+        policies::{Policy, ParameterisedPolicy, FinitePolicy},
+    };
     use super::Gibbs;
 
     #[test]
     fn test_probabilities() {
-        let fa = LFA::vector_output(Polynomial::new(0, vec![(0.0, 1.0)]), 3);
+        let fa = LFA::vector(Polynomial::new(1, vec![(0.0, 1.0)]), 3);
         let mut p = Gibbs::new(fa);
 
         p.update(&vec![0.0], 0, -1.0);
