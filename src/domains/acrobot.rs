@@ -89,7 +89,7 @@ impl Acrobot {
         ns[StateIndex::DTHETA2] =
             clip!(LIMITS_DTHETA2.0, ns[StateIndex::DTHETA2], LIMITS_DTHETA2.1);
 
-        self.state = ns;
+        self.state = ns.slice(s!(0..4)).to_owned();
     }
 
     fn grad(state: &Vector) -> Vector {
@@ -114,7 +114,7 @@ impl Acrobot {
             / (M2 * LC2 * LC2 + I2 - d2 * d2 / d1);
         let ddtheta1 = -(d2 * ddtheta2 + phi1) / d1;
 
-        Vector::from_vec(vec![dtheta1, dtheta2, ddtheta1, ddtheta2])
+        Vector::from_vec(vec![dtheta1, dtheta2, ddtheta1, ddtheta2, 0.0])
     }
 }
 
