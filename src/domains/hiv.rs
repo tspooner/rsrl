@@ -86,9 +86,9 @@ impl HIVTreatment {
 
         self.eps = eps;
 
-        let mut ns = runge_kutta4(&fx, self.state.clone(), array![DT_STEP]);
+        let mut ns = runge_kutta4(&fx, self.state.clone(), array![0.0, DT_STEP]);
         for _ in 1..SIM_STEPS {
-            ns = runge_kutta4(&fx, ns, array![DT_STEP]);
+            ns = runge_kutta4(&fx, ns, array![0.0, DT_STEP]);
         }
 
         self.state = ns;
