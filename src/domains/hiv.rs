@@ -82,13 +82,13 @@ impl HIVTreatment {
 
     fn update_state(&mut self, a: usize) {
         let eps = ALL_ACTIONS[a];
-        let fx = |_x, y| HIVTreatment::grad(eps, &y);
+        let fx = |y: &Vector| HIVTreatment::grad(eps, y);
 
         self.eps = eps;
 
-        let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), DT_STEP);
+        let mut ns = runge_kutta4(&fx, self.state.clone(), array![DT_STEP]);
         for _ in 1..SIM_STEPS {
-            ns = runge_kutta4(&fx, 0.0, ns, DT_STEP);
+            ns = runge_kutta4(&fx, ns, array![DT_STEP]);
         }
 
         self.state = ns;

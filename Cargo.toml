@@ -40,6 +40,8 @@ slog = "2.4"
 slog-term = "2.4"
 slog-async = "2.3"
 
+ggez = "0.4.4"
+
 [dev-dependencies]
 serde_test = "1.0"
 

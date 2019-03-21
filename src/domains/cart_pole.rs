@@ -59,8 +59,8 @@ impl CartPole {
     }
 
     fn update_state(&mut self, a: usize) {
-        let fx = |_x, y| CartPole::grad(ALL_ACTIONS[a], &y);
-        let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), TAU);
+        let fx = |y: &Vector| CartPole::grad(ALL_ACTIONS[a], y);
+        let mut ns = runge_kutta4(&fx, self.state.clone(), array![0.0, TAU]);
 
         ns[StateIndex::X] = clip!(LIMITS_X.0, ns[StateIndex::X], LIMITS_X.1);
         ns[StateIndex::DX] = clip!(LIMITS_DX.0, ns[StateIndex::DX], LIMITS_DX.1);

@@ -5,7 +5,7 @@ use crate::geometry::{
     discrete::Ordinal,
     product::LinearSpace,
 };
-use ndarray::{Ix1, NdIndex};
+use ndarray::{Ix1, NdIndex, Axis, Array2};
 use std::f64::consts::PI;
 use super::{runge_kutta4, Domain, Observation, Transition};
 
@@ -64,20 +64,22 @@ unsafe impl NdIndex<Ix1> for StateIndex {
 /// length of one link above the base.
 ///
 /// See [https://www.math24.net/double-pendulum/](https://www.math24.net/double-pendulum/)
-pub struct Acrobat {
+pub struct Acrobot {
     state: Vector,
 }
 
-impl Acrobat {
-    fn new(theta1: f64, theta2: f64, dtheta1: f64, dtheta2: f64) -> Acrobat {
-        Acrobat {
+impl Acrobot {
+    fn new(theta1: f64, theta2: f64, dtheta1: f64, dtheta2: f64) -> Acrobot {
+        Acrobot {
             state: Vector::from_vec(vec![theta1, theta2, dtheta1, dtheta2]),
         }
     }
 
     fn update_state(&mut self, a: usize) {
-        let fx = |_x, y| Acrobat::grad(ALL_ACTIONS[a], &y);
-        let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), DT);
+        let fx = |y: &Vector| Acrobot::grad(y);
+        let state_aug = stack![Axis(0), self.state, array![ALL_ACTIONS[a] as f64]];
+        let mut ns = runge_kutta4(&fx, state_aug, array![0.0, DT]);
+
 
         ns[StateIndex::THETA1] = wrap!(LIMITS_THETA1.0, ns[StateIndex::THETA1], LIMITS_THETA1.1);
         ns[StateIndex::THETA2] = wrap!(LIMITS_THETA2.0, ns[StateIndex::THETA2], LIMITS_THETA2.1);
@@ -90,13 +92,14 @@ impl Acrobat {
         self.state = ns;
     }
 
-    fn grad(torque: f64, state: &Vector) -> Vector {
+    fn grad(state: &Vector) -> Vector {
         let theta1 = state[StateIndex::THETA1];
         let theta2 = state[StateIndex::THETA2];
         let dtheta1 = state[StateIndex::DTHETA1];
         let dtheta2 = state[StateIndex::DTHETA2];
+        let torque = state[state.len()-1];
 
-        let sin_t2 = theta1.sin();
+        let sin_t2 = theta2.sin();
         let cos_t2 = theta2.cos();
 
         let d1 = M1 * LC1 * LC1 + M2 * (L1 * L1 + LC2 * LC2 + 2.0 * L1 * LC2 * cos_t2) + I1 + I2;
@@ -115,11 +118,11 @@ impl Acrobat {
     }
 }
 
-impl Default for Acrobat {
-    fn default() -> Acrobat { Acrobat::new(0.0, 0.0, 0.0, 0.0) }
+impl Default for Acrobot {
+    fn default() -> Acrobot { Acrobot::new(0.0, 0.0, 0.0, 0.0) }
 }
 
-impl Domain for Acrobat {
+impl Domain for Acrobot {
     type StateSpace = LinearSpace<Interval>;
     type ActionSpace = Ordinal;
 
@@ -168,6 +171,43 @@ impl Domain for Acrobat {
     }
 
     fn action_space(&self) -> Ordinal { Ordinal::new(3) }
+    
+    fn render(&self, ctx: &mut ggez::Context) {
+        use ggez::graphics::*;
+        fn rectangle(w: f32, h: f32) -> Vec<Point2> {
+            vec![Point2::new(-w*0.5, 0.0),
+            Point2::new(w*0.5, 0.0),
+            Point2::new(w*0.5, h),
+            Point2::new(-w*0.5, h),
+            Point2::new(-w*0.5, 0.0)]
+        }
+        /// Convert from meters to pixels
+        fn m(x: f32) -> f32 {
+            x * 70.0
+        }
+
+        clear(ctx);
+        let state = &self.state;
+        let (theta1, theta2) = (state[0] as f32, state[1] as f32);
+
+        let width = ctx.conf.window_mode.width as f32;
+        let height = ctx.conf.window_mode.height as f32;
+
+        
+        // set_color(ctx, [0.5, 0.5, 0.5, 1.0].into())?;
+        let pos1 = Point2::new(width*0.5, height*0.5);
+        let rect1 = Mesh::new_polygon(ctx, DrawMode::Fill, &rectangle(m(0.1), m(1.0))).unwrap();
+        draw(ctx, &rect1, pos1, theta1).unwrap();
+
+
+        let pos2 = Point2::new(pos1.x - m(1.0)*theta1.sin(), pos1.y + m(1.0)*theta1.cos());
+        let rect2 = Mesh::new_polygon(ctx, DrawMode::Fill, &rectangle(m(0.1), m(1.0))).unwrap();
+        draw(ctx, &rect2, pos2, theta1 + theta2).unwrap();
+
+        present(ctx);
+        // We yield the current thread until the next update
+        ggez::timer::yield_now();
+    }
 }
 
 #[cfg(test)]
@@ -177,7 +217,7 @@ mod tests {
 
     #[test]
     fn test_initial_observation() {
-        let m = Acrobat::default();
+        let m = Acrobot::default();
 
         match m.emit() {
             Observation::Full(ref state) => {
@@ -192,6 +232,6 @@ mod tests {
 
     #[test]
     fn test_is_terminal() {
-        assert!(!Acrobat::default().is_terminal());
+        assert!(!Acrobot::default().is_terminal());
     }
 }

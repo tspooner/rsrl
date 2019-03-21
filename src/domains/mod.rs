@@ -154,6 +154,9 @@ pub trait Domain {
 
     /// Returns an instance of the action space type class.
     fn action_space(&self) -> Self::ActionSpace;
+
+    /// Render environment
+    fn render(&self, _ctx: &mut ggez::Context) {}
 }
 
 mod ode;
@@ -163,7 +166,7 @@ mod grid_world;
 
 import_all!(mountain_car);
 import_all!(cart_pole);
-import_all!(acrobat);
+import_all!(acrobot);
 import_all!(hiv);
 import_all!(cliff_walk);
 
