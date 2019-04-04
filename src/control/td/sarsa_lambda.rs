@@ -1,6 +1,7 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, VectorLFA, Projection, Projector, QFunction};
+use crate::fa::{Approximator, Parameterised, Features, Projector, QFunction};
+use crate::geometry::{MatrixView, MatrixViewMut};
 use crate::policies::{Policy, FinitePolicy};
 
 /// On-policy variant of Watkins' Q-learning with eligibility traces (aka
@@ -62,20 +63,18 @@ impl<F, P: Algorithm> Algorithm for SARSALambda<F, P> {
     }
 }
 
-impl<S, M, P> OnlineLearner<S, P::Action> for SARSALambda<VectorLFA<M>, P>
+impl<S, Q, P> OnlineLearner<S, P::Action> for SARSALambda<Q, P>
 where
-    M: Projector<S>,
+    Q: QFunction<S>,
     P: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.fa_theta.projector.project(s);
-        let qsa = self.fa_theta.evaluate_action_phi(&phi_s, t.action);
+        let phi_s = self.fa_theta.to_features(s);
+        let qsa = self.fa_theta.evaluate_index(&phi_s, t.action).unwrap();
 
-        // Update trace:
-        let n_bases = self.fa_theta.projector.dim();
-
-        self.update_trace(phi_s.expanded(n_bases));
+        // Update trace with latest feature vector:
+        self.update_trace(phi_s.expanded(self.fa_theta.n_features()));
 
         // Update weight vectors:
         let z = self.trace.get();
@@ -86,16 +85,16 @@ where
         } else {
             let ns = t.to.state();
             let na = self.policy.borrow_mut().sample(ns);
-            let nqsna = self.fa_theta.evaluate_action(ns, na);
+            let nqsna = self.fa_theta.evaluate_index(&self.fa_theta.to_features(ns), na).unwrap();
 
             t.reward + self.gamma * nqsna - qsa
         };
 
-        self.fa_theta.borrow_mut().update_action_phi(
-            &Projection::Dense(z),
+        self.fa_theta.borrow_mut().update_index(
+            &Features::Dense(z),
             t.action,
             self.alpha * residual,
-        );
+        ).ok();
     }
 }
 
@@ -125,16 +124,24 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_theta.evaluate(s).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.evaluate_action(&s, a)
+        self.fa_theta.evaluate_index(&self.fa_theta.to_features(s), a).unwrap()
     }
 }
 
 impl<F: Parameterised, P> Parameterised for SARSALambda<F, P> {
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.fa_theta.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

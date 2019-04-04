@@ -16,9 +16,9 @@ impl<S, Q: QFunction<S>> Policy<S> for Greedy<Q> {
     type Action = usize;
 
     fn mpa(&mut self, s: &S) -> usize {
-        let qs = self.0.evaluate(s).unwrap();
-
-        argmax_choose(&mut thread_rng(), qs.as_slice().unwrap()).1
+        self.0.evaluate(&self.0.to_features(s)).map(|qs| {
+            argmax_choose(&mut thread_rng(), qs.as_slice().unwrap()).1
+        }).unwrap()
     }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
@@ -30,17 +30,18 @@ impl<S, Q: QFunction<S>> FinitePolicy<S> for Greedy<Q> {
     }
 
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
-        let qs = self.0.evaluate(s).unwrap();
-        let mut ps = vec![0.0; qs.len()];
+        self.0.evaluate(&self.0.to_features(s)).map(|qs| {
+            let mut ps = vec![0.0; qs.len()];
 
-        let (_, maxima) = argmaxima(qs.as_slice().unwrap());
+            let (_, maxima) = argmaxima(qs.as_slice().unwrap());
 
-        let p = 1.0 / maxima.len() as f64;
-        for i in maxima {
-            ps[i] = p;
-        }
+            let p = 1.0 / maxima.len() as f64;
+            for i in maxima {
+                ps[i] = p;
+            }
 
-        ps.into()
+            ps.into()
+        }).unwrap()
     }
 }
 

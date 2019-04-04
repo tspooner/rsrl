@@ -2,6 +2,7 @@ use crate::core::*;
 use crate::domains::Transition;
 use crate::geometry::Matrix;
 use crate::fa::Parameterised;
+use crate::geometry::{MatrixView, MatrixViewMut};
 use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
@@ -75,5 +76,13 @@ impl<S, B, P: ParameterisedPolicy<S>> Controller<S, P::Action> for BaselineREINF
 impl<B, P: Parameterised> Parameterised for BaselineREINFORCE<B, P> {
     fn weights(&self) -> Matrix<f64> {
         self.policy.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.policy.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

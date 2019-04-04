@@ -1,13 +1,15 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA};
-use crate::geometry::Space;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Approximator, VFunction, Parameterised, Projector},
+    geometry::{Space, Matrix, MatrixView, MatrixViewMut},
+    utils::{argmaxima, pinv},
+};
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
-use crate::utils::{argmaxima, pinv};
 
-pub struct LSTDLambda<M> {
-    pub fa_theta: Shared<ScalarLFA<M>>,
+pub struct LSTDLambda<F> {
+    pub fa_theta: Shared<F>,
     pub gamma: Parameter,
 
     trace: Trace,
@@ -16,10 +18,9 @@ pub struct LSTDLambda<M> {
     b: Vector<f64>,
 }
 
-impl<M: Space> LSTDLambda<M> {
-    pub fn new<T: Into<Parameter>>(fa_theta: Shared<ScalarLFA<M>>,
-                                   trace: Trace, gamma: T) -> Self {
-        let n_features = fa_theta.projector.dim();
+impl<F: Parameterised> LSTDLambda<F> {
+    pub fn new<T: Into<Parameter>>(fa_theta: Shared<F>, trace: Trace, gamma: T) -> Self {
+        let dim = fa_theta.weights_dim();
 
         LSTDLambda {
             fa_theta,
@@ -28,13 +29,13 @@ impl<M: Space> LSTDLambda<M> {
 
             trace,
 
-            a: Matrix::zeros((n_features, n_features)),
-            b: Vector::zeros((n_features,)),
+            a: Matrix::zeros(dim),
+            b: Vector::zeros(dim.0),
         }
     }
 }
 
-impl<M> LSTDLambda<M> {
+impl<F> LSTDLambda<F> {
     #[inline]
     fn update_trace(&mut self, phi: &Vector<f64>) -> Vector<f64> {
         let decay_rate = self.trace.lambda.value() * self.gamma.value();
@@ -44,32 +45,34 @@ impl<M> LSTDLambda<M> {
 
         self.trace.get()
     }
+}
 
+impl<F: Parameterised> LSTDLambda<F> {
     pub fn solve(&mut self) {
-        // First try the clean approach:
+        let mut fa = self.fa_theta.borrow_mut();
+        let mut weights = fa.weights_view_mut();
+
         if let Ok(theta) = self.a.solve(&self.b) {
-            self.fa_theta.borrow_mut().approximator.weights.assign(&theta);
-
-        // Otherwise solve via SVD:
+            // First try the clean approach:
+            weights.assign(&theta);
         } else if let Ok(ainv) = pinv(&self.a) {
-            let theta = ainv.dot(&self.b);
-
-            self.fa_theta.borrow_mut().approximator.weights.assign(&theta);
+            // Otherwise solve via SVD:
+            weights.assign(&ainv.dot(&self.b));
         }
     }
 }
 
-impl<M> Algorithm for LSTDLambda<M> {
+impl<F> Algorithm for LSTDLambda<F> {
     fn handle_terminal(&mut self) {
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, M: Projector<S>> BatchLearner<S, A> for LSTDLambda<M> {
+impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LSTDLambda<F> {
     fn handle_batch(&mut self, ts: &[Transition<S, A>]) {
         ts.into_iter().for_each(|t| {
-            let phi_s = self.fa_theta.projector
-                .project(t.from.state())
+            let phi_s = self.fa_theta
+                .to_features(t.from.state())
                 .expanded(self.a.rows());
             let z = self.update_trace(&phi_s);
 
@@ -80,8 +83,8 @@ impl<S, A, M: Projector<S>> BatchLearner<S, A> for LSTDLambda<M> {
 
                 phi_s
             } else {
-                let phi_ns = self.fa_theta.projector
-                    .project(t.to.state())
+                let phi_ns = self.fa_theta
+                    .to_features(t.to.state())
                     .expanded(self.a.rows());
 
                 phi_s - self.gamma.value()*phi_ns
@@ -94,25 +97,24 @@ impl<S, A, M: Projector<S>> BatchLearner<S, A> for LSTDLambda<M> {
     }
 }
 
-impl<S, M> ValuePredictor<S> for LSTDLambda<M>
-where
-    ScalarLFA<M>: VFunction<S>,
-{
+impl<S, F: VFunction<S>> ValuePredictor<S> for LSTDLambda<F> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
     }
 }
 
-impl<S, A, M> ActionValuePredictor<S, A> for LSTDLambda<M>
-where
-    ScalarLFA<M>: VFunction<S>,
-{}
+impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for LSTDLambda<F> {}
 
-impl<M> Parameterised for LSTDLambda<M>
-where
-    ScalarLFA<M>: Parameterised,
-{
+impl<F: Parameterised> Parameterised for LSTDLambda<F> {
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.fa_theta.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

@@ -1,6 +1,7 @@
 use crate::core::*;
 use crate::domains::Transition;
 use crate::fa::{Parameterised, QFunction};
+use crate::geometry::{MatrixView, MatrixViewMut};
 use crate::policies::{fixed::Greedy, Policy, FinitePolicy};
 use std::collections::VecDeque;
 
@@ -89,13 +90,14 @@ impl<S, Q: QFunction<S>, P> QSigma<S, Q, P> {
             rho *= 1.0 - b1.sigma + b1.sigma * b1.pi / b1.mu;
         }
 
-        let qsa = self.q_func.evaluate_action(&self.backup[0].s, self.backup[0].a);
+        let phi_s = self.q_func.to_features(&self.backup[0].s);
+        let qsa = self.q_func.evaluate_index(&phi_s, self.backup[0].a).unwrap();
 
-        self.q_func.borrow_mut().update_action(
-            &self.backup[0].s,
+        self.q_func.borrow_mut().update_index(
+            &phi_s,
             self.backup[0].a,
             self.alpha * rho * (g - qsa),
-        );
+        ).ok();
 
         self.backup.pop_front();
     }
@@ -128,7 +130,8 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let qa = self.predict_qsa(&s, t.action);
+        let phi_s = self.q_func.to_features(s);
+        let qa = self.q_func.evaluate_index(&phi_s, t.action).unwrap();
         let sigma = {
             self.sigma = self.sigma.step();
             self.sigma.value()
@@ -152,7 +155,9 @@ where
         } else {
             let ns = t.to.state();
             let na = self.sample_behaviour(&ns);
-            let nqs = self.q_func.evaluate(&ns).unwrap();
+
+            let phi_ns = self.q_func.to_features(ns);
+            let nqs = self.q_func.evaluate(&phi_ns).unwrap();
             let nqa = nqs[na];
 
             let pi = self.target.probabilities(&ns);
@@ -205,16 +210,24 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(s).unwrap()
+        self.q_func.evaluate(&self.q_func.to_features(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_action(&s, a)
+        self.q_func.evaluate_index(&self.q_func.to_features(s), a).unwrap()
     }
 }
 
 impl<S, Q: Parameterised, P> Parameterised for QSigma<S, Q, P> {
     fn weights(&self) -> Matrix<f64> {
         self.q_func.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.q_func.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

@@ -1,7 +1,7 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Parameterised, VFunction};
-use crate::geometry::Matrix;
+use crate::fa::{Parameterised, Approximator, VFunction};
+use crate::geometry::{Matrix, MatrixView, MatrixViewMut};
 
 pub struct TD<V> {
     pub v_func: Shared<V>,
@@ -34,8 +34,8 @@ impl<V> Algorithm for TD<V> {
 
 impl<S, A, V: VFunction<S>> OnlineLearner<S, A> for TD<V> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let s = t.from.state();
-        let v = self.predict_v(s);
+        let phi_s = self.v_func.to_features(t.from.state());
+        let v = self.v_func.evaluate(&phi_s).unwrap();
 
         let td_error = if t.terminated() {
             t.reward - v
@@ -43,12 +43,14 @@ impl<S, A, V: VFunction<S>> OnlineLearner<S, A> for TD<V> {
             t.reward + self.gamma * self.predict_v(t.to.state()) - v
         };
 
-        self.v_func.borrow_mut().update(s, self.alpha * td_error).ok();
+        self.v_func.borrow_mut().update(&phi_s, self.alpha * td_error).ok();
     }
 }
 
 impl<S, V: VFunction<S>> ValuePredictor<S> for TD<V> {
-    fn predict_v(&mut self, s: &S) -> f64 { self.v_func.evaluate(s).unwrap() }
+    fn predict_v(&mut self, s: &S) -> f64 {
+        self.v_func.evaluate(&self.v_func.to_features(s)).unwrap()
+    }
 }
 
 impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for TD<V> {}
@@ -56,5 +58,13 @@ impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for TD<V> {}
 impl<V: Parameterised> Parameterised for TD<V> {
     fn weights(&self) -> Matrix<f64> {
         self.v_func.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.v_func.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

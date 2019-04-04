@@ -32,28 +32,28 @@ impl<K: Hash + Eq, V> Table<K, V> {
 //       Really we need a map with defaults.
 //       The issue arises when we try to consider what the default value may be
 //       for the generic type O.
-impl<I, V> Approximator<I> for Table<I, V>
-where
-    I: Hash + Eq + Copy,
-    V: Copy + Default + AddAssign,
-{
-    type Value = V;
+// impl<I, V> Approximator for Table<I, V>
+// where
+    // I: Hash + Eq + Copy,
+    // V: Copy + Default + AddAssign,
+// {
+    // type Output = V;
 
-    fn n_outputs(&self) -> usize {
-        unimplemented!()
-    }
+    // fn n_outputs(&self) -> usize {
+        // unimplemented!()
+    // }
 
-    fn evaluate(&self, input: &I) -> EvaluationResult<V> {
-        if self.0.contains_key(input) {
-            Ok(self.0[input])
-        } else {
-            Ok(V::default())
-        }
-    }
+    // fn evaluate(&self, input: &I) -> EvaluationResult<V> {
+        // if self.0.contains_key(input) {
+            // Ok(self.0[input])
+        // } else {
+            // Ok(V::default())
+        // }
+    // }
 
-    fn update(&mut self, input: &I, error: V) -> UpdateResult<()> {
-        *self.0.entry(*input).or_insert_with(V::default) += error;
+    // fn update(&mut self, input: &I, error: V) -> UpdateResult<()> {
+        // *self.0.entry(*input).or_insert_with(V::default) += error;
 
-        Ok(())
-    }
-}
+        // Ok(())
+    // }
+// }

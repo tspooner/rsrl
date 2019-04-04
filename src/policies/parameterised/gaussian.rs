@@ -1,8 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, VFunction, Parameterised, Projection, Projector, ScalarLFA};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Approximator, VFunction, Parameterised, Projector},
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{DifferentiablePolicy, ParameterisedPolicy, Policy},
+};
 use ndarray::Axis;
-use crate::policies::{DifferentiablePolicy, ParameterisedPolicy, Policy};
 use rand::{
     distributions::{Distribution, Normal as NormalDist},
     rngs::ThreadRng,
@@ -12,28 +15,26 @@ use std::ops::AddAssign;
 use super::pdfs::normal_pdf;
 
 pub struct Mean<F> {
-    pub fa: F,
+    pub fa: Shared<F>,
 }
 
 impl<F> Mean<F> {
     fn evaluate<S>(&self, input: &S) -> f64
         where F: VFunction<S>,
     {
-        self.fa.evaluate(input).unwrap()
+        self.fa.evaluate(&self.fa.to_features(input)).unwrap()
     }
 }
 
-impl<M> Mean<ScalarLFA<M>> {
+impl<F> Mean<F> {
     fn grad_log<S>(&self, input: &S, a: f64, std: f64) -> Vector<f64>
-        where M: Projector<S>,
+        where F: VFunction<S>,
     {
-        let phi = self.fa.projector.project(input);
-        let mean = self.fa.approximator.evaluate(&phi).unwrap();
-        let phi = phi.expanded(self.fa.projector.dim());
+        let phi = self.fa.to_features(input);
+        let mean = self.fa.evaluate(&phi).unwrap();
+        let phi = phi.expanded(self.fa.n_features());
 
-        let prob = normal_pdf(mean, std, a);
-
-        prob * (a - mean) * phi
+        (a - mean) / std / std * phi
     }
 }
 
@@ -45,7 +46,7 @@ pub struct Gaussian1d<F> {
 }
 
 impl<F> Gaussian1d<F> {
-    pub fn new<T: Into<Parameter>>(fa_mean: F, std: T) -> Self {
+    pub fn new<T: Into<Parameter>>(fa_mean: Shared<F>, std: T) -> Self {
         Gaussian1d {
             mean: Mean { fa: fa_mean, },
             std: std.into(),
@@ -100,7 +101,7 @@ impl<S, F: VFunction<S>> Policy<S> for Gaussian1d<F> {
     }
 }
 
-impl<S, M: Projector<S>> DifferentiablePolicy<S> for Gaussian1d<ScalarLFA<M>> {
+impl<S, F: VFunction<S>> DifferentiablePolicy<S> for Gaussian1d<F> {
     fn grad_log(&self, input: &S, a: f64) -> Matrix<f64> {
         self.mean.grad_log(input, a, self.std()).insert_axis(Axis(1))
     }
@@ -110,24 +111,30 @@ impl<F: Parameterised> Parameterised for Gaussian1d<F> {
     fn weights(&self) -> Matrix<f64> {
         self.mean.fa.weights()
     }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.mean.fa.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
+    }
 }
 
-impl<S, M: Projector<S>> ParameterisedPolicy<S> for Gaussian1d<ScalarLFA<M>> {
+impl<S, F: VFunction<S> + Parameterised> ParameterisedPolicy<S> for Gaussian1d<F> {
     fn update(&mut self, input: &S, a: f64, error: f64) {
         let grad_log = self.grad_log(input, a);
 
-        self.mean
-            .fa
-            .approximator
-            .weights
-            .scaled_add(error, &grad_log.column(0));
+        let mut fa = self.mean.fa.borrow_mut();
+        let mut weights = fa.weights_view_mut();
+
+        weights.scaled_add(error, &grad_log);
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
-        self.mean
-            .fa
-            .approximator
-            .weights
-            .add_assign(&errors.column(0))
+        let mut fa = self.mean.fa.borrow_mut();
+        let mut weights = fa.weights_view_mut();
+
+        weights.add_assign(&errors);
     }
 }

@@ -1,6 +1,6 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::geometry::Matrix;
+use crate::geometry::{Matrix, MatrixView, MatrixViewMut};
 use crate::fa::Parameterised;
 use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
@@ -66,5 +66,13 @@ impl<S, P: ParameterisedPolicy<S>> Controller<S, P::Action> for REINFORCE<P> {
 impl<P: Parameterised> Parameterised for REINFORCE<P> {
     fn weights(&self) -> Matrix<f64> {
         self.policy.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.policy.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }
