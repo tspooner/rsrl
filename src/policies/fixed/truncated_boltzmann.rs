@@ -59,22 +59,19 @@ impl<S, Q: QFunction<S>> FinitePolicy<S> for TruncatedBoltzmann<Q> {
     }
 
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
-        let c = self.c.value();
+        self.q_func.evaluate(&self.q_func.to_features(s)).map(|ws| {
+            let c = self.c.value();
+            let mut z = 0.0;
 
-        let mut z = 0.0;
-        let ws: Vec<f64> = self
-            .q_func
-            .evaluate(s)
-            .unwrap()
-            .into_iter()
-            .map(|q| {
-                let v = kappa(c, *q).exp();
+            let ws: Vector<f64> = ws.into_iter().map(|v| {
+                let v = kappa(c, *v).exp();
                 z += v;
 
                 v
             })
             .collect();
 
-        ws.iter().map(|w| w / z).collect()
+            ws / z
+        }).unwrap()
     }
 }

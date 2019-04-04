@@ -1,6 +1,7 @@
 use crate::core::*;
 use crate::domains::Transition;
 use crate::fa::{Parameterised, VFunction};
+use crate::geometry::{MatrixView, MatrixViewMut};
 
 pub struct GradientMC<V> {
     pub v_func: Shared<V>,
@@ -38,16 +39,17 @@ impl<S, A, V: VFunction<S>> BatchLearner<S, A> for GradientMC<V> {
         batch.into_iter().rev().for_each(|ref t| {
             sum = t.reward + self.gamma * sum;
 
-            let s = t.from.state();
-            let v_est = self.v_func.evaluate(s).unwrap();
-            let _ = self.v_func.borrow_mut().update(s, self.alpha * (sum - v_est));
+            let phi_s = self.v_func.to_features(t.from.state());
+            let v_est = self.v_func.evaluate(&phi_s).unwrap();
+
+            self.v_func.borrow_mut().update(&phi_s, self.alpha * (sum - v_est)).ok();
         })
     }
 }
 
 impl<S, V: VFunction<S>> ValuePredictor<S> for GradientMC<V> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.v_func.evaluate(s).unwrap()
+        self.v_func.evaluate(&self.v_func.to_features(s)).unwrap()
     }
 }
 
@@ -56,5 +58,13 @@ impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for GradientMC<V> {}
 impl<V: Parameterised> Parameterised for GradientMC<V> {
     fn weights(&self) -> Matrix<f64> {
         self.v_func.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.v_func.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

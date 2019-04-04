@@ -1,21 +1,21 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Projection, Projector, ScalarLFA, VFunction};
-use crate::geometry::Space;
+use crate::fa::{Approximator, Parameterised, Features, Projector, VFunction};
+use crate::geometry::{Space, MatrixView, MatrixViewMut};
 
-pub struct GTD2<M> {
-    pub fa_theta: Shared<ScalarLFA<M>>,
-    pub fa_w: Shared<ScalarLFA<M>>,
+pub struct GTD2<F> {
+    pub fa_theta: Shared<F>,
+    pub fa_w: Shared<F>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
 }
 
-impl<M: Space> GTD2<M> {
+impl<F: Parameterised> GTD2<F> {
     pub fn new<T1, T2, T3>(
-        fa_theta: Shared<ScalarLFA<M>>,
-        fa_w: Shared<ScalarLFA<M>>,
+        fa_theta: Shared<F>,
+        fa_w: Shared<F>,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -25,7 +25,7 @@ impl<M: Space> GTD2<M> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
-        if fa_theta.projector.dim() != fa_w.projector.dim() {
+        if fa_theta.weights_dim() != fa_w.weights_dim() {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
 
@@ -40,7 +40,7 @@ impl<M: Space> GTD2<M> {
     }
 }
 
-impl<M> Algorithm for GTD2<M> {
+impl<F> Algorithm for GTD2<F> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.beta = self.alpha.step();
@@ -48,47 +48,46 @@ impl<M> Algorithm for GTD2<M> {
     }
 }
 
-impl<S, A, M: Projector<S>> OnlineLearner<S, A> for GTD2<M> {
+impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for GTD2<F> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.projector.project(s));
+        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.to_features(s));
 
-        let v = self.fa_theta.evaluate_phi(&phi_s);
+        let v = self.fa_theta.evaluate(&phi_s).unwrap();
 
-        let td_estimate = self.fa_w.evaluate_phi(&phi_s);
+        let td_estimate = self.fa_w.evaluate(&phi_s).unwrap();
         let td_error = if t.terminated() {
             t.reward - v
         } else {
-            t.reward + self.gamma * self.fa_theta.evaluate_phi(&phi_ns) - v
+            t.reward + self.gamma * self.fa_theta.evaluate(&phi_ns).unwrap() - v
         };
 
-        self.fa_w.borrow_mut().update_phi(&phi_s, self.beta * (td_error - td_estimate));
+        self.fa_w.borrow_mut().update(&phi_s, self.beta * (td_error - td_estimate)).unwrap();
 
-        let dim = self.fa_theta.projector.dim();
+        let dim = self.fa_theta.n_features();
         let pd = phi_s.expanded(dim) - self.gamma.value() * phi_ns.expanded(dim);
 
-        self.fa_theta.borrow_mut().update_phi(&Projection::Dense(pd), self.alpha * td_estimate);
+        self.fa_theta.borrow_mut().update(&Features::Dense(pd), self.alpha * td_estimate).ok();
     }
 }
 
-impl<S, M> ValuePredictor<S> for GTD2<M>
-where
-    ScalarLFA<M>: VFunction<S>,
-{
+impl<S, F: VFunction<S>> ValuePredictor<S> for GTD2<F> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
     }
 }
 
-impl<S, A, M> ActionValuePredictor<S, A> for GTD2<M>
-where
-    ScalarLFA<M>: VFunction<S>,
-{}
+impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for GTD2<F> {}
 
-impl<M> Parameterised for GTD2<M>
-where
-    ScalarLFA<M>: Parameterised,
-{
+impl<F: Parameterised> Parameterised for GTD2<F> {
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.fa_theta.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

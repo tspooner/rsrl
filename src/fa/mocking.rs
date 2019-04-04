@@ -1,5 +1,5 @@
 use crate::core::{make_shared, Shared};
-use crate::fa::{Approximator, EvaluationResult, QFunction, UpdateResult, VFunction};
+use crate::fa::{Approximator, EvaluationResult, Embedded, QFunction, UpdateResult, Features};
 use crate::geometry::Vector;
 use std::marker::PhantomData;
 
@@ -21,24 +21,31 @@ impl MockQ {
     pub fn clear_output(&mut self) { self.output = None }
 }
 
-impl Approximator<Vector<f64>> for MockQ {
-    type Value = Vector<f64>;
+impl Embedded<Vector<f64>> for MockQ {
+    fn n_features(&self) -> usize { unimplemented!() }
+
+    fn to_features(&self, s: &Vector<f64>) -> Features { Features::Dense(s.clone()) }
+}
+
+impl Approximator for MockQ {
+    type Output = Vector<f64>;
 
     fn n_outputs(&self) -> usize {
         match self.output {
-            Some(ref vector) => vector.len(),
+            Some(ref out) => out.len(),
             None => 0,
         }
     }
 
-    fn evaluate(&self, s: &Vector<f64>) -> EvaluationResult<Vector<f64>> {
+    fn evaluate(&self, f: &Features) -> EvaluationResult<Vector<f64>> {
         Ok(match self.output {
-            Some(ref vector) => vector.clone(),
-            None => s.clone().into(),
+            Some(ref out) => out.clone(),
+            None => match f {
+                Features::Sparse(_) => unimplemented!(),
+                Features::Dense(ref out) => out.clone(),
+            }
         })
     }
 
-    fn update(&mut self, _: &Vector<f64>, _: Vector<f64>) -> UpdateResult<()> { Ok(()) }
+    fn update(&mut self, _: &Features, _: Vector<f64>) -> UpdateResult<()> { Ok(()) }
 }
-
-impl QFunction<Vector<f64>> for MockQ {}

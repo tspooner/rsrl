@@ -1,6 +1,7 @@
 use crate::core::*;
 use crate::domains::Transition;
 use crate::fa::{Parameterised, QFunction};
+use crate::geometry::{MatrixView, MatrixViewMut};
 use crate::policies::{Policy, FinitePolicy};
 use std::marker::PhantomData;
 
@@ -63,7 +64,10 @@ where
             t.reward + self.gamma * exp_nv - qsa
         };
 
-        self.q_func.borrow_mut().update_action(s, t.action, self.alpha * residual);
+        self.q_func.borrow_mut().update_index(
+            &self.q_func.to_features(s),
+            t.action, self.alpha * residual
+        ).ok();
     }
 }
 
@@ -89,16 +93,24 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(s).unwrap()
+        self.q_func.evaluate(&self.q_func.to_features(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_action(&s, a)
+        self.q_func.evaluate_index(&self.q_func.to_features(s), a).unwrap()
     }
 }
 
 impl<Q: Parameterised, P> Parameterised for ExpectedSARSA<Q, P> {
     fn weights(&self) -> Matrix<f64> {
         self.q_func.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.q_func.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

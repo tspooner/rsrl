@@ -1,6 +1,7 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, VectorLFA, Projection, Projector, QFunction};
+use crate::fa::{Approximator, Parameterised, Features, Projector, QFunction};
+use crate::geometry::{MatrixView, MatrixViewMut};
 use crate::policies::{fixed::Greedy, Policy};
 
 /// Watkins' Q-learning with eligibility traces.
@@ -58,18 +59,17 @@ impl<F, P: Algorithm> Algorithm for QLambda<F, P> {
     }
 }
 
-impl<S, M, P> OnlineLearner<S, P::Action> for QLambda<VectorLFA<M>, P>
+impl<S, F, P> OnlineLearner<S, P::Action> for QLambda<F, P>
 where
-    M: Projector<S>,
-    P: Policy<S, Action = <Greedy<VectorLFA<M>> as Policy<S>>::Action>,
+    F: QFunction<S>,
+    P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.fa_theta.projector.project(s);
-        let qsa = self.fa_theta.evaluate_action_phi(&phi_s, t.action);
+        let phi_s = self.fa_theta.to_features(s);
+        let qsa = self.fa_theta.evaluate_index(&phi_s, t.action).unwrap();
 
         // Update trace:
-        let n_bases = self.fa_theta.projector.dim();
         let decay_rate = if t.action == self.target.sample(s) {
             self.trace.lambda.value() * self.gamma.value()
         } else {
@@ -77,7 +77,7 @@ where
         };
 
         self.trace.decay(decay_rate);
-        self.trace.update(&phi_s.expanded(n_bases));
+        self.trace.update(&phi_s.expanded(self.fa_theta.n_features()));
 
         // Update weight vectors:
         let z = self.trace.get();
@@ -87,16 +87,19 @@ where
             t.reward - qsa
         } else {
             let ns = t.to.state();
+            let phi_ns = self.fa_theta.to_features(ns);
+
             let na = self.target.sample(&ns);
-            let nqsna = self.fa_theta.evaluate_action(ns, na);
+            let nqsna = self.fa_theta.evaluate_index(&phi_ns, na).unwrap();
 
             t.reward + self.gamma * nqsna - qsa
         };
 
-        self.fa_theta.borrow_mut().update_action_phi(
-            &Projection::Dense(z), t.action,
+        self.fa_theta.borrow_mut().update_index(
+            &Features::Dense(z),
+            t.action,
             self.alpha * residual,
-        );
+        ).ok();
     }
 }
 
@@ -128,16 +131,24 @@ where
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_theta.evaluate(s).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.evaluate_action(&s, a)
+        self.fa_theta.evaluate_index(&self.fa_theta.to_features(s), a).unwrap()
     }
 }
 
 impl<F: Parameterised, P> Parameterised for QLambda<F, P> {
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.fa_theta.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

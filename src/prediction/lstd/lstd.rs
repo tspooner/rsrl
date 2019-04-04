@@ -1,15 +1,15 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA},
-    geometry::Space,
+    fa::{Approximator, VFunction, Parameterised, Projector},
+    geometry::{Space, Matrix, MatrixView, MatrixViewMut},
     utils::{argmaxima, pinv},
 };
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
 
-pub struct LSTD<M> {
-    pub fa_theta: Shared<ScalarLFA<M>>,
+pub struct LSTD<F> {
+    pub fa_theta: Shared<F>,
 
     pub gamma: Parameter,
 
@@ -17,79 +17,84 @@ pub struct LSTD<M> {
     b: Vector<f64>,
 }
 
-impl<M: Space> LSTD<M> {
-    pub fn new<T: Into<Parameter>>(fa_theta: Shared<ScalarLFA<M>>, gamma: T) -> Self {
-        let n_features = fa_theta.projector.dim();
+impl<F: Parameterised> LSTD<F> {
+    pub fn new<T: Into<Parameter>>(fa_theta: Shared<F>, gamma: T) -> Self {
+        let dim = fa_theta.weights_dim();
 
         LSTD {
             fa_theta,
 
             gamma: gamma.into(),
 
-            a: Matrix::zeros((n_features, n_features)),
-            b: Vector::zeros((n_features,)),
+            a: Matrix::zeros(dim),
+            b: Vector::zeros(dim.0),
         }
     }
 }
 
-impl<M> Algorithm for LSTD<M> {
+impl<F: Parameterised> LSTD<F> {
+    pub fn solve(&mut self) {
+        let mut fa = self.fa_theta.borrow_mut();
+        let mut weights = fa.weights_view_mut();
+
+        if let Ok(theta) = self.a.solve(&self.b) {
+            // First try the clean approach:
+            weights.assign(&theta);
+        } else if let Ok(ainv) = pinv(&self.a) {
+            // Otherwise solve via SVD:
+            weights.assign(&ainv.dot(&self.b));
+        }
+    }
+}
+
+impl<F> Algorithm for LSTD<F> {
     fn handle_terminal(&mut self) {
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, M: Projector<S>> BatchLearner<S, A> for LSTD<M> {
+impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LSTD<F> {
     fn handle_batch(&mut self, ts: &[Transition<S, A>]) {
         ts.into_iter().for_each(|ref t| {
-            let phi_s = self.fa_theta.projector
-                .project(t.from.state())
+            let phi_s = self.fa_theta
+                .to_features(t.from.state())
                 .expanded(self.a.rows());
             let pd = if t.terminated() {
                 phi_s.clone()
             } else {
-                let phi_ns = self.fa_theta.projector
-                    .project(t.to.state())
+                let phi_ns = self.fa_theta
+                    .to_features(t.to.state())
                     .expanded(self.a.rows());
 
-                phi_s.clone() - self.gamma.value()*phi_ns.clone()
+                phi_s.clone() - self.gamma.value() * phi_ns
             }.insert_axis(Axis(0));
 
             self.b.scaled_add(t.reward, &phi_s);
             self.a += &phi_s.insert_axis(Axis(1)).dot(&pd);
         });
 
-        // First try the clean approach:
-        if let Ok(theta) = self.a.solve(&self.b) {
-            self.fa_theta.borrow_mut().evaluator.weights.assign(&theta);
-
-        // Otherwise solve via SVD:
-        } else if let Ok(ainv) = pinv(&self.a) {
-            let theta = ainv.dot(&self.b);
-
-            self.fa_theta.borrow_mut().evaluator.weights.assign(&theta);
-        }
+        self.solve();
     }
 }
 
-impl<S, M> ValuePredictor<S> for LSTD<M>
-where
-    ScalarLFA<M>: VFunction<S>,
-{
+impl<S, F: VFunction<S>> ValuePredictor<S> for LSTD<F> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
     }
 }
 
-impl<S, A, M> ActionValuePredictor<S, A> for LSTD<M>
-where
-    ScalarLFA<M>: VFunction<S>,
-{}
+impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for LSTD<F> {}
 
-impl<M> Parameterised for LSTD<M>
-where
-    ScalarLFA<M>: Parameterised
-{
+impl<F: Parameterised> Parameterised for LSTD<F> {
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.fa_theta.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

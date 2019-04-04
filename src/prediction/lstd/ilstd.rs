@@ -1,15 +1,15 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, VFunction, Parameterised, Projector, Projection, ScalarLFA},
-    geometry::Space,
+    fa::{Approximator, VFunction, Parameterised, Projector},
+    geometry::{Space, Matrix, MatrixView, MatrixViewMut},
     utils::argmaxima,
 };
 use ndarray::Axis;
 
 #[allow(non_camel_case_types)]
-pub struct iLSTD<M> {
-    pub fa_theta: Shared<ScalarLFA<M>>,
+pub struct iLSTD<F> {
+    pub fa_theta: Shared<F>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -19,13 +19,12 @@ pub struct iLSTD<M> {
     mu: Vector<f64>,
 }
 
-impl<M: Space> iLSTD<M> {
-    pub fn new<T1, T2>(fa_theta: Shared<ScalarLFA<M>>,
-                       n_updates: usize, alpha: T1, gamma: T2) -> Self
-        where T1: Into<Parameter>,
-              T2: Into<Parameter>
+impl<F: Parameterised> iLSTD<F> {
+    pub fn new<T1, T2>(fa_theta: Shared<F>, n_updates: usize, alpha: T1, gamma: T2) -> Self
+    where T1: Into<Parameter>,
+            T2: Into<Parameter>
     {
-        let n_features = fa_theta.projector.dim();
+        let dim = fa_theta.weights_dim();
 
         iLSTD {
             fa_theta,
@@ -34,13 +33,13 @@ impl<M: Space> iLSTD<M> {
             gamma: gamma.into(),
             n_updates,
 
-            a: Matrix::zeros((n_features, n_features)),
-            mu: Vector::zeros((n_features,)),
+            a: Matrix::zeros(dim),
+            mu: Vector::zeros(dim.0),
         }
     }
 }
 
-impl<M> iLSTD<M> {
+impl<F: Parameterised> iLSTD<F> {
     fn solve(&mut self) {
         let mut fa = self.fa_theta.borrow_mut();
         let alpha = self.alpha.value();
@@ -52,7 +51,7 @@ impl<M> iLSTD<M> {
                 unsafe {
                     let update = alpha * self.mu.uget(j);
 
-                    *fa.evaluator.weights.uget_mut(j) += update;
+                    *fa.weights_view_mut().uget_mut((j, 0)) += update;
                     self.mu.scaled_add(-update, &self.a.column(j));
                 }
             }
@@ -60,26 +59,26 @@ impl<M> iLSTD<M> {
     }
 }
 
-impl<M> Algorithm for iLSTD<M> {
+impl<F> Algorithm for iLSTD<F> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
     }
 }
 
-impl<S, A, M: Projector<S>> OnlineLearner<S, A> for iLSTD<M> {
+impl<S, A, F: VFunction<S> + Parameterised> OnlineLearner<S, A> for iLSTD<F> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
         // (D x 1)
-        let phi_s = self.fa_theta.projector
-            .project(t.from.state())
+        let phi_s = self.fa_theta
+            .to_features(t.from.state())
             .expanded(self.a.rows());
 
         // (1 x D)
         let pd = if t.terminated() {
             phi_s.clone().insert_axis(Axis(0))
         } else {
-            let phi_ns = self.fa_theta.projector
-                .project(t.to.state())
+            let phi_ns = self.fa_theta
+                .to_features(t.to.state())
                 .expanded(self.a.rows());
 
             (phi_s.clone() - self.gamma.value() * phi_ns).insert_axis(Axis(0))
@@ -91,31 +90,30 @@ impl<S, A, M: Projector<S>> OnlineLearner<S, A> for iLSTD<M> {
         self.a += &delta_a;
 
         self.mu.scaled_add(t.reward, &phi_s);
-        self.mu -= &delta_a.dot(&self.fa_theta.evaluator.weights);
+        self.mu -= &delta_a.dot(&self.fa_theta.weights_view());
 
         self.solve();
     }
 }
 
-impl<S, M> ValuePredictor<S> for iLSTD<M>
-where
-    ScalarLFA<M>: VFunction<S>,
-{
+impl<S, F: VFunction<S>> ValuePredictor<S> for iLSTD<F> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
     }
 }
 
-impl<S, A, M> ActionValuePredictor<S, A> for iLSTD<M>
-where
-    ScalarLFA<M>: VFunction<S>,
-{}
+impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for iLSTD<F> {}
 
-impl<M> Parameterised for iLSTD<M>
-where
-    ScalarLFA<M>: Parameterised,
-{
+impl<F: Parameterised> Parameterised for iLSTD<F> {
     fn weights(&self) -> Matrix<f64> {
         self.fa_theta.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.fa_theta.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }

@@ -1,6 +1,7 @@
 use crate::core::*;
 use crate::domains::Transition;
 use crate::fa::*;
+use crate::geometry::{MatrixView, MatrixViewMut};
 use crate::policies::{fixed::Greedy, Policy, FinitePolicy};
 
 /// Greedy GQ control algorithm.
@@ -8,38 +9,38 @@ use crate::policies::{fixed::Greedy, Policy, FinitePolicy};
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function
 /// approximation." Proceedings of the 27th International Conference on Machine
 /// Learning (ICML-10). 2010.
-pub struct GreedyGQ<M, P> {
-    pub fa_theta: Shared<VectorLFA<M>>,
-    pub fa_w: Shared<ScalarLFA<M>>,
+pub struct GreedyGQ<Q, W, P> {
+    pub fa_q: Shared<Q>,
+    pub fa_w: Shared<W>,
 
     pub policy: Shared<P>,
-    pub target: Greedy<VectorLFA<M>>,
+    pub target: Greedy<Q>,
 
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
 }
 
-impl<M, P> GreedyGQ<M, P> {
-    pub fn new<T1, T2, T3>(
-        fa_theta: Shared<VectorLFA<M>>,
-        fa_w: Shared<ScalarLFA<M>>,
+impl<Q, W, P> GreedyGQ<Q, W, P> {
+    pub fn new<P1, P2, P3>(
+        fa_q: Shared<Q>,
+        fa_w: Shared<W>,
         policy: Shared<P>,
-        alpha: T1,
-        beta: T2,
-        gamma: T3,
+        alpha: P1,
+        beta: P2,
+        gamma: P3,
     ) -> Self
     where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-        T3: Into<Parameter>,
+        P1: Into<Parameter>,
+        P2: Into<Parameter>,
+        P3: Into<Parameter>,
     {
         GreedyGQ {
-            fa_theta: fa_theta.clone(),
+            fa_q: fa_q.clone(),
             fa_w,
 
             policy,
-            target: Greedy::new(fa_theta),
+            target: Greedy::new(fa_q),
 
             alpha: alpha.into(),
             beta: beta.into(),
@@ -48,7 +49,7 @@ impl<M, P> GreedyGQ<M, P> {
     }
 }
 
-impl<M, P> Algorithm for GreedyGQ<M, P> {
+impl<Q, W, P> Algorithm for GreedyGQ<Q, W, P> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.beta = self.beta.step();
@@ -56,59 +57,59 @@ impl<M, P> Algorithm for GreedyGQ<M, P> {
     }
 }
 
-impl<S, M, P> OnlineLearner<S, P::Action> for GreedyGQ<M, P>
+impl<S, Q, W, P> OnlineLearner<S, P::Action> for GreedyGQ<Q, W, P>
 where
-    M: Projector<S>,
-    P: Policy<S, Action = <Greedy<VectorLFA<M>> as Policy<S>>::Action>,
+    Q: QFunction<S>,
+    W: VFunction<S>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let dim = self.fa_theta.projector.dim();
-        let phi_s = self.fa_w.projector.project(s);
-
-        let estimate = self.fa_w.evaluate_phi(&phi_s);
+        let phi_s = self.fa_w.to_features(s);
+        let estimate = self.fa_w.evaluate(&phi_s).unwrap();
 
         if t.terminated() {
-            let residual = t.reward - self.fa_theta.evaluate_action_phi(&phi_s, t.action);
+            let residual = t.reward - self.fa_q.evaluate_index(&phi_s, t.action).unwrap();
 
-            self.fa_w.borrow_mut().update_phi(
+            self.fa_w.borrow_mut().update(
                 &phi_s,
                 self.alpha * self.beta * (residual - estimate)
-            );
-            self.fa_theta.borrow_mut().update_action_phi(
+            ).ok();
+            self.fa_q.borrow_mut().update_index(
                 &phi_s,
                 t.action,
                 self.alpha.value() * residual
-            );
+            ).ok();
         } else {
             let ns = t.from.state();
             let na = self.sample_target(ns);
-            let phi_ns = self.fa_w.projector.project(ns);
+            let phi_ns = self.fa_w.to_features(ns);
 
             let residual =
                 t.reward
-                + self.gamma.value() * self.fa_theta.evaluate_action_phi(&phi_ns, na)
-                - self.fa_theta.evaluate_action_phi(&phi_s, t.action);
+                + self.gamma.value() * self.fa_q.evaluate_index(&phi_ns, na).unwrap()
+                - self.fa_q.evaluate_index(&phi_s, t.action).unwrap();
 
-            let update_q = residual * phi_s.clone().expanded(dim)
-                - estimate * self.gamma.value() * phi_ns.expanded(dim);
+            let n_features = self.fa_q.n_features();
+            let update_q = residual * phi_s.clone().expanded(n_features)
+                - estimate * self.gamma.value() * phi_ns.expanded(n_features);
 
-            self.fa_w.borrow_mut().update_phi(
+            self.fa_w.borrow_mut().update(
                 &phi_s,
                 self.alpha * self.beta * (residual - estimate)
-            );
-            self.fa_theta.borrow_mut().update_action_phi(
-                &Projection::Dense(update_q),
+            ).ok();
+            self.fa_q.borrow_mut().update_index(
+                &Features::Dense(update_q),
                 t.action,
                 self.alpha.value()
-            );
+            ).ok();
         }
     }
 }
 
-impl<S, M, P> ValuePredictor<S> for GreedyGQ<M, P>
+impl<S, Q, W, P> ValuePredictor<S> for GreedyGQ<Q, W, P>
 where
-    VectorLFA<M>: QFunction<S>,
+    Q: QFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
@@ -116,32 +117,40 @@ where
     }
 }
 
-impl<S, M, P> ActionValuePredictor<S, P::Action> for GreedyGQ<M, P>
+impl<S, Q, W, P> ActionValuePredictor<S, P::Action> for GreedyGQ<Q, W, P>
 where
-    VectorLFA<M>: QFunction<S>,
+    Q: QFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_theta.evaluate(s).unwrap()
+        self.fa_q.evaluate(&self.fa_q.to_features(s)).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.evaluate_action(&s, a)
+    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+        self.fa_q.evaluate_index(&self.fa_q.to_features(s), a).unwrap()
     }
 }
 
-impl<S, M, P> Controller<S, P::Action> for GreedyGQ<M, P>
+impl<S, Q, W, P> Controller<S, P::Action> for GreedyGQ<Q, W, P>
 where
-    VectorLFA<M>: QFunction<S>,
-    P: Policy<S, Action = <Greedy<VectorLFA<M>> as Policy<S>>::Action>,
+    Q: QFunction<S>,
+    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
     fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
 }
 
-impl<M, P> Parameterised for GreedyGQ<M, P> {
+impl<Q: Parameterised, W, P> Parameterised for GreedyGQ<Q, W, P> {
     fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
+        self.fa_q.weights()
+    }
+
+    fn weights_view(&self) -> MatrixView<f64> {
+        self.fa_q.weights_view()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
     }
 }
