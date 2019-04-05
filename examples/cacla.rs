@@ -5,11 +5,11 @@ extern crate slog;
 use rsrl::{
     control::actor_critic::CACLA,
     core::{make_shared, run, Evaluation, SerialExperiment},
-    domains::{Domain, ContinuousMountainCar},
+    domains::{ContinuousMountainCar, Domain},
     fa::{basis::fixed::Fourier, LFA},
     logging,
-    prediction::td::TD,
     policies::parameterised::{Dirac, Gaussian1d},
+    prediction::td::TD,
 };
 
 fn main() {

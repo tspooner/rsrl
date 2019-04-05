@@ -9,7 +9,7 @@ use rsrl::{
     fa::{basis::fixed::Chebyshev, LFA},
     geometry::Space,
     logging,
-    policies::fixed::{Greedy, Random, EpsilonGreedy},
+    policies::fixed::{EpsilonGreedy, Greedy, Random},
 };
 
 fn main() {

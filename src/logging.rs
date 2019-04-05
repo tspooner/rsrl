@@ -3,8 +3,7 @@
 use slog::*;
 use slog_async;
 use slog_term;
-use std::fmt::Debug;
-use std::fs::File;
+use std::{fmt::Debug, fs::File};
 
 pub fn stdout() -> Fuse<slog_async::Async> {
     let decorator = slog_term::TermDecorator::new().build();

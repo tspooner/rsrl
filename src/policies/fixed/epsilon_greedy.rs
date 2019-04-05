@@ -1,8 +1,6 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::QFunction;
-use rand::{rngs::ThreadRng, thread_rng, Rng};
 use super::{FinitePolicy, Greedy, Policy, Random};
+use crate::{core::*, domains::Transition, fa::QFunction};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 
 pub struct EpsilonGreedy<Q> {
     greedy: Greedy<Q>,
@@ -15,7 +13,8 @@ pub struct EpsilonGreedy<Q> {
 impl<Q> EpsilonGreedy<Q> {
     pub fn new<T: Into<Parameter>>(greedy: Greedy<Q>, random: Random, epsilon: T) -> Self {
         EpsilonGreedy {
-            greedy, random,
+            greedy,
+            random,
 
             epsilon: epsilon.into(),
             rng: thread_rng(),
@@ -24,8 +23,7 @@ impl<Q> EpsilonGreedy<Q> {
 
     #[allow(non_snake_case)]
     pub fn from_Q<S, T: Into<Parameter>>(q_func: Shared<Q>, epsilon: T) -> Self
-        where Q: QFunction<S>,
-    {
+    where Q: QFunction<S> {
         let greedy = Greedy::new(q_func);
         let random = Random::new(greedy.n_actions());
 
@@ -53,17 +51,13 @@ impl<S, Q: QFunction<S>> Policy<S> for EpsilonGreedy<Q> {
         }
     }
 
-    fn mpa(&mut self, s: &S) -> usize {
-        self.greedy.mpa(s)
-    }
+    fn mpa(&mut self, s: &S) -> usize { self.greedy.mpa(s) }
 
     fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
 }
 
 impl<S, Q: QFunction<S>> FinitePolicy<S> for EpsilonGreedy<Q> {
-    fn n_actions(&self) -> usize {
-        self.greedy.n_actions()
-    }
+    fn n_actions(&self) -> usize { self.greedy.n_actions() }
 
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
         let prs = self.greedy.probabilities(s);
@@ -76,9 +70,11 @@ impl<S, Q: QFunction<S>> FinitePolicy<S> for EpsilonGreedy<Q> {
 #[cfg(test)]
 mod tests {
     use super::{Algorithm, EpsilonGreedy, FinitePolicy, Parameter, Policy};
-    use crate::domains::{Domain, MountainCar};
-    use crate::fa::mocking::MockQ;
-    use crate::geometry::Vector;
+    use crate::{
+        domains::{Domain, MountainCar},
+        fa::mocking::MockQ,
+        geometry::Vector,
+    };
 
     #[test]
     fn test_sampling() {

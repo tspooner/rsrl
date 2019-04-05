@@ -1,18 +1,8 @@
 //! Function approximation and value function representation module.
-use crate::{
-    core::Shared,
-    geometry::Vector,
-};
+use crate::{core::Shared, geometry::Vector};
 
 extern crate lfa;
-pub use self::lfa::{
-    basis,
-    core::*,
-    eval,
-    transforms,
-    LFA,
-    TransformedLFA,
-};
+pub use self::lfa::{basis, core::*, eval, transforms, TransformedLFA, LFA};
 
 #[cfg(test)]
 pub(crate) mod mocking;

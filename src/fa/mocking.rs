@@ -1,6 +1,8 @@
-use crate::core::{make_shared, Shared};
-use crate::fa::{Approximator, EvaluationResult, Embedded, QFunction, UpdateResult, Features};
-use crate::geometry::Vector;
+use crate::{
+    core::{make_shared, Shared},
+    fa::{Approximator, Embedded, EvaluationResult, Features, QFunction, UpdateResult},
+    geometry::Vector,
+};
 use std::marker::PhantomData;
 
 pub struct MockQ {
@@ -43,7 +45,7 @@ impl Approximator for MockQ {
             None => match f {
                 Features::Sparse(_) => unimplemented!(),
                 Features::Dense(ref out) => out.clone(),
-            }
+            },
         })
     }
 

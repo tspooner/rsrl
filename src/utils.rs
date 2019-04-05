@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use crate::geometry::Matrix;
-use rand::{Rng, seq::SliceRandom};
+use rand::{seq::SliceRandom, Rng};
 use std::f64;
 
 pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
@@ -26,7 +26,9 @@ pub fn argmax_choose(rng: &mut impl Rng, values: &[f64]) -> (f64, usize) {
     let maximum = if maxima.len() == 1 {
         maxima[0]
     } else {
-        *maxima.choose(rng).expect("No valid maxima to choose from in `argmax_choose`.")
+        *maxima
+            .choose(rng)
+            .expect("No valid maxima to choose from in `argmax_choose`.")
     };
 
     (value, maximum)
@@ -55,16 +57,23 @@ pub fn pinv(m: &Matrix<f64>) -> Result<Matrix<f64>, ndarray_linalg::error::Linal
         let u = u.unwrap();
         let vt = vt.unwrap();
 
-        let threshold = f64::EPSILON * max_dim as f64 * s.fold(unsafe { *s.uget(0) }, |acc, &v| {
-            if v > acc { v }
-            else { acc }
-        });
+        let threshold = f64::EPSILON
+            * max_dim as f64
+            * s.fold(
+                unsafe { *s.uget(0) },
+                |acc, &v| {
+                    if v > acc {
+                        v
+                    } else {
+                        acc
+                    }
+                },
+            );
 
         // (max{M, N} x 1)
-        let sinv = s.mapv(|v| {
-            if v > threshold { 1.0 / v }
-            else { 0.0 }
-        }).insert_axis(Axis(1));
+        let sinv = s
+            .mapv(|v| if v > threshold { 1.0 / v } else { 0.0 })
+            .insert_axis(Axis(1));
 
         vt.t().dot(&(&u.t() * &sinv))
     })

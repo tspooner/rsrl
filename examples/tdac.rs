@@ -5,18 +5,21 @@ extern crate slog;
 use rsrl::{
     control::actor_critic::TDAC,
     core::{make_shared, run, Evaluation, SerialExperiment},
-    domains::{Domain, ContinuousMountainCar},
+    domains::{ContinuousMountainCar, Domain},
     fa::{basis::fixed::Fourier, LFA},
     logging,
-    prediction::td::TD,
     policies::parameterised::Gaussian1d,
+    prediction::td::TD,
 };
 
 fn main() {
     let domain = ContinuousMountainCar::default();
     let bases = Fourier::from_space(3, domain.state_space());
 
-    let policy = make_shared(Gaussian1d::new(make_shared(LFA::scalar(bases.clone())), 1.0));
+    let policy = make_shared(Gaussian1d::new(
+        make_shared(LFA::scalar(bases.clone())),
+        1.0,
+    ));
     let critic = make_shared(TD::new(make_shared(LFA::scalar(bases)), 0.01, 0.99));
 
     let mut agent = TDAC::new(critic, policy, 0.005, 0.99);

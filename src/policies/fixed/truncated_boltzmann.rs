@@ -30,9 +30,7 @@ impl<Q> TruncatedBoltzmann<Q> {
 }
 
 impl<Q> Algorithm for TruncatedBoltzmann<Q> {
-    fn handle_terminal(&mut self) {
-        self.c = self.c.step();
-    }
+    fn handle_terminal(&mut self) { self.c = self.c.step(); }
 }
 
 impl<S, Q: QFunction<S>> Policy<S> for TruncatedBoltzmann<Q> {
@@ -54,24 +52,27 @@ impl<S, Q: QFunction<S>> Policy<S> for TruncatedBoltzmann<Q> {
 }
 
 impl<S, Q: QFunction<S>> FinitePolicy<S> for TruncatedBoltzmann<Q> {
-    fn n_actions(&self) -> usize {
-        self.q_func.n_outputs()
-    }
+    fn n_actions(&self) -> usize { self.q_func.n_outputs() }
 
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(&self.q_func.to_features(s)).map(|ws| {
-            let c = self.c.value();
-            let mut z = 0.0;
+        self.q_func
+            .evaluate(&self.q_func.to_features(s))
+            .map(|ws| {
+                let c = self.c.value();
+                let mut z = 0.0;
 
-            let ws: Vector<f64> = ws.into_iter().map(|v| {
-                let v = kappa(c, *v).exp();
-                z += v;
+                let ws: Vector<f64> = ws
+                    .into_iter()
+                    .map(|v| {
+                        let v = kappa(c, *v).exp();
+                        z += v;
 
-                v
+                        v
+                    })
+                    .collect();
+
+                ws / z
             })
-            .collect();
-
-            ws / z
-        }).unwrap()
+            .unwrap()
     }
 }

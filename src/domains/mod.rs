@@ -4,9 +4,7 @@ use crate::geometry::Space;
 macro_rules! impl_into {
     (Transition < S, $type:ty > => Transition < S,() >) => {
         impl<S> Into<Transition<S, ()>> for Transition<S, $type> {
-            fn into(self) -> Transition<S, ()> {
-                self.drop_action()
-            }
+            fn into(self) -> Transition<S, ()> { self.drop_action() }
         }
     };
 }
@@ -77,22 +75,21 @@ pub struct Transition<S, A> {
 }
 
 impl<S, A> Transition<S, A> {
-    /// Return references to the `from` and `to` states associated with this transition.
-    pub fn states(&self) -> (&S, &S) {
-        (self.from.state(), self.to.state())
-    }
+    /// Return references to the `from` and `to` states associated with this
+    /// transition.
+    pub fn states(&self) -> (&S, &S) { (self.from.state(), self.to.state()) }
 
-    /// Apply a closure to the `from` and `to` states associated with this transition.
+    /// Apply a closure to the `from` and `to` states associated with this
+    /// transition.
     pub fn map_states<O>(&self, f: impl Fn(&S) -> O) -> (O, O) {
         (f(self.from.state()), f(self.to.state()))
     }
 
     /// Returns true if the transition ends in a terminal state.
-    pub fn terminated(&self) -> bool {
-        self.to.is_terminal()
-    }
+    pub fn terminated(&self) -> bool { self.to.is_terminal() }
 
-    /// Replace the action associated with this transition and return a new instance.
+    /// Replace the action associated with this transition and return a new
+    /// instance.
     pub fn replace_action<T>(self, action: T) -> Transition<S, T> {
         Transition {
             from: self.from,
@@ -102,10 +99,9 @@ impl<S, A> Transition<S, A> {
         }
     }
 
-    /// Drop the action associated with this transition and return a new instance.
-    pub fn drop_action(self) -> Transition<S, ()> {
-        self.replace_action(())
-    }
+    /// Drop the action associated with this transition and return a new
+    /// instance.
+    pub fn drop_action(self) -> Transition<S, ()> { self.replace_action(()) }
 }
 
 impl_into!(Transition<S, u8> => Transition<S, ()>);

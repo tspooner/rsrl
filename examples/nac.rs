@@ -3,8 +3,7 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    control::actor_critic::NAC,
-    control::td::SARSA,
+    control::{actor_critic::NAC, td::SARSA},
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{Domain, MountainCar},
     fa::{basis::fixed::Fourier, LFA},
