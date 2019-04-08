@@ -4,14 +4,14 @@ use crate::fa::{Parameterised, Approximator, VFunction};
 use crate::geometry::{Matrix, MatrixView, MatrixViewMut};
 
 pub struct TD<V> {
-    pub v_func: Shared<V>,
+    pub v_func: V,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
 impl<V> TD<V> {
-    pub fn new<T1, T2>(v_func: Shared<V>, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -43,7 +43,7 @@ impl<S, A, V: VFunction<S>> OnlineLearner<S, A> for TD<V> {
             t.reward + self.gamma * self.predict_v(t.to.state()) - v
         };
 
-        self.v_func.borrow_mut().update(&phi_s, self.alpha * td_error).ok();
+        self.v_func.update(&phi_s, self.alpha * td_error).ok();
     }
 }
 
@@ -65,6 +65,6 @@ impl<V: Parameterised> Parameterised for TD<V> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.v_func.weights_view_mut()
     }
 }

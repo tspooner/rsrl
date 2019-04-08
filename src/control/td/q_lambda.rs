@@ -12,9 +12,9 @@ use crate::policies::{fixed::Greedy, Policy};
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
 pub struct QLambda<F, P> {
-    pub fa_theta: Shared<F>,
+    pub fa_theta: F,
 
-    pub policy: Shared<P>,
+    pub policy: P,
     pub target: Greedy<F>,
 
     pub alpha: Parameter,
@@ -23,10 +23,10 @@ pub struct QLambda<F, P> {
     trace: Trace,
 }
 
-impl<F, P> QLambda<F, P> {
+impl<F, P> QLambda<Shared<F>, P> {
     pub fn new<T1, T2>(
-        fa_theta: Shared<F>,
-        policy: Shared<P>,
+        fa_theta: F,
+        policy: P,
         trace: Trace,
         alpha: T1,
         gamma: T2,
@@ -35,6 +35,8 @@ impl<F, P> QLambda<F, P> {
         T1: Into<Parameter>,
         T2: Into<Parameter>,
     {
+        let fa_theta = make_shared(fa_theta);
+
         QLambda {
             fa_theta: fa_theta.clone(),
 
@@ -54,7 +56,7 @@ impl<F, P: Algorithm> Algorithm for QLambda<F, P> {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().handle_terminal();
+        self.policy.handle_terminal();
         self.target.handle_terminal();
     }
 }
@@ -95,7 +97,7 @@ where
             t.reward + self.gamma * nqsna - qsa
         };
 
-        self.fa_theta.borrow_mut().update_index(
+        self.fa_theta.update_index(
             &Features::Dense(z),
             t.action,
             self.alpha * residual,
@@ -110,7 +112,7 @@ where
 {
     fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
 }
 
 impl<S, F, P> ValuePredictor<S> for QLambda<F, P>

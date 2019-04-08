@@ -6,10 +6,10 @@ use crate::{
 };
 use rand::thread_rng;
 
-pub struct Greedy<Q>(Shared<Q>);
+pub struct Greedy<Q>(Q);
 
 impl<Q> Greedy<Q> {
-    pub fn new(q_func: Shared<Q>) -> Self { Greedy(q_func) }
+    pub fn new(q_func: Q) -> Self { Greedy(q_func) }
 }
 
 impl<Q> Algorithm for Greedy<Q> {}

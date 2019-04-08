@@ -32,9 +32,9 @@ struct BackupEntry<S> {
 /// (2017). Multi-step Reinforcement Learning: A Unifying Algorithm. arXiv
 /// preprint arXiv:1703.01327.
 pub struct QSigma<S, Q, P> {
-    pub q_func: Shared<Q>,
+    pub q_func: Q,
 
-    pub policy: Shared<P>,
+    pub policy: P,
     pub target: Greedy<Q>,
 
     pub alpha: Parameter,
@@ -45,10 +45,10 @@ pub struct QSigma<S, Q, P> {
     backup: VecDeque<BackupEntry<S>>,
 }
 
-impl<S, Q, P> QSigma<S, Q, P> {
+impl<S, Q, P> QSigma<S, Shared<Q>, P> {
     pub fn new<T1, T2, T3>(
-        q_func: Shared<Q>,
-        policy: Shared<P>,
+        q_func: Q,
+        policy: P,
         alpha: T1,
         gamma: T2,
         sigma: T3,
@@ -59,6 +59,8 @@ impl<S, Q, P> QSigma<S, Q, P> {
         T2: Into<Parameter>,
         T3: Into<Parameter>,
     {
+        let q_func = make_shared(q_func);
+
         QSigma {
             q_func: q_func.clone(),
 
@@ -93,7 +95,7 @@ impl<S, Q: QFunction<S>, P> QSigma<S, Q, P> {
         let phi_s = self.q_func.to_features(&self.backup[0].s);
         let qsa = self.q_func.evaluate_index(&phi_s, self.backup[0].a).unwrap();
 
-        self.q_func.borrow_mut().update_index(
+        self.q_func.update_index(
             &phi_s,
             self.backup[0].a,
             self.alpha * rho * (g - qsa),
@@ -117,7 +119,7 @@ impl<S, Q, P: Algorithm> Algorithm for QSigma<S, Q, P> {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().handle_terminal();
+        self.policy.handle_terminal();
         self.target.handle_terminal();
     }
 }
@@ -163,7 +165,7 @@ where
             let pi = self.target.probabilities(&ns);
             let exp_nqs = nqs.dot(&pi);
 
-            let mu = self.policy.borrow_mut().probability(ns, na);
+            let mu = self.policy.probability(ns, na);
 
             let residual = t.reward + self.gamma * (sigma * nqa + (1.0 - sigma) * exp_nqs) - qa;
 
@@ -189,7 +191,7 @@ where
 {
     fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
 }
 
 impl<S, Q, P> ValuePredictor<S> for QSigma<S, Q, P>
@@ -228,6 +230,6 @@ impl<S, Q: Parameterised, P> Parameterised for QSigma<S, Q, P> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.q_func.weights_view_mut()
     }
 }

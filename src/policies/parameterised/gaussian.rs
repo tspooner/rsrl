@@ -15,7 +15,7 @@ use std::ops::AddAssign;
 use super::pdfs::normal_pdf;
 
 pub struct Mean<F> {
-    pub fa: Shared<F>,
+    pub fa: F,
 }
 
 impl<F> Mean<F> {
@@ -46,7 +46,7 @@ pub struct Gaussian1d<F> {
 }
 
 impl<F> Gaussian1d<F> {
-    pub fn new<T: Into<Parameter>>(fa_mean: Shared<F>, std: T) -> Self {
+    pub fn new<T: Into<Parameter>>(fa_mean: F, std: T) -> Self {
         Gaussian1d {
             mean: Mean { fa: fa_mean, },
             std: std.into(),
@@ -117,7 +117,7 @@ impl<F: Parameterised> Parameterised for Gaussian1d<F> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.mean.fa.weights_view_mut()
     }
 }
 
@@ -125,16 +125,10 @@ impl<S, F: VFunction<S> + Parameterised> ParameterisedPolicy<S> for Gaussian1d<F
     fn update(&mut self, input: &S, a: f64, error: f64) {
         let grad_log = self.grad_log(input, a);
 
-        let mut fa = self.mean.fa.borrow_mut();
-        let mut weights = fa.weights_view_mut();
-
-        weights.scaled_add(error, &grad_log);
+        self.mean.fa.weights_view_mut().scaled_add(error, &grad_log);
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
-        let mut fa = self.mean.fa.borrow_mut();
-        let mut weights = fa.weights_view_mut();
-
-        weights.add_assign(&errors);
+        self.mean.fa.weights_view_mut().add_assign(&errors);
     }
 }

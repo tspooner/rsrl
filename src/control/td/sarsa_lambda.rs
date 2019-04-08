@@ -13,8 +13,8 @@ use crate::policies::{Policy, FinitePolicy};
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
 pub struct SARSALambda<F, P> {
-    pub fa_theta: Shared<F>,
-    pub policy: Shared<P>,
+    pub fa_theta: F,
+    pub policy: P,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -24,8 +24,8 @@ pub struct SARSALambda<F, P> {
 
 impl<F, P> SARSALambda<F, P> {
     pub fn new<T1, T2>(
-        fa_theta: Shared<F>,
-        policy: Shared<P>,
+        fa_theta: F,
+        policy: P,
         trace: Trace,
         alpha: T1,
         gamma: T2,
@@ -59,7 +59,7 @@ impl<F, P: Algorithm> Algorithm for SARSALambda<F, P> {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().handle_terminal();
+        self.policy.handle_terminal();
     }
 }
 
@@ -84,13 +84,13 @@ where
             t.reward - qsa
         } else {
             let ns = t.to.state();
-            let na = self.policy.borrow_mut().sample(ns);
+            let na = self.policy.sample(ns);
             let nqsna = self.fa_theta.evaluate_index(&self.fa_theta.to_features(ns), na).unwrap();
 
             t.reward + self.gamma * nqsna - qsa
         };
 
-        self.fa_theta.borrow_mut().update_index(
+        self.fa_theta.update_index(
             &Features::Dense(z),
             t.action,
             self.alpha * residual,
@@ -100,11 +100,11 @@ where
 
 impl<S, F, P: FinitePolicy<S>> Controller<S, P::Action> for SARSALambda<F, P> {
     fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.borrow_mut().sample(s)
+        self.policy.sample(s)
     }
 
     fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.borrow_mut().sample(s)
+        self.policy.sample(s)
     }
 }
 
@@ -114,7 +114,7 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
+        self.predict_qs(s).dot(&self.policy.probabilities(s))
     }
 }
 
@@ -142,6 +142,6 @@ impl<F: Parameterised, P> Parameterised for SARSALambda<F, P> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa_theta.weights_view_mut()
     }
 }

@@ -12,14 +12,14 @@ use std::f64;
 fn kappa(c: f64, x: f64) -> f64 { c / (1.0 + (-x).exp()) }
 
 pub struct TruncatedBoltzmann<Q> {
-    q_func: Shared<Q>,
+    q_func: Q,
 
     c: Parameter,
     rng: ThreadRng,
 }
 
 impl<Q> TruncatedBoltzmann<Q> {
-    pub fn new<T: Into<Parameter>>(q_func: Shared<Q>, c: T) -> Self {
+    pub fn new<T: Into<Parameter>>(q_func: Q, c: T) -> Self {
         TruncatedBoltzmann {
             q_func,
 

@@ -8,14 +8,14 @@ use crate::{
 use ndarray::Axis;
 
 pub struct RecursiveLSTD<F> {
-    pub fa_theta: Shared<F>,
+    pub fa_theta: F,
     pub gamma: Parameter,
 
     c_mat: Matrix<f64>,
 }
 
 impl<F: Parameterised> RecursiveLSTD<F> {
-    pub fn new<T: Into<Parameter>>(fa_theta: Shared<F>, gamma: T) -> Self {
+    pub fn new<T: Into<Parameter>>(fa_theta: F, gamma: T) -> Self {
         let n_features = fa_theta.weights_dim().0;
 
         RecursiveLSTD {
@@ -73,7 +73,7 @@ impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for RecursiveLSTD<F> {
         let vg = v.dot(&g);
 
         self.c_mat.scaled_add(-1.0 / a, &vg);
-        self.fa_theta.borrow_mut().update(&Features::Dense(
+        self.fa_theta.update(&Features::Dense(
             v.index_axis_move(Axis(1), 0)
         ), residual / a).ok();
     }
@@ -97,6 +97,6 @@ impl<F: Parameterised> Parameterised for RecursiveLSTD<F> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa_theta.weights_view_mut()
     }
 }

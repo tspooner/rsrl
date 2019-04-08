@@ -83,3 +83,46 @@ pub mod fixed;
 pub mod parameterised;
 
 import_all!(perturbation);
+
+// Shared<T> impls:
+impl<S, T: Policy<S>> Policy<S> for Shared<T> {
+    type Action = T::Action;
+
+    fn sample(&mut self, input: &S) -> Self::Action {
+        self.borrow_mut().sample(input)
+    }
+
+    fn mpa(&mut self, s: &S) -> Self::Action {
+        self.borrow_mut().mpa(s)
+    }
+
+    fn probability(&mut self, input: &S, a: Self::Action) -> f64 {
+        self.borrow_mut().probability(input, a)
+    }
+}
+
+impl<S, T: FinitePolicy<S>> FinitePolicy<S> for Shared<T> {
+    fn n_actions(&self) -> usize {
+        self.borrow().n_actions()
+    }
+
+    fn probabilities(&mut self, input: &S) -> Vector<f64> {
+        self.borrow_mut().probabilities(input)
+    }
+}
+
+impl<S, T: DifferentiablePolicy<S>> DifferentiablePolicy<S> for Shared<T> {
+    fn grad_log(&self, input: &S, a: Self::Action) -> Matrix<f64> {
+        self.borrow().grad_log(input, a)
+    }
+}
+
+impl<S, T: ParameterisedPolicy<S>> ParameterisedPolicy<S> for Shared<T> {
+    fn update(&mut self, input: &S, a: Self::Action, error: f64) {
+        self.borrow_mut().update(input, a, error)
+    }
+
+    fn update_raw(&mut self, errors: Matrix<f64>) {
+        self.borrow_mut().update_raw(errors)
+    }
+}

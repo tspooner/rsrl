@@ -1,7 +1,7 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, VFunction, Parameterised, Projector},
+    fa::{Embedded, VFunction, Parameterised, Projector},
     geometry::{Space, Matrix, MatrixView, MatrixViewMut},
     utils::argmaxima,
 };
@@ -9,7 +9,7 @@ use ndarray::Axis;
 
 #[allow(non_camel_case_types)]
 pub struct iLSTD<F> {
-    pub fa_theta: Shared<F>,
+    pub fa_theta: F,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -20,9 +20,9 @@ pub struct iLSTD<F> {
 }
 
 impl<F: Parameterised> iLSTD<F> {
-    pub fn new<T1, T2>(fa_theta: Shared<F>, n_updates: usize, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(fa_theta: F, n_updates: usize, alpha: T1, gamma: T2) -> Self
     where T1: Into<Parameter>,
-            T2: Into<Parameter>
+          T2: Into<Parameter>
     {
         let dim = fa_theta.weights_dim();
 
@@ -41,7 +41,7 @@ impl<F: Parameterised> iLSTD<F> {
 
 impl<F: Parameterised> iLSTD<F> {
     fn solve(&mut self) {
-        let mut fa = self.fa_theta.borrow_mut();
+        let mut w = self.fa_theta.weights_view_mut();
         let alpha = self.alpha.value();
 
         for _ in 0..self.n_updates {
@@ -51,7 +51,7 @@ impl<F: Parameterised> iLSTD<F> {
                 unsafe {
                     let update = alpha * self.mu.uget(j);
 
-                    *fa.weights_view_mut().uget_mut((j, 0)) += update;
+                    *w.uget_mut((j, 0)) += update;
                     self.mu.scaled_add(-update, &self.a.column(j));
                 }
             }
@@ -66,7 +66,7 @@ impl<F> Algorithm for iLSTD<F> {
     }
 }
 
-impl<S, A, F: VFunction<S> + Parameterised> OnlineLearner<S, A> for iLSTD<F> {
+impl<S, A, F: Embedded<S> + Parameterised> OnlineLearner<S, A> for iLSTD<F> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
         // (D x 1)
         let phi_s = self.fa_theta
@@ -114,6 +114,6 @@ impl<F: Parameterised> Parameterised for iLSTD<F> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa_theta.weights_view_mut()
     }
 }

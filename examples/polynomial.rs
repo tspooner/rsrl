@@ -6,7 +6,7 @@ use rsrl::{
     control::td::SARSALambda,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Chebyshev, LFA},
+    fa::{basis::{Composable, fixed::Chebyshev}, LFA},
     geometry::Space,
     logging,
     policies::fixed::{EpsilonGreedy, Greedy, Random},
@@ -17,20 +17,17 @@ fn main() {
     let mut agent = {
         let n_actions = domain.action_space().card().into();
 
-        // Build the linear value function using a polynomial basis projection and the
-        // appropriate eligibility trace.
-        let bases = Chebyshev::from_space(5, domain.state_space());
-        let trace = Trace::replacing(0.7, bases.dim());
+        let bases = Chebyshev::from_space(5, domain.state_space()).with_constant();
+        let trace = Trace::replacing(0.5, bases.dim());
         let q_func = make_shared(LFA::vector(bases, n_actions));
 
-        // Build a stochastic behaviour policy with exponential epsilon.
-        let policy = make_shared(EpsilonGreedy::new(
+        let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.5, 0.001, 0.9),
-        ));
+            Parameter::exponential(0.5, 0.001, 0.99),
+        );
 
-        SARSALambda::new(q_func, policy, trace, 0.001, 0.99)
+        SARSALambda::new(q_func, policy, trace, 0.001, 1.0)
     };
 
     let logger = logging::root(logging::stdout());

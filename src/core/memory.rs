@@ -5,6 +5,8 @@ use std::{
     rc::Rc,
 };
 
+pub fn make_shared<T>(t: T) -> Shared<T> { Shared(Rc::new(RefCell::new(t))) }
+
 pub struct Shared<T>(Rc<RefCell<T>>);
 
 impl<T> Shared<T> {
@@ -51,5 +53,3 @@ impl<T> Clone for Shared<T> {
         Shared(self.0.clone())
     }
 }
-
-pub fn make_shared<T>(t: T) -> Shared<T> { Shared(Rc::new(RefCell::new(t))) }

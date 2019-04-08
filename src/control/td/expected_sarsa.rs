@@ -15,15 +15,15 @@ use std::marker::PhantomData;
 /// IEEE Symposium on Adaptive Dynamic Programming and Reinforcement Learning,
 /// pp. 177–184.
 pub struct ExpectedSARSA<Q, P> {
-    pub q_func: Shared<Q>,
-    pub policy: Shared<P>,
+    pub q_func: Q,
+    pub policy: P,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
 impl<Q, P> ExpectedSARSA<Q, P> {
-    pub fn new<T1, T2>(q_func: Shared<Q>, policy: Shared<P>, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -43,7 +43,7 @@ impl<Q, P: Algorithm> Algorithm for ExpectedSARSA<Q, P> {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().handle_terminal();
+        self.policy.handle_terminal();
     }
 }
 
@@ -64,7 +64,7 @@ where
             t.reward + self.gamma * exp_nv - qsa
         };
 
-        self.q_func.borrow_mut().update_index(
+        self.q_func.update_index(
             &self.q_func.to_features(s),
             t.action, self.alpha * residual
         ).ok();
@@ -72,9 +72,9 @@ where
 }
 
 impl<S, Q, P: Policy<S>> Controller<S, P::Action> for ExpectedSARSA<Q, P> {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
 }
 
 impl<S, Q, P> ValuePredictor<S> for ExpectedSARSA<Q, P>
@@ -83,7 +83,7 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
+        self.predict_qs(s).dot(&self.policy.probabilities(s))
     }
 }
 
@@ -111,6 +111,6 @@ impl<Q: Parameterised, P> Parameterised for ExpectedSARSA<Q, P> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.q_func.weights_view_mut()
     }
 }

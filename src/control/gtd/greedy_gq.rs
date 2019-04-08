@@ -9,23 +9,23 @@ use crate::policies::{fixed::Greedy, Policy, FinitePolicy};
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function
 /// approximation." Proceedings of the 27th International Conference on Machine
 /// Learning (ICML-10). 2010.
-pub struct GreedyGQ<Q, W, P> {
-    pub fa_q: Shared<Q>,
-    pub fa_w: Shared<W>,
+pub struct GreedyGQ<Q, W, PB> {
+    pub fa_q: Q,
+    pub fa_w: W,
 
-    pub policy: Shared<P>,
-    pub target: Greedy<Q>,
+    pub target_policy: Greedy<Q>,
+    pub behaviour_policy: PB,
 
     pub alpha: Parameter,
     pub beta: Parameter,
     pub gamma: Parameter,
 }
 
-impl<Q, W, P> GreedyGQ<Q, W, P> {
+impl<Q, W, PB> GreedyGQ<Shared<Q>, W, PB> {
     pub fn new<P1, P2, P3>(
-        fa_q: Shared<Q>,
-        fa_w: Shared<W>,
-        policy: Shared<P>,
+        fa_q: Q,
+        fa_w: W,
+        behaviour_policy: PB,
         alpha: P1,
         beta: P2,
         gamma: P3,
@@ -35,12 +35,14 @@ impl<Q, W, P> GreedyGQ<Q, W, P> {
         P2: Into<Parameter>,
         P3: Into<Parameter>,
     {
+        let fa_q = make_shared(fa_q);
+
         GreedyGQ {
             fa_q: fa_q.clone(),
             fa_w,
 
-            policy,
-            target: Greedy::new(fa_q),
+            target_policy: Greedy::new(fa_q),
+            behaviour_policy,
 
             alpha: alpha.into(),
             beta: beta.into(),
@@ -49,7 +51,7 @@ impl<Q, W, P> GreedyGQ<Q, W, P> {
     }
 }
 
-impl<Q, W, P> Algorithm for GreedyGQ<Q, W, P> {
+impl<Q, W, PB> Algorithm for GreedyGQ<Q, W, PB> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.beta = self.beta.step();
@@ -57,13 +59,13 @@ impl<Q, W, P> Algorithm for GreedyGQ<Q, W, P> {
     }
 }
 
-impl<S, Q, W, P> OnlineLearner<S, P::Action> for GreedyGQ<Q, W, P>
+impl<S, Q, W, PB> OnlineLearner<S, PB::Action> for GreedyGQ<Q, W, PB>
 where
     Q: QFunction<S>,
     W: VFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+    fn handle_transition(&mut self, t: &Transition<S, PB::Action>) {
         let s = t.from.state();
         let phi_s = self.fa_w.to_features(s);
         let estimate = self.fa_w.evaluate(&phi_s).unwrap();
@@ -71,17 +73,17 @@ where
         if t.terminated() {
             let residual = t.reward - self.fa_q.evaluate_index(&phi_s, t.action).unwrap();
 
-            self.fa_w.borrow_mut().update(
+            self.fa_w.update(
                 &phi_s,
                 self.alpha * self.beta * (residual - estimate)
             ).ok();
-            self.fa_q.borrow_mut().update_index(
+            self.fa_q.update_index(
                 &phi_s,
                 t.action,
                 self.alpha.value() * residual
             ).ok();
         } else {
-            let ns = t.from.state();
+            let ns = t.to.state();
             let na = self.sample_target(ns);
             let phi_ns = self.fa_w.to_features(ns);
 
@@ -94,11 +96,11 @@ where
             let update_q = residual * phi_s.clone().expanded(n_features)
                 - estimate * self.gamma.value() * phi_ns.expanded(n_features);
 
-            self.fa_w.borrow_mut().update(
+            self.fa_w.update(
                 &phi_s,
                 self.alpha * self.beta * (residual - estimate)
             ).ok();
-            self.fa_q.borrow_mut().update_index(
+            self.fa_q.update_index(
                 &Features::Dense(update_q),
                 t.action,
                 self.alpha.value()
@@ -107,20 +109,20 @@ where
     }
 }
 
-impl<S, Q, W, P> ValuePredictor<S> for GreedyGQ<Q, W, P>
+impl<S, Q, W, PB> ValuePredictor<S> for GreedyGQ<Q, W, PB>
 where
     Q: QFunction<S>,
-    P: FinitePolicy<S>,
+    PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.predict_qs(s).dot(&self.target.probabilities(s))
+        self.predict_qs(s).dot(&self.target_policy.probabilities(s))
     }
 }
 
-impl<S, Q, W, P> ActionValuePredictor<S, P::Action> for GreedyGQ<Q, W, P>
+impl<S, Q, W, PB> ActionValuePredictor<S, PB::Action> for GreedyGQ<Q, W, PB>
 where
     Q: QFunction<S>,
-    P: FinitePolicy<S>,
+    PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
         self.fa_q.evaluate(&self.fa_q.to_features(s)).unwrap()
@@ -131,17 +133,21 @@ where
     }
 }
 
-impl<S, Q, W, P> Controller<S, P::Action> for GreedyGQ<Q, W, P>
+impl<S, Q, W, PB> Controller<S, PB::Action> for GreedyGQ<Q, W, PB>
 where
     Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
+    fn sample_target(&mut self, s: &S) -> PB::Action {
+        self.target_policy.sample(s)
+    }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> PB::Action {
+        self.behaviour_policy.sample(s)
+    }
 }
 
-impl<Q: Parameterised, W, P> Parameterised for GreedyGQ<Q, W, P> {
+impl<Q: Parameterised, W, PB> Parameterised for GreedyGQ<Q, W, PB> {
     fn weights(&self) -> Matrix<f64> {
         self.fa_q.weights()
     }
@@ -151,6 +157,6 @@ impl<Q: Parameterised, W, P> Parameterised for GreedyGQ<Q, W, P> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa_q.weights_view_mut()
     }
 }

@@ -10,7 +10,7 @@ use ndarray_linalg::solve::Solve;
 use std::ops::MulAssign;
 
 pub struct LambdaLSPE<F> {
-    pub fa_theta: Shared<F>,
+    pub fa_theta: F,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -22,7 +22,7 @@ pub struct LambdaLSPE<F> {
 }
 
 impl<F: Parameterised> LambdaLSPE<F> {
-    pub fn new<T1, T2, T3>(fa_theta: Shared<F>, alpha: T1, gamma: T2, lambda: T3) -> Self
+    pub fn new<T1, T2, T3>(fa_theta: F, alpha: T1, gamma: T2, lambda: T3) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -50,11 +50,10 @@ impl<F: Parameterised> LambdaLSPE<F> {
         if let Ok(theta) = self.a.solve(&self.b).or_else(|_| {
             pinv(&self.a).map(|ainv| ainv.dot(&self.b))
         }) {
-            let mut fa = self.fa_theta.borrow_mut();
-            let mut weights = fa.weights_view_mut();
+            let mut w = self.fa_theta.weights_view_mut();
 
-            weights.mul_assign(1.0 - self.alpha);
-            weights.scaled_add(self.alpha.value(), &theta);
+            w.mul_assign(1.0 - self.alpha);
+            w.scaled_add(self.alpha.value(), &theta);
 
             self.a.fill(0.0);
             self.b.fill(0.0);
@@ -118,6 +117,6 @@ impl<F: Parameterised> Parameterised for LambdaLSPE<F> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa_theta.weights_view_mut()
     }
 }

@@ -5,15 +5,15 @@ use std::marker::PhantomData;
 
 /// TD-error actor-critic.
 pub struct TDAC<C, P> {
-    pub critic: Shared<C>,
-    pub policy: Shared<P>,
+    pub critic: C,
+    pub policy: P,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
 impl<C, P> TDAC<C, P> {
-    pub fn new<T1, T2>(critic: Shared<C>, policy: Shared<P>, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(critic: C, policy: P, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -37,8 +37,8 @@ where
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.critic.borrow_mut().handle_terminal();
-        self.policy.borrow_mut().handle_terminal();
+        self.critic.handle_terminal();
+        self.policy.handle_terminal();
     }
 }
 
@@ -50,15 +50,15 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let v = self.critic.borrow_mut().predict_v(s);
+        let v = self.critic.predict_v(s);
         let td_error = if t.terminated() {
             t.reward - v
         } else {
             t.reward + self.gamma * self.predict_v(t.to.state()) - v
         };
 
-        self.critic.borrow_mut().handle_transition(t);
-        self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * td_error);
+        self.critic.handle_transition(t);
+        self.policy.update(s, t.action.clone(), self.alpha * td_error);
     }
 }
 
@@ -67,7 +67,7 @@ where
     C: ValuePredictor<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.critic.borrow_mut().predict_v(s)
+        self.critic.predict_v(s)
     }
 }
 
@@ -77,11 +77,11 @@ where
     P: Policy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.critic.borrow_mut().predict_qs(s)
+        self.critic.predict_qs(s)
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.critic.borrow_mut().predict_qsa(s, a)
+        self.critic.predict_qsa(s, a)
     }
 }
 
@@ -90,10 +90,10 @@ where
     P: ParameterisedPolicy<S>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.borrow_mut().sample(s)
+        self.policy.sample(s)
     }
 
     fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.borrow_mut().sample(s)
+        self.policy.sample(s)
     }
 }

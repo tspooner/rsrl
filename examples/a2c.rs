@@ -6,7 +6,7 @@ use rsrl::{
     control::{actor_critic::A2C, td::SARSA},
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Fourier, LFA},
+    fa::{basis::{Composable, fixed::Fourier}, LFA},
     geometry::Space,
     logging,
     policies::parameterised::Gibbs,
@@ -16,23 +16,18 @@ fn main() {
     let domain = MountainCar::default();
 
     let n_actions = domain.action_space().card().into();
-    let bases = Fourier::from_space(3, domain.state_space());
+    let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
     let policy = make_shared({
-        // Build the linear value function using a fourier basis projection and the
-        // appropriate eligibility trace.
         let fa = LFA::vector(bases.clone(), n_actions);
 
-        // Build a stochastic behaviour policy with exponential epsilon.
         Gibbs::new(fa)
     });
-    let critic = make_shared({
-        // Build the linear value function using a fourier basis projection and the
-        // appropriate eligibility trace.
-        let q_func = make_shared(LFA::vector(bases, n_actions));
+    let critic = {
+        let q_func = LFA::vector(bases, n_actions);
 
-        SARSA::new(q_func, policy.clone(), 0.001, 0.99)
-    });
+        SARSA::new(q_func, policy.clone(), 0.1, 0.99)
+    };
 
     let mut agent = A2C::new(critic, policy, 0.01);
 
