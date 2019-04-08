@@ -10,21 +10,23 @@ use crate::policies::{fixed::Greedy, Policy};
 /// - Bellemare, Marc G., et al. "Increasing the Action Gap: New Operators for
 /// Reinforcement Learning." AAAI. 2016.
 pub struct PAL<Q, P> {
-    pub q_func: Shared<Q>,
+    pub q_func: Q,
 
-    pub policy: Shared<P>,
+    pub policy: P,
     pub target: Greedy<Q>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
-impl<Q, P> PAL<Q, P> {
-    pub fn new<T1, T2>(q_func: Shared<Q>, policy: Shared<P>, alpha: T1, gamma: T2) -> Self
+impl<Q, P> PAL<Shared<Q>, P> {
+    pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
     {
+        let q_func = make_shared(q_func);
+
         PAL {
             q_func: q_func.clone(),
 
@@ -42,7 +44,7 @@ impl<Q, P: Algorithm> Algorithm for PAL<Q, P> {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().handle_terminal();
+        self.policy.handle_terminal();
         self.target.handle_terminal();
     }
 }
@@ -72,7 +74,7 @@ where
             al_error.max(td_error - self.alpha * (nqs[na_star] - nqs[t.action]))
         };
 
-        self.q_func.borrow_mut().update_index(&phi_s, t.action, self.alpha * residual).ok();
+        self.q_func.update_index(&phi_s, t.action, self.alpha * residual).ok();
     }
 }
 
@@ -83,7 +85,7 @@ where
 {
     fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
 }
 
 impl<S, Q, P> ValuePredictor<S> for PAL<Q, P>
@@ -122,6 +124,6 @@ impl<Q: Parameterised, P> Parameterised for PAL<Q, P> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.q_func.weights_view_mut()
     }
 }

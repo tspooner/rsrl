@@ -12,11 +12,11 @@ use ndarray::Axis;
 use std::ops::AddAssign;
 
 pub struct Dirac<F> {
-    pub fa: Shared<F>,
+    pub fa: F,
 }
 
 impl<F> Dirac<F> {
-    pub fn new(fa: Shared<F>) -> Self {
+    pub fn new(fa: F) -> Self {
         Dirac { fa, }
     }
 }
@@ -57,18 +57,16 @@ impl<F: Parameterised> Parameterised for Dirac<F> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa.weights_view_mut()
     }
 }
 
 impl<S, F: VFunction<S> + Parameterised> ParameterisedPolicy<S> for Dirac<F> {
     fn update(&mut self, input: &S, _: f64, error: f64) {
-        self.fa.borrow_mut().update(&self.fa.to_features(input), error).ok();
+        self.fa.update(&self.fa.to_features(input), error).ok();
     }
 
     fn update_raw(&mut self, errors: Matrix<f64>) {
-        let mut fa = self.fa.borrow_mut();
-
-        fa.weights_view_mut().add_assign(&errors);
+        self.fa.weights_view_mut().add_assign(&errors);
     }
 }

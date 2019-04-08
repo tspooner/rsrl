@@ -5,14 +5,14 @@ use std::marker::PhantomData;
 
 /// Advantage actor-critic.
 pub struct A2C<C, P> {
-    pub critic: Shared<C>,
-    pub policy: Shared<P>,
+    pub critic: C,
+    pub policy: P,
 
     pub alpha: Parameter,
 }
 
 impl<C, P> A2C<C, P> {
-    pub fn new<T: Into<Parameter>>(critic: Shared<C>, policy: Shared<P>, alpha: T) -> Self {
+    pub fn new<T: Into<Parameter>>(critic: C, policy: P, alpha: T) -> Self {
         A2C {
             critic,
             policy,
@@ -30,8 +30,8 @@ where
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
 
-        self.critic.borrow_mut().handle_terminal();
-        self.policy.borrow_mut().handle_terminal();
+        self.critic.handle_terminal();
+        self.policy.handle_terminal();
     }
 }
 
@@ -42,24 +42,24 @@ where
     P::Action: Clone,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        self.critic.borrow_mut().handle_transition(t);
+        self.critic.handle_transition(t);
 
         let s = t.from.state();
-        let v = self.critic.borrow_mut().predict_v(s);
-        let qsa = self.critic.borrow_mut().predict_qsa(s, t.action.clone());
+        let v = self.critic.predict_v(s);
+        let qsa = self.critic.predict_qsa(s, t.action.clone());
 
-        self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * (qsa - v));
+        self.policy.update(s, t.action.clone(), self.alpha * (qsa - v));
     }
 
     fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
-        self.critic.borrow_mut().handle_sequence(seq);
+        self.critic.handle_sequence(seq);
 
         for t in seq {
             let s = t.from.state();
-            let v = self.critic.borrow_mut().predict_v(s);
-            let qsa = self.critic.borrow_mut().predict_qsa(s, t.action.clone());
+            let v = self.critic.predict_v(s);
+            let qsa = self.critic.predict_qsa(s, t.action.clone());
 
-            self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * (qsa - v));
+            self.policy.update(s, t.action.clone(), self.alpha * (qsa - v));
         }
     }
 }
@@ -69,7 +69,7 @@ where
     C: ValuePredictor<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.critic.borrow_mut().predict_v(s)
+        self.critic.predict_v(s)
     }
 }
 
@@ -79,11 +79,11 @@ where
     P: Policy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.critic.borrow_mut().predict_qs(s)
+        self.critic.predict_qs(s)
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.critic.borrow_mut().predict_qsa(s, a)
+        self.critic.predict_qsa(s, a)
     }
 }
 
@@ -92,10 +92,10 @@ where
     P: Policy<S>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.borrow_mut().sample(s)
+        self.policy.sample(s)
     }
 
     fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.borrow_mut().sample(s)
+        self.policy.sample(s)
     }
 }

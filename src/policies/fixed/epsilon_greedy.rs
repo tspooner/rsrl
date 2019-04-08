@@ -22,7 +22,7 @@ impl<Q> EpsilonGreedy<Q> {
     }
 
     #[allow(non_snake_case)]
-    pub fn from_Q<S, T: Into<Parameter>>(q_func: Shared<Q>, epsilon: T) -> Self
+    pub fn from_Q<S, T: Into<Parameter>>(q_func: Q, epsilon: T) -> Self
     where Q: QFunction<S> {
         let greedy = Greedy::new(q_func);
         let random = Random::new(greedy.n_actions());

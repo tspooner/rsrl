@@ -9,14 +9,14 @@ use rand::{rngs::ThreadRng, thread_rng};
 use std::f64;
 
 pub struct Boltzmann<Q> {
-    q_func: Shared<Q>,
+    q_func: Q,
 
     tau: Parameter,
     rng: ThreadRng,
 }
 
 impl<Q> Boltzmann<Q> {
-    pub fn new<T: Into<Parameter>>(q_func: Shared<Q>, tau: T) -> Self {
+    pub fn new<T: Into<Parameter>>(q_func: Q, tau: T) -> Self {
         Boltzmann {
             q_func,
 

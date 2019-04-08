@@ -5,10 +5,10 @@ use std::marker::PhantomData;
 
 /// Continuous Actor-Critic Learning Automaton
 pub struct CACLA<C, PT, PB> {
-    pub critic: Shared<C>,
+    pub critic: C,
 
-    pub target_policy: Shared<PT>,
-    pub behaviour_policy: Shared<PB>,
+    pub target_policy: PT,
+    pub behaviour_policy: PB,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -16,9 +16,9 @@ pub struct CACLA<C, PT, PB> {
 
 impl<C, PT, PB> CACLA<C, PT, PB> {
     pub fn new<T1, T2>(
-        critic: Shared<C>,
-        target_policy: Shared<PT>,
-        behaviour_policy: Shared<PB>,
+        critic: C,
+        target_policy: PT,
+        behaviour_policy: PB,
         alpha: T1,
         gamma: T2
     ) -> Self
@@ -48,10 +48,10 @@ where
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.critic.borrow_mut().handle_terminal();
+        self.critic.handle_terminal();
 
-        self.target_policy.borrow_mut().handle_terminal();
-        self.behaviour_policy.borrow_mut().handle_terminal();
+        self.target_policy.handle_terminal();
+        self.behaviour_policy.handle_terminal();
     }
 }
 
@@ -62,23 +62,20 @@ where
     PB: Algorithm,
 {
     fn handle_transition(&mut self, t: &Transition<S, PT::Action>) {
-        let mut critic = self.critic.borrow_mut();
-        let mut policy = self.target_policy.borrow_mut();
-
         let s = t.from.state();
-        let v = critic.predict_v(s);
+        let v = self.critic.predict_v(s);
         let target = if t.terminated() {
             t.reward
         } else {
-            t.reward + self.gamma * critic.predict_v(t.to.state())
+            t.reward + self.gamma * self.critic.predict_v(t.to.state())
         };
 
-        critic.handle_transition(t);
+        self.critic.handle_transition(t);
 
         if target > v {
-            let mpa = policy.mpa(s);
+            let mpa = self.target_policy.mpa(s);
 
-            policy.update(s, t.action, self.alpha * (t.action - mpa));
+            self.target_policy.update(s, t.action, self.alpha * (t.action - mpa));
         }
     }
 }
@@ -88,7 +85,7 @@ where
     C: ValuePredictor<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.critic.borrow_mut().predict_v(s)
+        self.critic.predict_v(s)
     }
 }
 
@@ -98,11 +95,11 @@ where
     PT: Policy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.critic.borrow_mut().predict_qs(s)
+        self.critic.predict_qs(s)
     }
 
     fn predict_qsa(&mut self, s: &S, a: PT::Action) -> f64 {
-        self.critic.borrow_mut().predict_qsa(s, a)
+        self.critic.predict_qsa(s, a)
     }
 }
 
@@ -112,10 +109,10 @@ where
     PB: Policy<S, Action = PT::Action>,
 {
     fn sample_target(&mut self, s: &S) -> PT::Action {
-        self.target_policy.borrow_mut().sample(s)
+        self.target_policy.sample(s)
     }
 
     fn sample_behaviour(&mut self, s: &S) -> PB::Action {
-        self.behaviour_policy.borrow_mut().sample(s)
+        self.behaviour_policy.sample(s)
     }
 }

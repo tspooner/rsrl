@@ -7,15 +7,15 @@ use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
 pub struct BaselineREINFORCE<B, P> {
-    pub policy: Shared<P>,
-    pub baseline: Shared<B>,
+    pub policy: P,
+    pub baseline: B,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
 impl<B, P> BaselineREINFORCE<B, P> {
-    pub fn new<T1, T2>(policy: Shared<P>, baseline: Shared<B>, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(policy: P, baseline: B, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -39,8 +39,8 @@ where
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().handle_terminal();
-        self.baseline.borrow_mut().handle_terminal();
+        self.policy.handle_terminal();
+        self.baseline.handle_terminal();
     }
 }
 
@@ -52,25 +52,25 @@ where
     B: BatchLearner<S, P::Action> + ActionValuePredictor<S, P::Action>,
 {
     fn handle_batch(&mut self, batch: &[Transition<S, P::Action>]) {
-        self.baseline.borrow_mut().handle_batch(batch);
+        self.baseline.handle_batch(batch);
 
         let mut ret = 0.0;
 
         for t in batch.into_iter().rev() {
             let s = t.from.state();
-            let baseline = self.baseline.borrow_mut().predict_qsa(s, t.action.clone());
+            let baseline = self.baseline.predict_qsa(s, t.action.clone());
 
             ret = t.reward + self.gamma * ret;
 
-            self.policy.borrow_mut().update(s, t.action.clone(), self.alpha * (ret - baseline));
+            self.policy.update(s, t.action.clone(), self.alpha * (ret - baseline));
         }
     }
 }
 
 impl<S, B, P: ParameterisedPolicy<S>> Controller<S, P::Action> for BaselineREINFORCE<B, P> {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
 }
 
 impl<B, P: Parameterised> Parameterised for BaselineREINFORCE<B, P> {
@@ -83,6 +83,6 @@ impl<B, P: Parameterised> Parameterised for BaselineREINFORCE<B, P> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.policy.weights_view_mut()
     }
 }

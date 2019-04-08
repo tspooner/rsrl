@@ -6,7 +6,7 @@ use rsrl::{
     control::td::PAL,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Fourier, LFA},
+    fa::{basis::{Composable, fixed::Fourier}, LFA},
     geometry::Space,
     logging,
     policies::fixed::{EpsilonGreedy, Greedy, Random},
@@ -17,19 +17,16 @@ fn main() {
     let mut agent = {
         let n_actions = domain.action_space().card().into();
 
-        // Build the linear value function using a fourier basis projection and the
-        // appropriate eligibility trace.
-        let bases = Fourier::from_space(3, domain.state_space());
+        let bases = Fourier::from_space(3, domain.state_space()).with_constant();
         let q_func = make_shared(LFA::vector(bases, n_actions));
 
-        // Build a stochastic behaviour policy with exponential epsilon.
-        let policy = make_shared(EpsilonGreedy::new(
+        let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.7, 0.01, 0.9),
-        ));
+            Parameter::exponential(0.5, 0.001, 0.99),
+        );
 
-        PAL::new(q_func, policy, 0.01, 0.99)
+        PAL::new(q_func, policy, 0.001, 1.0)
     };
 
     let logger = logging::root(logging::stdout());

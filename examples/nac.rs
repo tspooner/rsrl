@@ -6,7 +6,7 @@ use rsrl::{
     control::{actor_critic::NAC, td::SARSA},
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Fourier, LFA},
+    fa::{basis::{Composable, fixed::Fourier}, LFA},
     geometry::Space,
     logging,
     policies::parameterised::Gibbs,
@@ -16,25 +16,16 @@ fn main() {
     let domain = MountainCar::default();
 
     let n_actions = domain.action_space().card().into();
-    let bases = Fourier::from_space(3, domain.state_space());
+    let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
-    let policy = make_shared({
-        // Build the linear value function using a fourier basis projection and the
-        // appropriate eligibility trace.
-        let fa = LFA::vector(bases.clone(), n_actions);
-
-        // Build a stochastic behaviour policy with exponential epsilon.
-        Gibbs::new(fa)
-    });
-    let critic = make_shared({
-        // Build the linear value function using a fourier basis projection and the
-        // appropriate eligibility trace.
-        let q_func = make_shared(LFA::vector(bases, n_actions));
+    let policy = make_shared(Gibbs::new(LFA::vector(bases.clone(), n_actions)));
+    let critic = {
+        let q_func = LFA::vector(bases, n_actions);
 
         SARSA::new(q_func, policy.clone(), 0.001, 0.99)
-    });
+    };
 
-    let mut agent = NAC::new(critic, policy, 0.01);
+    let mut agent = NAC::new(critic, policy, 0.0001);
 
     let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(MountainCar::default);
@@ -45,7 +36,7 @@ fn main() {
         let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
 
         // Realise 1000 episodes of the experiment generator.
-        run(e, 1000, Some(logger.clone()))
+        run(e, 500, Some(logger.clone()))
     };
 
     // Testing phase:

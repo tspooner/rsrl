@@ -11,8 +11,8 @@ use crate::policies::{Policy, FinitePolicy};
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
 pub struct TOSARSALambda<F, P> {
-    pub q_func: Shared<F>,
-    pub policy: Shared<P>,
+    pub q_func: F,
+    pub policy: P,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -23,9 +23,9 @@ pub struct TOSARSALambda<F, P> {
 
 impl<F, P> TOSARSALambda<F, P> {
     pub fn new<T1, T2>(
+        q_func: F,
+        policy: P,
         trace: Trace,
-        q_func: Shared<F>,
-        policy: Shared<P>,
         alpha: T1,
         gamma: T2,
     ) -> Self
@@ -101,13 +101,13 @@ where
             t.reward + self.gamma * nqsna - q_old
         };
 
-        self.q_func.borrow_mut().update_index(
+        self.q_func.update_index(
             &Features::Dense(z),
             t.action,
             self.alpha * residual,
         ).ok();
 
-        self.q_func.borrow_mut().update_index(
+        self.q_func.update_index(
             &phi_s, t.action,
             self.alpha * (q_old - qsa),
         ).ok();
@@ -120,11 +120,11 @@ where
     P: Policy<S>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.borrow_mut().sample(s)
+        self.policy.sample(s)
     }
 
     fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.borrow_mut().sample(s)
+        self.policy.sample(s)
     }
 }
 
@@ -134,7 +134,7 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.predict_qs(s).dot(&self.policy.borrow_mut().probabilities(s))
+        self.predict_qs(s).dot(&self.policy.probabilities(s))
     }
 }
 
@@ -162,6 +162,6 @@ impl<F: Parameterised, P> Parameterised for TOSARSALambda<F, P> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.q_func.weights_view_mut()
     }
 }

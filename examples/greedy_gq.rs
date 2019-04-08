@@ -6,7 +6,7 @@ use rsrl::{
     control::gtd::GreedyGQ,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Fourier, LFA},
+    fa::{basis::{Composable, fixed::Fourier}, LFA},
     geometry::Space,
     logging,
     policies::fixed::{EpsilonGreedy, Greedy, Random},
@@ -20,18 +20,18 @@ fn main() {
         let n_actions = domain.action_space().card().into();
 
         // Build the linear value functions using a fourier basis projection.
-        let bases = Fourier::from_space(3, domain.state_space());
-        let v_func = make_shared(LFA::scalar(bases.clone()));
+        let bases = Fourier::from_space(3, domain.state_space()).with_constant();
+        let v_func = LFA::scalar(bases.clone());
         let q_func = make_shared(LFA::vector(bases, n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
-        let policy = make_shared(EpsilonGreedy::new(
+        let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.3, 0.001, 0.99),
-        ));
+            Parameter::exponential(0.2, 0.0001, 0.99),
+        );
 
-        GreedyGQ::new(q_func, v_func, policy, 1e-3, 1e-4, 0.99)
+        GreedyGQ::new(q_func, v_func, policy, 0.01, 0.001, 0.99)
     };
 
     let domain_builder = Box::new(MountainCar::default);

@@ -13,21 +13,23 @@ use std::marker::PhantomData;
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
 pub struct QLearning<Q, P> {
-    pub q_func: Shared<Q>,
+    pub q_func: Q,
 
-    pub policy: Shared<P>,
+    pub policy: P,
     pub target: Greedy<Q>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
-impl<Q, P> QLearning<Q, P> {
-    pub fn new<T1, T2>(q_func: Shared<Q>, policy: Shared<P>, alpha: T1, gamma: T2) -> Self
+impl<Q, P> QLearning<Shared<Q>, P> {
+    pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
     {
+        let q_func = make_shared(q_func);
+
         QLearning {
             q_func: q_func.clone(),
 
@@ -45,7 +47,7 @@ impl<Q, P: Algorithm> Algorithm for QLearning<Q, P> {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
 
-        self.policy.borrow_mut().handle_terminal();
+        self.policy.handle_terminal();
     }
 }
 
@@ -67,7 +69,7 @@ where
             t.reward + self.gamma * nqsna - qsa
         };
 
-        self.q_func.borrow_mut().update_index(
+        self.q_func.update_index(
             &self.q_func.to_features(s),
             t.action, self.alpha * residual
         ).ok();
@@ -81,7 +83,7 @@ where
 {
     fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.borrow_mut().sample(s) }
+    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
 }
 
 impl<S, Q, P> ValuePredictor<S> for QLearning<Q, P>
@@ -120,6 +122,6 @@ impl<Q: Parameterised, P> Parameterised for QLearning<Q, P> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.q_func.weights_view_mut()
     }
 }

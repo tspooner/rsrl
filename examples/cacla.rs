@@ -6,7 +6,7 @@ use rsrl::{
     control::actor_critic::CACLA,
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
-    fa::{basis::fixed::Fourier, LFA},
+    fa::{basis::{Composable, fixed::Fourier}, LFA},
     logging,
     policies::parameterised::{Dirac, Gaussian1d},
     prediction::td::TD,
@@ -14,14 +14,13 @@ use rsrl::{
 
 fn main() {
     let domain = ContinuousMountainCar::default();
-    let bases = Fourier::from_space(3, domain.state_space());
+    let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
     let mean_fa = make_shared(LFA::scalar(bases.clone()));
+    let target_policy = Dirac::new(mean_fa.clone());
+    let behaviour_policy = Gaussian1d::new(mean_fa, 1.0);
 
-    // Build a stochastic behaviour policy with exponential epsilon.
-    let target_policy = make_shared(Dirac::new(mean_fa.clone()));
-    let behaviour_policy = make_shared(Gaussian1d::new(mean_fa, 1.0));
-    let critic = make_shared(TD::new(make_shared(LFA::scalar(bases)), 0.01, 1.0));
+    let critic = TD::new(LFA::scalar(bases), 0.1, 1.0);
 
     let mut agent = CACLA::new(critic, target_policy, behaviour_policy, 0.001, 1.0);
 
