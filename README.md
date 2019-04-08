@@ -37,10 +37,10 @@ use rsrl::{
     control::td::QLearning,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Fourier, LFA},
+    fa::{basis::{Composable, fixed::Fourier}, LFA},
     geometry::Space,
     logging,
-    policies::fixed::{Greedy, Random, EpsilonGreedy},
+    policies::fixed::{EpsilonGreedy, Greedy, Random},
 };
 
 fn main() {
@@ -48,18 +48,16 @@ fn main() {
     let mut agent = {
         let n_actions = domain.action_space().card().into();
 
-        // Build the linear value function using a 3rd-order fourier basis projection.
-        let bases = Fourier::from_space(3, domain.state_space());
-        let q_func = make_shared(LFA::vector_output(bases, n_actions));
+        let bases = Fourier::from_space(3, domain.state_space()).with_constant();
+        let q_func = make_shared(LFA::vector(bases, n_actions));
 
-        // Build an epsilon-greedy behaviour policy with exponentially annealed exploration.
-        let policy = make_shared(EpsilonGreedy::new(
+        let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.7, 0.001, 0.99),
-        ));
+            Parameter::exponential(0.3, 0.001, 0.99),
+        );
 
-        QLearning::new(q_func, policy, 0.005, 1.0)
+        QLearning::new(q_func, policy, 0.001, 0.99)
     };
 
     let logger = logging::root(logging::stdout());
@@ -67,7 +65,7 @@ fn main() {
 
     // Training phase:
     let _training_result = {
-        // Start a serial learning experiment with up to 1000 steps per episode.
+        // Start a serial learning experiment up to 1000 steps per episode.
         let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
 
         // Realise 1000 episodes of the experiment generator.
