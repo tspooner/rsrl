@@ -15,6 +15,16 @@
 use crate::{core::*, domains::Transition, fa::Parameterised};
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
+pub mod gaussian;
+
+import_all!(random);
+import_all!(greedy);
+import_all!(epsilon_greedy);
+import_all!(softmax);
+import_all!(dirac);
+
+import_all!(perturbation);
+
 #[allow(dead_code)]
 #[inline]
 pub(self) fn sample_probs(probabilities: &[f64]) -> usize {
@@ -78,11 +88,6 @@ pub trait ParameterisedPolicy<S>: Policy<S> + Parameterised {
     /// Update the weights directly using an update matrix.
     fn update_raw(&mut self, errors: Matrix<f64>);
 }
-
-pub mod fixed;
-pub mod parameterised;
-
-import_all!(perturbation);
 
 // Shared<T> impls:
 impl<S, T: Policy<S>> Policy<S> for Shared<T> {

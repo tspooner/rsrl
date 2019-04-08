@@ -2,7 +2,7 @@ use crate::core::*;
 use crate::domains::Transition;
 use crate::fa::{Approximator, Parameterised, Features, Projector, QFunction};
 use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{fixed::Greedy, Policy};
+use crate::policies::{Greedy, Policy};
 
 /// Watkins' Q-learning with eligibility traces.
 ///

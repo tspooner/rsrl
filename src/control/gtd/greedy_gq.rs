@@ -2,7 +2,7 @@ use crate::core::*;
 use crate::domains::Transition;
 use crate::fa::*;
 use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{fixed::Greedy, Policy, FinitePolicy};
+use crate::policies::{Greedy, Policy, FinitePolicy};
 
 /// Greedy GQ control algorithm.
 ///

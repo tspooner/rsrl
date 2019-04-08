@@ -1,6 +1,6 @@
 use crate::{
     core::*,
-    fa::{Approximator, VFunction, Parameterised, Projector},
+    fa::{Approximator, VFunction, Parameterised, Embedded, Features},
     geometry::{MatrixView, MatrixViewMut},
     policies::{
         DifferentiablePolicy,
@@ -18,6 +18,16 @@ pub struct Dirac<F> {
 impl<F> Dirac<F> {
     pub fn new(fa: F) -> Self {
         Dirac { fa, }
+    }
+}
+
+impl<S, F: Embedded<S>> Embedded<S> for Dirac<F> {
+    fn n_features(&self) -> usize {
+        self.fa.n_features()
+    }
+
+    fn to_features(&self, s: &S) -> Features {
+        self.fa.to_features(s)
     }
 }
 
@@ -43,7 +53,7 @@ impl<S, F: VFunction<S>> Policy<S> for Dirac<F> {
 
 impl<S, F: VFunction<S>> DifferentiablePolicy<S> for Dirac<F> {
     fn grad_log(&self, input: &S, _: f64) -> Matrix<f64> {
-        self.fa.to_features(input).expanded(self.fa.n_features()).insert_axis(Axis(0))
+        self.fa.to_features(input).expanded(self.fa.n_features()).insert_axis(Axis(1))
     }
 }
 

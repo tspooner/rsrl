@@ -71,7 +71,7 @@ where
     D: Distribution<P::Action>,
     R: Rng,
 {
-    fn n_actions(&self) -> P::Action {
+    fn n_actions(&self) -> usize {
         self.base_policy.n_actions()
     }
 

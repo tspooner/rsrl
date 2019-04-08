@@ -9,7 +9,7 @@ use rsrl::{
     fa::{basis::{Composable, fixed::Fourier}, LFA},
     geometry::Space,
     logging,
-    policies::parameterised::Gibbs,
+    policies::Gibbs,
 };
 
 fn main() {
@@ -18,7 +18,7 @@ fn main() {
     let n_actions = domain.action_space().card().into();
     let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
-    let policy = make_shared(Gibbs::new(LFA::vector(bases.clone(), n_actions)));
+    let policy = make_shared(Gibbs::standard(LFA::vector(bases.clone(), n_actions)));
     let critic = {
         let q_func = LFA::vector(bases, n_actions);
 

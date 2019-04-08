@@ -9,7 +9,7 @@ use rsrl::{
     fa::{basis::{Composable, fixed::Fourier}, LFA},
     geometry::Space,
     logging,
-    policies::fixed::{EpsilonGreedy, Greedy, Random},
+    policies::{EpsilonGreedy, Greedy, Random},
 };
 
 fn main() {

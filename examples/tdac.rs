@@ -8,7 +8,7 @@ use rsrl::{
     domains::{ContinuousMountainCar, Domain},
     fa::{basis::{Composable, fixed::Fourier}, LFA},
     logging,
-    policies::parameterised::Gaussian1d,
+    policies::gaussian::Gaussian,
     prediction::td::TD,
 };
 
@@ -17,7 +17,7 @@ fn main() {
     let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
     let critic = TD::new(LFA::scalar(bases.clone()), 0.02, 0.99);
-    let policy = Gaussian1d::new(
+    let policy = Gaussian::new(
         LFA::scalar(bases),
         0.5,
     );

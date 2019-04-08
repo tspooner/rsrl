@@ -9,7 +9,7 @@ use rsrl::{
     fa::{basis::{Composable, fixed::Fourier}, LFA},
     geometry::Space,
     logging,
-    policies::parameterised::Gibbs,
+    policies::Gibbs,
 };
 
 fn main() {
@@ -21,7 +21,7 @@ fn main() {
     let policy = make_shared({
         let fa = LFA::vector(bases.clone(), n_actions);
 
-        Gibbs::new(fa)
+        Gibbs::standard(fa)
     });
     let critic = {
         let q_func = LFA::vector(bases, n_actions);

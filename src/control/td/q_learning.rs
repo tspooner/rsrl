@@ -2,7 +2,7 @@ use crate::core::*;
 use crate::domains::Transition;
 use crate::fa::{Parameterised, QFunction};
 use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{fixed::Greedy, Policy, FinitePolicy};
+use crate::policies::{Greedy, Policy, FinitePolicy};
 use std::marker::PhantomData;
 
 /// Watkins' Q-learning.
