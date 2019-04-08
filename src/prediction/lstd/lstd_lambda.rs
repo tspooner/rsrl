@@ -9,7 +9,7 @@ use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
 
 pub struct LSTDLambda<F> {
-    pub fa_theta: Shared<F>,
+    pub fa_theta: F,
     pub gamma: Parameter,
 
     trace: Trace,
@@ -19,7 +19,7 @@ pub struct LSTDLambda<F> {
 }
 
 impl<F: Parameterised> LSTDLambda<F> {
-    pub fn new<T: Into<Parameter>>(fa_theta: Shared<F>, trace: Trace, gamma: T) -> Self {
+    pub fn new<T: Into<Parameter>>(fa_theta: F, trace: Trace, gamma: T) -> Self {
         let dim = fa_theta.weights_dim();
 
         LSTDLambda {
@@ -49,15 +49,14 @@ impl<F> LSTDLambda<F> {
 
 impl<F: Parameterised> LSTDLambda<F> {
     pub fn solve(&mut self) {
-        let mut fa = self.fa_theta.borrow_mut();
-        let mut weights = fa.weights_view_mut();
+        let mut w = self.fa_theta.weights_view_mut();
 
         if let Ok(theta) = self.a.solve(&self.b) {
             // First try the clean approach:
-            weights.assign(&theta);
+            w.assign(&theta);
         } else if let Ok(ainv) = pinv(&self.a) {
             // Otherwise solve via SVD:
-            weights.assign(&ainv.dot(&self.b));
+            w.assign(&ainv.dot(&self.b));
         }
     }
 }
@@ -115,6 +114,6 @@ impl<F: Parameterised> Parameterised for LSTDLambda<F> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa_theta.weights_view_mut()
     }
 }

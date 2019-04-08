@@ -4,14 +4,14 @@ use crate::fa::{Parameterised, VFunction};
 use crate::geometry::{MatrixView, MatrixViewMut};
 
 pub struct GradientMC<V> {
-    pub v_func: Shared<V>,
+    pub v_func: V,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
 }
 
 impl<V> GradientMC<V> {
-    pub fn new<T1, T2>(v_func: Shared<V>, alpha: T1, gamma: T2) -> Self
+    pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
@@ -42,7 +42,7 @@ impl<S, A, V: VFunction<S>> BatchLearner<S, A> for GradientMC<V> {
             let phi_s = self.v_func.to_features(t.from.state());
             let v_est = self.v_func.evaluate(&phi_s).unwrap();
 
-            self.v_func.borrow_mut().update(&phi_s, self.alpha * (sum - v_est)).ok();
+            self.v_func.update(&phi_s, self.alpha * (sum - v_est)).ok();
         })
     }
 }
@@ -65,6 +65,6 @@ impl<V: Parameterised> Parameterised for GradientMC<V> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.v_func.weights_view_mut()
     }
 }

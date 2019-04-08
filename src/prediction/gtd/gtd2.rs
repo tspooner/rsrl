@@ -4,8 +4,8 @@ use crate::fa::{Approximator, Parameterised, Features, Projector, VFunction};
 use crate::geometry::{Space, MatrixView, MatrixViewMut};
 
 pub struct GTD2<F> {
-    pub fa_theta: Shared<F>,
-    pub fa_w: Shared<F>,
+    pub fa_theta: F,
+    pub fa_w: F,
 
     pub alpha: Parameter,
     pub beta: Parameter,
@@ -14,8 +14,8 @@ pub struct GTD2<F> {
 
 impl<F: Parameterised> GTD2<F> {
     pub fn new<T1, T2, T3>(
-        fa_theta: Shared<F>,
-        fa_w: Shared<F>,
+        fa_theta: F,
+        fa_w: F,
         alpha: T1,
         beta: T2,
         gamma: T3,
@@ -61,12 +61,12 @@ impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for GTD2<F> {
             t.reward + self.gamma * self.fa_theta.evaluate(&phi_ns).unwrap() - v
         };
 
-        self.fa_w.borrow_mut().update(&phi_s, self.beta * (td_error - td_estimate)).unwrap();
+        self.fa_w.update(&phi_s, self.beta * (td_error - td_estimate)).unwrap();
 
         let dim = self.fa_theta.n_features();
         let pd = phi_s.expanded(dim) - self.gamma.value() * phi_ns.expanded(dim);
 
-        self.fa_theta.borrow_mut().update(&Features::Dense(pd), self.alpha * td_estimate).ok();
+        self.fa_theta.update(&Features::Dense(pd), self.alpha * td_estimate).ok();
     }
 }
 
@@ -88,6 +88,6 @@ impl<F: Parameterised> Parameterised for GTD2<F> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa_theta.weights_view_mut()
     }
 }

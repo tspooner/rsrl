@@ -4,7 +4,7 @@ use crate::fa::{Approximator, Parameterised, Projector, Features, VFunction};
 use crate::geometry::{Matrix, MatrixView, MatrixViewMut};
 
 pub struct TDLambda<F> {
-    pub fa_theta: Shared<F>,
+    pub fa_theta: F,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -14,7 +14,7 @@ pub struct TDLambda<F> {
 
 impl<F> TDLambda<F> {
     pub fn new<T1, T2>(
-        fa_theta: Shared<F>,
+        fa_theta: F,
         trace: Trace,
         alpha: T1,
         gamma: T2,
@@ -60,7 +60,7 @@ impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for TDLambda<F> {
             t.reward + self.gamma * self.predict_v(t.to.state()) - v
         };
 
-        self.fa_theta.borrow_mut().update(&Features::Dense(z), self.alpha * td_error).ok();
+        self.fa_theta.update(&Features::Dense(z), self.alpha * td_error).ok();
     }
 }
 
@@ -82,6 +82,6 @@ impl<F: Parameterised> Parameterised for TDLambda<F> {
     }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa_theta.weights_view_mut()
     }
 }
