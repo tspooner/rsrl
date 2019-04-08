@@ -29,3 +29,4 @@ impl<F> Mean<F> {
 
 import_all!(univariate);
 import_all!(bivariate);
+import_all!(multivariate);
