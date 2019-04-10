@@ -7,6 +7,8 @@ use crate::{
 extern crate lfa;
 pub use self::lfa::{basis, core::*, eval, transforms, TransformedLFA, LFA};
 
+mod macros;
+
 #[cfg(test)]
 pub(crate) mod mocking;
 
