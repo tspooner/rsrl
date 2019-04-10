@@ -8,7 +8,7 @@ use rsrl::{
     domains::{ContinuousMountainCar, Domain},
     fa::{basis::{Composable, fixed::Fourier}, LFA},
     logging,
-    policies::{Dirac, gaussian::Gaussian},
+    policies::{Dirac, gaussian::{self, Gaussian}},
     prediction::td::TD,
 };
 
@@ -18,7 +18,10 @@ fn main() {
 
     let mean_fa = make_shared(LFA::scalar(bases.clone()));
     let target_policy = Dirac::new(mean_fa.clone());
-    let behaviour_policy = Gaussian::new(mean_fa, 1.0);
+    let behaviour_policy = Gaussian::new(
+        gaussian::mean::Scalar(mean_fa.clone()),
+        gaussian::stddev::Fixed(1.0),
+    );
 
     let critic = TD::new(LFA::scalar(bases), 0.1, 1.0);
 

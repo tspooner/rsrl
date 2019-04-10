@@ -67,6 +67,7 @@ pub trait Policy<S>: Algorithm {
 
 /// Trait for policies that are defined on a finite action space.
 pub trait FinitePolicy<S>: Policy<S, Action = usize> {
+    /// Return the number of actions available to the policy.
     fn n_actions(&self) -> usize;
 
     /// Return the probability of selecting each action for a given input.
