@@ -44,15 +44,15 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         self.critic.handle_transition(t);
-        self.policy.update_raw(
-            self.alpha.value() * self.critic.weights()
+        self.policy.weights_view_mut().scaled_add(
+            self.alpha.value(), &self.critic.weights_view()
         );
     }
 
     fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
         self.critic.handle_sequence(seq);
-        self.policy.update_raw(
-            self.alpha.value() * self.critic.weights()
+        self.policy.weights_view_mut().scaled_add(
+            self.alpha.value(), &self.critic.weights_view()
         );
     }
 }
