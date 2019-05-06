@@ -1,6 +1,6 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, Projector, QFunction};
+use crate::fa::{Approximator, Parameterised, Features, QFunction};
 use crate::geometry::{MatrixView, MatrixViewMut};
 use crate::policies::{Greedy, Policy};
 
@@ -11,8 +11,9 @@ use crate::policies::{Greedy, Policy};
 /// Cambridge University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
+#[derive(Parameterised)]
 pub struct QLambda<F, P> {
-    pub fa_theta: F,
+    #[weights] pub fa_theta: F,
 
     pub policy: P,
     pub target: Greedy<F>,
@@ -68,7 +69,7 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.fa_theta.to_features(s);
+        let phi_s = self.fa_theta.embed(s);
         let qsa = self.fa_theta.evaluate_index(&phi_s, t.action).unwrap();
 
         // Update trace:
@@ -89,7 +90,7 @@ where
             t.reward - qsa
         } else {
             let ns = t.to.state();
-            let phi_ns = self.fa_theta.to_features(ns);
+            let phi_ns = self.fa_theta.embed(ns);
 
             let na = self.target.sample(&ns);
             let nqsna = self.fa_theta.evaluate_index(&phi_ns, na).unwrap();
@@ -133,24 +134,10 @@ where
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.evaluate_index(&self.fa_theta.to_features(s), a).unwrap()
-    }
-}
-
-impl<F: Parameterised, P> Parameterised for QLambda<F, P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_theta.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
+        self.fa_theta.evaluate_index(&self.fa_theta.embed(s), a).unwrap()
     }
 }

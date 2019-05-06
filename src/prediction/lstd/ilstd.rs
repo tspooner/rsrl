@@ -1,15 +1,16 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Embedded, VFunction, Parameterised, Projector},
+    fa::{Embedding, VFunction, Parameterised},
     geometry::{Space, Matrix, MatrixView, MatrixViewMut},
     utils::argmaxima,
 };
 use ndarray::Axis;
 
 #[allow(non_camel_case_types)]
+#[derive(Parameterised)]
 pub struct iLSTD<F> {
-    pub fa_theta: F,
+    #[weights] pub fa_theta: F,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -66,20 +67,16 @@ impl<F> Algorithm for iLSTD<F> {
     }
 }
 
-impl<S, A, F: Embedded<S> + Parameterised> OnlineLearner<S, A> for iLSTD<F> {
+impl<S, A, F: Embedding<S> + Parameterised> OnlineLearner<S, A> for iLSTD<F> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
         // (D x 1)
-        let phi_s = self.fa_theta
-            .to_features(t.from.state())
-            .expanded(self.a.rows());
+        let phi_s = self.fa_theta.embed(t.from.state()).expanded(self.a.rows());
 
         // (1 x D)
         let pd = if t.terminated() {
             phi_s.clone().insert_axis(Axis(0))
         } else {
-            let phi_ns = self.fa_theta
-                .to_features(t.to.state())
-                .expanded(self.a.rows());
+            let phi_ns = self.fa_theta.embed(t.to.state()).expanded(self.a.rows());
 
             (phi_s.clone() - self.gamma.value() * phi_ns).insert_axis(Axis(0))
         };
@@ -98,22 +95,8 @@ impl<S, A, F: Embedded<S> + Parameterised> OnlineLearner<S, A> for iLSTD<F> {
 
 impl<S, F: VFunction<S>> ValuePredictor<S> for iLSTD<F> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 }
 
 impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for iLSTD<F> {}
-
-impl<F: Parameterised> Parameterised for iLSTD<F> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_theta.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_theta.weights_view_mut()
-    }
-}

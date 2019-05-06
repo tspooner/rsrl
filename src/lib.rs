@@ -14,6 +14,8 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate lfa;
 pub extern crate spaces as geometry;
 
 mod macros;

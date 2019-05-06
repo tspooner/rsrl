@@ -1,10 +1,11 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, Projector, VFunction};
+use crate::fa::{Approximator, Parameterised, Features, VFunction};
 use crate::geometry::{Space, MatrixView, MatrixViewMut};
 
+#[derive(Parameterised)]
 pub struct TDC<F> {
-    pub fa_theta: F,
+    #[weights] pub fa_theta: F,
     pub fa_w: F,
 
     pub alpha: Parameter,
@@ -50,7 +51,7 @@ impl<F> Algorithm for TDC<F> {
 
 impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for TDC<F> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.to_features(s));
+        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.embed(s));
 
         let v = self.fa_theta.evaluate(&phi_s).unwrap();
 
@@ -74,22 +75,8 @@ impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for TDC<F> {
 
 impl<S, F: VFunction<S>> ValuePredictor<S> for TDC<F> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 }
 
 impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for TDC<F> {}
-
-impl<F: Parameterised> Parameterised for TDC<F> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_theta.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_theta.weights_view_mut()
-    }
-}

@@ -12,8 +12,9 @@ use std::marker::PhantomData;
 /// Cambridge University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
+#[derive(Parameterised)]
 pub struct QLearning<Q, P> {
-    pub q_func: Q,
+    #[weights] pub q_func: Q,
 
     pub policy: P,
     pub target: Greedy<Q>,
@@ -70,7 +71,7 @@ where
         };
 
         self.q_func.update_index(
-            &self.q_func.to_features(s),
+            &self.q_func.embed(s),
             t.action, self.alpha * residual
         ).ok();
     }
@@ -104,24 +105,10 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(&self.q_func.to_features(s)).unwrap()
+        self.q_func.evaluate(&self.q_func.embed(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_index(&self.q_func.to_features(s), a).unwrap()
-    }
-}
-
-impl<Q: Parameterised, P> Parameterised for QLearning<Q, P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.q_func.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.q_func.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.q_func.weights_view_mut()
+        self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
     }
 }

@@ -5,8 +5,9 @@ use crate::fa::Parameterised;
 use crate::policies::{Policy, ParameterisedPolicy};
 use std::marker::PhantomData;
 
+#[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
 pub struct REINFORCE<P> {
-    pub policy: P,
+    #[weights] pub policy: P,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -61,18 +62,4 @@ impl<S, P: ParameterisedPolicy<S>> Controller<S, P::Action> for REINFORCE<P> {
     fn sample_target(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
 
     fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
-}
-
-impl<P: Parameterised> Parameterised for REINFORCE<P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.policy.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.policy.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.policy.weights_view_mut()
-    }
 }

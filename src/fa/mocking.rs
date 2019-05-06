@@ -1,7 +1,7 @@
 use crate::{
     core::{make_shared, Shared},
-    fa::{Approximator, Embedded, EvaluationResult, Features, QFunction, UpdateResult},
-    geometry::Vector,
+    fa::{Approximator, Embedding, Parameterised, EvaluationResult, Features, QFunction, UpdateResult},
+    geometry::{Matrix, MatrixView, MatrixViewMut, Vector},
 };
 use std::marker::PhantomData;
 
@@ -23,10 +23,20 @@ impl MockQ {
     pub fn clear_output(&mut self) { self.output = None }
 }
 
-impl Embedded<Vector<f64>> for MockQ {
+impl Embedding<Vector<f64>> for MockQ {
     fn n_features(&self) -> usize { unimplemented!() }
 
-    fn to_features(&self, s: &Vector<f64>) -> Features { Features::Dense(s.clone()) }
+    fn embed(&self, s: &Vector<f64>) -> Features { Features::Dense(s.clone()) }
+}
+
+impl Parameterised for MockQ {
+    fn weights_view(&self) -> MatrixView<f64> {
+        unimplemented!()
+    }
+
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+        unimplemented!()
+    }
 }
 
 impl Approximator for MockQ {
@@ -48,6 +58,10 @@ impl Approximator for MockQ {
             },
         })
     }
+
+    fn jacobian(&self, _: &Features) -> Matrix<f64> { unimplemented!() }
+
+    fn update_grad(&mut self, _: &Matrix<f64>, _: Vector<f64>) -> UpdateResult<()> { Ok(()) }
 
     fn update(&mut self, _: &Features, _: Vector<f64>) -> UpdateResult<()> { Ok(()) }
 }

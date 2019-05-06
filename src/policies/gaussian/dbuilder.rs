@@ -6,10 +6,7 @@ use rstat::{
 };
 use std::fmt::Debug;
 
-pub trait DistBuilder<M: Debug + Clone, S: Debug + Clone>
-where
-    <Self::Distribution as Distribution>::Support: Space<Value = M>
-{
+pub trait DistBuilder<M: Debug + Clone, S: Debug + Clone> {
     type Distribution: ContinuousDistribution;
 
     fn build(mean: M, stddev: S) -> Self::Distribution;
@@ -29,19 +26,19 @@ impl DistBuilder<f64, f64> for GB {
     }
 }
 
-impl DistBuilder<(f64, f64), f64> for GB {
+impl DistBuilder<[f64; 2], f64> for GB {
     type Distribution = BivariateNormal;
 
-    fn build(mean: (f64, f64), stddev: f64) -> BivariateNormal {
-        BivariateNormal::isotropic(mean, stddev)
+    fn build(mean: [f64; 2], stddev: f64) -> BivariateNormal {
+        BivariateNormal::isotropic((mean[0], mean[1]), stddev)
     }
 }
 
-impl DistBuilder<(f64, f64), (f64, f64)> for GB {
+impl DistBuilder<[f64; 2], [f64; 2]> for GB {
     type Distribution = BivariateNormal;
 
-    fn build(mean: (f64, f64), stddev: (f64, f64)) -> BivariateNormal {
-        BivariateNormal::independent(mean, stddev)
+    fn build(mean: [f64; 2], stddev: [f64; 2]) -> BivariateNormal {
+        BivariateNormal::independent((mean[0], mean[1]), (stddev[0], stddev[1]))
     }
 }
 

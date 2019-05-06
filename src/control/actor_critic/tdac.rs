@@ -1,9 +1,14 @@
 use crate::core::*;
+use crate::fa::Parameterised;
 use crate::domains::Transition;
-use crate::policies::{Policy, ParameterisedPolicy};
-use std::marker::PhantomData;
+use crate::policies::{Policy, ParameterisedPolicy, DifferentiablePolicy};
+use std::{
+    marker::PhantomData,
+    ops::AddAssign,
+};
 
 /// TD-error actor-critic.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TDAC<C, P> {
     pub critic: C,
     pub policy: P,
@@ -87,7 +92,7 @@ where
 
 impl<S, C, P> Controller<S, P::Action> for TDAC<C, P>
 where
-    P: ParameterisedPolicy<S>,
+    P: Policy<S>,
 {
     fn sample_target(&mut self, s: &S) -> P::Action {
         self.policy.sample(s)

@@ -1,10 +1,11 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Projector, Features, VFunction};
+use crate::fa::{Approximator, Parameterised, Features, VFunction};
 use crate::geometry::{Matrix, MatrixView, MatrixViewMut};
 
+#[derive(Parameterised)]
 pub struct TDLambda<F> {
-    pub fa_theta: F,
+    #[weights] pub fa_theta: F,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -43,7 +44,7 @@ impl<F> Algorithm for TDLambda<F> {
 
 impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for TDLambda<F> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.fa_theta.to_features(t.from.state());
+        let phi_s = self.fa_theta.embed(t.from.state());
         let v = self.fa_theta.evaluate(&phi_s).unwrap();
 
         let decay_rate = self.trace.lambda.value() * self.gamma.value();
@@ -66,22 +67,8 @@ impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for TDLambda<F> {
 
 impl<S, F: VFunction<S>> ValuePredictor<S> for TDLambda<F> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 }
 
 impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for TDLambda<F> {}
-
-impl<F: Parameterised> Parameterised for TDLambda<F> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_theta.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_theta.weights_view_mut()
-    }
-}

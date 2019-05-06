@@ -1,7 +1,7 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, VFunction, Parameterised, Projector},
+    fa::{Approximator, VFunction, Parameterised},
     geometry::{Space, Matrix, MatrixView, MatrixViewMut},
     utils::{argmaxima, pinv},
 };
@@ -9,8 +9,9 @@ use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
 use std::ops::MulAssign;
 
+#[derive(Parameterised)]
 pub struct LambdaLSPE<F> {
-    pub fa_theta: F,
+    #[weights] pub fa_theta: F,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -73,7 +74,7 @@ impl<M> Algorithm for LambdaLSPE<M> {
 impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LambdaLSPE<F> {
     fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
         batch.into_iter().rev().for_each(|ref t| {
-            let phi_s = self.fa_theta.to_features(t.from.state());
+            let phi_s = self.fa_theta.embed(t.from.state());
             let v = self.fa_theta.evaluate(&phi_s).unwrap();
             let phi_s = phi_s.expanded(self.a.rows());
 
@@ -84,7 +85,7 @@ impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LambdaLSPE<F>
                 self.a += &phi_s.clone().insert_axis(Axis(1)).dot(&(phi_s.insert_axis(Axis(0))));
 
             } else {
-                let phi_ns = self.fa_theta.to_features(t.to.state());
+                let phi_ns = self.fa_theta.embed(t.to.state());
                 let residual =
                     t.reward + self.gamma * self.fa_theta.evaluate(&phi_ns).unwrap() - v;
 
@@ -101,22 +102,8 @@ impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LambdaLSPE<F>
 
 impl<S, F: VFunction<S>> ValuePredictor<S> for LambdaLSPE<F> {
     fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 }
 
 impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for LambdaLSPE<F> {}
-
-impl<F: Parameterised> Parameterised for LambdaLSPE<F> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_theta.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_theta.weights_view_mut()
-    }
-}

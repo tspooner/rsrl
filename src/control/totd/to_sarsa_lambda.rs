@@ -1,6 +1,6 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, Projector, QFunction};
+use crate::fa::{Approximator, Parameterised, Features, QFunction};
 use crate::geometry::{MatrixView, MatrixViewMut};
 use crate::policies::{Policy, FinitePolicy};
 
@@ -10,8 +10,9 @@ use crate::policies::{Policy, FinitePolicy};
 /// - [Van Seijen, H., Mahmood, A. R., Pilarski, P. M., Machado, M. C., &
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
+#[derive(Parameterised)]
 pub struct TOSARSALambda<F, P> {
-    pub q_func: F,
+    #[weights] pub q_func: F,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -71,7 +72,7 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.q_func.to_features(s);
+        let phi_s = self.q_func.embed(s);
 
         // Update traces:
         let decay_rate = self.trace.lambda.value() * self.gamma.value();
@@ -91,7 +92,7 @@ where
 
         } else {
             let ns = t.to.state();
-            let phi_ns = self.q_func.to_features(ns);
+            let phi_ns = self.q_func.embed(ns);
 
             let na = self.sample_behaviour(ns);
             let nqsna = self.q_func.evaluate_index(&phi_ns, na).unwrap();
@@ -144,24 +145,10 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(&self.q_func.to_features(s)).unwrap()
+        self.q_func.evaluate(&self.q_func.embed(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_index(&self.q_func.to_features(s), a).unwrap()
-    }
-}
-
-impl<F: Parameterised, P> Parameterised for TOSARSALambda<F, P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.q_func.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.q_func.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.q_func.weights_view_mut()
+        self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
     }
 }

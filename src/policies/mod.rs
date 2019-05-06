@@ -54,15 +54,15 @@ pub(self) fn sample_probs_with_rng(rng: &mut impl Rng, probabilities: &[f64]) ->
 pub trait Policy<S>: Algorithm {
     type Action;
 
-    /// Sample the (possibly stochastic) policy distribution for a given input.
-    fn sample(&mut self, input: &S) -> Self::Action { self.mpa(input) }
+    /// Sample the (possibly stochastic) policy distribution for a given `state`.
+    fn sample(&mut self, state: &S) -> Self::Action { self.mpa(state) }
 
     /// Return the "most probable action" according to the policy distribution,
     /// if well-defined.
     fn mpa(&mut self, _: &S) -> Self::Action { unimplemented!() }
 
-    /// Return the probability of selecting an action for a given input.
-    fn probability(&mut self, input: &S, a: Self::Action) -> f64;
+    /// Return the probability of selecting an action for a given `state`.
+    fn probability(&mut self, state: &S, a: Self::Action) -> f64;
 }
 
 /// Trait for policies that are defined on a finite action space.
@@ -70,40 +70,36 @@ pub trait FinitePolicy<S>: Policy<S, Action = usize> {
     /// Return the number of actions available to the policy.
     fn n_actions(&self) -> usize;
 
-    /// Return the probability of selecting each action for a given input.
-    fn probabilities(&mut self, input: &S) -> Vector<f64>;
+    /// Return the probability of selecting each action for a given `state`.
+    fn probabilities(&mut self, state: &S) -> Vector<f64>;
 }
 
 /// Trait for policies that have a differentiable representation.
 pub trait DifferentiablePolicy<S>: Policy<S> {
-    /// Compute the derivative of the log probability for a single action.
-    fn grad_log(&self, input: &S, a: Self::Action) -> Matrix<f64>;
+    /// Compute the gradient of the log probability wrt the policy parameters (weights).
+    fn grad_log(&self, state: &S, a: Self::Action) -> Matrix<f64>;
 }
 
 /// Trait for policies that are parameterised by a vector of weights.
 pub trait ParameterisedPolicy<S>: Policy<S> + Parameterised {
-    /// Update the weights in the direction of an error for a given state and
-    /// action.
-    fn update(&mut self, input: &S, a: Self::Action, error: f64);
-
-    /// Update the weights directly using an update matrix.
-    fn update_raw(&mut self, errors: Matrix<f64>);
+    /// Update the weights in the direction of an error for a given state and action.
+    fn update(&mut self, state: &S, a: Self::Action, error: f64);
 }
 
 // Shared<T> impls:
 impl<S, T: Policy<S>> Policy<S> for Shared<T> {
     type Action = T::Action;
 
-    fn sample(&mut self, input: &S) -> Self::Action {
-        self.borrow_mut().sample(input)
+    fn sample(&mut self, state: &S) -> Self::Action {
+        self.borrow_mut().sample(state)
     }
 
     fn mpa(&mut self, s: &S) -> Self::Action {
         self.borrow_mut().mpa(s)
     }
 
-    fn probability(&mut self, input: &S, a: Self::Action) -> f64 {
-        self.borrow_mut().probability(input, a)
+    fn probability(&mut self, state: &S, a: Self::Action) -> f64 {
+        self.borrow_mut().probability(state, a)
     }
 }
 
@@ -112,23 +108,19 @@ impl<S, T: FinitePolicy<S>> FinitePolicy<S> for Shared<T> {
         self.borrow().n_actions()
     }
 
-    fn probabilities(&mut self, input: &S) -> Vector<f64> {
-        self.borrow_mut().probabilities(input)
+    fn probabilities(&mut self, state: &S) -> Vector<f64> {
+        self.borrow_mut().probabilities(state)
     }
 }
 
 impl<S, T: DifferentiablePolicy<S>> DifferentiablePolicy<S> for Shared<T> {
-    fn grad_log(&self, input: &S, a: Self::Action) -> Matrix<f64> {
-        self.borrow().grad_log(input, a)
+    fn grad_log(&self, state: &S, a: Self::Action) -> Matrix<f64> {
+        self.borrow().grad_log(state, a)
     }
 }
 
 impl<S, T: ParameterisedPolicy<S>> ParameterisedPolicy<S> for Shared<T> {
-    fn update(&mut self, input: &S, a: Self::Action, error: f64) {
-        self.borrow_mut().update(input, a, error)
-    }
-
-    fn update_raw(&mut self, errors: Matrix<f64>) {
-        self.borrow_mut().update_raw(errors)
+    fn update(&mut self, state: &S, a: Self::Action, error: f64) {
+        self.borrow_mut().update(state, a, error)
     }
 }

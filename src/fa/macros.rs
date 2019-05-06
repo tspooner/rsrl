@@ -16,13 +16,13 @@ macro_rules! impl_newtype_fa {
             }
         }
 
-        impl<I, F: Approximator<Output = $output> + Embedded<I>> Embedded<I> for $type<F> {
+        impl<I, F: Approximator<Output = $output> + Embedding<I>> Embedding<I> for $type<F> {
             fn n_features(&self) -> usize {
                 self.0.n_features()
             }
 
-            fn to_features(&self, s: &I) -> Features {
-                self.0.to_features(s)
+            fn embed(&self, s: &I) -> Features {
+                self.0.embed(s)
             }
         }
 
@@ -33,6 +33,14 @@ macro_rules! impl_newtype_fa {
 
             fn evaluate(&self, features: &Features) -> EvaluationResult<Self::Output> {
                 self.0.evaluate(features)
+            }
+
+            fn jacobian(&self, features: &Features) -> Matrix<f64> {
+                self.0.jacobian(features)
+            }
+
+            fn update_grad(&mut self, grad: &Matrix<f64>, update: Self::Output) -> UpdateResult<()> {
+                self.0.update_grad(grad, update)
             }
 
             fn update(&mut self, features: &Features, update: Self::Output) -> UpdateResult<()> {
@@ -55,7 +63,7 @@ macro_rules! impl_newtype_fa {
             }
         }
 
-        impl<I, F: Approximator<Output = $output> + Embedded<I>> Embedded<I> for $type<F> {
+        impl<I, F: Approximator<Output = $output> + Embedding<I>> Embedding<I> for $type<F> {
             fn n_features(&self) -> usize {
                 self.$inner.n_features()
             }

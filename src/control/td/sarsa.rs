@@ -12,8 +12,9 @@ use std::marker::PhantomData;
 /// thesis, Cambridge University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
+#[derive(Parameterised)]
 pub struct SARSA<Q, P> {
-    pub q_func: Q,
+    #[weights] pub q_func: Q,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -52,19 +53,19 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let qsa = self.q_func.evaluate_index(&self.q_func.to_features(s), t.action).unwrap();
+        let qsa = self.q_func.evaluate_index(&self.q_func.embed(s), t.action).unwrap();
         let residual = if t.terminated() {
             t.reward - qsa
         } else {
             let ns = t.to.state();
             let na = self.policy.sample(ns);
-            let nqsna = self.q_func.evaluate_index(&self.q_func.to_features(ns), na).unwrap();
+            let nqsna = self.q_func.evaluate_index(&self.q_func.embed(ns), na).unwrap();
 
             t.reward + self.gamma * nqsna - qsa
         };
 
         self.q_func.update_index(
-            &self.q_func.to_features(s),
+            &self.q_func.embed(s),
             t.action, self.alpha * residual
         ).ok();
     }
@@ -96,24 +97,10 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(&self.q_func.to_features(s)).unwrap()
+        self.q_func.evaluate(&self.q_func.embed(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_index(&self.q_func.to_features(s), a).unwrap()
-    }
-}
-
-impl<Q: Parameterised, P> Parameterised for SARSA<Q, P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.q_func.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.q_func.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.q_func.weights_view_mut()
+        self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
     }
 }

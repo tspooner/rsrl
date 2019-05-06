@@ -31,8 +31,9 @@ struct BackupEntry<S> {
 /// - De Asis, K., Hernandez-Garcia, J. F., Holland, G. Z., & Sutton, R. S.
 /// (2017). Multi-step Reinforcement Learning: A Unifying Algorithm. arXiv
 /// preprint arXiv:1703.01327.
+#[derive(Parameterised)]
 pub struct QSigma<S, Q, P> {
-    pub q_func: Q,
+    #[weights] pub q_func: Q,
 
     pub policy: P,
     pub target: Greedy<Q>,
@@ -92,7 +93,7 @@ impl<S, Q: QFunction<S>, P> QSigma<S, Q, P> {
             rho *= 1.0 - b1.sigma + b1.sigma * b1.pi / b1.mu;
         }
 
-        let phi_s = self.q_func.to_features(&self.backup[0].s);
+        let phi_s = self.q_func.embed(&self.backup[0].s);
         let qsa = self.q_func.evaluate_index(&phi_s, self.backup[0].a).unwrap();
 
         self.q_func.update_index(
@@ -132,7 +133,7 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.q_func.to_features(s);
+        let phi_s = self.q_func.embed(s);
         let qa = self.q_func.evaluate_index(&phi_s, t.action).unwrap();
         let sigma = {
             self.sigma = self.sigma.step();
@@ -158,7 +159,7 @@ where
             let ns = t.to.state();
             let na = self.sample_behaviour(&ns);
 
-            let phi_ns = self.q_func.to_features(ns);
+            let phi_ns = self.q_func.embed(ns);
             let nqs = self.q_func.evaluate(&phi_ns).unwrap();
             let nqa = nqs[na];
 
@@ -212,24 +213,10 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(&self.q_func.to_features(s)).unwrap()
+        self.q_func.evaluate(&self.q_func.embed(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_index(&self.q_func.to_features(s), a).unwrap()
-    }
-}
-
-impl<S, Q: Parameterised, P> Parameterised for QSigma<S, Q, P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.q_func.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.q_func.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.q_func.weights_view_mut()
+        self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
     }
 }

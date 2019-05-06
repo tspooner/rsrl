@@ -9,8 +9,9 @@ use crate::policies::{Greedy, Policy, FinitePolicy};
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function
 /// approximation." Proceedings of the 27th International Conference on Machine
 /// Learning (ICML-10). 2010.
+#[derive(Parameterised)]
 pub struct GreedyGQ<Q, W, PB> {
-    pub fa_q: Q,
+    #[weights] pub fa_q: Q,
     pub fa_w: W,
 
     pub target_policy: Greedy<Q>,
@@ -67,7 +68,7 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, PB::Action>) {
         let s = t.from.state();
-        let phi_s = self.fa_w.to_features(s);
+        let phi_s = self.fa_w.embed(s);
         let estimate = self.fa_w.evaluate(&phi_s).unwrap();
 
         if t.terminated() {
@@ -85,7 +86,7 @@ where
         } else {
             let ns = t.to.state();
             let na = self.sample_target(ns);
-            let phi_ns = self.fa_w.to_features(ns);
+            let phi_ns = self.fa_w.embed(ns);
 
             let residual =
                 t.reward
@@ -125,11 +126,11 @@ where
     PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_q.evaluate(&self.fa_q.to_features(s)).unwrap()
+        self.fa_q.evaluate(&self.fa_q.embed(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
-        self.fa_q.evaluate_index(&self.fa_q.to_features(s), a).unwrap()
+        self.fa_q.evaluate_index(&self.fa_q.embed(s), a).unwrap()
     }
 }
 
@@ -144,19 +145,5 @@ where
 
     fn sample_behaviour(&mut self, s: &S) -> PB::Action {
         self.behaviour_policy.sample(s)
-    }
-}
-
-impl<Q: Parameterised, W, PB> Parameterised for GreedyGQ<Q, W, PB> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_q.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_q.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_q.weights_view_mut()
     }
 }

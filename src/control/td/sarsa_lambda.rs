@@ -1,6 +1,6 @@
 use crate::core::*;
 use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, Projector, QFunction};
+use crate::fa::{Approximator, Parameterised, Features, QFunction};
 use crate::geometry::{MatrixView, MatrixViewMut};
 use crate::policies::{Policy, FinitePolicy};
 
@@ -12,8 +12,9 @@ use crate::policies::{Policy, FinitePolicy};
 /// thesis, Cambridge University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
+#[derive(Parameterised)]
 pub struct SARSALambda<F, P> {
-    pub fa_theta: F,
+    #[weights] pub fa_theta: F,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -70,7 +71,7 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.fa_theta.to_features(s);
+        let phi_s = self.fa_theta.embed(s);
         let qsa = self.fa_theta.evaluate_index(&phi_s, t.action).unwrap();
 
         // Update trace with latest feature vector:
@@ -85,7 +86,7 @@ where
         } else {
             let ns = t.to.state();
             let na = self.policy.sample(ns);
-            let nqsna = self.fa_theta.evaluate_index(&self.fa_theta.to_features(ns), na).unwrap();
+            let nqsna = self.fa_theta.evaluate_index(&self.fa_theta.embed(ns), na).unwrap();
 
             t.reward + self.gamma * nqsna - qsa
         };
@@ -124,24 +125,10 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 
     fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.evaluate_index(&self.fa_theta.to_features(s), a).unwrap()
-    }
-}
-
-impl<F: Parameterised, P> Parameterised for SARSALambda<F, P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_theta.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_theta.weights_view_mut()
+        self.fa_theta.evaluate_index(&self.fa_theta.embed(s), a).unwrap()
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, Parameterised, Projector, QFunction},
+    fa::{Approximator, Parameterised, QFunction, Features},
     geometry::{MatrixView, MatrixViewMut},
     policies::{
         sample_probs_with_rng,
@@ -16,7 +16,7 @@ use ndarray::Axis;
 use rand::{rngs::ThreadRng, thread_rng};
 use std::{f64, ops::AddAssign};
 
-fn probabilities_from_values<'a>(values: impl Iterator<Item = &'a f64>, tau: f64) -> Vector<f64> {
+fn probabilities_from_values<'a>(values: impl Iterator<Item = &'a f64>, tau: f64) -> Vec<f64> {
     let mut z = 0.0;
 
     let ps: Vec<f64> = values
@@ -57,6 +57,28 @@ impl<F> Softmax<F> {
     pub fn standard(fa: F) -> Self {
         Self::new(fa, 1.0)
     }
+
+    fn grad_log_phi<S>(&self, phi: &Features, a: usize) -> Matrix<f64>
+        where F: QFunction<S>,
+    {
+        // (A x 1)
+        let values = self.fa.evaluate(&phi).unwrap();
+        let probabilities = probabilities_from_values(values.into_iter(), self.tau.value());
+
+        // (N x A)
+        let mut jac = self.fa.jacobian(&phi);
+
+        // (N x 1)
+        let phi = phi.expanded(self.fa.n_features());
+
+        for (mut col, prob) in jac.gencolumns_mut().into_iter().zip(probabilities.into_iter()) {
+            col.scaled_add(-prob, &phi);
+        }
+
+        jac.column_mut(a).add_assign(&phi);
+
+        jac
+    }
 }
 
 impl<F> Algorithm for Softmax<F> {
@@ -86,30 +108,15 @@ impl<S, F: QFunction<S>> FinitePolicy<S> for Softmax<F> {
 
     fn probabilities(&mut self, s: &S) -> Vector<f64> {
         self.fa
-            .evaluate(&self.fa.to_features(s))
-            .map(|qs| probabilities_from_values(qs.into_iter(), self.tau.value()))
+            .evaluate(&self.fa.embed(s))
+            .map(|qs| probabilities_from_values(qs.into_iter(), self.tau.value()).into())
             .unwrap()
     }
 }
 
 impl<S, F: QFunction<S>> DifferentiablePolicy<S> for Softmax<F> {
     fn grad_log(&self, input: &S, a: usize) -> Matrix<f64> {
-        let phi = self.fa.to_features(input);
-
-        let values = self.fa.evaluate(&phi).unwrap();
-        let probabilities = probabilities_from_values(values.into_iter(), self.tau.value())
-            .insert_axis(Axis(0));
-
-        let phi = phi.expanded(self.fa.n_features());
-
-        let mut grad_log = phi
-            .clone()
-            .insert_axis(Axis(1))
-            .dot(&-probabilities);
-
-        grad_log.column_mut(a).add_assign(&phi);
-
-        grad_log
+        self.grad_log_phi(&self.fa.embed(input), a)
     }
 }
 
@@ -129,13 +136,9 @@ impl<F: Parameterised> Parameterised for Softmax<F> {
 
 impl<S, F: QFunction<S> + Parameterised> ParameterisedPolicy<S> for Softmax<F> {
     fn update(&mut self, input: &S, a: usize, error: f64) {
-        let grad_log = self.grad_log(input, a);
+        let gl = self.grad_log_phi(&self.fa.embed(input), a);
 
-        self.weights_view_mut().scaled_add(error, &grad_log);
-    }
-
-    fn update_raw(&mut self, errors: Matrix<f64>) {
-        self.weights_view_mut().add_assign(&errors);
+        self.fa.weights_view_mut().scaled_add(error, &gl);
     }
 }
 
@@ -144,7 +147,7 @@ mod tests {
     use super::{Algorithm, Softmax, FinitePolicy, ParameterisedPolicy, Parameter, Policy};
     use crate::{
         domains::{Domain, MountainCar},
-        fa::{basis::{Composable, fixed::Polynomial}, LFA, mocking::MockQ},
+        fa::{Composable, LFA, basis::fixed::Polynomial, mocking::MockQ},
         geometry::Vector,
     };
     use std::f64::consts::E;
