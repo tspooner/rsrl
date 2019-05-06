@@ -22,6 +22,7 @@ import_all!(greedy);
 import_all!(epsilon_greedy);
 import_all!(softmax);
 import_all!(dirac);
+import_all!(beta);
 
 import_all!(perturbation);
 
