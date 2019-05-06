@@ -1,5 +1,5 @@
 use crate::{
-    fa::{self, Approximator, Embedding, Parameterised, EvaluationResult, Features, UpdateResult},
+    fa::{self, Approximator, Embedding, EvaluationResult, Features, Parameterised, UpdateResult},
     geometry::{Matrix, MatrixView, MatrixViewMut, Vector},
     utils::pinv,
 };
@@ -21,9 +21,7 @@ pub struct Scalar<F: Approximator<Output = f64>>(pub F);
 impl_newtype_fa!(Scalar.0 => f64);
 
 impl<I, F: Approximator<Output = f64> + Embedding<I>> Mean<I, f64> for Scalar<F> {
-    fn mean(&self, input: &I) -> Self::Output {
-        self.0.evaluate(&self.0.embed(input)).unwrap()
-    }
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
 
     fn grad_log(&self, input: &I, a: &f64, stddev: f64) -> Matrix<f64> {
         let phi = self.0.embed(input);
@@ -48,9 +46,7 @@ pub struct Pair<F: Approximator<Output = [f64; 2]>>(pub F);
 impl_newtype_fa!(Pair.0 => [f64; 2]);
 
 impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> Mean<I, f64> for Pair<F> {
-    fn mean(&self, input: &I) -> Self::Output {
-        self.0.evaluate(&self.0.embed(input)).unwrap()
-    }
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
 
     fn grad_log(&self, input: &I, actions: &[f64; 2], stddev: f64) -> Matrix<f64> {
         let phi = self.0.embed(input);
@@ -61,8 +57,10 @@ impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> Mean<I, f64> for Pair
         // (N x 2)
         let mut g = self.0.jacobian(&phi);
 
-        g.column_mut(0).mul_assign((actions[0] - means[0]) / stddev / stddev);
-        g.column_mut(1).mul_assign((actions[1] - means[1]) / stddev / stddev);
+        g.column_mut(0)
+            .mul_assign((actions[0] - means[0]) / stddev / stddev);
+        g.column_mut(1)
+            .mul_assign((actions[1] - means[1]) / stddev / stddev);
 
         g
     }
@@ -71,17 +69,19 @@ impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> Mean<I, f64> for Pair
         let phi = self.0.embed(input);
         let means = self.evaluate(&phi).unwrap();
 
-        self.update(&phi, [
-            (actions[0] - means[0]) / stddev / stddev * error,
-            (actions[1] - means[1]) / stddev / stddev * error
-        ]).ok();
+        self.update(
+            &phi,
+            [
+                (actions[0] - means[0]) / stddev / stddev * error,
+                (actions[1] - means[1]) / stddev / stddev * error,
+            ],
+        )
+        .ok();
     }
 }
 
 impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> Mean<I, [f64; 2]> for Pair<F> {
-    fn mean(&self, input: &I) -> Self::Output {
-        self.0.evaluate(&self.0.embed(input)).unwrap()
-    }
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
 
     fn grad_log(&self, input: &I, actions: &[f64; 2], stddev: [f64; 2]) -> Matrix<f64> {
         let phi = self.0.embed(input);
@@ -92,8 +92,10 @@ impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> Mean<I, [f64; 2]> for
         // (N x 2)
         let mut g = self.0.jacobian(&phi);
 
-        g.column_mut(0).mul_assign((actions[0] - means[0]) / stddev[0] / stddev[0]);
-        g.column_mut(1).mul_assign((actions[1] - means[1]) / stddev[1] / stddev[1]);
+        g.column_mut(0)
+            .mul_assign((actions[0] - means[0]) / stddev[0] / stddev[0]);
+        g.column_mut(1)
+            .mul_assign((actions[1] - means[1]) / stddev[1] / stddev[1]);
 
         g
     }
@@ -102,10 +104,14 @@ impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> Mean<I, [f64; 2]> for
         let phi = self.0.embed(input);
         let means = self.evaluate(&phi).unwrap();
 
-        self.update(&phi, [
-            (actions[0] - means[0]) / stddev[0] / stddev[0] * error,
-            (actions[1] - means[1]) / stddev[1] / stddev[1] * error
-        ]).ok();
+        self.update(
+            &phi,
+            [
+                (actions[0] - means[0]) / stddev[0] / stddev[0] * error,
+                (actions[1] - means[1]) / stddev[1] / stddev[1] * error,
+            ],
+        )
+        .ok();
     }
 }
 
@@ -116,7 +122,13 @@ pub struct Multi<F: Approximator<Output = Vector<f64>>>(pub F);
 impl_newtype_fa!(Multi.0 => Vector<f64>);
 
 impl<F: Approximator<Output = Vector<f64>>> Multi<F> {
-    fn gl_fmv_partial(&self, phi: &Features, actions: &Vector<f64>, sigma: Matrix<f64>) -> Matrix<f64> {
+    fn gl_fmv_partial(
+        &self,
+        phi: &Features,
+        actions: &Vector<f64>,
+        sigma: Matrix<f64>,
+    ) -> Matrix<f64>
+    {
         let means = self.evaluate(&phi).unwrap();
 
         // A x 1
@@ -131,9 +143,7 @@ impl<F: Approximator<Output = Vector<f64>>> Multi<F> {
 }
 
 impl<I, F: Approximator<Output = Vector<f64>> + Embedding<I>> Mean<I, f64> for Multi<F> {
-    fn mean(&self, input: &I) -> Self::Output {
-        self.0.evaluate(&self.0.embed(input)).unwrap()
-    }
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
 
     fn grad_log(&self, input: &I, actions: &Vector<f64>, stddev: f64) -> Matrix<f64> {
         let phi = self.0.embed(input);
@@ -161,9 +171,7 @@ impl<I, F: Approximator<Output = Vector<f64>> + Embedding<I>> Mean<I, f64> for M
 }
 
 impl<I, F: Approximator<Output = Vector<f64>> + Embedding<I>> Mean<I, Vector<f64>> for Multi<F> {
-    fn mean(&self, input: &I) -> Self::Output {
-        self.0.evaluate(&self.0.embed(input)).unwrap()
-    }
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
 
     fn grad_log(&self, input: &I, actions: &Vector<f64>, stddev: Vector<f64>) -> Matrix<f64> {
         let phi = self.0.embed(input);
@@ -200,9 +208,7 @@ impl<I, F: Approximator<Output = Vector<f64>> + Embedding<I>> Mean<I, Vector<f64
 }
 
 impl<I, F: Approximator<Output = Vector<f64>> + Embedding<I>> Mean<I, Matrix<f64>> for Multi<F> {
-    fn mean(&self, input: &I) -> Self::Output {
-        self.0.evaluate(&self.0.embed(input)).unwrap()
-    }
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
 
     fn grad_log(&self, input: &I, actions: &Vector<f64>, sigma: Matrix<f64>) -> Matrix<f64> {
         // (N x 1)
@@ -219,7 +225,9 @@ impl<I, F: Approximator<Output = Vector<f64>> + Embedding<I>> Mean<I, Matrix<f64
 
     fn update_mean(&mut self, input: &I, actions: &Vector<f64>, sigma: Matrix<f64>, error: f64) {
         let phi = self.embed(input);
-        let gl_partial = self.gl_fmv_partial(&phi, actions, sigma).index_axis_move(Axis(1), 0);
+        let gl_partial = self
+            .gl_fmv_partial(&phi, actions, sigma)
+            .index_axis_move(Axis(1), 0);
 
         self.update(&phi, gl_partial * error).ok();
     }

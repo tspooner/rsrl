@@ -24,10 +24,11 @@ mod utils;
 
 pub(crate) mod consts;
 pub mod core;
-pub mod logging;
 pub mod domains;
+pub mod logging;
 
-#[macro_use] pub mod fa;
-pub mod prediction;
-pub mod policies;
+#[macro_use]
+pub mod fa;
 pub mod control;
+pub mod policies;
+pub mod prediction;

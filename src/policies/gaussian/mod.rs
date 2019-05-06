@@ -1,17 +1,18 @@
 use crate::{
     core::{Algorithm, Parameter},
     fa::{Approximator, Embedding, Features, Parameterised, VFunction},
-    geometry::{Space, Matrix, MatrixView, MatrixViewMut, Vector, continuous::Interval},
+    geometry::{continuous::Interval, Matrix, MatrixView, MatrixViewMut, Space, Vector},
     policies::{DifferentiablePolicy, ParameterisedPolicy, Policy},
 };
-use ndarray::{ArrayBase, Data, Dimension, Axis};
-use rand::{thread_rng, rngs::{ThreadRng}};
-use rstat::{
-    Distribution, ContinuousDistribution,
-    univariate::continuous::Normal,
+use ndarray::{ArrayBase, Axis, Data, Dimension};
+use rand::{rngs::ThreadRng, thread_rng};
+use rstat::{univariate::continuous::Normal, ContinuousDistribution, Distribution};
+use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
+use std::{
+    fmt::{self, Debug},
+    marker::PhantomData,
+    ops::AddAssign,
 };
-use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
-use std::{fmt::{self, Debug}, marker::PhantomData, ops::AddAssign};
 
 pub mod mean;
 use self::mean::Mean;
@@ -33,7 +34,8 @@ pub struct Gaussian<M, S> {
 impl<M, S> Gaussian<M, S> {
     pub fn new(mean: M, stddev: S) -> Self {
         Gaussian {
-            mean, stddev,
+            mean,
+            stddev,
 
             rng: thread_rng(),
         }
@@ -69,7 +71,7 @@ where
     S: StdDev<I, <M as Approximator>::Output>,
     S::Output: Clone + Debug,
     GB: DistBuilder<M::Output, S::Output>,
-    GBSupport<M::Output, S::Output>: Space<Value = M::Output>
+    GBSupport<M::Output, S::Output>: Space<Value = M::Output>,
 {
     type Action = M::Output;
 
@@ -77,9 +79,7 @@ where
         GB::build(self.compute_mean(input), self.compute_stddev(input)).sample(&mut self.rng)
     }
 
-    fn mpa(&mut self, input: &I) -> Self::Action {
-        self.compute_mean(input)
-    }
+    fn mpa(&mut self, input: &I) -> Self::Action { self.compute_mean(input) }
 
     fn probability(&mut self, input: &I, a: Self::Action) -> f64 {
         GB::build(self.compute_mean(input), self.compute_stddev(input)).pdf(a)
@@ -93,7 +93,7 @@ where
     S: StdDev<I, <M as Approximator>::Output>,
     S::Output: Clone + Debug,
     GB: DistBuilder<M::Output, S::Output>,
-    GBSupport<M::Output, S::Output>: Space<Value = M::Output>
+    GBSupport<M::Output, S::Output>: Space<Value = M::Output>,
 {
     fn grad_log(&self, input: &I, a: Self::Action) -> Matrix<f64> {
         let mean = self.compute_mean(input);
@@ -112,17 +112,11 @@ where
     M: Parameterised,
     S: Parameterised,
 {
-    fn weights(&self) -> Matrix<f64> {
-        unimplemented!()
-    }
+    fn weights(&self) -> Matrix<f64> { unimplemented!() }
 
-    fn weights_view(&self) -> MatrixView<f64> {
-        unimplemented!()
-    }
+    fn weights_view(&self) -> MatrixView<f64> { unimplemented!() }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
-    }
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> { unimplemented!() }
 
     fn weights_dim(&self) -> (usize, usize) {
         let dim_mean = self.mean.weights_dim();
@@ -139,7 +133,7 @@ where
     S: StdDev<I, <M as Approximator>::Output> + Parameterised,
     S::Output: Clone + Debug,
     GB: DistBuilder<M::Output, S::Output>,
-    GBSupport<M::Output, S::Output>: Space<Value = M::Output>
+    GBSupport<M::Output, S::Output>: Space<Value = M::Output>,
 {
     fn update(&mut self, input: &I, a: Self::Action, error: f64) {
         let mean = self.compute_mean(input);
@@ -156,12 +150,13 @@ where
     S: Deserialize<'de>,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
+    where D: Deserializer<'de> {
         #[derive(Deserialize)]
         #[serde(field_identifier, rename_all = "lowercase")]
-        enum Field { Mean, Stddev };
+        enum Field {
+            Mean,
+            Stddev,
+        };
 
         struct GaussianVisitor<IM, IS>(pub PhantomData<IM>, pub PhantomData<IS>);
 
@@ -177,21 +172,19 @@ where
             }
 
             fn visit_seq<V>(self, mut seq: V) -> Result<Gaussian<IM, IS>, V::Error>
-            where
-                V: SeqAccess<'de>,
-            {
-                let mean = seq.next_element()?
+            where V: SeqAccess<'de> {
+                let mean = seq
+                    .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let stddev = seq.next_element()?
+                let stddev = seq
+                    .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
 
                 Ok(Gaussian::new(mean, stddev))
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Gaussian<IM, IS>, V::Error>
-            where
-                V: MapAccess<'de>,
-            {
+            where V: MapAccess<'de> {
                 let mut mean = None;
                 let mut stddev = None;
 
@@ -202,13 +195,13 @@ where
                                 return Err(de::Error::duplicate_field("mean"));
                             }
                             mean = Some(map.next_value()?);
-                        }
+                        },
                         Field::Stddev => {
                             if stddev.is_some() {
                                 return Err(de::Error::duplicate_field("stddev"));
                             }
                             stddev = Some(map.next_value()?);
-                        }
+                        },
                     }
                 }
 
@@ -224,7 +217,7 @@ where
         deserializer.deserialize_struct(
             "Gaussian",
             FIELDS,
-            GaussianVisitor::<M, S>(PhantomData, PhantomData)
+            GaussianVisitor::<M, S>(PhantomData, PhantomData),
         )
     }
 }

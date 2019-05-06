@@ -1,6 +1,14 @@
 use crate::{
     core::{make_shared, Shared},
-    fa::{Approximator, Embedding, Parameterised, EvaluationResult, Features, QFunction, UpdateResult},
+    fa::{
+        Approximator,
+        Embedding,
+        EvaluationResult,
+        Features,
+        Parameterised,
+        QFunction,
+        UpdateResult,
+    },
     geometry::{Matrix, MatrixView, MatrixViewMut, Vector},
 };
 use std::marker::PhantomData;
@@ -30,13 +38,9 @@ impl Embedding<Vector<f64>> for MockQ {
 }
 
 impl Parameterised for MockQ {
-    fn weights_view(&self) -> MatrixView<f64> {
-        unimplemented!()
-    }
+    fn weights_view(&self) -> MatrixView<f64> { unimplemented!() }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
-    }
+    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> { unimplemented!() }
 }
 
 impl Approximator for MockQ {

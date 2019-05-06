@@ -1,5 +1,5 @@
 use crate::{
-    fa::{Approximator, Embedding, Parameterised, EvaluationResult, Features, UpdateResult},
+    fa::{Approximator, Embedding, EvaluationResult, Features, Parameterised, UpdateResult},
     geometry::{Matrix, MatrixView, MatrixViewMut, Vector},
 };
 use ndarray::Axis;
@@ -26,13 +26,9 @@ pub trait StdDev<I, M>: Approximator + Embedding<I> {
 pub struct Constant<V: Clone>(pub V);
 
 impl<V: Clone> Parameterised for Constant<V> {
-    fn weights(&self) -> Matrix<f64> {
-        Matrix::zeros((0, 0))
-    }
+    fn weights(&self) -> Matrix<f64> { Matrix::zeros((0, 0)) }
 
-    fn weights_view(&self) -> MatrixView<f64> {
-        MatrixView::from_shape((0, 0), &[]).unwrap()
-    }
+    fn weights_view(&self) -> MatrixView<f64> { MatrixView::from_shape((0, 0), &[]).unwrap() }
 
     fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
         MatrixViewMut::from_shape((0, 0), &mut []).unwrap()
@@ -40,13 +36,9 @@ impl<V: Clone> Parameterised for Constant<V> {
 }
 
 impl<I, V: Clone> Embedding<I> for Constant<V> {
-    fn n_features(&self) -> usize {
-        0
-    }
+    fn n_features(&self) -> usize { 0 }
 
-    fn embed(&self, _: &I) -> Features {
-        Features::Dense(vec![].into())
-    }
+    fn embed(&self, _: &I) -> Features { Features::Dense(vec![].into()) }
 }
 
 macro_rules! impl_approximator_constant {
@@ -56,9 +48,7 @@ macro_rules! impl_approximator_constant {
 
             fn n_outputs(&self) -> usize { $n }
 
-            fn evaluate(&self, _: &Features) -> EvaluationResult<Self::Output> {
-                Ok(self.0)
-            }
+            fn evaluate(&self, _: &Features) -> EvaluationResult<Self::Output> { Ok(self.0) }
 
             fn jacobian(&self, _: &Features) -> Matrix<f64> {
                 Matrix::from_shape_vec((0, 0), vec![]).unwrap()
@@ -68,9 +58,7 @@ macro_rules! impl_approximator_constant {
                 Ok(())
             }
 
-            fn update(&mut self, _: &Features, _: Self::Output) -> UpdateResult<()> {
-                Ok(())
-            }
+            fn update(&mut self, _: &Features, _: Self::Output) -> UpdateResult<()> { Ok(()) }
         }
     };
 }
@@ -84,34 +72,23 @@ impl Approximator for Constant<Vector<f64>> {
 
     fn n_outputs(&self) -> usize { self.0.len() }
 
-    fn evaluate(&self, _: &Features) -> EvaluationResult<Self::Output> {
-        Ok(self.0.clone())
-    }
+    fn evaluate(&self, _: &Features) -> EvaluationResult<Self::Output> { Ok(self.0.clone()) }
 
     fn jacobian(&self, _: &Features) -> Matrix<f64> {
         Matrix::from_shape_vec((0, 0), vec![]).unwrap()
     }
 
-    fn update_grad(&mut self, _: &Matrix<f64>, _: Self::Output) -> UpdateResult<()> {
-        Ok(())
-    }
+    fn update_grad(&mut self, _: &Matrix<f64>, _: Self::Output) -> UpdateResult<()> { Ok(()) }
 
-    fn update(&mut self, _: &Features, _: Self::Output) -> UpdateResult<()> {
-        Ok(())
-    }
+    fn update(&mut self, _: &Features, _: Self::Output) -> UpdateResult<()> { Ok(()) }
 }
 
 impl<I, V: Clone, M> StdDev<I, M> for Constant<V>
-where
-    Self: Approximator<Output = V>
+where Self: Approximator<Output = V>
 {
-    fn stddev(&self, _: &I) -> V {
-        self.0.clone()
-    }
+    fn stddev(&self, _: &I) -> V { self.0.clone() }
 
-    fn grad_log(&self, _: &I, _: &M, _: M) -> Matrix<f64> {
-        Matrix::default((0, 0))
-    }
+    fn grad_log(&self, _: &I, _: &M, _: M) -> Matrix<f64> { Matrix::default((0, 0)) }
 
     fn update_stddev(&mut self, _: &I, _: &M, _: M, _: f64) {}
 }
@@ -167,17 +144,26 @@ impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> StdDev<I, [f64; 2]> f
         let gl_partial_1 = gl_from_mv(a[1], mean[1], stddev[1] + MIN_STDDEV);
 
         Vector::from_iter(
-            phi.iter().map(|v| v * gl_partial_0).chain(phi.iter().map(|v| v * gl_partial_1))
-        ).into_shape((2, n_features)).unwrap().reversed_axes()
+            phi.iter()
+                .map(|v| v * gl_partial_0)
+                .chain(phi.iter().map(|v| v * gl_partial_1)),
+        )
+        .into_shape((2, n_features))
+        .unwrap()
+        .reversed_axes()
     }
 
     fn update_stddev(&mut self, input: &I, a: &[f64; 2], mean: [f64; 2], error: f64) {
         let phi = self.embed(input);
         let stddev = self.evaluate(&phi).unwrap();
 
-        self.update(&phi, [
-            gl_from_mv(a[0], mean[0], stddev[0] + MIN_STDDEV) * error,
-            gl_from_mv(a[1], mean[1], stddev[1] + MIN_STDDEV) * error
-        ]).ok();
+        self.update(
+            &phi,
+            [
+                gl_from_mv(a[0], mean[0], stddev[0] + MIN_STDDEV) * error,
+                gl_from_mv(a[1], mean[1], stddev[1] + MIN_STDDEV) * error,
+            ],
+        )
+        .ok();
     }
 }

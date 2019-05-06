@@ -57,7 +57,8 @@ pub(self) fn sample_probs_with_rng(rng: &mut impl Rng, probabilities: &[f64]) ->
 pub trait Policy<S>: Algorithm {
     type Action;
 
-    /// Sample the (possibly stochastic) policy distribution for a given `state`.
+    /// Sample the (possibly stochastic) policy distribution for a given
+    /// `state`.
     fn sample(&mut self, state: &S) -> Self::Action { self.mpa(state) }
 
     /// Return the "most probable action" according to the policy distribution,
@@ -79,13 +80,15 @@ pub trait FinitePolicy<S>: Policy<S, Action = usize> {
 
 /// Trait for policies that have a differentiable representation.
 pub trait DifferentiablePolicy<S>: Policy<S> {
-    /// Compute the gradient of the log probability wrt the policy parameters (weights).
+    /// Compute the gradient of the log probability wrt the policy parameters
+    /// (weights).
     fn grad_log(&self, state: &S, a: Self::Action) -> Matrix<f64>;
 }
 
 /// Trait for policies that are parameterised by a vector of weights.
 pub trait ParameterisedPolicy<S>: Policy<S> + Parameterised {
-    /// Update the weights in the direction of an error for a given state and action.
+    /// Update the weights in the direction of an error for a given state and
+    /// action.
     fn update(&mut self, state: &S, a: Self::Action, error: f64);
 }
 
@@ -93,13 +96,9 @@ pub trait ParameterisedPolicy<S>: Policy<S> + Parameterised {
 impl<S, T: Policy<S>> Policy<S> for Shared<T> {
     type Action = T::Action;
 
-    fn sample(&mut self, state: &S) -> Self::Action {
-        self.borrow_mut().sample(state)
-    }
+    fn sample(&mut self, state: &S) -> Self::Action { self.borrow_mut().sample(state) }
 
-    fn mpa(&mut self, s: &S) -> Self::Action {
-        self.borrow_mut().mpa(s)
-    }
+    fn mpa(&mut self, s: &S) -> Self::Action { self.borrow_mut().mpa(s) }
 
     fn probability(&mut self, state: &S, a: Self::Action) -> f64 {
         self.borrow_mut().probability(state, a)
@@ -107,13 +106,9 @@ impl<S, T: Policy<S>> Policy<S> for Shared<T> {
 }
 
 impl<S, T: FinitePolicy<S>> FinitePolicy<S> for Shared<T> {
-    fn n_actions(&self) -> usize {
-        self.borrow().n_actions()
-    }
+    fn n_actions(&self) -> usize { self.borrow().n_actions() }
 
-    fn probabilities(&mut self, state: &S) -> Vector<f64> {
-        self.borrow_mut().probabilities(state)
-    }
+    fn probabilities(&mut self, state: &S) -> Vector<f64> { self.borrow_mut().probabilities(state) }
 }
 
 impl<S, T: DifferentiablePolicy<S>> DifferentiablePolicy<S> for Shared<T> {

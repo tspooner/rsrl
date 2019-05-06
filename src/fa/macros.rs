@@ -3,27 +3,17 @@
 macro_rules! impl_newtype_fa {
     ($type:ident.0 => $output:ty) => {
         impl<F: Approximator<Output = $output> + Parameterised> Parameterised for $type<F> {
-            fn weights(&self) -> Matrix<f64> {
-                self.0.weights()
-            }
+            fn weights(&self) -> Matrix<f64> { self.0.weights() }
 
-            fn weights_view(&self) -> MatrixView<f64> {
-                self.0.weights_view()
-            }
+            fn weights_view(&self) -> MatrixView<f64> { self.0.weights_view() }
 
-            fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-                self.0.weights_view_mut()
-            }
+            fn weights_view_mut(&mut self) -> MatrixViewMut<f64> { self.0.weights_view_mut() }
         }
 
         impl<I, F: Approximator<Output = $output> + Embedding<I>> Embedding<I> for $type<F> {
-            fn n_features(&self) -> usize {
-                self.0.n_features()
-            }
+            fn n_features(&self) -> usize { self.0.n_features() }
 
-            fn embed(&self, s: &I) -> Features {
-                self.0.embed(s)
-            }
+            fn embed(&self, s: &I) -> Features { self.0.embed(s) }
         }
 
         impl<F: Approximator<Output = $output>> Approximator for $type<F> {
@@ -35,11 +25,14 @@ macro_rules! impl_newtype_fa {
                 self.0.evaluate(features)
             }
 
-            fn jacobian(&self, features: &Features) -> Matrix<f64> {
-                self.0.jacobian(features)
-            }
+            fn jacobian(&self, features: &Features) -> Matrix<f64> { self.0.jacobian(features) }
 
-            fn update_grad(&mut self, grad: &Matrix<f64>, update: Self::Output) -> UpdateResult<()> {
+            fn update_grad(
+                &mut self,
+                grad: &Matrix<f64>,
+                update: Self::Output,
+            ) -> UpdateResult<()>
+            {
                 self.0.update_grad(grad, update)
             }
 
@@ -50,27 +43,17 @@ macro_rules! impl_newtype_fa {
     };
     ($type:ident.$inner:ident => $output:ty) => {
         impl<F: Approximator<Output = $output> + Parameterised> Parameterised for $type<F> {
-            fn weights(&self) -> Matrix<f64> {
-                self.$inner.weights()
-            }
+            fn weights(&self) -> Matrix<f64> { self.$inner.weights() }
 
-            fn weights_view(&self) -> MatrixView<f64> {
-                self.$inner.weights_view()
-            }
+            fn weights_view(&self) -> MatrixView<f64> { self.$inner.weights_view() }
 
-            fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-                self.$inner.weights_view_mut()
-            }
+            fn weights_view_mut(&mut self) -> MatrixViewMut<f64> { self.$inner.weights_view_mut() }
         }
 
         impl<I, F: Approximator<Output = $output> + Embedding<I>> Embedding<I> for $type<F> {
-            fn n_features(&self) -> usize {
-                self.$inner.n_features()
-            }
+            fn n_features(&self) -> usize { self.$inner.n_features() }
 
-            fn to_features(&self, s: &I) -> Features {
-                self.$inner.to_features(s)
-            }
+            fn to_features(&self, s: &I) -> Features { self.$inner.to_features(s) }
         }
 
         impl<F: Approximator<Output = $output>> Approximator for $type<F> {
@@ -86,5 +69,5 @@ macro_rules! impl_newtype_fa {
                 self.$inner.update(features, update)
             }
         }
-    }
+    };
 }
