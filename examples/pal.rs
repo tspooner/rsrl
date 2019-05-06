@@ -6,7 +6,7 @@ use rsrl::{
     control::td::PAL,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::{Composable, fixed::Fourier}, LFA},
+    fa::{Composable, LFA, basis::fixed::Fourier},
     geometry::Space,
     logging,
     policies::{EpsilonGreedy, Greedy, Random},

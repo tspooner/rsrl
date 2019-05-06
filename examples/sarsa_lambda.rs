@@ -6,7 +6,7 @@ use rsrl::{
     control::td::SARSALambda,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
-    fa::{basis::{Composable, fixed::Fourier}, LFA},
+    fa::{Composable, LFA, basis::fixed::Fourier},
     geometry::Space,
     logging,
     policies::{EpsilonGreedy, Greedy, Random},
@@ -18,13 +18,13 @@ fn main() {
         let n_actions = domain.action_space().card().into();
 
         let bases = Fourier::from_space(3, domain.state_space()).with_constant();
-        let trace = Trace::replacing(0.3, bases.dim());
+        let trace = Trace::replacing(0.1, bases.dim());
         let q_func = make_shared(LFA::vector(bases, n_actions));
 
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.3, 0.001, 0.99),
+            Parameter::exponential(0.3, 0.001, 0.999),
         );
 
         SARSALambda::new(q_func, policy, trace, 0.001, 0.99)
