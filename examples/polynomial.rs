@@ -6,7 +6,7 @@ use rsrl::{
     control::td::SARSALambda,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
-    fa::{Composable, LFA, basis::fixed::Chebyshev},
+    fa::{basis::fixed::Chebyshev, Composable, LFA},
     geometry::Space,
     logging,
     policies::{EpsilonGreedy, Greedy, Random},

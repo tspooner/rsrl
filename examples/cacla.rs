@@ -6,9 +6,12 @@ use rsrl::{
     control::actor_critic::CACLA,
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
-    fa::{Composable, LFA, basis::fixed::Fourier},
+    fa::{basis::fixed::Fourier, Composable, LFA},
     logging,
-    policies::{Dirac, gaussian::{self, Gaussian}},
+    policies::{
+        gaussian::{self, Gaussian},
+        Dirac,
+    },
     prediction::td::TD,
 };
 

@@ -6,7 +6,7 @@ use rsrl::{
     control::{actor_critic::A2C, td::SARSA},
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{Composable, LFA, basis::fixed::Fourier},
+    fa::{basis::fixed::Fourier, Composable, LFA},
     geometry::Space,
     logging,
     policies::Gibbs,

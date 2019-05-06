@@ -6,7 +6,7 @@ use rsrl::{
     control::actor_critic::TDAC,
     core::{run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
-    fa::{Composable, LFA, basis::fixed::Fourier},
+    fa::{basis::fixed::Fourier, Composable, LFA},
     logging,
     policies::gaussian::{self, Gaussian},
     prediction::td::TD,
