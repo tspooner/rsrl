@@ -6,9 +6,15 @@ use rsrl::{
     control::actor_critic::TDAC,
     core::{run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
-    fa::{basis::fixed::Fourier, Composable, LFA},
+    fa::{
+        basis::fixed::Fourier,
+        transforms::Softplus,
+        Composable,
+        TransformedLFA,
+        LFA,
+    },
     logging,
-    policies::gaussian::{self, Gaussian},
+    policies::Beta,
     prediction::td::TD,
 };
 
@@ -17,12 +23,12 @@ fn main() {
     let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
     let critic = TD::new(LFA::scalar(bases.clone()), 0.01, 0.99);
-    let policy = Gaussian::new(
-        gaussian::mean::Scalar(LFA::scalar(bases)),
-        gaussian::stddev::Constant(1.0),
+    let policy = Beta::new(
+        TransformedLFA::scalar(bases.clone(), Softplus),
+        TransformedLFA::scalar(bases, Softplus),
     );
 
-    let mut agent = TDAC::new(critic, policy, 0.002, 0.99);
+    let mut agent = TDAC::new(critic, policy, 0.001, 0.99);
 
     let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(ContinuousMountainCar::default);
@@ -33,7 +39,7 @@ fn main() {
         let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
 
         // Realise 1000 episodes of the experiment generator.
-        run(e, 2000, Some(logger.clone()))
+        run(e, 10000, Some(logger.clone()))
     };
 
     // Testing phase:

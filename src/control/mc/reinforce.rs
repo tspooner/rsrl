@@ -1,12 +1,15 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::geometry::{Matrix, MatrixView, MatrixViewMut};
-use crate::fa::Parameterised;
-use crate::policies::{Policy, ParameterisedPolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::Parameterised,
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Policy, ParameterisedPolicy},
+};
+use rand::Rng;
 
+#[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
 pub struct REINFORCE<P> {
-    pub policy: P,
+    #[weights] pub policy: P,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
@@ -50,7 +53,7 @@ where
 
             self.policy.update(
                 t.from.state(),
-                t.action.clone(),
+                &t.action,
                 self.alpha * ret / z
             );
         }
@@ -58,21 +61,11 @@ where
 }
 
 impl<S, P: ParameterisedPolicy<S>> Controller<S, P::Action> for REINFORCE<P> {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
-
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
-}
-
-impl<P: Parameterised> Parameterised for REINFORCE<P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.policy.weights()
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.policy.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.policy.weights_view_mut()
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }

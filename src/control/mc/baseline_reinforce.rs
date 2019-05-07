@@ -1,13 +1,15 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::geometry::Matrix;
-use crate::fa::Parameterised;
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Policy, ParameterisedPolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::Parameterised,
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Policy, ParameterisedPolicy},
+};
+use rand::Rng;
 
+#[derive(Parameterised)]
 pub struct BaselineREINFORCE<B, P> {
-    pub policy: P,
+    #[weights] pub policy: P,
     pub baseline: B,
 
     pub alpha: Parameter,
@@ -62,27 +64,17 @@ where
 
             ret = t.reward + self.gamma * ret;
 
-            self.policy.update(s, t.action.clone(), self.alpha * (ret - baseline));
+            self.policy.update(s, &t.action, self.alpha * (ret - baseline));
         }
     }
 }
 
 impl<S, B, P: ParameterisedPolicy<S>> Controller<S, P::Action> for BaselineREINFORCE<B, P> {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
-
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
-}
-
-impl<B, P: Parameterised> Parameterised for BaselineREINFORCE<B, P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.policy.weights()
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.policy.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.policy.weights_view_mut()
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }

@@ -3,21 +3,17 @@ use crate::{
     geometry::Space,
     policies::{FinitePolicy, Policy},
 };
-use rand::{
-    distributions::{Distribution, Uniform},
-    rngs::ThreadRng,
-    thread_rng,
-};
+use rand::{distributions::{Distribution, Uniform}, Rng};
 
 // TODO: Generalise the random policy to work on any `Space`. This won't be hard
 // at all, just use T: Into<Space>. Just make sure that you add all the relevant
 // From implementations for the different spaces in the `spaces` crate; i.e.
 // From<usize> for Ordinal etc etc...
 
-pub struct Random(usize, ThreadRng);
+pub struct Random(usize);
 
 impl Random {
-    pub fn new(n_actions: usize) -> Self { Random(n_actions, thread_rng()) }
+    pub fn new(n_actions: usize) -> Self { Random(n_actions) }
 
     pub fn from_space<S: Space>(space: S) -> Self { Self::new(space.dim()) }
 }
@@ -27,32 +23,36 @@ impl Algorithm for Random {}
 impl<S> Policy<S> for Random {
     type Action = usize;
 
-    fn sample(&mut self, _: &S) -> usize { Uniform::new(0, self.0).sample(&mut self.1) }
+    fn sample(&self, rng: &mut impl Rng, _: &S) -> usize {
+        Uniform::new(0, self.0).sample(rng)
+    }
 
-    fn probability(&mut self, _: &S, _: usize) -> f64 { 1.0 / self.0 as f64 }
+    fn probability(&self, _: &S, _: &usize) -> f64 { 1.0 / self.0 as f64 }
 }
 
 impl<S> FinitePolicy<S> for Random {
     fn n_actions(&self) -> usize { self.0 }
 
-    fn probabilities(&mut self, _: &S) -> Vector<f64> { vec![1.0 / self.0 as f64; self.0].into() }
+    fn probabilities(&self, _: &S) -> Vector<f64> { vec![1.0 / self.0 as f64; self.0].into() }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{FinitePolicy, Policy, Random};
     use crate::geometry::Vector;
+    use rand::thread_rng;
+    use super::{FinitePolicy, Policy, Random};
 
     #[test]
     fn test_sampling() {
-        let mut p = Random::new(2);
+        let p = Random::new(2);
+        let mut rng = thread_rng();
 
         let qs = vec![1.0, 0.0];
 
         let mut n0: f64 = 0.0;
         let mut n1: f64 = 0.0;
         for _ in 0..10000 {
-            match p.sample(&qs) {
+            match p.sample(&mut rng, &qs) {
                 0 => n0 += 1.0,
                 _ => n1 += 1.0,
             }
@@ -64,13 +64,13 @@ mod tests {
 
     #[test]
     fn test_probabilites() {
-        let mut p = Random::new(4);
+        let p = Random::new(4);
 
         assert!(p
             .probabilities(&[1.0, 0.0, 0.0, 1.0])
             .all_close(&Vector::from_vec(vec![0.25; 4]), 1e-6));
 
-        let mut p = Random::new(5);
+        let p = Random::new(5);
 
         assert!(p
             .probabilities(&[1.0, 0.0, 0.0, 0.0, 0.0])

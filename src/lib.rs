@@ -14,16 +14,21 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate lfa;
+extern crate elementwise;
 pub extern crate spaces as geometry;
 
 mod macros;
 mod utils;
 
 pub(crate) mod consts;
-pub mod control;
 pub mod core;
 pub mod domains;
-pub mod fa;
 pub mod logging;
+
+#[macro_use]
+pub mod fa;
+pub mod control;
 pub mod policies;
 pub mod prediction;

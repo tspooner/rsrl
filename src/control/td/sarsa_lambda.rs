@@ -1,8 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, Projector, QFunction};
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Policy, FinitePolicy};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Parameterised, Features, QFunction},
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Policy, FinitePolicy},
+};
+use rand::{thread_rng, Rng};
 
 /// On-policy variant of Watkins' Q-learning with eligibility traces (aka
 /// "modified Q-learning").
@@ -12,8 +15,9 @@ use crate::policies::{Policy, FinitePolicy};
 /// thesis, Cambridge University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
+#[derive(Parameterised)]
 pub struct SARSALambda<F, P> {
-    pub fa_theta: F,
+    #[weights] pub fa_theta: F,
     pub policy: P,
 
     pub alpha: Parameter,
@@ -70,7 +74,7 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.fa_theta.to_features(s);
+        let phi_s = self.fa_theta.embed(s);
         let qsa = self.fa_theta.evaluate_index(&phi_s, t.action).unwrap();
 
         // Update trace with latest feature vector:
@@ -84,8 +88,8 @@ where
             t.reward - qsa
         } else {
             let ns = t.to.state();
-            let na = self.policy.sample(ns);
-            let nqsna = self.fa_theta.evaluate_index(&self.fa_theta.to_features(ns), na).unwrap();
+            let na = self.policy.sample(&mut thread_rng(), ns);
+            let nqsna = self.fa_theta.evaluate_index(&self.fa_theta.embed(ns), na).unwrap();
 
             t.reward + self.gamma * nqsna - qsa
         };
@@ -99,12 +103,12 @@ where
 }
 
 impl<S, F, P: FinitePolicy<S>> Controller<S, P::Action> for SARSALambda<F, P> {
-    fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }
 
@@ -113,7 +117,7 @@ where
     F: QFunction<S>,
     P: FinitePolicy<S>,
 {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.predict_qs(s).dot(&self.policy.probabilities(s))
     }
 }
@@ -123,25 +127,11 @@ where
     F: QFunction<S>,
     P: FinitePolicy<S>,
 {
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
+    fn predict_qs(&self, s: &S) -> Vector<f64> {
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.evaluate_index(&self.fa_theta.to_features(s), a).unwrap()
-    }
-}
-
-impl<F: Parameterised, P> Parameterised for SARSALambda<F, P> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_theta.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_theta.weights_view_mut()
+    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
+        self.fa_theta.evaluate_index(&self.fa_theta.embed(s), a).unwrap()
     }
 }

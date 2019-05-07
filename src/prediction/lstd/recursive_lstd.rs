@@ -1,14 +1,15 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, VFunction, Parameterised, Projector, Features},
+    fa::{Approximator, VFunction, Parameterised, Features},
     geometry::{Space, Matrix, MatrixView, MatrixViewMut},
     utils::argmaxima,
 };
 use ndarray::Axis;
 
+#[derive(Parameterised)]
 pub struct RecursiveLSTD<F> {
-    pub fa_theta: F,
+    #[weights] pub fa_theta: F,
     pub gamma: Parameter,
 
     c_mat: Matrix<f64>,
@@ -42,14 +43,14 @@ impl<F> Algorithm for RecursiveLSTD<F> {
 
 impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for RecursiveLSTD<F> {
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.fa_theta.to_features(t.from.state());
+        let phi_s = self.fa_theta.embed(t.from.state());
         let v = self.fa_theta.evaluate(&phi_s).unwrap();
         let phi_s = self.expand_phi(phi_s);
 
         let (pd, residual) = if t.terminated() {
             (phi_s.clone(), t.reward - v)
         } else {
-            let phi_ns = self.fa_theta.to_features(t.to.state());
+            let phi_ns = self.fa_theta.embed(t.to.state());
             let nv = self.fa_theta.evaluate(&phi_ns).unwrap();
             let phi_ns = self.expand_phi(phi_ns);
 
@@ -80,23 +81,9 @@ impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for RecursiveLSTD<F> {
 }
 
 impl<S, F: VFunction<S>> ValuePredictor<S> for RecursiveLSTD<F> {
-    fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
+    fn predict_v(&self, s: &S) -> f64 {
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 }
 
 impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for RecursiveLSTD<F> {}
-
-impl<F: Parameterised> Parameterised for RecursiveLSTD<F> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_theta.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_theta.weights_view_mut()
-    }
-}

@@ -1,9 +1,13 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::policies::{Policy, ParameterisedPolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    fa::Parameterised,
+    domains::Transition,
+    policies::{Policy, ParameterisedPolicy, DifferentiablePolicy},
+};
+use rand::Rng;
 
 /// TD-error actor-critic.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TDAC<C, P> {
     pub critic: C,
     pub policy: P,
@@ -58,7 +62,7 @@ where
         };
 
         self.critic.handle_transition(t);
-        self.policy.update(s, t.action.clone(), self.alpha * td_error);
+        self.policy.update(s, &t.action, self.alpha * td_error);
     }
 }
 
@@ -66,7 +70,7 @@ impl<S, C, P> ValuePredictor<S> for TDAC<C, P>
 where
     C: ValuePredictor<S>,
 {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.critic.predict_v(s)
     }
 }
@@ -76,24 +80,24 @@ where
     C: ActionValuePredictor<S, P::Action>,
     P: Policy<S>,
 {
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&self, s: &S) -> Vector<f64> {
         self.critic.predict_qs(s)
     }
 
-    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
+    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
         self.critic.predict_qsa(s, a)
     }
 }
 
 impl<S, C, P> Controller<S, P::Action> for TDAC<C, P>
 where
-    P: ParameterisedPolicy<S>,
+    P: Policy<S>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }

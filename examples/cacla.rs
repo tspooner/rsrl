@@ -6,9 +6,12 @@ use rsrl::{
     control::actor_critic::CACLA,
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
-    fa::{basis::{Composable, fixed::Fourier}, LFA},
+    fa::{basis::fixed::Fourier, Composable, LFA},
     logging,
-    policies::parameterised::{Dirac, Gaussian1d},
+    policies::{
+        gaussian::{self, Gaussian},
+        Dirac,
+    },
     prediction::td::TD,
 };
 
@@ -18,11 +21,13 @@ fn main() {
 
     let mean_fa = make_shared(LFA::scalar(bases.clone()));
     let target_policy = Dirac::new(mean_fa.clone());
-    let behaviour_policy = Gaussian1d::new(mean_fa, 1.0);
+    let behaviour_policy = Gaussian::new(
+        gaussian::mean::Scalar(mean_fa.clone()),
+        gaussian::stddev::Constant(1.0),
+    );
 
-    let critic = TD::new(LFA::scalar(bases), 0.1, 1.0);
-
-    let mut agent = CACLA::new(critic, target_policy, behaviour_policy, 0.001, 1.0);
+    let critic = TD::new(LFA::scalar(bases), 0.001, 1.0);
+    let mut agent = CACLA::new(critic, target_policy, behaviour_policy, 0.0001, 1.0);
 
     let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(ContinuousMountainCar::default);

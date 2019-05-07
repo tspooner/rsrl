@@ -1,6 +1,9 @@
-use crate::core::*;
-use crate::domains::{Domain, Observation};
-use crate::geometry::Space;
+use crate::{
+    core::*,
+    domains::{Domain, Observation},
+    geometry::Space,
+};
+use rand::{thread_rng, Rng};
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
 
 /// Container for episodic statistics.
@@ -71,8 +74,9 @@ where
     type Item = Episode;
 
     fn next(&mut self) -> Option<Episode> {
+        let mut rng = thread_rng();
         let mut domain = (self.domain_factory)();
-        let mut a = self.agent.sample_target(&domain.emit().state());
+        let mut a = self.agent.sample_target(&mut rng, domain.emit().state());
 
         let mut e = Episode {
             steps: 1,
@@ -87,7 +91,7 @@ where
 
             a = match t.to {
                 Observation::Terminal(_) => break,
-                _ => self.agent.sample_target(&t.to.state()),
+                _ => self.agent.sample_target(&mut rng, t.to.state()),
             };
         }
 
@@ -130,8 +134,9 @@ where
     type Item = Episode;
 
     fn next(&mut self) -> Option<Episode> {
+        let mut rng = thread_rng();
         let mut domain = (self.domain_factory)();
-        let mut a = self.agent.sample_behaviour(domain.emit().state());
+        let mut a = self.agent.sample_behaviour(&mut rng, domain.emit().state());
 
         let mut e = Episode {
             steps: 1,
@@ -151,7 +156,7 @@ where
 
                 break
             } else {
-                a = self.agent.sample_behaviour(t.to.state());
+                a = self.agent.sample_behaviour(&mut rng, t.to.state());
             }
         }
 

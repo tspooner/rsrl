@@ -6,10 +6,10 @@ use rsrl::{
     control::td::SARSALambda,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
     domains::{Domain, MountainCar},
-    fa::{basis::{Composable, fixed::Chebyshev}, LFA},
+    fa::{basis::fixed::Chebyshev, Composable, LFA},
     geometry::Space,
     logging,
-    policies::fixed::{EpsilonGreedy, Greedy, Random},
+    policies::{EpsilonGreedy, Greedy, Random},
 };
 
 fn main() {

@@ -1,9 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::Parameterised;
-use crate::geometry::norms::l1;
-use crate::policies::{Policy, ParameterisedPolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::Parameterised,
+    geometry::norms::l1,
+    policies::{Policy, ParameterisedPolicy},
+};
+use rand::Rng;
 
 /// Natural actor-critic.
 pub struct NAC<C, P> {
@@ -44,15 +46,15 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         self.critic.handle_transition(t);
-        self.policy.update_raw(
-            self.alpha.value() * self.critic.weights()
+        self.policy.weights_view_mut().scaled_add(
+            self.alpha.value(), &self.critic.weights_view()
         );
     }
 
     fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
         self.critic.handle_sequence(seq);
-        self.policy.update_raw(
-            self.alpha.value() * self.critic.weights()
+        self.policy.weights_view_mut().scaled_add(
+            self.alpha.value(), &self.critic.weights_view()
         );
     }
 }
@@ -61,7 +63,7 @@ impl<S, C, P> ValuePredictor<S> for NAC<C, P>
 where
     C: ValuePredictor<S>,
 {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.critic.predict_v(s)
     }
 }
@@ -71,11 +73,11 @@ where
     C: ActionValuePredictor<S, P::Action>,
     P: Policy<S>,
 {
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&self, s: &S) -> Vector<f64> {
         self.critic.predict_qs(s)
     }
 
-    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
+    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
         self.critic.predict_qsa(s, a)
     }
 }
@@ -84,11 +86,11 @@ impl<S, C, P> Controller<S, P::Action> for NAC<C, P>
 where
     P: Policy<S>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }

@@ -2,7 +2,7 @@
 use std::f64;
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Parameter {
     Fixed(f64),
     Exponential {

@@ -6,10 +6,10 @@ use rsrl::{
     control::{actor_critic::A2C, td::SARSA},
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::{Composable, fixed::Fourier}, LFA},
+    fa::{basis::fixed::Fourier, Composable, LFA},
     geometry::Space,
     logging,
-    policies::parameterised::Gibbs,
+    policies::Gibbs,
 };
 
 fn main() {
@@ -21,12 +21,12 @@ fn main() {
     let policy = make_shared({
         let fa = LFA::vector(bases.clone(), n_actions);
 
-        Gibbs::new(fa)
+        Gibbs::standard(fa)
     });
     let critic = {
         let q_func = LFA::vector(bases, n_actions);
 
-        SARSA::new(q_func, policy.clone(), 0.1, 0.99)
+        SARSA::new(q_func, policy.clone(), 0.01, 0.99)
     };
 
     let mut agent = A2C::new(critic, policy, 0.01);

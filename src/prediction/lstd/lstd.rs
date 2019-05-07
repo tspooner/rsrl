@@ -1,15 +1,16 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, VFunction, Parameterised, Projector},
+    fa::{Approximator, VFunction, Parameterised},
     geometry::{Space, Matrix, MatrixView, MatrixViewMut},
     utils::{argmaxima, pinv},
 };
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
 
+#[derive(Parameterised)]
 pub struct LSTD<F> {
-    pub fa_theta: F,
+    #[weights] pub fa_theta: F,
 
     pub gamma: Parameter,
 
@@ -56,13 +57,13 @@ impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LSTD<F> {
     fn handle_batch(&mut self, ts: &[Transition<S, A>]) {
         ts.into_iter().for_each(|ref t| {
             let phi_s = self.fa_theta
-                .to_features(t.from.state())
+                .embed(t.from.state())
                 .expanded(self.a.rows());
             let pd = if t.terminated() {
                 phi_s.clone()
             } else {
                 let phi_ns = self.fa_theta
-                    .to_features(t.to.state())
+                    .embed(t.to.state())
                     .expanded(self.a.rows());
 
                 phi_s.clone() - self.gamma.value() * phi_ns
@@ -77,23 +78,9 @@ impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LSTD<F> {
 }
 
 impl<S, F: VFunction<S>> ValuePredictor<S> for LSTD<F> {
-    fn predict_v(&mut self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.to_features(s)).unwrap()
+    fn predict_v(&self, s: &S) -> f64 {
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 }
 
 impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for LSTD<F> {}
-
-impl<F: Parameterised> Parameterised for LSTD<F> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_theta.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_theta.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_theta.weights_view_mut()
-    }
-}

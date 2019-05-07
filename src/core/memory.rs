@@ -1,7 +1,7 @@
 use std::{
     cell::{RefCell, Ref, RefMut},
     fmt,
-    ops::Deref,
+    ops::{Deref, DerefMut},
     rc::Rc,
 };
 

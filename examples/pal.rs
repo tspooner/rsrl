@@ -6,10 +6,10 @@ use rsrl::{
     control::td::PAL,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::{Composable, fixed::Fourier}, LFA},
+    fa::{basis::fixed::Fourier, Composable, LFA},
     geometry::Space,
     logging,
-    policies::fixed::{EpsilonGreedy, Greedy, Random},
+    policies::{EpsilonGreedy, Greedy, Random},
 };
 
 fn main() {

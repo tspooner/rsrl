@@ -25,13 +25,16 @@ default = []
 openai = ["cpython"]
 
 [dependencies]
-spaces = "4.5"
-lfa = "0.10"
+lfa = "0.12"
+rstat = "0.2"
+spaces = "4.7"
+elementwise = { version = "0.3", features = ["ndarray"] }
 
 rand = "0.6"
 cpython = { version = "0.2", optional = true }
 ndarray = { version = "0.12", features = ["blas", "serde-1"] }
 ndarray-linalg = "0.10"
+special-fun = "0.2"
 
 serde = "1.0"
 serde_derive = "1.0"

@@ -1,16 +1,20 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::*;
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{fixed::Greedy, Policy, FinitePolicy};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::*,
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Greedy, Policy, FinitePolicy},
+};
+use rand::{thread_rng, Rng};
 
 /// Greedy GQ control algorithm.
 ///
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function
 /// approximation." Proceedings of the 27th International Conference on Machine
 /// Learning (ICML-10). 2010.
+#[derive(Parameterised)]
 pub struct GreedyGQ<Q, W, PB> {
-    pub fa_q: Q,
+    #[weights] pub fa_q: Q,
     pub fa_w: W,
 
     pub target_policy: Greedy<Q>,
@@ -67,7 +71,7 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, PB::Action>) {
         let s = t.from.state();
-        let phi_s = self.fa_w.to_features(s);
+        let phi_s = self.fa_w.embed(s);
         let estimate = self.fa_w.evaluate(&phi_s).unwrap();
 
         if t.terminated() {
@@ -84,8 +88,8 @@ where
             ).ok();
         } else {
             let ns = t.to.state();
-            let na = self.sample_target(ns);
-            let phi_ns = self.fa_w.to_features(ns);
+            let na = self.sample_target(&mut thread_rng(), ns);
+            let phi_ns = self.fa_w.embed(ns);
 
             let residual =
                 t.reward
@@ -114,7 +118,7 @@ where
     Q: QFunction<S>,
     PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.predict_qs(s).dot(&self.target_policy.probabilities(s))
     }
 }
@@ -124,12 +128,12 @@ where
     Q: QFunction<S>,
     PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
-        self.fa_q.evaluate(&self.fa_q.to_features(s)).unwrap()
+    fn predict_qs(&self, s: &S) -> Vector<f64> {
+        self.fa_q.evaluate(&self.fa_q.embed(s)).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
-        self.fa_q.evaluate_index(&self.fa_q.to_features(s), a).unwrap()
+    fn predict_qsa(&self, s: &S, a: usize) -> f64 {
+        self.fa_q.evaluate_index(&self.fa_q.embed(s), a).unwrap()
     }
 }
 
@@ -138,25 +142,11 @@ where
     Q: QFunction<S>,
     PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn sample_target(&mut self, s: &S) -> PB::Action {
-        self.target_policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
+        self.target_policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> PB::Action {
-        self.behaviour_policy.sample(s)
-    }
-}
-
-impl<Q: Parameterised, W, PB> Parameterised for GreedyGQ<Q, W, PB> {
-    fn weights(&self) -> Matrix<f64> {
-        self.fa_q.weights()
-    }
-
-    fn weights_view(&self) -> MatrixView<f64> {
-        self.fa_q.weights_view()
-    }
-
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        self.fa_q.weights_view_mut()
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
+        self.behaviour_policy.sample(rng, s)
     }
 }

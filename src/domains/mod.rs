@@ -10,7 +10,7 @@ macro_rules! impl_into {
 }
 
 /// Container class for data associated with a domain observation.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Observation<S> {
     /// Fully observed state of the environment.
     Full(S),
@@ -59,7 +59,7 @@ impl<S> Observation<S> {
 }
 
 /// Container class for data associated with a domain transition.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Transition<S, A> {
     /// State transitioned _from_, `s`.
     pub from: Observation<S>,
@@ -102,6 +102,15 @@ impl<S, A> Transition<S, A> {
     /// Drop the action associated with this transition and return a new
     /// instance.
     pub fn drop_action(self) -> Transition<S, ()> { self.replace_action(()) }
+
+    pub fn negate_reward(self) -> Transition<S, A> {
+        Transition {
+            from: self.from,
+            action: self.action,
+            reward: -self.reward,
+            to: self.to,
+        }
+    }
 }
 
 impl_into!(Transition<S, u8> => Transition<S, ()>);

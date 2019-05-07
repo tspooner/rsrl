@@ -37,10 +37,10 @@ use rsrl::{
     control::td::QLearning,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::{Composable, fixed::Fourier}, LFA},
+    fa::{basis::fixed::Fourier, Composable, LFA},
     geometry::Space,
     logging,
-    policies::fixed::{EpsilonGreedy, Greedy, Random},
+    policies::{EpsilonGreedy, Greedy, Random},
 };
 
 fn main() {
@@ -54,10 +54,10 @@ fn main() {
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.3, 0.001, 0.99),
+            Parameter::exponential(0.7, 0.001, 0.999),
         );
 
-        QLearning::new(q_func, policy, 0.001, 0.99)
+        QLearning::new(q_func, policy, 0.01, 0.99)
     };
 
     let logger = logging::root(logging::stdout());
