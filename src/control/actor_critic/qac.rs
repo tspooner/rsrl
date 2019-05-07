@@ -1,7 +1,9 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::policies::{Policy, ParameterisedPolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    domains::Transition,
+    policies::{Policy, ParameterisedPolicy},
+};
+use rand::Rng;
 
 /// Action-value actor-critic.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -46,7 +48,7 @@ impl<C, P> QAC<C, P> {
         let s = t.from.state();
         let qsa = self.critic.predict_qsa(s, t.action.clone());
 
-        self.policy.update(s, t.action.clone(), self.alpha * qsa);
+        self.policy.update(s, &t.action, self.alpha * qsa);
     }
 }
 
@@ -98,11 +100,11 @@ impl<S, C, P> Controller<S, P::Action> for QAC<C, P>
 where
     P: ParameterisedPolicy<S>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }

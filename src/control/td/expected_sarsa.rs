@@ -1,9 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Parameterised, QFunction};
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Policy, FinitePolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Parameterised, QFunction},
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Policy, FinitePolicy},
+};
+use rand::Rng;
 
 /// Action probability-weighted variant of SARSA (aka "summation Q-learning").
 ///
@@ -73,9 +75,13 @@ where
 }
 
 impl<S, Q, P: Policy<S>> Controller<S, P::Action> for ExpectedSARSA<Q, P> {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
+    }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
+    }
 }
 
 impl<S, Q, P> ValuePredictor<S> for ExpectedSARSA<Q, P>

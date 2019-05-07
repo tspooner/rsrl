@@ -5,6 +5,7 @@ use crate::{
     geometry::{MatrixView, MatrixViewMut},
     policies::{Policy, ParameterisedPolicy},
 };
+use rand::Rng;
 
 #[derive(Parameterised)]
 pub struct BaselineREINFORCE<B, P> {
@@ -63,13 +64,17 @@ where
 
             ret = t.reward + self.gamma * ret;
 
-            self.policy.update(s, t.action.clone(), self.alpha * (ret - baseline));
+            self.policy.update(s, &t.action, self.alpha * (ret - baseline));
         }
     }
 }
 
 impl<S, B, P: ParameterisedPolicy<S>> Controller<S, P::Action> for BaselineREINFORCE<B, P> {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
+    }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
+    }
 }

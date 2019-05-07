@@ -7,7 +7,7 @@ use crate::{
     policies::{DifferentiablePolicy, ParameterisedPolicy, Policy},
 };
 use ndarray::Axis;
-use rand::{thread_rng, rngs::{ThreadRng}};
+use rand::Rng;
 use rstat::{
     Distribution, ContinuousDistribution,
     core::Modes,
@@ -17,22 +17,15 @@ use std::ops::AddAssign;
 
 const MIN_TOL: f64 = 1.0;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Beta<A, B = A> {
     pub alpha: A,
     pub beta: B,
-
-    #[serde(skip_serializing)]
-    rng: ThreadRng,
 }
 
 impl<A, B> Beta<A, B> {
     pub fn new(alpha: A, beta: B) -> Self {
-        Beta {
-            alpha, beta,
-
-            rng: thread_rng(),
-        }
+        Beta { alpha, beta, }
     }
 
     #[inline]
@@ -79,24 +72,24 @@ impl<A, B> Algorithm for Beta<A, B> {}
 impl<S, A: VFunction<S>, B: VFunction<S>> Policy<S> for Beta<A, B> {
     type Action = f64;
 
-    fn sample(&mut self, input: &S) -> f64 {
-        self.dist(input).sample(&mut self.rng)
+    fn sample(&self, rng: &mut impl Rng, input: &S) -> f64 {
+        self.dist(input).sample(rng)
     }
 
-    fn mpa(&mut self, input: &S) -> f64 {
+    fn mpa(&self, input: &S) -> f64 {
         let d = self.dist(input);
         let modes = d.modes();
 
         if modes.len() == 0 { d.mean() } else { modes[0] }
     }
 
-    fn probability(&mut self, input: &S, a: f64) -> f64 {
-        self.dist(input).pdf(a)
+    fn probability(&self, input: &S, a: &f64) -> f64 {
+        self.dist(input).pdf(*a)
     }
 }
 
 impl<S, A: VFunction<S>, B: VFunction<S>> DifferentiablePolicy<S> for Beta<A, B> {
-    fn grad_log(&self, input: &S, a: f64) -> Matrix<f64> {
+    fn grad_log(&self, input: &S, a: &f64) -> Matrix<f64> {
         let phi_alpha = self.alpha.embed(input);
         let val_alpha = self.alpha.evaluate(&phi_alpha).unwrap() + MIN_TOL;
         let jac_alpha = self.alpha.jacobian(&phi_alpha);
@@ -105,7 +98,7 @@ impl<S, A: VFunction<S>, B: VFunction<S>> DifferentiablePolicy<S> for Beta<A, B>
         let val_beta = self.beta.evaluate(&phi_beta).unwrap() + MIN_TOL;
         let jac_beta = self.beta.jacobian(&phi_beta);
 
-        let [gl_alpha, gl_beta] = self.gl_partial(val_alpha, val_beta, a);
+        let [gl_alpha, gl_beta] = self.gl_partial(val_alpha, val_beta, *a);
 
         stack![Axis(0), gl_alpha * jac_alpha, gl_beta * jac_beta]
     }
@@ -130,14 +123,14 @@ impl<F: Parameterised> Parameterised for Beta<F> {
 }
 
 impl<S, F: VFunction<S> + Parameterised> ParameterisedPolicy<S> for Beta<F> {
-    fn update(&mut self, input: &S, a: f64, error: f64) {
+    fn update(&mut self, input: &S, a: &f64, error: f64) {
         let phi_alpha = self.alpha.embed(input);
         let val_alpha = self.alpha.evaluate(&phi_alpha).unwrap() + MIN_TOL;
 
         let phi_beta = self.beta.embed(input);
         let val_beta = self.beta.evaluate(&phi_beta).unwrap() + MIN_TOL;
 
-        let [gl_alpha, gl_beta] = self.gl_partial(val_alpha, val_beta, a);
+        let [gl_alpha, gl_beta] = self.gl_partial(val_alpha, val_beta, *a);
 
         self.alpha.update(&phi_alpha, gl_alpha * error).ok();
         self.beta.update(&phi_beta, gl_beta * error).ok();

@@ -10,10 +10,10 @@ use crate::{
         FinitePolicy,
         Policy
     },
-    utils::argmax_choose,
+    utils::argmaxima,
 };
 use ndarray::Axis;
-use rand::{rngs::ThreadRng, thread_rng};
+use rand::Rng;
 use std::{f64, ops::AddAssign};
 
 fn probabilities_from_values<'a>(values: impl Iterator<Item = &'a f64>, tau: f64) -> Vec<f64> {
@@ -36,7 +36,6 @@ pub type Gibbs<F> = Softmax<F>;
 pub struct Softmax<F> {
     fa: F,
     tau: Parameter,
-    rng: ThreadRng,
 }
 
 impl<F> Softmax<F> {
@@ -50,7 +49,6 @@ impl<F> Softmax<F> {
         Softmax {
             fa,
             tau: tau.into(),
-            rng: thread_rng(),
         }
     }
 
@@ -88,25 +86,25 @@ impl<F> Algorithm for Softmax<F> {
 impl<S, F: QFunction<S>> Policy<S> for Softmax<F> {
     type Action = usize;
 
-    fn sample(&mut self, s: &S) -> usize {
+    fn sample(&self, rng: &mut impl Rng, s: &S) -> usize {
         let ps = self.probabilities(s);
 
-        sample_probs_with_rng(&mut self.rng, ps.as_slice().unwrap())
+        sample_probs_with_rng(rng, ps.as_slice().unwrap())
     }
 
-    fn mpa(&mut self, s: &S) -> usize {
+    fn mpa(&self, s: &S) -> usize {
         let ps = self.probabilities(s);
 
-        argmax_choose(&mut self.rng, ps.as_slice().unwrap()).1
+        argmaxima(ps.as_slice().unwrap()).1[0]
     }
 
-    fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
+    fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
 }
 
 impl<S, F: QFunction<S>> FinitePolicy<S> for Softmax<F> {
     fn n_actions(&self) -> usize { self.fa.n_outputs() }
 
-    fn probabilities(&mut self, s: &S) -> Vector<f64> {
+    fn probabilities(&self, s: &S) -> Vector<f64> {
         self.fa
             .evaluate(&self.fa.embed(s))
             .map(|qs| probabilities_from_values(qs.into_iter(), self.tau.value()).into())
@@ -115,8 +113,8 @@ impl<S, F: QFunction<S>> FinitePolicy<S> for Softmax<F> {
 }
 
 impl<S, F: QFunction<S>> DifferentiablePolicy<S> for Softmax<F> {
-    fn grad_log(&self, input: &S, a: usize) -> Matrix<f64> {
-        self.grad_log_phi(&self.fa.embed(input), a)
+    fn grad_log(&self, input: &S, a: &usize) -> Matrix<f64> {
+        self.grad_log_phi(&self.fa.embed(input), *a)
     }
 }
 
@@ -135,8 +133,8 @@ impl<F: Parameterised> Parameterised for Softmax<F> {
 }
 
 impl<S, F: QFunction<S> + Parameterised> ParameterisedPolicy<S> for Softmax<F> {
-    fn update(&mut self, input: &S, a: usize, error: f64) {
-        let gl = self.grad_log_phi(&self.fa.embed(input), a);
+    fn update(&mut self, input: &S, a: &usize, error: f64) {
+        let gl = self.grad_log_phi(&self.fa.embed(input), *a);
 
         self.fa.weights_view_mut().scaled_add(error, &gl);
     }

@@ -33,16 +33,16 @@ where
 {
     type Action = (P1::Action, P2::Action);
 
-    fn sample(&mut self, s: &S) -> (P1::Action, P2::Action) {
-        (self.0.sample(s), self.1.sample(s))
+    fn sample(&self, rng: &mut impl Rng, s: &S) -> (P1::Action, P2::Action) {
+        (self.0.sample(rng, s), self.1.sample(rng, s))
     }
 
-    fn mpa(&mut self, s: &S) -> (P1::Action, P2::Action) {
+    fn mpa(&self, s: &S) -> (P1::Action, P2::Action) {
         (self.0.mpa(s), self.1.mpa(s))
     }
 
-    fn probability(&mut self, s: &S, a: (P1::Action, P2:: Action)) -> f64 {
-        self.0.probability(s, a.0) * self.1.probability(s, a.1)
+    fn probability(&self, s: &S, a: &(P1::Action, P2:: Action)) -> f64 {
+        self.0.probability(s, &a.0) * self.1.probability(s, &a.1)
     }
 }
 
@@ -51,8 +51,8 @@ where
     P1: DifferentiablePolicy<S>,
     P2: DifferentiablePolicy<S>,
 {
-    fn grad_log(&self, input: &S, a: Self::Action) -> Matrix<f64> {
-        stack![Axis(0), self.0.grad_log(input, a.0), self.1.grad_log(input, a.1)]
+    fn grad_log(&self, input: &S, a: &Self::Action) -> Matrix<f64> {
+        stack![Axis(0), self.0.grad_log(input, &a.0), self.1.grad_log(input, &a.1)]
     }
 }
 
@@ -82,8 +82,8 @@ where
     P1: ParameterisedPolicy<S>,
     P2: ParameterisedPolicy<S>,
 {
-    fn update(&mut self, input: &S, a: Self::Action, error: f64) {
-        self.0.update(input, a.0, error);
-        self.1.update(input, a.1, error);
+    fn update(&mut self, input: &S, a: &Self::Action, error: f64) {
+        self.0.update(input, &a.0, error);
+        self.1.update(input, &a.1, error);
     }
 }

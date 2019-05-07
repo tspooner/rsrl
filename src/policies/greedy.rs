@@ -2,7 +2,7 @@ use crate::{
     core::*,
     fa::QFunction,
     policies::{FinitePolicy, Policy},
-    utils::{argmax_choose, argmaxima},
+    utils::{argmaxima},
 };
 use rand::thread_rng;
 
@@ -17,20 +17,20 @@ impl<Q> Algorithm for Greedy<Q> {}
 impl<S, Q: QFunction<S>> Policy<S> for Greedy<Q> {
     type Action = usize;
 
-    fn mpa(&mut self, s: &S) -> usize {
+    fn mpa(&self, s: &S) -> usize {
         self.0
             .evaluate(&self.0.embed(s))
-            .map(|qs| argmax_choose(&mut thread_rng(), qs.as_slice().unwrap()).1)
+            .map(|qs| argmaxima(qs.as_slice().unwrap()).1[0])
             .unwrap()
     }
 
-    fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
+    fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
 }
 
 impl<S, Q: QFunction<S>> FinitePolicy<S> for Greedy<Q> {
     fn n_actions(&self) -> usize { self.0.n_outputs() }
 
-    fn probabilities(&mut self, s: &S) -> Vector<f64> {
+    fn probabilities(&self, s: &S) -> Vector<f64> {
         self.0
             .evaluate(&self.0.embed(s))
             .map(|qs| {

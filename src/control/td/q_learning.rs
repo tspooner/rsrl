@@ -1,9 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Parameterised, QFunction};
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Greedy, Policy, FinitePolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Parameterised, QFunction},
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Greedy, Policy},
+};
+use rand::{thread_rng, Rng};
 
 /// Watkins' Q-learning.
 ///
@@ -64,7 +66,7 @@ where
             t.reward - qsa
         } else {
             let ns = t.to.state();
-            let na = self.sample_target(&ns);
+            let na = self.sample_target(&mut thread_rng(), ns);
             let nqsna = self.predict_qsa(&ns, na);
 
             t.reward + self.gamma * nqsna - qsa
@@ -82,9 +84,13 @@ where
     Q: QFunction<S>,
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.target.sample(rng, s)
+    }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
+    }
 }
 
 impl<S, Q, P> ValuePredictor<S> for QLearning<Q, P>
@@ -93,7 +99,7 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        let a = self.target.sample(s);
+        let a = self.target.sample(&mut thread_rng(), s);
 
         self.predict_qsa(s, a)
     }

@@ -1,13 +1,12 @@
 use super::{FinitePolicy, Greedy, Policy, Random};
 use crate::{core::*, domains::Transition, fa::QFunction};
-use rand::{rngs::ThreadRng, thread_rng, Rng};
+use rand::Rng;
 
 pub struct EpsilonGreedy<Q> {
     greedy: Greedy<Q>,
     random: Random,
 
     epsilon: Parameter,
-    rng: ThreadRng,
 }
 
 impl<Q> EpsilonGreedy<Q> {
@@ -17,7 +16,6 @@ impl<Q> EpsilonGreedy<Q> {
             random,
 
             epsilon: epsilon.into(),
-            rng: thread_rng(),
         }
     }
 
@@ -43,23 +41,23 @@ impl<Q> Algorithm for EpsilonGreedy<Q> {
 impl<S, Q: QFunction<S>> Policy<S> for EpsilonGreedy<Q> {
     type Action = usize;
 
-    fn sample(&mut self, s: &S) -> usize {
-        if self.rng.gen_bool(self.epsilon.value()) {
-            self.random.sample(s)
+    fn sample(&self, rng: &mut impl Rng, s: &S) -> usize {
+        if rng.gen_bool(self.epsilon.value()) {
+            self.random.sample(rng, s)
         } else {
-            self.greedy.sample(s)
+            self.greedy.sample(rng, s)
         }
     }
 
-    fn mpa(&mut self, s: &S) -> usize { self.greedy.mpa(s) }
+    fn mpa(&self, s: &S) -> usize { self.greedy.mpa(s) }
 
-    fn probability(&mut self, s: &S, a: usize) -> f64 { self.probabilities(s)[a] }
+    fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
 }
 
 impl<S, Q: QFunction<S>> FinitePolicy<S> for EpsilonGreedy<Q> {
     fn n_actions(&self) -> usize { self.greedy.n_actions() }
 
-    fn probabilities(&mut self, s: &S) -> Vector<f64> {
+    fn probabilities(&self, s: &S) -> Vector<f64> {
         let prs = self.greedy.probabilities(s);
         let pr = self.epsilon / prs.len() as f64;
 

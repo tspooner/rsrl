@@ -1,8 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, QFunction};
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Policy, FinitePolicy};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Approximator, Parameterised, Features, QFunction},
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Policy, FinitePolicy},
+};
+use rand::{thread_rng, Rng};
 
 /// True online variant of the SARSA(lambda) algorithm.
 ///
@@ -94,7 +97,7 @@ where
             let ns = t.to.state();
             let phi_ns = self.q_func.embed(ns);
 
-            let na = self.sample_behaviour(ns);
+            let na = self.sample_behaviour(&mut thread_rng(), ns);
             let nqsna = self.q_func.evaluate_index(&phi_ns, na).unwrap();
 
             self.q_old = nqsna;
@@ -120,12 +123,12 @@ where
     F: QFunction<S>,
     P: Policy<S>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }
 

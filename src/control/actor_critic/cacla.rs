@@ -1,7 +1,9 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::policies::{Policy, ParameterisedPolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    domains::Transition,
+    policies::{Policy, ParameterisedPolicy},
+};
+use rand::{thread_rng, Rng};
 
 /// Continuous Actor-Critic Learning Automaton
 pub struct CACLA<C, PT, PB> {
@@ -75,7 +77,7 @@ where
         if target > v {
             let mpa = self.target_policy.mpa(s);
 
-            self.target_policy.update(s, t.action, self.alpha * (t.action - mpa));
+            self.target_policy.update(s, &t.action, self.alpha * (t.action - mpa));
         }
     }
 }
@@ -108,11 +110,11 @@ where
     PT: ParameterisedPolicy<S>,
     PB: Policy<S, Action = PT::Action>,
 {
-    fn sample_target(&mut self, s: &S) -> PT::Action {
-        self.target_policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> PT::Action {
+        self.target_policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> PB::Action {
-        self.behaviour_policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
+        self.behaviour_policy.sample(rng, s)
     }
 }

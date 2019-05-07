@@ -32,11 +32,11 @@ where
 {
     type Action = F::Output;
 
-    fn mpa(&mut self, s: &S) -> F::Output {
+    fn mpa(&self, s: &S) -> F::Output {
         self.fa.evaluate(&self.fa.embed(s)).unwrap()
     }
 
-    fn probability(&mut self, input: &S, a: F::Output) -> f64 {
+    fn probability(&self, input: &S, a: &F::Output) -> f64 {
         let mpa = self.mpa(input);
 
         if a.eq(&mpa) {
@@ -52,7 +52,7 @@ where
     F: Approximator + Embedding<S>,
     F::Output: ElementwiseSub + IntoVector + PartialEq,
 {
-    fn grad_log(&self, input: &S, a: F::Output) -> Matrix<f64> {
+    fn grad_log(&self, input: &S, a: &F::Output) -> Matrix<f64> {
         let phi = self.fa.embed(input);
         let value = self.fa.evaluate(&phi).unwrap();
         let jacobian = self.fa.jacobian(&phi);
@@ -66,7 +66,7 @@ where
     F: Approximator + Embedding<S> + Parameterised,
     F::Output: PartialEq + ElementwiseSub + IntoVector,
 {
-    fn update(&mut self, input: &S, a: F::Output, error: f64) {
+    fn update(&mut self, input: &S, a: &F::Output, error: f64) {
         let gl = self.grad_log(input, a);
 
         self.fa.weights_view_mut().scaled_add(error, &gl);

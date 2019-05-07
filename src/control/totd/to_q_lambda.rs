@@ -1,8 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, QFunction};
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Greedy, Policy};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Approximator, Parameterised, Features, QFunction},
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Policy, Greedy},
+};
+use rand::{thread_rng, Rng};
 
 /// True online variant of the Q(lambda) algorithm.
 ///
@@ -80,11 +83,17 @@ where
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+        let mut rng = thread_rng();
+
         let s = t.from.state();
         let phi_s = self.q_func.embed(s);
 
         // Update traces:
-        let decay_rate = if t.action == self.sample_target(s) { 1.0 } else { 0.0 };
+        let decay_rate = if t.action == self.sample_target(&mut rng, s) {
+            1.0
+        } else {
+            0.0
+        };
         self.update_traces(
             phi_s.clone().expanded(self.q_func.n_features()),
             decay_rate,
@@ -105,7 +114,7 @@ where
             let ns = t.to.state();
             let phi_ns = self.q_func.embed(&ns);
 
-            let na = self.sample_behaviour(ns);
+            let na = self.sample_behaviour(&mut rng, ns);
             let nqsna = self.q_func.evaluate_index(&phi_ns, na).unwrap();
 
             self.q_old = nqsna;
@@ -130,12 +139,12 @@ where
     F: QFunction<S>,
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action {
-        self.target.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.target.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }
 
@@ -145,7 +154,7 @@ where
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        let a = self.sample_target(s);
+        let a = self.sample_target(&mut thread_rng(), s);
 
         self.predict_qsa(s, a)
     }

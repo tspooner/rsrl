@@ -1,9 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::Parameterised;
-use crate::geometry::norms::l1;
-use crate::policies::{Policy, ParameterisedPolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::Parameterised,
+    geometry::norms::l1,
+    policies::{Policy, ParameterisedPolicy},
+};
+use rand::Rng;
 
 /// Natural actor-critic.
 pub struct NAC<C, P> {
@@ -84,11 +86,11 @@ impl<S, C, P> Controller<S, P::Action> for NAC<C, P>
 where
     P: Policy<S>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }

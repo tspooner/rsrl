@@ -1,9 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Parameterised, QFunction};
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Policy, FinitePolicy};
-use std::marker::PhantomData;
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Parameterised, QFunction},
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Policy, FinitePolicy},
+};
+use rand::{thread_rng, Rng};
 
 /// On-policy variant of Watkins' Q-learning (aka "modified Q-learning").
 ///
@@ -58,7 +60,7 @@ where
             t.reward - qsa
         } else {
             let ns = t.to.state();
-            let na = self.policy.sample(ns);
+            let na = self.policy.sample(&mut thread_rng(), ns);
             let nqsna = self.q_func.evaluate_index(&self.q_func.embed(ns), na).unwrap();
 
             t.reward + self.gamma * nqsna - qsa
@@ -72,12 +74,12 @@ where
 }
 
 impl<S, Q, P: Policy<S>> Controller<S, P::Action> for SARSA<Q, P> {
-    fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }
 

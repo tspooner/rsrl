@@ -59,14 +59,14 @@ pub trait Policy<S>: Algorithm {
 
     /// Sample the (possibly stochastic) policy distribution for a given
     /// `state`.
-    fn sample(&mut self, state: &S) -> Self::Action { self.mpa(state) }
+    fn sample(&self, rng: &mut impl Rng, state: &S) -> Self::Action { self.mpa(state) }
 
     /// Return the "most probable action" according to the policy distribution,
     /// if well-defined.
-    fn mpa(&mut self, _: &S) -> Self::Action { unimplemented!() }
+    fn mpa(&self, _: &S) -> Self::Action { unimplemented!() }
 
     /// Return the probability of selecting an action for a given `state`.
-    fn probability(&mut self, state: &S, a: Self::Action) -> f64;
+    fn probability(&self, state: &S, a: &Self::Action) -> f64;
 }
 
 /// Trait for policies that are defined on a finite action space.
@@ -75,50 +75,62 @@ pub trait FinitePolicy<S>: Policy<S, Action = usize> {
     fn n_actions(&self) -> usize;
 
     /// Return the probability of selecting each action for a given `state`.
-    fn probabilities(&mut self, state: &S) -> Vector<f64>;
+    fn probabilities(&self, state: &S) -> Vector<f64>;
 }
 
 /// Trait for policies that have a differentiable representation.
 pub trait DifferentiablePolicy<S>: Policy<S> {
-    /// Compute the gradient of the log probability wrt the policy parameters
-    /// (weights).
-    fn grad_log(&self, state: &S, a: Self::Action) -> Matrix<f64>;
+    /// Compute the gradient of the log probability wrt the policy weights.
+    fn grad(&self, state: &S, a: &Self::Action) -> Matrix<f64> {
+        let p = self.probability(state, a);
+
+        self.grad_log(state, a) / p
+    }
+
+    /// Compute the gradient of the log probability wrt the policy weights.
+    fn grad_log(&self, state: &S, a: &Self::Action) -> Matrix<f64> {
+        let p = self.probability(state, a);
+
+        self.grad(state, a) * p
+    }
 }
 
 /// Trait for policies that are parameterised by a vector of weights.
 pub trait ParameterisedPolicy<S>: Policy<S> + Parameterised {
     /// Update the weights in the direction of an error for a given state and
     /// action.
-    fn update(&mut self, state: &S, a: Self::Action, error: f64);
+    fn update(&mut self, state: &S, a: &Self::Action, error: f64);
 }
 
 // Shared<T> impls:
 impl<S, T: Policy<S>> Policy<S> for Shared<T> {
     type Action = T::Action;
 
-    fn sample(&mut self, state: &S) -> Self::Action { self.borrow_mut().sample(state) }
+    fn sample(&self, rng: &mut impl Rng, state: &S) -> Self::Action {
+        self.borrow().sample(rng, state)
+    }
 
-    fn mpa(&mut self, s: &S) -> Self::Action { self.borrow_mut().mpa(s) }
+    fn mpa(&self, s: &S) -> Self::Action { self.borrow().mpa(s) }
 
-    fn probability(&mut self, state: &S, a: Self::Action) -> f64 {
-        self.borrow_mut().probability(state, a)
+    fn probability(&self, state: &S, a: &Self::Action) -> f64 {
+        self.borrow().probability(state, a)
     }
 }
 
 impl<S, T: FinitePolicy<S>> FinitePolicy<S> for Shared<T> {
     fn n_actions(&self) -> usize { self.borrow().n_actions() }
 
-    fn probabilities(&mut self, state: &S) -> Vector<f64> { self.borrow_mut().probabilities(state) }
+    fn probabilities(&self, state: &S) -> Vector<f64> { self.borrow().probabilities(state) }
 }
 
 impl<S, T: DifferentiablePolicy<S>> DifferentiablePolicy<S> for Shared<T> {
-    fn grad_log(&self, state: &S, a: Self::Action) -> Matrix<f64> {
+    fn grad_log(&self, state: &S, a: &Self::Action) -> Matrix<f64> {
         self.borrow().grad_log(state, a)
     }
 }
 
 impl<S, T: ParameterisedPolicy<S>> ParameterisedPolicy<S> for Shared<T> {
-    fn update(&mut self, state: &S, a: Self::Action, error: f64) {
+    fn update(&mut self, state: &S, a: &Self::Action, error: f64) {
         self.borrow_mut().update(state, a, error)
     }
 }

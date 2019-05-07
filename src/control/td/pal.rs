@@ -1,8 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Parameterised, QFunction};
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Greedy, Policy};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Parameterised, QFunction},
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Policy, Greedy},
+};
+use rand::{thread_rng, Rng};
 
 /// Persistent Advantage Learning
 ///
@@ -66,8 +69,9 @@ where
             let ns = t.to.state();
             let nqs = self.predict_qs(ns);
 
-            let a_star = self.sample_target(s);
-            let na_star = self.sample_target(ns);
+            let mut rng = thread_rng();
+            let a_star = self.sample_target(&mut rng, s);
+            let na_star = self.sample_target(&mut rng, ns);
 
             let td_error = t.reward + self.gamma * nqs[a_star] - qs[t.action];
             let al_error = td_error - self.alpha * (qs[a_star] - qs[t.action]);
@@ -84,9 +88,13 @@ where
     Q: QFunction<S>,
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.target.sample(rng, s)
+    }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
+    }
 }
 
 impl<S, Q, P> ValuePredictor<S> for PAL<Q, P>
@@ -95,7 +103,7 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        let a = self.target.sample(s);
+        let a = self.target.sample(&mut thread_rng(), s);
 
         self.predict_qsa(s, a)
     }

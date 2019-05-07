@@ -1,8 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::*;
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Greedy, Policy, FinitePolicy};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::*,
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Greedy, Policy, FinitePolicy},
+};
+use rand::{thread_rng, Rng};
 
 /// Greedy GQ control algorithm.
 ///
@@ -85,7 +88,7 @@ where
             ).ok();
         } else {
             let ns = t.to.state();
-            let na = self.sample_target(ns);
+            let na = self.sample_target(&mut thread_rng(), ns);
             let phi_ns = self.fa_w.embed(ns);
 
             let residual =
@@ -139,11 +142,11 @@ where
     Q: QFunction<S>,
     PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn sample_target(&mut self, s: &S) -> PB::Action {
-        self.target_policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
+        self.target_policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> PB::Action {
-        self.behaviour_policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
+        self.behaviour_policy.sample(rng, s)
     }
 }

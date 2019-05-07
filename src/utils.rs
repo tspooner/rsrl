@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use crate::geometry::Matrix;
-use rand::{seq::SliceRandom, Rng};
+use rand::{seq::SliceRandom, Rng, thread_rng};
 use std::f64;
 
 pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
@@ -20,7 +20,21 @@ pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
     (max, ixs)
 }
 
-pub fn argmax_choose(rng: &mut impl Rng, values: &[f64]) -> (f64, usize) {
+pub fn argmax_choose(values: &[f64]) -> (f64, usize) {
+    let (value, maxima) = argmaxima(values);
+
+    let maximum = if maxima.len() == 1 {
+        maxima[0]
+    } else {
+        *maxima
+            .choose(&mut thread_rng())
+            .expect("No valid maxima to choose from in `argmax_choose`.")
+    };
+
+    (value, maximum)
+}
+
+pub fn argmax_choose_rng(rng: &mut impl Rng, values: &[f64]) -> (f64, usize) {
     let (value, maxima) = argmaxima(values);
 
     let maximum = if maxima.len() == 1 {

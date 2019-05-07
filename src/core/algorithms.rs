@@ -1,7 +1,10 @@
 #![allow(unused_variables)]
-use crate::core::Shared;
-use crate::domains::{Transition, Observation::Terminal};
-use crate::geometry::Vector;
+use crate::{
+    core::Shared,
+    domains::{Transition, Observation::Terminal},
+    geometry::Vector,
+};
+use rand::Rng;
 
 pub trait Algorithm {
     /// Perform housekeeping after terminal state observation.
@@ -25,10 +28,10 @@ pub trait BatchLearner<S, A>: Algorithm {
 
 pub trait Controller<S, A> {
     /// Sample the target policy for a given state `s`.
-    fn sample_target(&mut self, s: &S) -> A;
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> A;
 
     /// Sample the behaviour policy for a given state `s`.
-    fn sample_behaviour(&mut self, s: &S) -> A;
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> A;
 }
 
 pub trait ValuePredictor<S> {
@@ -72,12 +75,12 @@ impl<S, A, T: BatchLearner<S, A>> BatchLearner<S, A> for Shared<T> {
 }
 
 impl<S, A, T: Controller<S, A>> Controller<S, A> for Shared<T> {
-    fn sample_target(&mut self, s: &S) -> A {
-        self.borrow_mut().sample_target(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> A {
+        self.borrow().sample_target(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> A {
-        self.borrow_mut().sample_behaviour(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> A {
+        self.borrow().sample_behaviour(rng, s)
     }
 }
 

@@ -1,11 +1,10 @@
-use crate::core::*;
-use crate::fa::Parameterised;
-use crate::domains::Transition;
-use crate::policies::{Policy, ParameterisedPolicy, DifferentiablePolicy};
-use std::{
-    marker::PhantomData,
-    ops::AddAssign,
+use crate::{
+    core::*,
+    fa::Parameterised,
+    domains::Transition,
+    policies::{Policy, ParameterisedPolicy, DifferentiablePolicy},
 };
+use rand::Rng;
 
 /// TD-error actor-critic.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -63,7 +62,7 @@ where
         };
 
         self.critic.handle_transition(t);
-        self.policy.update(s, t.action.clone(), self.alpha * td_error);
+        self.policy.update(s, &t.action, self.alpha * td_error);
     }
 }
 
@@ -94,11 +93,11 @@ impl<S, C, P> Controller<S, P::Action> for TDAC<C, P>
 where
     P: Policy<S>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action {
-        self.policy.sample(s)
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
     }
 }

@@ -1,8 +1,11 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Parameterised, QFunction};
-use crate::geometry::{MatrixView, MatrixViewMut};
-use crate::policies::{Greedy, Policy, FinitePolicy};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Parameterised, Features, QFunction},
+    geometry::{MatrixView, MatrixViewMut},
+    policies::{Greedy, Policy, FinitePolicy},
+};
+use rand::{thread_rng, Rng};
 use std::collections::VecDeque;
 
 struct BackupEntry<S> {
@@ -157,7 +160,7 @@ where
 
         } else {
             let ns = t.to.state();
-            let na = self.sample_behaviour(&ns);
+            let na = self.sample_behaviour(&mut thread_rng(), ns);
 
             let phi_ns = self.q_func.embed(ns);
             let nqs = self.q_func.evaluate(&phi_ns).unwrap();
@@ -166,7 +169,7 @@ where
             let pi = self.target.probabilities(&ns);
             let exp_nqs = nqs.dot(&pi);
 
-            let mu = self.policy.probability(ns, na);
+            let mu = self.policy.probability(ns, &na);
 
             let residual = t.reward + self.gamma * (sigma * nqa + (1.0 - sigma) * exp_nqs) - qa;
 
@@ -190,9 +193,13 @@ where
     Q: QFunction<S>,
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn sample_target(&mut self, s: &S) -> P::Action { self.target.sample(s) }
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.target.sample(rng, s)
+    }
 
-    fn sample_behaviour(&mut self, s: &S) -> P::Action { self.policy.sample(s) }
+    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
+        self.policy.sample(rng, s)
+    }
 }
 
 impl<S, Q, P> ValuePredictor<S> for QSigma<S, Q, P>
@@ -201,7 +208,7 @@ where
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
     fn predict_v(&mut self, s: &S) -> f64 {
-        let a = self.target.sample(s);
+        let a = self.target.sample(&mut thread_rng(), s);
 
         self.predict_qsa(s, a)
     }
