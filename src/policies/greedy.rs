@@ -51,68 +51,75 @@ impl<S, Q: QFunction<S>> FinitePolicy<S> for Greedy<Q> {
 
 #[cfg(test)]
 mod tests {
-    use super::{FinitePolicy, Greedy, Policy};
     use crate::{fa::mocking::MockQ, geometry::Vector};
+    use rand::thread_rng;
+    use super::{FinitePolicy, Greedy, Policy};
 
     #[test]
     #[should_panic]
     fn test_0d() {
-        let mut p = Greedy::new(MockQ::new_shared(None));
+        let p = Greedy::new(MockQ::new_shared(None));
 
-        p.sample(&vec![].into());
+        p.sample(&mut thread_rng(), &vec![].into());
     }
 
     #[test]
     fn test_1d() {
-        let mut p = Greedy::new(MockQ::new_shared(None));
+        let p = Greedy::new(MockQ::new_shared(None));
+        let mut rng = thread_rng();
 
-        assert!(p.sample(&vec![1.0].into()) == 0);
-        assert!(p.sample(&vec![-100.0].into()) == 0);
+        assert!(p.sample(&mut rng, &vec![1.0].into()) == 0);
+        assert!(p.sample(&mut rng, &vec![-100.0].into()) == 0);
     }
 
     #[test]
     fn test_two_positive() {
-        let mut p = Greedy::new(MockQ::new_shared(None));
+        let p = Greedy::new(MockQ::new_shared(None));
+        let mut rng = thread_rng();
 
-        assert!(p.sample(&vec![10.0, 1.0].into()) == 0);
-        assert!(p.sample(&vec![1.0, 10.0].into()) == 1);
+        assert!(p.sample(&mut rng, &vec![10.0, 1.0].into()) == 0);
+        assert!(p.sample(&mut rng, &vec![1.0, 10.0].into()) == 1);
     }
 
     #[test]
     fn test_two_negative() {
-        let mut p = Greedy::new(MockQ::new_shared(None));
+        let p = Greedy::new(MockQ::new_shared(None));
+        let mut rng = thread_rng();
 
-        assert!(p.sample(&vec![-10.0, -1.0].into()) == 1);
-        assert!(p.sample(&vec![-1.0, -10.0].into()) == 0);
+        assert!(p.sample(&mut rng, &vec![-10.0, -1.0].into()) == 1);
+        assert!(p.sample(&mut rng, &vec![-1.0, -10.0].into()) == 0);
     }
 
     #[test]
     fn test_two_alt() {
-        let mut p = Greedy::new(MockQ::new_shared(None));
+        let p = Greedy::new(MockQ::new_shared(None));
+        let mut rng = thread_rng();
 
-        assert!(p.sample(&vec![10.0, -1.0].into()) == 0);
-        assert!(p.sample(&vec![-10.0, 1.0].into()) == 1);
-        assert!(p.sample(&vec![1.0, -10.0].into()) == 0);
-        assert!(p.sample(&vec![-1.0, 10.0].into()) == 1);
+        assert!(p.sample(&mut rng, &vec![10.0, -1.0].into()) == 0);
+        assert!(p.sample(&mut rng, &vec![-10.0, 1.0].into()) == 1);
+        assert!(p.sample(&mut rng, &vec![1.0, -10.0].into()) == 0);
+        assert!(p.sample(&mut rng, &vec![-1.0, 10.0].into()) == 1);
     }
 
     #[test]
     fn test_long() {
-        let mut p = Greedy::new(MockQ::new_shared(None));
+        let p = Greedy::new(MockQ::new_shared(None));
+        let mut rng = thread_rng();
 
-        assert!(p.sample(&vec![-123.1, 123.1, 250.5, -1240.0, -4500.0, 10000.0, 20.1].into()) == 5);
+        assert!(p.sample(&mut rng, &vec![-123.1, 123.1, 250.5, -1240.0, -4500.0, 10000.0, 20.1].into()) == 5);
     }
 
     #[test]
     fn test_precision() {
-        let mut p = Greedy::new(MockQ::new_shared(None));
+        let p = Greedy::new(MockQ::new_shared(None));
+        let mut rng = thread_rng();
 
-        assert!(p.sample(&vec![1e-7, 2e-7].into()) == 1);
+        assert!(p.sample(&mut rng, &vec![1e-7, 2e-7].into()) == 1);
     }
 
     #[test]
     fn test_probabilites() {
-        let mut p = Greedy::new(MockQ::new_shared(None));
+        let p = Greedy::new(MockQ::new_shared(None));
 
         assert_eq!(
             p.probabilities(&vec![1e-7, 2e-7, 3e-7, 4e-7].into()),

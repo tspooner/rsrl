@@ -7,7 +7,7 @@ use rsrl::{
     core::{run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
     fa::{
-        basis::fixed::{Fourier, Polynomial},
+        basis::fixed::Fourier,
         transforms::Softplus,
         Composable,
         TransformedLFA,

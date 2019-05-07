@@ -67,17 +67,19 @@ impl<S, Q: QFunction<S>> FinitePolicy<S> for EpsilonGreedy<Q> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Algorithm, EpsilonGreedy, FinitePolicy, Parameter, Policy};
     use crate::{
         domains::{Domain, MountainCar},
         fa::mocking::MockQ,
         geometry::Vector,
     };
+    use rand::thread_rng;
+    use super::{Algorithm, EpsilonGreedy, FinitePolicy, Parameter, Policy};
 
     #[test]
     fn test_sampling() {
         let q = MockQ::new_shared(Some(vec![0.0, 1.0].into()));
-        let mut p = EpsilonGreedy::from_Q(q.clone(), 0.5);
+        let p = EpsilonGreedy::from_Q(q.clone(), 0.5);
+        let mut rng = thread_rng();
 
         q.borrow_mut().clear_output();
 
@@ -86,7 +88,7 @@ mod tests {
         let mut n0: f64 = 0.0;
         let mut n1: f64 = 0.0;
         for _ in 0..10000 {
-            match p.sample(&qs) {
+            match p.sample(&mut rng, &qs) {
                 0 => n0 += 1.0,
                 _ => n1 += 1.0,
             }
@@ -98,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_probabilites() {
-        let mut p = EpsilonGreedy::from_Q(MockQ::new_shared(None), 0.5);
+        let p = EpsilonGreedy::from_Q(MockQ::new_shared(None), 0.5);
 
         assert!(p
             .probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0].into())
@@ -112,7 +114,7 @@ mod tests {
             .probabilities(&vec![1.0, 0.0, 0.0, 0.0, 1.0].into())
             .all_close(&vec![0.35, 0.1, 0.1, 0.1, 0.35].into(), 1e-6));
 
-        let mut p = EpsilonGreedy::from_Q(MockQ::new_shared(None), 1.0);
+        let p = EpsilonGreedy::from_Q(MockQ::new_shared(None), 1.0);
 
         assert!(p
             .probabilities(&vec![-1.0, 0.0, 0.0, 0.0].into())

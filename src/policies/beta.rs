@@ -25,21 +25,20 @@ pub struct Beta<A, B = A> {
 
 impl<A, B> Beta<A, B> {
     pub fn new(alpha: A, beta: B) -> Self {
-        Beta { alpha, beta, }
+        Beta {
+            alpha,
+            beta,
+        }
     }
 
     #[inline]
-    pub fn compute_alpha<S>(&self, s: &S) -> f64
-        where A: VFunction<S>,
-    {
-        self.alpha.evaluate(&self.alpha.embed(s)).unwrap() + MIN_TOL
+    pub fn compute_alpha<S>(&self, s: &S) -> f64 where A: VFunction<S> {
+        self.alpha.state_value(s) + MIN_TOL
     }
 
     #[inline]
-    pub fn compute_beta<S>(&self, s: &S) -> f64
-        where B: VFunction<S>,
-    {
-        self.beta.evaluate(&self.beta.embed(s)).unwrap() + MIN_TOL
+    pub fn compute_beta<S>(&self, s: &S) -> f64 where B: VFunction<S> {
+        self.beta.state_value(s) + MIN_TOL
     }
 
     #[inline]

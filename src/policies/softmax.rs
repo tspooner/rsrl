@@ -148,32 +148,35 @@ mod tests {
         fa::{Composable, LFA, basis::fixed::Polynomial, mocking::MockQ},
         geometry::Vector,
     };
+    use rand::thread_rng;
     use std::f64::consts::E;
 
     #[test]
     #[should_panic]
     fn test_0d() {
-        let mut p = Softmax::new(MockQ::new_shared(None), 1.0);
+        let p = Softmax::new(MockQ::new_shared(None), 1.0);
 
-        p.sample(&vec![].into());
+        p.sample(&mut thread_rng(), &vec![].into());
     }
 
     #[test]
     fn test_1d() {
-        let mut p = Softmax::new(MockQ::new_shared(None), 1.0);
+        let p = Softmax::new(MockQ::new_shared(None), 1.0);
+        let mut rng = thread_rng();
 
         for i in 1..100 {
-            assert_eq!(p.sample(&vec![i as f64].into()), 0);
+            assert_eq!(p.sample(&mut rng, &vec![i as f64].into()), 0);
         }
     }
 
     #[test]
     fn test_2d() {
-        let mut p = Softmax::new(MockQ::new_shared(None), 1.0);
+        let p = Softmax::new(MockQ::new_shared(None), 1.0);
+        let mut rng = thread_rng();
         let mut counts = Vector::from_vec(vec![0.0, 0.0]);
 
         for _ in 0..50000 {
-            counts[p.sample(&vec![0.0, 1.0].into())] += 1.0;
+            counts[p.sample(&mut rng, &vec![0.0, 1.0].into())] += 1.0;
         }
 
         assert!((counts / 50000.0).all_close(
@@ -184,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_probabilites_1() {
-        let mut p = Softmax::new(MockQ::new_shared(None), 1.0);
+        let p = Softmax::new(MockQ::new_shared(None), 1.0);
 
         assert!(&p.probabilities(&vec![0.0, 1.0].into()).all_close(
             &Vector::from_vec(vec![1.0 / (1.0 + E), E / (1.0 + E)]),
@@ -201,9 +204,9 @@ mod tests {
         let fa = LFA::vector(Polynomial::new(1, vec![(0.0, 1.0)]).with_constant(), 3);
         let mut p = Softmax::standard(fa);
 
-        p.update(&vec![0.0], 0, -1.0);
-        p.update(&vec![0.0], 1, 1.0);
-        p.update(&vec![0.0], 2, -1.0);
+        p.update(&vec![0.0], &0, -1.0);
+        p.update(&vec![0.0], &1, 1.0);
+        p.update(&vec![0.0], &2, -1.0);
 
         let ps = p.probabilities(&vec![0.0]);
 

@@ -84,6 +84,7 @@ mod tests {
         geometry::Vector,
         policies::{Policy, ParameterisedPolicy},
     };
+    use rand::thread_rng;
     use super::Dirac;
 
     const STATE: f64 = 0.0;
@@ -92,35 +93,35 @@ mod tests {
     fn test_f64() {
         let mut pi = Dirac::new(LFA::scalar(Constant::ones(1)));
 
-        pi.update(&STATE, 1.0, 0.1);
+        pi.update(&STATE, &1.0, 0.1);
 
-        assert_eq!(pi.sample(&STATE), 0.1);
-        assert_eq!(pi.probability(&STATE, 0.0), 0.0);
-        assert_eq!(pi.probability(&STATE, 0.1), 1.0);
-        assert_eq!(pi.probability(&STATE, 0.2), 0.0);
+        assert_eq!(pi.sample(&mut thread_rng(), &STATE), 0.1);
+        assert_eq!(pi.probability(&STATE, &0.0), 0.0);
+        assert_eq!(pi.probability(&STATE, &0.1), 1.0);
+        assert_eq!(pi.probability(&STATE, &0.2), 0.0);
     }
 
     #[test]
     fn test_f64_pair() {
         let mut pi = Dirac::new(LFA::pair(Constant::ones(1)));
 
-        pi.update(&STATE, [1.0, -1.0], 0.1);
+        pi.update(&STATE, &[1.0, -1.0], 0.1);
 
-        assert_eq!(pi.sample(&STATE), [0.1, -0.1]);
-        assert_eq!(pi.probability(&STATE, [0.0, 0.0]), 0.0);
-        assert_eq!(pi.probability(&STATE, [0.1, -0.1]), 1.0);
-        assert_eq!(pi.probability(&STATE, [-0.1, 0.1]), 0.0);
+        assert_eq!(pi.sample(&mut thread_rng(), &STATE), [0.1, -0.1]);
+        assert_eq!(pi.probability(&STATE, &[0.0, 0.0]), 0.0);
+        assert_eq!(pi.probability(&STATE, &[0.1, -0.1]), 1.0);
+        assert_eq!(pi.probability(&STATE, &[-0.1, 0.1]), 0.0);
     }
 
     #[test]
     fn test_f64_vector() {
         let mut pi = Dirac::new(LFA::vector(Constant::ones(1), 2));
 
-        pi.update(&STATE, Vector::from_vec(vec![1.0, -1.0]), 0.1);
+        pi.update(&STATE, &Vector::from_vec(vec![1.0, -1.0]), 0.1);
 
-        assert_eq!(pi.sample(&STATE), Vector::from_vec(vec![0.1, -0.1]));
-        assert_eq!(pi.probability(&STATE, Vector::from_vec(vec![0.0, 0.0])), 0.0);
-        assert_eq!(pi.probability(&STATE, Vector::from_vec(vec![0.1, -0.1])), 1.0);
-        assert_eq!(pi.probability(&STATE, Vector::from_vec(vec![-0.1, 0.1])), 0.0);
+        assert_eq!(pi.sample(&mut thread_rng(), &STATE), Vector::from_vec(vec![0.1, -0.1]));
+        assert_eq!(pi.probability(&STATE, &Vector::from_vec(vec![0.0, 0.0])), 0.0);
+        assert_eq!(pi.probability(&STATE, &Vector::from_vec(vec![0.1, -0.1])), 1.0);
+        assert_eq!(pi.probability(&STATE, &Vector::from_vec(vec![-0.1, 0.1])), 0.0);
     }
 }

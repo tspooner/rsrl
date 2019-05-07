@@ -38,19 +38,21 @@ impl<S> FinitePolicy<S> for Random {
 
 #[cfg(test)]
 mod tests {
-    use super::{FinitePolicy, Policy, Random};
     use crate::geometry::Vector;
+    use rand::thread_rng;
+    use super::{FinitePolicy, Policy, Random};
 
     #[test]
     fn test_sampling() {
-        let mut p = Random::new(2);
+        let p = Random::new(2);
+        let mut rng = thread_rng();
 
         let qs = vec![1.0, 0.0];
 
         let mut n0: f64 = 0.0;
         let mut n1: f64 = 0.0;
         for _ in 0..10000 {
-            match p.sample(&qs) {
+            match p.sample(&mut rng, &qs) {
                 0 => n0 += 1.0,
                 _ => n1 += 1.0,
             }
@@ -62,13 +64,13 @@ mod tests {
 
     #[test]
     fn test_probabilites() {
-        let mut p = Random::new(4);
+        let p = Random::new(4);
 
         assert!(p
             .probabilities(&[1.0, 0.0, 0.0, 1.0])
             .all_close(&Vector::from_vec(vec![0.25; 4]), 1e-6));
 
-        let mut p = Random::new(5);
+        let p = Random::new(5);
 
         assert!(p
             .probabilities(&[1.0, 0.0, 0.0, 0.0, 0.0])
