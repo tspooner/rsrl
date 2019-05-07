@@ -1,6 +1,4 @@
 import_all!(td);
-import_all!(td_exp);
-import_all!(td_var);
 import_all!(td_lambda);
 
 // TODO:
