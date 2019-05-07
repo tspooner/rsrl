@@ -130,11 +130,7 @@ where
     F: QFunction<S>,
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
-    fn predict_v(&mut self, s: &S) -> f64 {
-        let a = self.target.sample(&mut thread_rng(), s);
-
-        self.predict_qsa(s, a)
-    }
+    fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
 }
 
 impl<S, F, P> ActionValuePredictor<S, P::Action> for QLambda<F, P>
@@ -142,11 +138,11 @@ where
     F: QFunction<S>,
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&self, s: &S) -> Vector<f64> {
         self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
+    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
         self.fa_theta.evaluate_index(&self.fa_theta.embed(s), a).unwrap()
     }
 }

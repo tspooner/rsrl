@@ -94,7 +94,7 @@ impl<S, A, F: Embedding<S> + Parameterised> OnlineLearner<S, A> for iLSTD<F> {
 }
 
 impl<S, F: VFunction<S>> ValuePredictor<S> for iLSTD<F> {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 }

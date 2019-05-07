@@ -98,7 +98,7 @@ impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LSTDLambda<F>
 }
 
 impl<S, F: VFunction<S>> ValuePredictor<S> for LSTDLambda<F> {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 }

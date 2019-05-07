@@ -118,7 +118,7 @@ where
     Q: QFunction<S>,
     PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.predict_qs(s).dot(&self.target_policy.probabilities(s))
     }
 }
@@ -128,11 +128,11 @@ where
     Q: QFunction<S>,
     PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&self, s: &S) -> Vector<f64> {
         self.fa_q.evaluate(&self.fa_q.embed(s)).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: usize) -> f64 {
+    fn predict_qsa(&self, s: &S, a: usize) -> f64 {
         self.fa_q.evaluate_index(&self.fa_q.embed(s), a).unwrap()
     }
 }

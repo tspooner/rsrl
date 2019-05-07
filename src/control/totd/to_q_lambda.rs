@@ -153,11 +153,7 @@ where
     F: QFunction<S>,
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
-    fn predict_v(&mut self, s: &S) -> f64 {
-        let a = self.sample_target(&mut thread_rng(), s);
-
-        self.predict_qsa(s, a)
-    }
+    fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
 }
 
 impl<S, F, P> ActionValuePredictor<S, P::Action> for TOQLambda<F, P>
@@ -165,11 +161,11 @@ where
     F: QFunction<S>,
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&self, s: &S) -> Vector<f64> {
         self.q_func.evaluate(&self.q_func.embed(s)).unwrap()
     }
 
-    fn predict_qsa(&mut self, s: &S, a: P::Action) -> f64 {
+    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
         self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
     }
 }

@@ -49,7 +49,7 @@ impl<S, A, V: VFunction<S>> BatchLearner<S, A> for GradientMC<V> {
 }
 
 impl<S, V: VFunction<S>> ValuePredictor<S> for GradientMC<V> {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.v_func.evaluate(&self.v_func.embed(s)).unwrap()
     }
 }

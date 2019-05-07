@@ -66,7 +66,7 @@ impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for TDLambda<F> {
 }
 
 impl<S, F: VFunction<S>> ValuePredictor<S> for TDLambda<F> {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
     }
 }

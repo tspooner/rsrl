@@ -86,7 +86,7 @@ impl<S, C, PT, PB> ValuePredictor<S> for CACLA<C, PT, PB>
 where
     C: ValuePredictor<S>,
 {
-    fn predict_v(&mut self, s: &S) -> f64 {
+    fn predict_v(&self, s: &S) -> f64 {
         self.critic.predict_v(s)
     }
 }
@@ -96,11 +96,11 @@ where
     C: ActionValuePredictor<S, PT::Action>,
     PT: Policy<S>,
 {
-    fn predict_qs(&mut self, s: &S) -> Vector<f64> {
+    fn predict_qs(&self, s: &S) -> Vector<f64> {
         self.critic.predict_qs(s)
     }
 
-    fn predict_qsa(&mut self, s: &S, a: PT::Action) -> f64 {
+    fn predict_qsa(&self, s: &S, a: PT::Action) -> f64 {
         self.critic.predict_qsa(s, a)
     }
 }
