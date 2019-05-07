@@ -1,7 +1,7 @@
 //! Control agents module.
 pub use crate::core::Controller;
 
-pub mod actor_critic;
+pub mod ac;
 pub mod gtd;
 pub mod mc;
 pub mod td;

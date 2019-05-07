@@ -3,7 +3,7 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    control::actor_critic::TDAC,
+    control::ac::TDAC,
     core::{run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
     fa::{

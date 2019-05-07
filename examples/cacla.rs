@@ -3,7 +3,7 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    control::actor_critic::CACLA,
+    control::ac::CACLA,
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
     fa::{basis::fixed::Fourier, Composable, LFA},
