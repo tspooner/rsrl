@@ -16,12 +16,14 @@ use ndarray::Axis;
 use rand::Rng;
 use std::{f64, ops::AddAssign};
 
-fn probabilities_from_values<'a>(values: impl Iterator<Item = &'a f64>, tau: f64) -> Vec<f64> {
+
+fn softmax<'a>(values: &Vector<f64>, tau: f64, c: f64) -> Vec<f64> {
     let mut z = 0.0;
 
     let ps: Vec<f64> = values
+        .into_iter()
         .map(|v| {
-            let v = (v / tau).exp();
+            let v = ((v - c) / tau).exp();
             z += v;
 
             v
@@ -29,6 +31,12 @@ fn probabilities_from_values<'a>(values: impl Iterator<Item = &'a f64>, tau: f64
         .collect();
 
     ps.into_iter().map(|v| (v / z).min(f64::MAX)).collect()
+}
+
+fn softmax_stable<'a>(values: &Vector<f64>, tau: f64) -> Vec<f64> {
+    let max_v = values.iter().fold(f64::NAN, |acc, &v| f64::max(acc, v));
+
+    softmax(values, tau, max_v)
 }
 
 pub type Gibbs<F> = Softmax<F>;
@@ -55,13 +63,15 @@ impl<F> Softmax<F> {
     pub fn standard(fa: F) -> Self {
         Self::new(fa, 1.0)
     }
+}
 
+impl<F> Softmax<F> {
     fn grad_log_phi<S>(&self, phi: &Features, a: usize) -> Matrix<f64>
         where F: QFunction<S>,
     {
         // (A x 1)
         let values = self.fa.evaluate(&phi).unwrap();
-        let probabilities = probabilities_from_values(values.into_iter(), self.tau.value());
+        let probabilities = softmax_stable(&values, self.tau.value());
 
         // (N x A)
         let mut jac = self.fa.jacobian(&phi);
@@ -107,7 +117,7 @@ impl<S, F: QFunction<S>> FinitePolicy<S> for Softmax<F> {
     fn probabilities(&self, s: &S) -> Vector<f64> {
         self.fa
             .evaluate(&self.fa.embed(s))
-            .map(|qs| probabilities_from_values(qs.into_iter(), self.tau.value()).into())
+            .map(|qs| softmax_stable(&qs, self.tau.value()).into())
             .unwrap()
     }
 }
