@@ -118,7 +118,9 @@ where
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
-        self.predict_qs(s).dot(&self.policy.probabilities(s))
+        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap().into_iter()
+            .zip(self.policy.probabilities(s).into_iter())
+            .fold(0.0, |acc, (x, y)| acc + x * y)
     }
 }
 
@@ -127,10 +129,6 @@ where
     F: QFunction<S>,
     P: FinitePolicy<S>,
 {
-    fn predict_qs(&self, s: &S) -> Vector<f64> {
-        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
-    }
-
     fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
         self.fa_theta.evaluate_index(&self.fa_theta.embed(s), a).unwrap()
     }

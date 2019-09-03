@@ -138,10 +138,6 @@ where
     F: QFunction<S>,
     P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
 {
-    fn predict_qs(&self, s: &S) -> Vector<f64> {
-        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
-    }
-
     fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
         self.fa_theta.evaluate_index(&self.fa_theta.embed(s), a).unwrap()
     }

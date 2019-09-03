@@ -39,16 +39,9 @@ pub trait ValuePredictor<S> {
     fn predict_v(&self, s: &S) -> f64;
 }
 
-pub trait ActionValuePredictor<S, A>: ValuePredictor<S> {
+pub trait ActionValuePredictor<S, A> {
     /// Compute the estimated value of Q(s, a).
-    fn predict_qsa(&self, s: &S, a: A) -> f64 {
-        self.predict_v(s)
-    }
-
-    /// Compute the estimated value of Q(s, ·).
-    fn predict_qs(&self, s: &S) -> Vector<f64> {
-        unimplemented!()
-    }
+    fn predict_qsa(&self, s: &S, a: A) -> f64;
 }
 
 // Shared<T> impls:
@@ -93,9 +86,5 @@ impl<S, T: ValuePredictor<S>> ValuePredictor<S> for Shared<T> {
 impl<S, A, T: ActionValuePredictor<S, A>> ActionValuePredictor<S, A> for Shared<T> {
     fn predict_qsa(&self, s: &S, a: A) -> f64 {
         self.borrow().predict_qsa(s, a)
-    }
-
-    fn predict_qs(&self, s: &S) -> Vector<f64> {
-        self.borrow().predict_qs(s)
     }
 }

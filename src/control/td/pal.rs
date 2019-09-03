@@ -67,7 +67,7 @@ where
             t.reward - qs[t.action]
         } else {
             let ns = t.to.state();
-            let nqs = self.predict_qs(ns);
+            let nqs = self.q_func.evaluate(&phi_s).unwrap();
 
             let mut rng = thread_rng();
             let a_star = self.sample_target(&mut rng, s);
@@ -110,10 +110,6 @@ where
     Q: QFunction<S>,
     P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
 {
-    fn predict_qs(&self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(&self.q_func.embed(s)).unwrap()
-    }
-
     fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
         self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
     }
