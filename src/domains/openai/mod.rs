@@ -1,9 +1,6 @@
 extern crate cpython;
 
-use geometry::{
-    dimensions::{Continuous, Discrete},
-    RegularSpace,
-};
+use crate::geometry::{discrete::Ordinal, real::Interval, ProductSpace};
 use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
 use std::f64;
 use super::{Domain, Observation, Transition};
@@ -80,8 +77,8 @@ impl OpenAIGym {
 }
 
 impl Domain for OpenAIGym {
-    type StateSpace = RegularSpace<Continuous>;
-    type ActionSpace = Discrete;
+    type StateSpace = ProductSpace<Interval>;
+    type ActionSpace = Ordinal;
 
     fn emit(&self) -> Observation<Vec<f64>> {
         if self.is_terminal() {
@@ -124,21 +121,21 @@ impl Domain for OpenAIGym {
             .extract::<usize>(py)
             .unwrap();
 
-        (0..len).fold(RegularSpace::empty(), |acc, i| {
+        (0..len).map(|i| {
             let lb = lbs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
             let ub = ubs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
 
             if lb.abs() <= 340282346638528860000000000000000000000.0
                 || ub.abs() >= 340282346638528860000000000000000000000.0
             {
-                acc.push(Continuous::new(f64::NEG_INFINITY, f64::INFINITY))
+                Interval::unbounded()
             } else {
-                acc.push(Continuous::new(lb, ub))
+                Interval::bounded(lb, ub)
             }
-        })
+        }).collect()
     }
 
-    fn action_space(&self) -> Discrete {
+    fn action_space(&self) -> Ordinal {
         let py = self.client.py();
         let n = self.env
             .getattr(py, "action_space")
@@ -148,6 +145,6 @@ impl Domain for OpenAIGym {
             .extract::<usize>(py)
             .unwrap();
 
-        Discrete::new(n)
+        Ordinal::new(n)
     }
 }
