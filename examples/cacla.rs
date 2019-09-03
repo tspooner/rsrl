@@ -2,47 +2,47 @@ extern crate rsrl;
 #[macro_use]
 extern crate slog;
 
-use rsrl::{
-    control::ac::CACLA,
-    core::{make_shared, run, Evaluation, SerialExperiment},
-    domains::{ContinuousMountainCar, Domain},
-    fa::{basis::fixed::Fourier, Composable, LFA},
-    logging,
-    policies::{
-        gaussian::{self, Gaussian},
-        Dirac,
-    },
-    prediction::td::TD,
-};
+// use rsrl::{
+    // control::ac::CACLA,
+    // core::{make_shared, run, Evaluation, SerialExperiment},
+    // domains::{ContinuousMountainCar, Domain},
+    // fa::linear::{LFA, basis::{Projector, Fourier}},
+    // logging,
+    // policies::{
+        // gaussian::{self, Gaussian},
+        // Dirac,
+    // },
+    // prediction::td::TD,
+// };
 
 fn main() {
-    let domain = ContinuousMountainCar::default();
-    let bases = Fourier::from_space(3, domain.state_space()).with_constant();
+    // let domain = ContinuousMountainCar::default();
+    // let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
-    let mean_fa = make_shared(LFA::scalar(bases.clone()));
-    let target_policy = Dirac::new(mean_fa.clone());
-    let behaviour_policy = Gaussian::new(
-        gaussian::mean::Scalar(mean_fa.clone()),
-        gaussian::stddev::Constant(1.0),
-    );
+    // let mean_fa = make_shared(LFA::scalar(bases.clone()));
+    // let target_policy = Dirac::new(mean_fa.clone());
+    // let behaviour_policy = Gaussian::new(
+        // gaussian::mean::Scalar(mean_fa.clone()),
+        // gaussian::stddev::Constant(1.0),
+    // );
 
-    let critic = TD::new(LFA::scalar(bases), 0.001, 1.0);
-    let mut agent = CACLA::new(critic, target_policy, behaviour_policy, 0.0001, 1.0);
+    // let critic = TD::new(LFA::scalar(bases), 0.001, 1.0);
+    // let mut agent = CACLA::new(critic, target_policy, behaviour_policy, 0.0001, 1.0);
 
-    let logger = logging::root(logging::stdout());
-    let domain_builder = Box::new(ContinuousMountainCar::default);
+    // let logger = logging::root(logging::stdout());
+    // let domain_builder = Box::new(ContinuousMountainCar::default);
 
-    // Training phase:
-    let _training_result = {
-        // Start a serial learning experiment up to 1000 steps per episode.
-        let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
+    // // Training phase:
+    // let _training_result = {
+        // // Start a serial learning experiment up to 1000 steps per episode.
+        // let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
 
-        // Realise 1000 episodes of the experiment generator.
-        run(e, 10000, Some(logger.clone()))
-    };
+        // // Realise 1000 episodes of the experiment generator.
+        // run(e, 10000, Some(logger.clone()))
+    // };
 
-    // Testing phase:
-    let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
+    // // Testing phase:
+    // let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
 
-    info!(logger, "solution"; testing_result);
+    // info!(logger, "solution"; testing_result);
 }

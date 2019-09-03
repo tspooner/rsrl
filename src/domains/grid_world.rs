@@ -14,6 +14,11 @@ pub enum Motion {
     East(usize),
     South(usize),
     West(usize),
+
+    NorthEast(usize),
+    NorthWest(usize),
+    SouthEast(usize),
+    SouthWest(usize),
 }
 
 impl Motion {
@@ -75,53 +80,80 @@ impl<T> GridWorld<T> {
 
     pub fn width(&self) -> usize { self.layout.cols() }
 
-    pub fn get(&self, loc: (usize, usize)) -> Option<&T> { self.layout.get(loc) }
+    pub fn get(&self, loc: [usize; 2]) -> Option<&T> { self.layout.get(loc) }
 
-    pub fn get_mut(&mut self, loc: (usize, usize)) -> Option<&mut T> { self.layout.get_mut(loc) }
+    pub fn get_mut(&mut self, loc: [usize; 2]) -> Option<&mut T> { self.layout.get_mut(loc) }
 
-    pub fn move_north(&self, loc: (usize, usize), n: usize) -> (usize, usize) {
-        (
-            loc.0,
-            cmp::max(0, cmp::min(loc.1.saturating_add(n), self.layout.cols() - 1)),
-        )
+    pub fn move_north(&self, loc: [usize; 2], n: usize) -> [usize; 2] {
+        [
+            loc[0],
+            cmp::max(0, cmp::min(loc[1].saturating_add(n), self.layout.rows() - 1)),
+        ]
     }
 
-    pub fn move_south(&self, loc: (usize, usize), n: usize) -> (usize, usize) {
-        (
-            loc.0,
-            cmp::max(0, cmp::min(loc.1.saturating_sub(n), self.layout.cols() - 1)),
-        )
+    pub fn move_south(&self, loc: [usize; 2], n: usize) -> [usize; 2] {
+        [
+            loc[0],
+            cmp::max(0, cmp::min(loc[1].saturating_sub(n), self.layout.rows() - 1)),
+        ]
     }
 
-    pub fn move_east(&self, loc: (usize, usize), n: usize) -> (usize, usize) {
-        (
-            cmp::max(0, cmp::min(loc.0.saturating_add(n), self.layout.rows() - 1)),
-            loc.1,
-        )
+    pub fn move_east(&self, loc: [usize; 2], n: usize) -> [usize; 2] {
+        [
+            cmp::max(0, cmp::min(loc[0].saturating_add(n), self.layout.cols() - 1)),
+            loc[1],
+        ]
     }
 
-    pub fn move_west(&self, loc: (usize, usize), n: usize) -> (usize, usize) {
-        (
-            cmp::max(0, cmp::min(loc.0.saturating_sub(n), self.layout.rows() - 1)),
-            loc.1,
-        )
+    pub fn move_west(&self, loc: [usize; 2], n: usize) -> [usize; 2] {
+        [
+            cmp::max(0, cmp::min(loc[0].saturating_sub(n), self.layout.cols() - 1)),
+            loc[1],
+        ]
     }
 
-    pub fn perform_motion(&self, loc: (usize, usize), motion: Motion) -> (usize, usize) {
+    pub fn perform_motion(&self, loc: [usize; 2], motion: Motion) -> [usize; 2] {
         match motion {
             Motion::North(n) => self.move_north(loc, n),
             Motion::South(n) => self.move_south(loc, n),
             Motion::East(n) => self.move_east(loc, n),
             Motion::West(n) => self.move_west(loc, n),
+
+            Motion::NorthEast(n) => (0..n).fold(loc, |new_loc, _| {
+                self.move_east(self.move_north(new_loc, 1), 1)
+            }),
+            Motion::NorthWest(n) => (0..n).fold(loc, |new_loc, _| {
+                self.move_west(self.move_north(new_loc, 1), 1)
+            }),
+
+            Motion::SouthEast(n) => (0..n).fold(loc, |new_loc, _| {
+                self.move_east(self.move_south(new_loc, 1), 1)
+            }),
+            Motion::SouthWest(n) => (0..n).fold(loc, |new_loc, _| {
+                self.move_west(self.move_south(new_loc, 1), 1)
+            }),
         }
     }
 
-    pub fn valid_motion(&self, loc: (usize, usize), motion: Motion) -> bool {
+    pub fn valid_motion(&self, loc: [usize; 2], motion: Motion) -> bool {
         match motion {
-            Motion::North(n) => loc.1 <= self.layout.rows() - 1 - n,
-            Motion::South(n) => loc.1 >= n,
-            Motion::East(n) => loc.0 <= self.layout.cols() - 1 - n,
-            Motion::West(n) => loc.0 >= n,
+            Motion::North(n) => loc[1] <= self.layout.rows() - 1 - n,
+            Motion::South(n) => loc[1] >= n,
+            Motion::East(n) => loc[0] <= self.layout.cols() - 1 - n,
+            Motion::West(n) => loc[0] >= n,
+
+            Motion::NorthEast(n) =>
+                self.valid_motion(loc, Motion::North(n)) &&
+                self.valid_motion(loc, Motion::East(n)),
+            Motion::NorthWest(n) =>
+                self.valid_motion(loc, Motion::North(n)) &&
+                self.valid_motion(loc, Motion::West(n)),
+            Motion::SouthEast(n) =>
+                self.valid_motion(loc, Motion::South(n)) &&
+                self.valid_motion(loc, Motion::East(n)),
+            Motion::SouthWest(n) =>
+                self.valid_motion(loc, Motion::South(n)) &&
+                self.valid_motion(loc, Motion::West(n)),
         }
     }
 }
@@ -148,7 +180,7 @@ mod tests {
 
         for x in 0..4 {
             for y in 0..4 {
-                assert_eq!(gw_str.get((x, y)), gw_raw.get((x, y)));
+                assert_eq!(gw_str.get([x, y]), gw_raw.get([x, y]));
             }
         }
     }
@@ -165,11 +197,34 @@ mod tests {
 
         for x in 0..4 {
             for y in 0..4 {
-                assert_eq!(gw.get((x, y)), Some(&((x + y) & 1)));
+                assert_eq!(gw.get([x, y]), Some(&((x + y) & 1)));
             }
         }
 
-        assert_eq!(gw.get((10, 10)), None);
+        assert_eq!(gw.get([10, 10]), None);
+    }
+
+    #[test]
+    fn test_move_ew() {
+        let gw = GridWorld::new(array![
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]);
+        let loc = [2, 2];
+
+        assert_eq!(gw.move_east(loc, 0), loc);
+        assert_eq!(gw.move_west(loc, 0), loc);
+
+        assert_eq!(gw.move_east(loc, 1), [3, 2]);
+        assert_eq!(gw.move_east(loc, 2), [3, 2]);
+        assert_eq!(gw.move_east(loc, 3), [3, 2]);
+
+        assert_eq!(gw.move_west(loc, 1), [1, 2]);
+        assert_eq!(gw.move_west(loc, 2), [0, 2]);
+        assert_eq!(gw.move_west(loc, 3), [0, 2]);
     }
 
     #[test]
@@ -178,44 +233,20 @@ mod tests {
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0]
         ]);
-        let loc = (2, 2);
-
-        assert_eq!(gw.move_east(loc, 0), loc);
-        assert_eq!(gw.move_west(loc, 0), loc);
-
-        assert_eq!(gw.move_east(loc, 1), (3, 2));
-        assert_eq!(gw.move_east(loc, 2), (4, 2));
-        assert_eq!(gw.move_east(loc, 3), (4, 2));
-
-        assert_eq!(gw.move_west(loc, 1), (1, 2));
-        assert_eq!(gw.move_west(loc, 2), (0, 2));
-        assert_eq!(gw.move_west(loc, 3), (0, 2));
-    }
-
-    #[test]
-    fn test_move_ew() {
-        let gw = GridWorld::new(array![
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0]
-        ]);
-        let loc = (2, 2);
+        let loc = [2, 2];
 
         assert_eq!(gw.move_north(loc, 0), loc);
         assert_eq!(gw.move_south(loc, 0), loc);
 
-        assert_eq!(gw.move_north(loc, 1), (2, 3));
-        assert_eq!(gw.move_north(loc, 2), (2, 4));
-        assert_eq!(gw.move_north(loc, 3), (2, 4));
+        assert_eq!(gw.move_north(loc, 1), [2, 3]);
+        assert_eq!(gw.move_north(loc, 2), [2, 3]);
+        assert_eq!(gw.move_north(loc, 3), [2, 3]);
 
-        assert_eq!(gw.move_south(loc, 1), (2, 1));
-        assert_eq!(gw.move_south(loc, 2), (2, 0));
-        assert_eq!(gw.move_south(loc, 3), (2, 0));
+        assert_eq!(gw.move_south(loc, 1), [2, 1]);
+        assert_eq!(gw.move_south(loc, 2), [2, 0]);
+        assert_eq!(gw.move_south(loc, 3), [2, 0]);
     }
 
     #[test]
@@ -227,7 +258,7 @@ mod tests {
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0]
         ]);
-        let loc = (2, 2);
+        let loc = [2, 2];
 
         assert!(gw.valid_motion(loc, Motion::North(1)));
         assert!(gw.valid_motion(loc, Motion::North(2)));
@@ -255,7 +286,7 @@ mod tests {
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0]
         ]);
-        let loc = (2, 2);
+        let loc = [2, 2];
 
         assert_eq!(
             gw.perform_motion(loc, Motion::North(1)),

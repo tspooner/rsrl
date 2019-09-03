@@ -2,9 +2,9 @@ extern crate special_fun;
 
 use crate::{
     core::{Algorithm, Parameter},
-    fa::{Approximator, ScalarApproximator, Embedding, Features, Parameterised, VFunction},
+    fa::{StateFunction, DifferentiableStateFunction, Parameterised},
     geometry::{Vector, Matrix, MatrixView, MatrixViewMut},
-    policies::{DifferentiablePolicy, ParameterisedPolicy, Policy},
+    policies::{DifferentiablePolicy, Policy},
 };
 use ndarray::Axis;
 use rand::Rng;
@@ -32,28 +32,28 @@ impl<A, B> Beta<A, B> {
     }
 
     #[inline]
-    pub fn compute_alpha<S>(&self, s: &S) -> f64 where A: VFunction<S> {
-        self.alpha.state_value(s) + MIN_TOL
+    pub fn compute_alpha<S>(&self, s: &S) -> f64 where A: StateFunction<S, Output = f64> {
+        self.alpha.evaluate(s) + MIN_TOL
     }
 
     #[inline]
-    pub fn compute_beta<S>(&self, s: &S) -> f64 where B: VFunction<S> {
-        self.beta.state_value(s) + MIN_TOL
+    pub fn compute_beta<S>(&self, s: &S) -> f64 where B: StateFunction<S, Output = f64> {
+        self.beta.evaluate(s) + MIN_TOL
     }
 
     #[inline]
     fn dist<S>(&self, input: &S) -> BetaDist
-        where A: VFunction<S>, B: VFunction<S>,
+    where
+        A: StateFunction<S, Output = f64>,
+        B: StateFunction<S, Output = f64>,
     {
         BetaDist::new(self.compute_alpha(input), self.compute_beta(input))
     }
 
-    fn gl_partial(&self, alpha: f64, beta: f64, a: f64) -> [f64; 2]
-        where A: ScalarApproximator, B: ScalarApproximator,
-    {
+    fn gl_partial(&self, alpha: f64, beta: f64, a: f64) -> [f64; 2] {
         use special_fun::FloatSpecial;
 
-        const JITTER: f64 = 1e-5;
+        const JITTER: f64 = 1e-9;
 
         let apb_digamma = (alpha + beta).digamma();
         let alpha_digamma = alpha.digamma();
@@ -68,10 +68,14 @@ impl<A, B> Beta<A, B> {
 
 impl<A, B> Algorithm for Beta<A, B> {}
 
-impl<S, A: VFunction<S>, B: VFunction<S>> Policy<S> for Beta<A, B> {
+impl<S, A, B> Policy<S> for Beta<A, B>
+where
+    A: StateFunction<S, Output = f64>,
+    B: StateFunction<S, Output = f64>,
+{
     type Action = f64;
 
-    fn sample(&self, rng: &mut impl Rng, input: &S) -> f64 {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, input: &S) -> f64 {
         self.dist(input).sample(rng)
     }
 
@@ -87,23 +91,7 @@ impl<S, A: VFunction<S>, B: VFunction<S>> Policy<S> for Beta<A, B> {
     }
 }
 
-impl<S, A: VFunction<S>, B: VFunction<S>> DifferentiablePolicy<S> for Beta<A, B> {
-    fn grad_log(&self, input: &S, a: &f64) -> Matrix<f64> {
-        let phi_alpha = self.alpha.embed(input);
-        let val_alpha = self.alpha.evaluate(&phi_alpha).unwrap() + MIN_TOL;
-        let jac_alpha = self.alpha.jacobian(&phi_alpha);
-
-        let phi_beta = self.beta.embed(input);
-        let val_beta = self.beta.evaluate(&phi_beta).unwrap() + MIN_TOL;
-        let jac_beta = self.beta.jacobian(&phi_beta);
-
-        let [gl_alpha, gl_beta] = self.gl_partial(val_alpha, val_beta, *a);
-
-        stack![Axis(0), gl_alpha * jac_alpha, gl_beta * jac_beta]
-    }
-}
-
-impl<F: Parameterised> Parameterised for Beta<F> {
+impl<A: Parameterised, B: Parameterised> Parameterised for Beta<A, B> {
     fn weights(&self) -> Matrix<f64> {
         stack![Axis(0), self.alpha.weights(), self.beta.weights()]
     }
@@ -116,22 +104,74 @@ impl<F: Parameterised> Parameterised for Beta<F> {
         unimplemented!()
     }
 
-    fn weights_dim(&self) -> (usize, usize) {
-        (self.alpha.weights_dim().0 + self.beta.weights_dim().0, 1)
+    fn weights_dim(&self) -> [usize; 2] {
+        let [ra, _] = self.alpha.weights_dim();
+        let [rb, _] = self.beta.weights_dim();
+
+        [ra + rb, 1]
     }
 }
 
-impl<S, F: VFunction<S> + Parameterised> ParameterisedPolicy<S> for Beta<F> {
-    fn update(&mut self, input: &S, a: &f64, error: f64) {
-        let phi_alpha = self.alpha.embed(input);
-        let val_alpha = self.alpha.evaluate(&phi_alpha).unwrap() + MIN_TOL;
-
-        let phi_beta = self.beta.embed(input);
-        let val_beta = self.beta.evaluate(&phi_beta).unwrap() + MIN_TOL;
+impl<S, A, B> DifferentiablePolicy<S> for Beta<A, B>
+where
+    A: DifferentiableStateFunction<S, Output = f64> + Parameterised,
+    B: DifferentiableStateFunction<S, Output = f64> + Parameterised,
+{
+    fn update(&mut self, state: &S, a: &f64, error: f64) {
+        let val_alpha = self.alpha.evaluate(state) + MIN_TOL;
+        let val_beta = self.beta.evaluate(state) + MIN_TOL;
 
         let [gl_alpha, gl_beta] = self.gl_partial(val_alpha, val_beta, *a);
 
-        self.alpha.update(&phi_alpha, gl_alpha * error).ok();
-        self.beta.update(&phi_beta, gl_beta * error).ok();
+        self.alpha.update(state, gl_alpha * error);
+        self.beta.update(state, gl_beta * error);
+    }
+
+    fn update_grad(&mut self, grad: &MatrixView<f64>) {
+        match self.alpha.weights_dim() {
+            [r, _] if r > 0 => {
+                let grad_alpha = grad.slice(s![0..r, ..]);
+                self.alpha.weights_view_mut().add_assign(&grad_alpha);
+            },
+            _ => {},
+        }
+
+        match self.beta.weights_dim() {
+            [r, _] if r > 0 => {
+                let grad_beta = grad.slice(s![self.beta.weights_dim()[0].., ..]);
+                self.beta.weights_view_mut().add_assign(&grad_beta);
+            },
+            _ => {},
+        }
+    }
+
+    fn update_grad_scaled(&mut self, grad: &MatrixView<f64>, factor: f64) {
+        match self.alpha.weights_dim() {
+            [r, _] if r > 0 => {
+                let grad_alpha = grad.slice(s![0..self.alpha.weights_dim()[0], ..]);
+                self.alpha.weights_view_mut().scaled_add(factor, &grad_alpha);
+            },
+            _ => {},
+        }
+
+        match self.beta.weights_dim() {
+            [r, _] if r > 0 => {
+                let grad_beta = grad.slice(s![self.beta.weights_dim()[0].., ..]);
+                self.beta.weights_view_mut().scaled_add(factor, &grad_beta);
+            },
+            _ => {},
+        }
+    }
+
+    fn grad_log(&self, state: &S, a: &f64) -> Matrix<f64> {
+        let val_alpha = self.alpha.evaluate(state) + MIN_TOL;
+        let grad_alpha: Matrix<f64> = self.alpha.grad(state).into();
+
+        let val_beta = self.beta.evaluate(state) + MIN_TOL;
+        let grad_beta: Matrix<f64> = self.beta.grad(state).into();
+
+        let [gl_alpha, gl_beta] = self.gl_partial(val_alpha, val_beta, *a);
+
+        stack![Axis(0), gl_alpha * grad_alpha, gl_beta * grad_beta]
     }
 }

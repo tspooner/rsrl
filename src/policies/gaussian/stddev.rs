@@ -1,19 +1,23 @@
 use crate::{
-    fa::{Approximator, Embedding, EvaluationResult, Features, Parameterised, UpdateResult},
-    geometry::{Matrix, MatrixView, MatrixViewMut, Vector},
+    fa::{
+        Weights, WeightsView, WeightsViewMut, Parameterised,
+        StateFunction, DifferentiableStateFunction,
+    },
+    geometry::{Matrix, MatrixView, MatrixViewMut},
 };
-use ndarray::Axis;
 use std::ops::MulAssign;
 
-const MIN_STDDEV: f64 = 0.05;
+const MIN_STDDEV: f64 = 0.1;
+const STDDEV_TOL: f64 = 0.2;
 
 fn gl_from_mv(a: f64, mean: f64, stddev: f64) -> f64 {
     let diff_sq = (a - mean).powi(2);
+    let stddev = stddev.max(STDDEV_TOL);
 
     (diff_sq / stddev / stddev / stddev - 1.0 / stddev)
 }
 
-pub trait StdDev<I, M>: Approximator + Embedding<I> {
+pub trait StdDev<I, M>: StateFunction<I> + Parameterised {
     fn stddev(&self, input: &I) -> Self::Output;
 
     fn grad_log(&self, input: &I, a: &M, mean: M) -> Matrix<f64>;
@@ -23,9 +27,17 @@ pub trait StdDev<I, M>: Approximator + Embedding<I> {
 
 // Constant:
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Constant<V: Clone>(pub V);
+pub struct Constant<V>(pub V);
 
-impl<V: Clone> Parameterised for Constant<V> {
+impl<I, V: Clone> StateFunction<I> for Constant<V> {
+    type Output = V;
+
+    fn evaluate(&self, _: &I) -> Self::Output { self.0.clone() }
+
+    fn update(&mut self, _: &I, _: Self::Output) {}
+}
+
+impl<V> Parameterised for Constant<V> {
     fn weights(&self) -> Matrix<f64> { Matrix::zeros((0, 0)) }
 
     fn weights_view(&self) -> MatrixView<f64> { MatrixView::from_shape((0, 0), &[]).unwrap() }
@@ -35,57 +47,7 @@ impl<V: Clone> Parameterised for Constant<V> {
     }
 }
 
-impl<I, V: Clone> Embedding<I> for Constant<V> {
-    fn n_features(&self) -> usize { 0 }
-
-    fn embed(&self, _: &I) -> Features { Features::Dense(vec![].into()) }
-}
-
-macro_rules! impl_approximator_constant {
-    ($type:ty => $n:expr) => {
-        impl Approximator for Constant<$type> {
-            type Output = $type;
-
-            fn n_outputs(&self) -> usize { $n }
-
-            fn evaluate(&self, _: &Features) -> EvaluationResult<Self::Output> { Ok(self.0) }
-
-            fn jacobian(&self, _: &Features) -> Matrix<f64> {
-                Matrix::from_shape_vec((0, 0), vec![]).unwrap()
-            }
-
-            fn update_grad(&mut self, _: &Matrix<f64>, _: Self::Output) -> UpdateResult<()> {
-                Ok(())
-            }
-
-            fn update(&mut self, _: &Features, _: Self::Output) -> UpdateResult<()> { Ok(()) }
-        }
-    };
-}
-
-impl_approximator_constant!(f64 => 1);
-impl_approximator_constant!([f64; 2] => 2);
-impl_approximator_constant!([f64; 3] => 3);
-
-impl Approximator for Constant<Vector<f64>> {
-    type Output = Vector<f64>;
-
-    fn n_outputs(&self) -> usize { self.0.len() }
-
-    fn evaluate(&self, _: &Features) -> EvaluationResult<Self::Output> { Ok(self.0.clone()) }
-
-    fn jacobian(&self, _: &Features) -> Matrix<f64> {
-        Matrix::from_shape_vec((0, 0), vec![]).unwrap()
-    }
-
-    fn update_grad(&mut self, _: &Matrix<f64>, _: Self::Output) -> UpdateResult<()> { Ok(()) }
-
-    fn update(&mut self, _: &Features, _: Self::Output) -> UpdateResult<()> { Ok(()) }
-}
-
-impl<I, V: Clone, M> StdDev<I, M> for Constant<V>
-where Self: Approximator<Output = V>
-{
+impl<I, V: Clone, M> StdDev<I, M> for Constant<V> {
     fn stddev(&self, _: &I) -> V { self.0.clone() }
 
     fn grad_log(&self, _: &I, _: &M, _: M) -> Matrix<f64> { Matrix::default((0, 0)) }
@@ -94,76 +56,90 @@ where Self: Approximator<Output = V>
 }
 
 // Scalar:
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Scalar<F: Approximator<Output = f64>>(pub F);
+#[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
+pub struct Scalar<F>(pub F);
 
-impl_newtype_fa!(Scalar.0 => f64);
+impl<I, F> StateFunction<I> for Scalar<F>
+where
+    F: StateFunction<I, Output = f64>,
+{
+    type Output = f64;
 
-impl<I, F: Approximator<Output = f64> + Embedding<I>> StdDev<I, f64> for Scalar<F> {
+    fn evaluate(&self, state: &I) -> Self::Output {
+        (self.0.evaluate(state) + MIN_STDDEV).max(0.0)
+    }
+
+    fn update(&mut self, state: &I, error: Self::Output) { self.0.update(state, error) }
+}
+
+impl<I, F> StdDev<I, f64> for Scalar<F>
+where
+    F: DifferentiableStateFunction<I, Output = f64> + Parameterised,
+{
     fn stddev(&self, input: &I) -> Self::Output {
-        self.0.evaluate(&self.0.embed(input)).unwrap() + MIN_STDDEV
+        self.evaluate(input)
     }
 
     fn grad_log(&self, input: &I, a: &f64, mean: f64) -> Matrix<f64> {
-        let phi = self.embed(input);
-        let stddev = self.evaluate(&phi).unwrap() + MIN_STDDEV;
-        let gl_partial = gl_from_mv(*a, mean, stddev);
-
-        (phi.expanded(self.0.n_features()) * gl_partial).insert_axis(Axis(1))
+        self.0.grad(input).into() * gl_from_mv(*a, mean, self.evaluate(input))
     }
 
     fn update_stddev(&mut self, input: &I, a: &f64, mean: f64, error: f64) {
-        let phi = self.embed(input);
-        let stddev = self.evaluate(&phi).unwrap() + MIN_STDDEV;
+        let stddev = self.evaluate(input);
 
-        self.update(&phi, gl_from_mv(*a, mean, stddev) * error).ok();
+        self.update(input, gl_from_mv(*a, mean, stddev) * error);
     }
 }
 
 // Pair:
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Pair<F: Approximator<Output = [f64; 2]>>(pub F);
+#[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
+pub struct Pair<F>(pub F);
 
-impl_newtype_fa!(Pair.0 => [f64; 2]);
+impl<I, F> StateFunction<I> for Pair<F>
+where
+    F: StateFunction<I, Output = [f64; 2]>,
+{
+    type Output = [f64; 2];
 
-impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> StdDev<I, [f64; 2]> for Pair<F> {
+    fn evaluate(&self, state: &I) -> Self::Output {
+        let raw = self.0.evaluate(state);
+
+        [
+            (raw[0] + MIN_STDDEV).max(0.0),
+            (raw[1] + MIN_STDDEV).max(0.0)
+        ]
+    }
+
+    fn update(&mut self, state: &I, error: Self::Output) { self.0.update(state, error) }
+}
+
+impl<I, F> StdDev<I, [f64; 2]> for Pair<F>
+where
+    F: DifferentiableStateFunction<I, Output = [f64; 2]> + Parameterised,
+{
     fn stddev(&self, input: &I) -> Self::Output {
-        let raw = self.0.evaluate(&self.0.embed(input)).unwrap();
-
-        [raw[0] + MIN_STDDEV, raw[1] + MIN_STDDEV]
+        self.evaluate(input)
     }
 
     fn grad_log(&self, input: &I, a: &[f64; 2], mean: [f64; 2]) -> Matrix<f64> {
-        let phi = self.embed(input);
-        let stddev = self.evaluate(&phi).unwrap();
+        let mut g = self.0.grad(input).into();
+        let stddev = self.evaluate(input);
 
-        let n_features = self.0.n_features();
-        let phi = phi.expanded(n_features);
+        g.column_mut(0).mul_assign(gl_from_mv(a[0], mean[0], stddev[0]));
+        g.column_mut(0).mul_assign(gl_from_mv(a[1], mean[1], stddev[1]));
 
-        let gl_partial_0 = gl_from_mv(a[0], mean[0], stddev[0] + MIN_STDDEV);
-        let gl_partial_1 = gl_from_mv(a[1], mean[1], stddev[1] + MIN_STDDEV);
-
-        Vector::from_iter(
-            phi.iter()
-                .map(|v| v * gl_partial_0)
-                .chain(phi.iter().map(|v| v * gl_partial_1)),
-        )
-        .into_shape((2, n_features))
-        .unwrap()
-        .reversed_axes()
+        g
     }
 
     fn update_stddev(&mut self, input: &I, a: &[f64; 2], mean: [f64; 2], error: f64) {
-        let phi = self.embed(input);
-        let stddev = self.evaluate(&phi).unwrap();
+        let stddev = self.evaluate(input);
 
         self.update(
-            &phi,
+            input,
             [
-                gl_from_mv(a[0], mean[0], stddev[0] + MIN_STDDEV) * error,
-                gl_from_mv(a[1], mean[1], stddev[1] + MIN_STDDEV) * error,
+                gl_from_mv(a[0], mean[0], stddev[0]) * error,
+                gl_from_mv(a[1], mean[1], stddev[1]) * error,
             ],
-        )
-        .ok();
+        );
     }
 }

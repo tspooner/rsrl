@@ -1,7 +1,9 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Parameterised, VFunction};
-use crate::geometry::{MatrixView, MatrixViewMut};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Weights, WeightsView, WeightsViewMut, Parameterised, StateFunction},
+};
+use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 
 #[derive(Parameterised)]
 pub struct GradientMC<V> {
@@ -33,25 +35,29 @@ impl<V> Algorithm for GradientMC<V> {
     }
 }
 
-impl<S, A, V: VFunction<S>> BatchLearner<S, A> for GradientMC<V> {
+impl<S, A, V> BatchLearner<S, A> for GradientMC<V>
+where
+    V: StateFunction<S, Output = f64>
+{
     fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
         let mut sum = 0.0;
 
         batch.into_iter().rev().for_each(|ref t| {
             sum = t.reward + self.gamma * sum;
 
-            let phi_s = self.v_func.embed(t.from.state());
-            let v_est = self.v_func.evaluate(&phi_s).unwrap();
+            let s = t.from.state();
+            let v = self.v_func.evaluate(s);
 
-            self.v_func.update(&phi_s, self.alpha * (sum - v_est)).ok();
+            self.v_func.update(s, sum - v);
         })
     }
 }
 
-impl<S, V: VFunction<S>> ValuePredictor<S> for GradientMC<V> {
+impl<S, V> ValuePredictor<S> for GradientMC<V>
+where
+    V: StateFunction<S, Output = f64>
+{
     fn predict_v(&self, s: &S) -> f64 {
-        self.v_func.evaluate(&self.v_func.embed(s)).unwrap()
+        self.v_func.evaluate(s)
     }
 }
-
-impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for GradientMC<V> {}

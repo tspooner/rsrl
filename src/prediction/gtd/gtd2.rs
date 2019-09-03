@@ -1,7 +1,12 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, VFunction};
-use crate::geometry::{Space, MatrixView, MatrixViewMut};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{
+        Weights, WeightsView, WeightsViewMut, Parameterised,
+        StateFunction, DifferentiableStateFunction,
+        Gradient,
+    },
+};
 
 #[derive(Parameterised)]
 pub struct GTD2<F> {
@@ -49,32 +54,39 @@ impl<F> Algorithm for GTD2<F> {
     }
 }
 
-impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for GTD2<F> {
+impl<S, A, F> OnlineLearner<S, A> for GTD2<F>
+where
+    F: DifferentiableStateFunction<S, Output = f64>
+{
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.embed(s));
+        let (s, ns) = t.states();
 
-        let v = self.fa_theta.evaluate(&phi_s).unwrap();
+        let w_s = self.fa_w.evaluate(s);
+        let theta_s = self.fa_theta.evaluate(s);
+        let theta_ns = self.fa_theta.evaluate(ns);
 
-        let td_estimate = self.fa_w.evaluate(&phi_s).unwrap();
         let td_error = if t.terminated() {
-            t.reward - v
+            t.reward - theta_s
         } else {
-            t.reward + self.gamma * self.fa_theta.evaluate(&phi_ns).unwrap() - v
+            t.reward + self.gamma * theta_ns - theta_s
         };
 
-        self.fa_w.update(&phi_s, self.beta * (td_error - td_estimate)).unwrap();
+        let grad = self.fa_theta.grad(s);
 
-        let dim = self.fa_theta.n_features();
-        let pd = phi_s.expanded(dim) - self.gamma.value() * phi_ns.expanded(dim);
+        self.fa_w.update_grad_scaled(&grad, self.beta * (td_error - w_s));
 
-        self.fa_theta.update(&Features::Dense(pd), self.alpha * td_estimate).ok();
+        let gamma = self.gamma.value();
+        let grad = grad.combine(&self.fa_theta.grad(ns), move |x, y| x - gamma * y);
+
+        self.fa_theta.update_grad_scaled(&grad, self.alpha * w_s);
     }
 }
 
-impl<S, F: VFunction<S>> ValuePredictor<S> for GTD2<F> {
+impl<S, F> ValuePredictor<S> for GTD2<F>
+where
+    F: StateFunction<S, Output = f64>
+{
     fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
+        self.fa_theta.evaluate(s)
     }
 }
-
-impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for GTD2<F> {}

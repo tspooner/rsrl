@@ -1,74 +1,89 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, VFunction};
-use crate::geometry::{Matrix, MatrixView, MatrixViewMut};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{
+        Weights, WeightsView, WeightsViewMut, Parameterised,
+        StateFunction, DifferentiableStateFunction,
+        traces::Trace,
+    },
+};
 
 #[derive(Parameterised)]
-pub struct TDLambda<F> {
+pub struct TDLambda<F, T> {
     #[weights] pub fa_theta: F,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
+    pub lambda: Parameter,
 
-    trace: Trace,
+    trace: T,
 }
 
-impl<F> TDLambda<F> {
-    pub fn new<T1, T2>(
+impl<F, T> TDLambda<F, T> {
+    pub fn new<T1, T2, T3>(
         fa_theta: F,
-        trace: Trace,
+        trace: T,
         alpha: T1,
         gamma: T2,
+        lambda: T3,
     ) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
+        T3: Into<Parameter>,
     {
         TDLambda {
             fa_theta,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
+            lambda: lambda.into(),
 
             trace,
         }
     }
 }
 
-impl<F> Algorithm for TDLambda<F> {
+impl<F, T: Algorithm> Algorithm for TDLambda<F, T> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+        self.lambda = self.lambda.step();
+
+        self.trace.handle_terminal();
     }
 }
 
-impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for TDLambda<F> {
+impl<S, A, F, T> OnlineLearner<S, A> for TDLambda<F, T>
+where
+    F: DifferentiableStateFunction<S, Output = f64>,
+    T: Trace<F::Gradient>,
+{
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.fa_theta.embed(t.from.state());
-        let v = self.fa_theta.evaluate(&phi_s).unwrap();
+        let s = t.from.state();
+        let v = self.fa_theta.evaluate(s);
 
-        let decay_rate = self.trace.lambda.value() * self.gamma.value();
+        self.trace.scaled_update(
+            self.lambda.value() * self.gamma.value(),
+            &self.fa_theta.grad(s)
+        );
 
-        self.trace.decay(decay_rate);
-        self.trace.update(&phi_s.expanded(self.fa_theta.n_features()));
-
-        let z = self.trace.get();
-        let td_error = if t.terminated() {
-            self.trace.decay(0.0);
-
-            t.reward - v
+        if t.terminated() {
+            self.fa_theta.update_grad_scaled(self.trace.deref(), t.reward - v);
+            self.trace.reset();
         } else {
-            t.reward + self.gamma * self.predict_v(t.to.state()) - v
+            let td_error = t.reward + self.gamma * self.fa_theta.evaluate(t.to.state()) - v;
+
+            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * td_error);
         };
-
-        self.fa_theta.update(&Features::Dense(z), self.alpha * td_error).ok();
     }
 }
 
-impl<S, F: VFunction<S>> ValuePredictor<S> for TDLambda<F> {
+impl<S, F, T> ValuePredictor<S> for TDLambda<F, T>
+where
+    F: StateFunction<S, Output = f64>,
+{
     fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
+        self.fa_theta.evaluate(s)
     }
 }
-
-impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for TDLambda<F> {}

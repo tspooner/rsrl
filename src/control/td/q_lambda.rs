@@ -1,10 +1,16 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Parameterised, Features, QFunction},
-    geometry::{MatrixView, MatrixViewMut},
-    policies::{Greedy, Policy},
+    fa::{
+        Parameterised, Weights, WeightsView, WeightsViewMut,
+        StateActionFunction,
+        FiniteActionFunction,
+        DifferentiableStateActionFunction,
+        traces::Trace,
+    },
+    policies::{Policy, FinitePolicy},
 };
+use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::{thread_rng, Rng};
 
 /// Watkins' Q-learning with eligibility traces.
@@ -14,30 +20,32 @@ use rand::{thread_rng, Rng};
 /// Cambridge University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
-#[derive(Parameterised)]
-pub struct QLambda<F, P> {
+#[derive(Parameterised, Serialize, Deserialize)]
+pub struct QLambda<F, P, T> {
     #[weights] pub fa_theta: F,
 
     pub policy: P,
-    pub target: Greedy<F>,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
+    pub lambda: Parameter,
 
-    trace: Trace,
+    trace: T,
 }
 
-impl<F, P> QLambda<Shared<F>, P> {
-    pub fn new<T1, T2>(
+impl<F, P, T> QLambda<Shared<F>, P, T> {
+    pub fn new<T1, T2, T3>(
         fa_theta: F,
         policy: P,
-        trace: Trace,
+        trace: T,
         alpha: T1,
         gamma: T2,
+        lambda: T3,
     ) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
+        T3: Into<Parameter>,
     {
         let fa_theta = make_shared(fa_theta);
 
@@ -45,79 +53,66 @@ impl<F, P> QLambda<Shared<F>, P> {
             fa_theta: fa_theta.clone(),
 
             policy,
-            target: Greedy::new(fa_theta),
 
             alpha: alpha.into(),
             gamma: gamma.into(),
+            lambda: lambda.into(),
 
             trace,
         }
     }
 }
 
-impl<F, P: Algorithm> Algorithm for QLambda<F, P> {
+impl<F, P: Algorithm, T: Algorithm> Algorithm for QLambda<F, P, T> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+        self.lambda = self.lambda.step();
 
         self.policy.handle_terminal();
-        self.target.handle_terminal();
+        self.trace.handle_terminal();
     }
 }
 
-impl<S, F, P> OnlineLearner<S, P::Action> for QLambda<F, P>
+impl<S, F, P, T> OnlineLearner<S, P::Action> for QLambda<F, P, T>
 where
-    F: QFunction<S>,
-    P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
+    F: FiniteActionFunction<S> + DifferentiableStateActionFunction<S, usize>,
+    P: FinitePolicy<S>,
+    T: Trace<F::Gradient>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        let mut rng = thread_rng();
-
         let s = t.from.state();
-        let phi_s = self.fa_theta.embed(s);
-        let qsa = self.fa_theta.evaluate_index(&phi_s, t.action).unwrap();
+        let qsa = self.fa_theta.evaluate(s, &t.action);
 
         // Update trace:
-        let decay_rate = if t.action == self.target.sample(&mut rng, s) {
-            self.trace.lambda.value() * self.gamma.value()
+        self.trace.scale(if t.action == self.fa_theta.evaluate_max(s).0 {
+            self.lambda.value() * self.gamma.value()
         } else {
             0.0
-        };
-
-        self.trace.decay(decay_rate);
-        self.trace.update(&phi_s.expanded(self.fa_theta.n_features()));
+        });
+        self.trace.update(&self.fa_theta.grad(s, &t.action));
 
         // Update weight vectors:
-        let z = self.trace.get();
-        let residual = if t.terminated() {
-            self.trace.decay(0.0);
-
-            t.reward - qsa
+        if t.terminated() {
+            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * (t.reward - qsa));
+            self.trace.reset();
         } else {
             let ns = t.to.state();
-            let phi_ns = self.fa_theta.embed(ns);
+            let (_, nqs_max) = self.fa_theta.evaluate_max(ns);
+            let residual = t.reward + self.gamma * nqs_max - qsa;
 
-            let na = self.target.sample(&mut rng, ns);
-            let nqsna = self.fa_theta.evaluate_index(&phi_ns, na).unwrap();
-
-            t.reward + self.gamma * nqsna - qsa
-        };
-
-        self.fa_theta.update_index(
-            &Features::Dense(z),
-            t.action,
-            self.alpha * residual,
-        ).ok();
+            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * residual);
+        }
     }
 }
 
-impl<S, F, P> Controller<S, P::Action> for QLambda<F, P>
+impl<S, F, P, T> Controller<S, P::Action> for QLambda<F, P, T>
 where
-    F: QFunction<S>,
-    P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
+    F: FiniteActionFunction<S, Output = f64>,
+    P: FinitePolicy<S>,
 {
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.target.sample(rng, s)
+    fn sample_target(&self, _: &mut impl Rng, s: &S) -> P::Action {
+        self.fa_theta.evaluate_max(s).0
     }
 
     fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
@@ -125,20 +120,20 @@ where
     }
 }
 
-impl<S, F, P> ValuePredictor<S> for QLambda<F, P>
+impl<S, F, P, T> ValuePredictor<S> for QLambda<F, P, T>
 where
-    F: QFunction<S>,
-    P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
+    F: FiniteActionFunction<S, Output = f64>,
+    P: Policy<S>,
 {
-    fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
+    fn predict_v(&self, s: &S) -> f64 { self.fa_theta.evaluate_max(s).1 }
 }
 
-impl<S, F, P> ActionValuePredictor<S, P::Action> for QLambda<F, P>
+impl<S, F, P, T> ActionValuePredictor<S, P::Action> for QLambda<F, P, T>
 where
-    F: QFunction<S>,
-    P: Policy<S, Action = <Greedy<F> as Policy<S>>::Action>,
+    F: StateActionFunction<S, P::Action, Output = f64>,
+    P: Policy<S>,
 {
     fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.evaluate_index(&self.fa_theta.embed(s), a).unwrap()
+        self.fa_theta.evaluate(s, &a)
     }
 }

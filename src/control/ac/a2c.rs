@@ -1,7 +1,7 @@
 use crate::{
     core::*,
     domains::Transition,
-    policies::{Policy, ParameterisedPolicy},
+    policies::{Policy, DifferentiablePolicy},
 };
 use rand::Rng;
 
@@ -39,8 +39,8 @@ where
 
 impl<S, C, P> OnlineLearner<S, P::Action> for A2C<C, P>
 where
-    C: OnlineLearner<S, P::Action> + ActionValuePredictor<S, P::Action>,
-    P: ParameterisedPolicy<S>,
+    C: OnlineLearner<S, P::Action> + ValuePredictor<S> + ActionValuePredictor<S, P::Action>,
+    P: DifferentiablePolicy<S>,
     P::Action: Clone,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {

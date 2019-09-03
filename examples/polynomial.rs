@@ -4,9 +4,13 @@ extern crate slog;
 
 use rsrl::{
     control::td::SARSALambda,
-    core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
+    core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Chebyshev, Composable, LFA},
+    fa::{
+        Parameterised, DifferentiableStateActionFunction,
+        linear::{LFA, basis::{Projector, Polynomial}, optim::SGD},
+        traces::Replacing,
+    },
     geometry::Space,
     logging,
     policies::{EpsilonGreedy, Greedy, Random},
@@ -17,17 +21,17 @@ fn main() {
     let mut agent = {
         let n_actions = domain.action_space().card().into();
 
-        let bases = Chebyshev::from_space(5, domain.state_space()).with_constant();
-        let trace = Trace::replacing(0.5, bases.dim());
-        let q_func = make_shared(LFA::vector(bases, n_actions));
+        let bases = Polynomial::new(domain.state_space().dim().into(), 3).with_constant();
+        let q_func = make_shared(LFA::vector(bases, SGD(1.0), n_actions));
+        let trace = Replacing::new(q_func.zero_grad());
 
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.5, 0.001, 0.99),
+            Parameter::exponential(0.3, 0.001, 0.999),
         );
 
-        SARSALambda::new(q_func, policy, trace, 0.001, 1.0)
+        SARSALambda::new(q_func, policy, trace, 0.01, 0.99, 0.1)
     };
 
     let logger = logging::root(logging::stdout());

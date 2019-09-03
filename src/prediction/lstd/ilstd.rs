@@ -1,8 +1,11 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Embedding, VFunction, Parameterised},
-    geometry::{Space, Matrix, MatrixView, MatrixViewMut},
+    fa::{
+        Weights, WeightsView, WeightsViewMut, Parameterised,
+        StateFunction,
+        linear::{Features, LinearStateFunction},
+    },
     utils::argmaxima,
 };
 use ndarray::Axis;
@@ -11,10 +14,10 @@ use ndarray::Axis;
 #[derive(Parameterised)]
 pub struct iLSTD<F> {
     #[weights] pub fa_theta: F,
+    pub n_updates: usize,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
-    pub n_updates: usize,
 
     a: Matrix<f64>,
     mu: Vector<f64>,
@@ -29,13 +32,13 @@ impl<F: Parameterised> iLSTD<F> {
 
         iLSTD {
             fa_theta,
+            n_updates,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
-            n_updates,
 
-            a: Matrix::zeros(dim),
-            mu: Vector::zeros(dim.0),
+            a: Matrix::eye(dim[0]),
+            mu: Vector::zeros(dim[0]),
         }
     }
 }
@@ -67,36 +70,48 @@ impl<F> Algorithm for iLSTD<F> {
     }
 }
 
-impl<S, A, F: Embedding<S> + Parameterised> OnlineLearner<S, A> for iLSTD<F> {
+impl<S, A, F> OnlineLearner<S, A> for iLSTD<F>
+where
+    F: LinearStateFunction<S, Output = f64>
+{
     fn handle_transition(&mut self, t: &Transition<S, A>) {
+        let (s, ns) = t.states();
+
         // (D x 1)
-        let phi_s = self.fa_theta.embed(t.from.state()).expanded(self.a.rows());
-
-        // (1 x D)
-        let pd = if t.terminated() {
-            phi_s.clone().insert_axis(Axis(0))
-        } else {
-            let phi_ns = self.fa_theta.embed(t.to.state()).expanded(self.a.rows());
-
-            (phi_s.clone() - self.gamma.value() * phi_ns).insert_axis(Axis(0))
-        };
-
-        // (D x D)
-        let delta_a = phi_s.clone().insert_axis(Axis(1)).dot(&pd);
-
-        self.a += &delta_a;
+        let phi_s = self.fa_theta.features(s).expanded();
 
         self.mu.scaled_add(t.reward, &phi_s);
-        self.mu -= &delta_a.dot(&self.fa_theta.weights_view());
+
+        if t.terminated() {
+            let phi_s = phi_s.insert_axis(Axis(1));
+
+            // (D x D)
+            let delta_a = phi_s.dot(&phi_s.t());
+
+            self.a += &delta_a;
+            self.mu -= &delta_a.dot(&self.fa_theta.weights_view()).column(0);
+        } else {
+            let phi_ns = self.fa_theta.features(ns).expanded();
+
+            // (1 x D)
+            let pd = ((-self.gamma.value() * phi_ns) + &phi_s).insert_axis(Axis(0));
+
+            // (D x D)
+            let delta_a = phi_s.view().insert_axis(Axis(1)).dot(&pd);
+
+            self.a += &delta_a;
+            self.mu -= &delta_a.dot(&self.fa_theta.weights_view()).column(0);
+        };
 
         self.solve();
     }
 }
 
-impl<S, F: VFunction<S>> ValuePredictor<S> for iLSTD<F> {
+impl<S, F> ValuePredictor<S> for iLSTD<F>
+where
+    F: StateFunction<S, Output = f64>
+{
     fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
+        self.fa_theta.evaluate(s)
     }
 }
-
-impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for iLSTD<F> {}

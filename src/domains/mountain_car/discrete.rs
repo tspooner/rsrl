@@ -1,9 +1,8 @@
 use crate::domains::{Domain, Observation, Transition};
 use crate::geometry::{
-    Vector,
-    continuous::Interval,
+    ProductSpace,
+    real::Interval,
     discrete::Ordinal,
-    product::LinearSpace,
 };
 
 const X_MIN: f64 = -1.2;
@@ -34,7 +33,7 @@ const ALL_ACTIONS: [f64; 3] = [-1.0, 0.0, 1.0];
 /// [^1]: See [https://en.wikipedia.org/wiki/Mountain_car_problem](https://en.wikipedia.org/wiki/Mountain_car_problem)
 ///
 /// # Technical details
-/// The **state** is represented by a `Vector` with components:
+/// The **state** is represented by a `Vec` with components:
 ///
 /// | Index | Name     | Min   | Max   |
 /// | ----- | -------- | ----- | ----- |
@@ -71,11 +70,11 @@ impl Default for MountainCar {
 }
 
 impl Domain for MountainCar {
-    type StateSpace = LinearSpace<Interval>;
+    type StateSpace = ProductSpace<Interval>;
     type ActionSpace = Ordinal;
 
-    fn emit(&self) -> Observation<Vector<f64>> {
-        let s = Vector::from_vec(vec![self.x, self.v]);
+    fn emit(&self) -> Observation<Vec<f64>> {
+        let s = vec![self.x, self.v];
 
         if self.is_terminal() {
             Observation::Terminal(s)
@@ -84,7 +83,7 @@ impl Domain for MountainCar {
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<Vector<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
         self.update_state(action);
@@ -101,7 +100,7 @@ impl Domain for MountainCar {
 
     fn is_terminal(&self) -> bool { self.x >= X_MAX }
 
-    fn reward(&self, _: &Observation<Vector<f64>>, to: &Observation<Vector<f64>>) -> f64 {
+    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
         match *to {
             Observation::Terminal(_) => REWARD_GOAL,
             _ => REWARD_STEP,
@@ -109,7 +108,7 @@ impl Domain for MountainCar {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        LinearSpace::empty() + Interval::bounded(X_MIN, X_MAX) + Interval::bounded(V_MIN, V_MAX)
+        ProductSpace::empty() + Interval::bounded(X_MIN, X_MAX) + Interval::bounded(V_MIN, V_MAX)
     }
 
     fn action_space(&self) -> Ordinal { Ordinal::new(3) }

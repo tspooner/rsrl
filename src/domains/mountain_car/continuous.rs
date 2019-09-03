@@ -1,9 +1,7 @@
 use crate::domains::{Domain, Observation, Transition};
 use crate::geometry::{
-    Surjection,
-    Vector,
-    continuous::Interval,
-    product::LinearSpace,
+    Surjection, ProductSpace,
+    real::Interval,
 };
 
 const X_MIN: f64 = -1.2;
@@ -41,7 +39,7 @@ impl ContinuousMountainCar {
     fn dv(x: f64, a: f64) -> f64 { FORCE_CAR * a + FORCE_G * (HILL_FREQ * x).cos() }
 
     fn update_state(&mut self, a: f64) {
-        let a = self.action_space.map(a);
+        let a = self.action_space.map_onto(a);
 
         self.v = clip!(V_MIN, self.v + Self::dv(self.x, a), V_MAX);
         self.x = clip!(X_MIN, self.x + self.v, X_MAX);
@@ -53,11 +51,11 @@ impl Default for ContinuousMountainCar {
 }
 
 impl Domain for ContinuousMountainCar {
-    type StateSpace = LinearSpace<Interval>;
+    type StateSpace = ProductSpace<Interval>;
     type ActionSpace = Interval;
 
-    fn emit(&self) -> Observation<Vector<f64>> {
-        let s = Vector::from_vec(vec![self.x, self.v]);
+    fn emit(&self) -> Observation<Vec<f64>> {
+        let s = vec![self.x, self.v];
 
         if self.is_terminal() {
             Observation::Terminal(s)
@@ -66,7 +64,7 @@ impl Domain for ContinuousMountainCar {
         }
     }
 
-    fn step(&mut self, action: f64) -> Transition<Vector<f64>, f64> {
+    fn step(&mut self, action: f64) -> Transition<Vec<f64>, f64> {
         let from = self.emit();
 
         self.update_state(action);
@@ -83,7 +81,7 @@ impl Domain for ContinuousMountainCar {
 
     fn is_terminal(&self) -> bool { self.x >= X_MAX }
 
-    fn reward(&self, _: &Observation<Vector<f64>>, to: &Observation<Vector<f64>>) -> f64 {
+    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
         match *to {
             Observation::Terminal(_) => REWARD_GOAL,
             _ => REWARD_STEP,
@@ -91,7 +89,7 @@ impl Domain for ContinuousMountainCar {
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        LinearSpace::empty() + Interval::bounded(X_MIN, X_MAX) + Interval::bounded(V_MIN, V_MAX)
+        ProductSpace::empty() + Interval::bounded(X_MIN, X_MAX) + Interval::bounded(V_MIN, V_MAX)
     }
 
     fn action_space(&self) -> Interval { Interval::bounded(MIN_ACTION, MAX_ACTION) }

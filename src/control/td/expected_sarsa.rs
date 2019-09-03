@@ -1,8 +1,10 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Parameterised, QFunction},
-    geometry::{MatrixView, MatrixViewMut},
+    fa::{
+        Parameterised, Weights, WeightsView, WeightsViewMut,
+        StateActionFunction, FiniteActionFunction,
+    },
     policies::{Policy, FinitePolicy},
 };
 use rand::Rng;
@@ -52,7 +54,7 @@ impl<Q, P: Algorithm> Algorithm for ExpectedSARSA<Q, P> {
 
 impl<S, Q, P> OnlineLearner<S, P::Action> for ExpectedSARSA<Q, P>
 where
-    Q: QFunction<S>,
+    Q: FiniteActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
@@ -67,10 +69,7 @@ where
             t.reward + self.gamma * exp_nv - qsa
         };
 
-        self.q_func.update_index(
-            &self.q_func.embed(s),
-            t.action, self.alpha * residual
-        ).ok();
+        self.q_func.update(s, &t.action, self.alpha * residual);
     }
 }
 
@@ -86,11 +85,11 @@ impl<S, Q, P: Policy<S>> Controller<S, P::Action> for ExpectedSARSA<Q, P> {
 
 impl<S, Q, P> ValuePredictor<S> for ExpectedSARSA<Q, P>
 where
-    Q: QFunction<S>,
+    Q: FiniteActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
-        self.q_func.evaluate(&self.q_func.embed(s)).unwrap().into_iter()
+        self.q_func.evaluate_all(s).into_iter()
             .zip(self.policy.probabilities(s).into_iter())
             .fold(0.0, |acc, (q, p)| acc + q * p)
     }
@@ -98,10 +97,10 @@ where
 
 impl<S, Q, P> ActionValuePredictor<S, P::Action> for ExpectedSARSA<Q, P>
 where
-    Q: QFunction<S>,
-    P: FinitePolicy<S>,
+    Q: StateActionFunction<S, P::Action, Output = f64>,
+    P: Policy<S>,
 {
     fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
+        self.q_func.evaluate(s, &a)
     }
 }

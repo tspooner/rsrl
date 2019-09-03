@@ -1,7 +1,7 @@
 use crate::{
     core::*,
     domains::Transition,
-    policies::{Policy, ParameterisedPolicy},
+    policies::{Policy, DifferentiablePolicy},
 };
 use rand::{thread_rng, Rng};
 
@@ -60,7 +60,7 @@ where
 impl<S, C, PT, PB> OnlineLearner<S, PT::Action> for CACLA<C, PT, PB>
 where
     C: OnlineLearner<S, PT::Action> + ValuePredictor<S>,
-    PT: ParameterisedPolicy<S, Action = f64>,
+    PT: DifferentiablePolicy<S, Action = f64>,
     PB: Algorithm,
 {
     fn handle_transition(&mut self, t: &Transition<S, PT::Action>) {
@@ -103,7 +103,7 @@ where
 
 impl<S, C, PT, PB> Controller<S, PT::Action> for CACLA<C, PT, PB>
 where
-    PT: ParameterisedPolicy<S>,
+    PT: DifferentiablePolicy<S>,
     PB: Policy<S, Action = PT::Action>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> PT::Action {

@@ -1,10 +1,10 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::Parameterised,
-    geometry::{MatrixView, MatrixViewMut},
-    policies::{Policy, DifferentiablePolicy, ParameterisedPolicy},
+    fa::{Weights, WeightsView, WeightsViewMut, Parameterised},
+    policies::{Policy, DifferentiablePolicy},
 };
+use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::Rng;
 
 /// Off-policy TD-based actor-critic.
@@ -60,33 +60,10 @@ where
 }
 
 impl<C, T, B> OffPAC<C, T, B> {
-    // fn update_trace<S>(&mut self, t: &Transition<S, T::Action>)
-    // where
-        // C: ValuePredictor<S>,
-        // T: DifferentiablePolicy<S>,
-        // T::Action: Clone,
-        // B: Policy<S, Action = T::Action>,
-    // {
-        // let s = t.from.state();
-
-        // let decay_rate = self.lambda.value() * self.gamma.value();
-        // let grad_log = self.target.grad_log(s, &t.action);
-        // let is_ratio = {
-            // let pi = self.target.probability(s, &t.action);
-            // let b = self.behaviour.probability(s, &t.action);
-
-            // pi / b
-        // };
-
-        // self.trace *= decay_rate;
-        // self.trace += &grad_log;
-        // self.trace *= is_ratio;
-    // }
-
     fn update_policy<S>(&mut self, t: &Transition<S, T::Action>)
     where
         C: ValuePredictor<S>,
-        T: ParameterisedPolicy<S>,
+        T: DifferentiablePolicy<S>,
         B: Policy<S, Action = T::Action>,
     {
         let (s, ns) = (t.from.state(), t.to.state());
@@ -112,23 +89,18 @@ impl<C, T, B> OffPAC<C, T, B> {
 impl<S, C, T, B> OnlineLearner<S, T::Action> for OffPAC<C, T, B>
 where
     C: OnlineLearner<S, T::Action> + ValuePredictor<S>,
-    T: DifferentiablePolicy<S> + ParameterisedPolicy<S>,
+    T: DifferentiablePolicy<S>,
     B: Policy<S, Action = T::Action>,
 {
     fn handle_transition(&mut self, t: &Transition<S, T::Action>) {
         self.critic.handle_transition(t);
-
-        // self.update_trace(t);
         self.update_policy(t);
     }
 
     fn handle_sequence(&mut self, sequence: &[Transition<S, T::Action>]) {
         self.critic.handle_sequence(sequence);
 
-        sequence.into_iter().for_each(|ref t| {
-            // self.update_trace(t);
-            self.update_policy(t);
-        });
+        sequence.into_iter().for_each(|ref t| self.update_policy(t));
     }
 }
 
@@ -153,7 +125,7 @@ where
 
 impl<S, C, T, B> Controller<S, T::Action> for OffPAC<C, T, B>
 where
-    T: ParameterisedPolicy<S>,
+    T: DifferentiablePolicy<S>,
     B: Policy<S, Action = T::Action>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> T::Action {

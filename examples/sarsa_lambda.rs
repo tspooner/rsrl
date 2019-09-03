@@ -4,9 +4,12 @@ extern crate slog;
 
 use rsrl::{
     control::td::SARSALambda,
-    core::{make_shared, run, Evaluation, Parameter, SerialExperiment, Trace},
+    core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Fourier, Composable, LFA},
+    fa::{
+        Parameterised, DifferentiableStateActionFunction, traces,
+        linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
+    },
     geometry::Space,
     logging,
     policies::{EpsilonGreedy, Greedy, Random},
@@ -18,8 +21,8 @@ fn main() {
         let n_actions = domain.action_space().card().into();
 
         let bases = Fourier::from_space(3, domain.state_space()).with_constant();
-        let trace = Trace::replacing(0.1, bases.dim());
-        let q_func = make_shared(LFA::vector(bases, n_actions));
+        let q_func = make_shared(LFA::vector(bases, SGD(1.0), n_actions));
+        let trace = traces::Replacing::new(q_func.zero_grad());
 
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
@@ -27,7 +30,7 @@ fn main() {
             Parameter::exponential(0.3, 0.001, 0.999),
         );
 
-        SARSALambda::new(q_func, policy, trace, 0.001, 0.99)
+        SARSALambda::new(q_func, policy, trace, 0.001, 0.99, 0.7)
     };
 
     let logger = logging::root(logging::stdout());

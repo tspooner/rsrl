@@ -1,11 +1,10 @@
-use crate::core::Vector;
-use crate::geometry::{
-    continuous::Interval,
-    discrete::Ordinal,
-    product::LinearSpace,
+use crate::{
+    geometry::{
+        ProductSpace,
+        real::Interval,
+        discrete::Ordinal,
+    },
 };
-use ndarray::{Ix1, NdIndex};
-use std::ops::Index;
 use super::{runge_kutta4, Domain, Observation, Transition};
 
 // Model parameters
@@ -38,86 +37,70 @@ const SIM_STEPS: u32 = 1000;
 const DT_STEP: f64 = DT / SIM_STEPS as f64;
 
 // RL parameters:
-const LIMITS: (f64, f64) = (-5.0, 8.0);
-const ALL_ACTIONS: [(f64, f64); 4] = [(0.0, 0.0), (0.7, 0.0), (0.0, 0.3), (0.7, 0.3)];
+const LIMITS: [f64; 2] = [-5.0, 8.0];
+const ALL_ACTIONS: [[f64; 2]; 4] = [[0.0, 0.0], [0.7, 0.0], [0.0, 0.3], [0.7, 0.3]];
 
-#[derive(Debug, Clone, Copy)]
-enum StateIndex {
-    T1 = 0,
-    T1S = 1,
-    T2 = 2,
-    T2S = 3,
-    V = 4,
-    E = 5,
-}
-
-impl Index<StateIndex> for Vec<f64> {
-    type Output = f64;
-
-    fn index(&self, idx: StateIndex) -> &f64 { self.index(idx as usize) }
-}
-
-unsafe impl NdIndex<Ix1> for StateIndex {
-    #[inline]
-    fn index_checked(&self, dim: &Ix1, strides: &Ix1) -> Option<isize> {
-        (*self as usize).index_checked(dim, strides)
-    }
-
-    #[inline(always)]
-    fn index_unchecked(&self, strides: &Ix1) -> isize { (*self as usize).index_unchecked(strides) }
-}
+make_index!(StateIndex [
+    T1 => 0, T1S => 1, T2 => 2, T2S => 3, V => 4, E => 5
+]);
 
 pub struct HIVTreatment {
-    eps: (f64, f64),
-    state: Vector,
+    eps: [f64; 2],
+    state: [f64; 6],
 }
 
 impl HIVTreatment {
     fn new(t1: f64, t1s: f64, t2: f64, t2s: f64, v: f64, e: f64) -> HIVTreatment {
         HIVTreatment {
             eps: ALL_ACTIONS[0],
-            state: Vector::from_vec(vec![t1, t1s, t2, t2s, v, e]),
+            state: [t1, t1s, t2, t2s, v, e],
         }
     }
 
     fn update_state(&mut self, a: usize) {
         let eps = ALL_ACTIONS[a];
-        let fx = |_x, y| HIVTreatment::grad(eps, &y);
+        let fx = |_x, y| HIVTreatment::grad(eps, y);
 
         self.eps = eps;
 
-        let mut ns = runge_kutta4(&fx, 0.0, self.state.clone(), DT_STEP);
+        let mut ns = runge_kutta4(&fx, 0.0, self.state.to_vec(), DT_STEP);
         for _ in 1..SIM_STEPS {
             ns = runge_kutta4(&fx, 0.0, ns, DT_STEP);
         }
 
-        self.state = ns;
+        self.state[StateIndex::T1] = ns[StateIndex::T1];
+        self.state[StateIndex::T1S] = ns[StateIndex::T1S];
+        self.state[StateIndex::T2] = ns[StateIndex::T2];
+        self.state[StateIndex::T2S] = ns[StateIndex::T2S];
+        self.state[StateIndex::V] = ns[StateIndex::V];
+        self.state[StateIndex::E] = ns[StateIndex::E];
     }
 
-    fn grad(eps: (f64, f64), state: &Vector) -> Vector {
-        let t1 = state[StateIndex::T1];
-        let t1s = state[StateIndex::T1S];
-        let t2 = state[StateIndex::T2];
-        let t2s = state[StateIndex::T2S];
-        let v = state[StateIndex::V];
-        let e = state[StateIndex::E];
+    fn grad(eps: [f64; 2], mut buffer: Vec<f64>) -> Vec<f64> {
+        let t1 = buffer[StateIndex::T1];
+        let t1s = buffer[StateIndex::T1S];
+        let t2 = buffer[StateIndex::T2];
+        let t2s = buffer[StateIndex::T2S];
+        let v = buffer[StateIndex::V];
+        let e = buffer[StateIndex::E];
 
-        let tmp1 = (1.0 - eps.0) * K1 * v * t1;
-        let tmp2 = (1.0 - F * eps.0) * K2 * v * t2;
+        let tmp1 = (1.0 - eps[0]) * K1 * v * t1;
+        let tmp2 = (1.0 - F * eps[0]) * K2 * v * t2;
         let sum_ts = t1s + t2s;
 
-        let d_t1 = LAMBDA1 - D1 * t1 - tmp1;
-        let d_t1s = tmp1 - DELTA * t1s - M1 * e * t1s;
+        buffer[StateIndex::T1] = LAMBDA1 - D1 * t1 - tmp1;
+        buffer[StateIndex::T1S] = tmp1 - DELTA * t1s - M1 * e * t1s;
 
-        let d_t2 = LAMBDA2 - D2 * t2 - tmp2;
-        let d_t2s = tmp2 - DELTA * t2s - M2 * e * t2s;
+        buffer[StateIndex::T2] = LAMBDA2 - D2 * t2 - tmp2;
+        buffer[StateIndex::T2S] = tmp2 - DELTA * t2s - M2 * e * t2s;
 
-        let d_v = (1.0 - eps.1) * NT * DELTA * sum_ts - C * v
-            - ((1.0 - eps.0) * RHO1 * K1 * t1 + (1.0 - F * eps.0) * RHO2 * K2 * t2) * v;
-        let d_e = LAMBDA_E + BE * sum_ts / (sum_ts + KB) * e - DE * sum_ts / (sum_ts + KD) * e
-            - DELTA_E * e;
+        buffer[StateIndex::V] = (1.0 - eps[1]) * NT * DELTA * sum_ts - C * v
+            - ((1.0 - eps[0]) * RHO1 * K1 * t1 + (1.0 - F * eps[0]) * RHO2 * K2 * t2) * v;
+        buffer[StateIndex::E] =
+            LAMBDA_E + BE * sum_ts / (sum_ts + KB) * e
+            - DE * sum_ts / (sum_ts + KD) * e - DELTA_E * e;
 
-        Vector::from_vec(vec![d_t1, d_t1s, d_t2, d_t2s, d_v, d_e])
+        buffer
     }
 }
 
@@ -126,20 +109,20 @@ impl Default for HIVTreatment {
 }
 
 impl Domain for HIVTreatment {
-    type StateSpace = LinearSpace<Interval>;
+    type StateSpace = ProductSpace<Interval>;
     type ActionSpace = Ordinal;
 
-    fn emit(&self) -> Observation<Vector<f64>> {
-        let s = self.state.mapv(|v| clip!(LIMITS.0, v.log10(), LIMITS.1));
+    fn emit(&self) -> Observation<Vec<f64>> {
+        let s = self.state.iter().map(|v| clip!(LIMITS[0], v.log10(), LIMITS[1]));
 
         if self.is_terminal() {
-            Observation::Terminal(s)
+            Observation::Terminal(s.collect())
         } else {
-            Observation::Full(s)
+            Observation::Full(s.collect())
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<Vector<f64>, usize> {
+    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
         self.update_state(action);
@@ -156,22 +139,25 @@ impl Domain for HIVTreatment {
 
     fn is_terminal(&self) -> bool { false }
 
-    fn reward(&self, _: &Observation<Vector<f64>>, to: &Observation<Vector<f64>>) -> f64 {
+    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
         let s = to.state();
-        let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps.0.powf(2.0)
-            - 2e3 * self.eps.1.powf(2.0);
+        let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps[0].powi(2)
+            - 2e3 * self.eps[1].powi(2);
 
-        r.signum() * r.abs().log10()
+        r / 1e5
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        LinearSpace::empty() + Interval::bounded(LIMITS.0, LIMITS.1)
-            + Interval::bounded(LIMITS.0, LIMITS.1) + Interval::bounded(LIMITS.0, LIMITS.1)
-            + Interval::bounded(LIMITS.0, LIMITS.1) + Interval::bounded(LIMITS.0, LIMITS.1)
-            + Interval::bounded(LIMITS.0, LIMITS.1)
+        ProductSpace::empty() +
+            Interval::bounded(LIMITS[0], LIMITS[1])
+            + Interval::bounded(LIMITS[0], LIMITS[1])
+            + Interval::bounded(LIMITS[0], LIMITS[1])
+            + Interval::bounded(LIMITS[0], LIMITS[1])
+            + Interval::bounded(LIMITS[0], LIMITS[1])
+            + Interval::bounded(LIMITS[0], LIMITS[1])
     }
 
-    fn action_space(&self) -> Ordinal { Ordinal::new(3) }
+    fn action_space(&self) -> Ordinal { Ordinal::new(4) }
 }
 
 #[cfg(test)]
@@ -218,8 +204,8 @@ mod tests {
 
         match m.emit() {
             Observation::Full(ref state) => {
-                assert!((state[0] - LIMITS.1).abs() < 1e-7);
-                assert!((state[1] - LIMITS.0).abs() < 1e-7);
+                assert!((state[0] - LIMITS[1]).abs() < 1e-7);
+                assert!((state[1] - LIMITS[0]).abs() < 1e-7);
                 assert!((state[2] - 0.0).abs() < 1e-7);
                 assert!((state[3] - 0.0).abs() < 1e-7);
                 assert!((state[4] - 0.0).abs() < 1e-7);

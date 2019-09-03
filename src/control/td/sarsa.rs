@@ -1,10 +1,13 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Parameterised, QFunction},
-    geometry::{MatrixView, MatrixViewMut},
+    fa::{
+        Parameterised, Weights, WeightsView, WeightsViewMut,
+        StateActionFunction, FiniteActionFunction
+    },
     policies::{Policy, FinitePolicy},
 };
+use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::{thread_rng, Rng};
 
 /// On-policy variant of Watkins' Q-learning (aka "modified Q-learning").
@@ -50,26 +53,24 @@ impl<Q, P: Algorithm> Algorithm for SARSA<Q, P> {
 
 impl<S, Q, P> OnlineLearner<S, P::Action> for SARSA<Q, P>
 where
-    Q: QFunction<S>,
-    P: FinitePolicy<S>,
+    Q: StateActionFunction<S, P::Action, Output = f64>,
+    P: Policy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let qsa = self.q_func.evaluate_index(&self.q_func.embed(s), t.action).unwrap();
+        let qsa = self.q_func.evaluate(s, &t.action);
+
         let residual = if t.terminated() {
             t.reward - qsa
         } else {
             let ns = t.to.state();
             let na = self.policy.sample(&mut thread_rng(), ns);
-            let nqsna = self.q_func.evaluate_index(&self.q_func.embed(ns), na).unwrap();
+            let nqsna = self.q_func.evaluate(ns, &na);
 
             t.reward + self.gamma * nqsna - qsa
         };
 
-        self.q_func.update_index(
-            &self.q_func.embed(s),
-            t.action, self.alpha * residual
-        ).ok();
+        self.q_func.update(s, &t.action, self.alpha * residual);
     }
 }
 
@@ -85,11 +86,11 @@ impl<S, Q, P: Policy<S>> Controller<S, P::Action> for SARSA<Q, P> {
 
 impl<S, Q, P> ValuePredictor<S> for SARSA<Q, P>
 where
-    Q: QFunction<S>,
+    Q: FiniteActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
-        self.q_func.evaluate(&self.q_func.embed(s)).unwrap().into_iter()
+        self.q_func.evaluate_all(s).into_iter()
             .zip(self.policy.probabilities(s).into_iter())
             .fold(0.0, |acc, (q, p)| acc + q * p)
     }
@@ -97,10 +98,10 @@ where
 
 impl<S, Q, P> ActionValuePredictor<S, P::Action> for SARSA<Q, P>
 where
-    Q: QFunction<S>,
-    P: FinitePolicy<S>,
+    Q: StateActionFunction<S, P::Action, Output = f64>,
+    P: Policy<S>,
 {
     fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
+        self.q_func.evaluate(s, &a)
     }
 }

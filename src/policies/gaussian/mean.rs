@@ -1,12 +1,17 @@
 use crate::{
-    fa::{self, Approximator, Embedding, EvaluationResult, Features, Parameterised, UpdateResult},
-    geometry::{Matrix, MatrixView, MatrixViewMut, Vector},
+    fa::{
+        Weights, WeightsView, WeightsViewMut, Parameterised,
+        StateFunction, DifferentiableStateFunction,
+    },
+    geometry::{Matrix, MatrixView, MatrixViewMut, Vector, VectorView},
     utils::pinv,
 };
 use ndarray::Axis;
 use std::ops::MulAssign;
 
-pub trait Mean<I, S>: Approximator + Embedding<I> {
+const STDDEV_TOL: f64 = 0.2;
+
+pub trait Mean<I, S>: StateFunction<I> + Parameterised {
     fn mean(&self, input: &I) -> Self::Output;
 
     fn grad_log(&self, input: &I, a: &Self::Output, stddev: S) -> Matrix<f64>;
@@ -15,124 +20,147 @@ pub trait Mean<I, S>: Approximator + Embedding<I> {
 }
 
 // Scalar:
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Scalar<F: Approximator<Output = f64>>(pub F);
+#[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
+pub struct Scalar<F>(pub F);
 
-impl_newtype_fa!(Scalar.0 => f64);
+impl<I, F> StateFunction<I> for Scalar<F>
+where
+    F: StateFunction<I, Output = f64>,
+{
+    type Output = f64;
 
-impl<I, F: Approximator<Output = f64> + Embedding<I>> Mean<I, f64> for Scalar<F> {
-    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
+    fn evaluate(&self, state: &I) -> Self::Output { self.0.evaluate(state) }
+
+    fn update(&mut self, state: &I, error: Self::Output) { self.0.update(state, error) }
+}
+
+impl<I, F> Mean<I, f64> for Scalar<F>
+where
+    F: DifferentiableStateFunction<I, Output = f64> + Parameterised,
+{
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
     fn grad_log(&self, input: &I, a: &f64, stddev: f64) -> Matrix<f64> {
-        let phi = self.0.embed(input);
-        let mean = self.evaluate(&phi).unwrap();
-        let gl_partial = (a - mean) / stddev / stddev;
+        let mean = self.evaluate(input);
+        let stddev = stddev.max(STDDEV_TOL);
 
-        self.0.jacobian(&phi) * gl_partial
+        self.0.grad(input).into() * (a - mean) / (stddev * stddev)
     }
 
     fn update_mean(&mut self, input: &I, a: &f64, stddev: f64, error: f64) {
-        let phi = self.0.embed(input);
-        let mean = self.evaluate(&phi).unwrap();
+        let mean = self.evaluate(input);
+        let stddev = stddev.max(STDDEV_TOL);
 
-        self.update(&phi, (a - mean) / stddev / stddev * error).ok();
+        self.update(input, (a - mean) / (stddev * stddev) * error);
     }
 }
 
 // Pair:
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Pair<F: Approximator<Output = [f64; 2]>>(pub F);
+#[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
+pub struct Pair<F>(pub F);
 
-impl_newtype_fa!(Pair.0 => [f64; 2]);
+impl<I, F> StateFunction<I> for Pair<F>
+where
+    F: StateFunction<I, Output = [f64; 2]>,
+{
+    type Output = [f64; 2];
 
-impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> Mean<I, f64> for Pair<F> {
-    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
+    fn evaluate(&self, state: &I) -> Self::Output { self.0.evaluate(state) }
+
+    fn update(&mut self, state: &I, error: Self::Output) { self.0.update(state, error) }
+}
+
+impl<I, F> Mean<I, f64> for Pair<F>
+where
+    F: DifferentiableStateFunction<I, Output = [f64; 2]> + Parameterised,
+{
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
     fn grad_log(&self, input: &I, actions: &[f64; 2], stddev: f64) -> Matrix<f64> {
-        let phi = self.0.embed(input);
-
         // (2 x 1)
-        let means = self.evaluate(&phi).unwrap();
+        let means = self.evaluate(input);
+        let stddev = stddev.max(STDDEV_TOL);
 
         // (N x 2)
-        let mut g = self.0.jacobian(&phi);
+        let mut g = self.0.grad(input).into();
 
-        g.column_mut(0)
-            .mul_assign((actions[0] - means[0]) / stddev / stddev);
-        g.column_mut(1)
-            .mul_assign((actions[1] - means[1]) / stddev / stddev);
+        g.column_mut(0).mul_assign((actions[0] - means[0]) / (stddev * stddev));
+        g.column_mut(1).mul_assign((actions[1] - means[1]) / (stddev * stddev));
 
         g
     }
 
     fn update_mean(&mut self, input: &I, actions: &[f64; 2], stddev: f64, error: f64) {
-        let phi = self.0.embed(input);
-        let means = self.evaluate(&phi).unwrap();
+        let means = self.evaluate(input);
+        let stddev = stddev.max(STDDEV_TOL);
 
-        self.update(
-            &phi,
-            [
-                (actions[0] - means[0]) / stddev / stddev * error,
-                (actions[1] - means[1]) / stddev / stddev * error,
-            ],
-        )
-        .ok();
+        self.update(input, [
+            (actions[0] - means[0]) / (stddev * stddev) * error,
+            (actions[1] - means[1]) / (stddev * stddev) * error,
+        ]);
     }
 }
 
-impl<I, F: Approximator<Output = [f64; 2]> + Embedding<I>> Mean<I, [f64; 2]> for Pair<F> {
-    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
+impl<I, F> Mean<I, [f64; 2]> for Pair<F>
+where
+    F: DifferentiableStateFunction<I, Output = [f64; 2]> + Parameterised,
+{
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
     fn grad_log(&self, input: &I, actions: &[f64; 2], stddev: [f64; 2]) -> Matrix<f64> {
-        let phi = self.0.embed(input);
-
         // (2 x 1)
-        let means = self.evaluate(&phi).unwrap();
+        let means = self.evaluate(input);
+        let stddev = [stddev[0].max(STDDEV_TOL), stddev[1].max(STDDEV_TOL)];
 
         // (N x 2)
-        let mut g = self.0.jacobian(&phi);
+        let mut g = self.0.grad(input).into();
 
-        g.column_mut(0)
-            .mul_assign((actions[0] - means[0]) / stddev[0] / stddev[0]);
-        g.column_mut(1)
-            .mul_assign((actions[1] - means[1]) / stddev[1] / stddev[1]);
+        g.column_mut(0).mul_assign((actions[0] - means[0]) / (stddev[0] * stddev[0]));
+        g.column_mut(1).mul_assign((actions[1] - means[1]) / (stddev[1] * stddev[1]));
 
         g
     }
 
     fn update_mean(&mut self, input: &I, actions: &[f64; 2], stddev: [f64; 2], error: f64) {
-        let phi = self.0.embed(input);
-        let means = self.evaluate(&phi).unwrap();
+        let means = self.evaluate(input);
+        let stddev = [stddev[0].max(STDDEV_TOL), stddev[1].max(STDDEV_TOL)];
 
-        self.update(
-            &phi,
-            [
-                (actions[0] - means[0]) / stddev[0] / stddev[0] * error,
-                (actions[1] - means[1]) / stddev[1] / stddev[1] * error,
-            ],
-        )
-        .ok();
+        self.update(input, [
+            (actions[0] - means[0]) / (stddev[0] * stddev[0]) * error,
+            (actions[1] - means[1]) / (stddev[1] * stddev[1]) * error,
+        ]);
     }
 }
 
 // Multi:
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Multi<F: Approximator<Output = Vector<f64>>>(pub F);
+#[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
+pub struct Multi<F>(pub F);
 
-impl_newtype_fa!(Multi.0 => Vector<f64>);
+impl<I, F> StateFunction<I> for Multi<F>
+where
+    F: StateFunction<I, Output = Vec<f64>>,
+{
+    type Output = Vec<f64>;
 
-impl<F: Approximator<Output = Vector<f64>>> Multi<F> {
-    fn gl_fmv_partial(
+    fn evaluate(&self, state: &I) -> Self::Output { self.0.evaluate(state) }
+
+    fn update(&mut self, state: &I, error: Self::Output) { self.0.update(state, error) }
+}
+
+impl<F> Multi<F> {
+    fn gl_fmv_partial<I>(
         &self,
-        phi: &Features,
-        actions: &Vector<f64>,
+        input: &I,
+        actions: &[f64],
         sigma: Matrix<f64>,
     ) -> Matrix<f64>
+    where
+        F: StateFunction<I, Output = Vec<f64>>,
     {
-        let means = self.evaluate(&phi).unwrap();
-
         // A x 1
-        let a_diff = -(means - actions);
+        let a_diff = Vector::from_iter(
+            self.evaluate(input).into_iter().zip(actions.iter()).map(|(m, a)| a - m)
+        );
 
         // A x A
         let sigma_inv = pinv(&sigma).unwrap();
@@ -142,93 +170,103 @@ impl<F: Approximator<Output = Vector<f64>>> Multi<F> {
     }
 }
 
-impl<I, F: Approximator<Output = Vector<f64>> + Embedding<I>> Mean<I, f64> for Multi<F> {
-    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
+impl<I, F> Mean<I, f64> for Multi<F>
+where
+    F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised,
+{
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
-    fn grad_log(&self, input: &I, actions: &Vector<f64>, stddev: f64) -> Matrix<f64> {
-        let phi = self.0.embed(input);
+    fn grad_log(&self, input: &I, actions: &Vec<f64>, stddev: f64) -> Matrix<f64> {
+        let actions = unsafe { VectorView::from_shape_ptr(actions.len(), actions.as_ptr()) };
 
         // (A x 1)
-        let means = self.evaluate(&phi).unwrap();
+        let means = Vector::from_vec(self.evaluate(input));
+        let stddev = stddev.max(STDDEV_TOL);
 
         // (A x 1)
-        let gl_partial = (means - actions).mapv_into(|v| -v / stddev / stddev);
+        let gl_partial = (means - actions).mapv_into(|v| -v / (stddev * stddev));
 
         // (N x A)
-        let jacobian = self.0.jacobian(&phi);
+        let jacobian = self.0.grad(input).into();
 
         jacobian * gl_partial.t()
     }
 
-    fn update_mean(&mut self, input: &I, actions: &Vector<f64>, stddev: f64, error: f64) {
-        let phi = self.0.embed(input);
-        let means = self.evaluate(&phi).unwrap();
+    fn update_mean(&mut self, input: &I, actions: &Vec<f64>, stddev: f64, error: f64) {
+        let means = self.evaluate(input);
+        let stddev = stddev.max(STDDEV_TOL);
+        let var = stddev * stddev;
 
-        let gl_partial_scaled = (means - actions).mapv_into(|v| -v / stddev / stddev * error);
+        let updates = means.into_iter().zip(actions.iter()).map(|(m, a)| (a - m) / var * error);
 
-        self.update(&phi, gl_partial_scaled).ok();
+        self.update(input, updates.collect());
     }
 }
 
-impl<I, F: Approximator<Output = Vector<f64>> + Embedding<I>> Mean<I, Vector<f64>> for Multi<F> {
-    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
+impl<I, F> Mean<I, Vec<f64>> for Multi<F>
+where
+    F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised,
+{
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
-    fn grad_log(&self, input: &I, actions: &Vector<f64>, stddev: Vector<f64>) -> Matrix<f64> {
-        let phi = self.0.embed(input);
-
+    fn grad_log(&self, input: &I, actions: &Vec<f64>, stddev: Vec<f64>) -> Matrix<f64> {
         // (A x 1)
-        let means = self.evaluate(&phi).unwrap();
+        let means = self.evaluate(input);
 
         // (A x 1)
         let gl_partial = means
             .into_iter()
             .zip(actions.into_iter().zip(stddev.into_iter()))
-            .map(|(m, (a, s))| (a - m) / s / s)
+            .map(|(m, (a, s))| {
+                let s = s.max(STDDEV_TOL);
+
+                (a - m) / (s * s)
+            })
             .collect::<Vector<f64>>()
             .insert_axis(Axis(1));
 
         // (N x A)
-        let jacobian = self.0.jacobian(&phi);
+        let jacobian = self.0.grad(input).into();
 
         jacobian * gl_partial.t()
     }
 
-    fn update_mean(&mut self, input: &I, actions: &Vector<f64>, stddev: Vector<f64>, error: f64) {
-        let phi = self.0.embed(input);
-        let means = self.evaluate(&phi).unwrap();
+    fn update_mean(&mut self, input: &I, actions: &Vec<f64>, stddev: Vec<f64>, error: f64) {
+        let means = self.evaluate(input);
 
         let gl_partial_scaled = means
             .into_iter()
             .zip(actions.into_iter().zip(stddev.into_iter()))
-            .map(|(m, (a, s))| (a - m) / s / s * error)
+            .map(|(m, (a, s))| {
+                let s = s.max(STDDEV_TOL);
+
+                (a - m) / (s * s) * error
+            })
             .collect();
 
-        self.update(&phi, gl_partial_scaled).ok();
+        self.update(input, gl_partial_scaled);
     }
 }
 
-impl<I, F: Approximator<Output = Vector<f64>> + Embedding<I>> Mean<I, Matrix<f64>> for Multi<F> {
-    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(&self.0.embed(input)).unwrap() }
+impl<I, F> Mean<I, Matrix<f64>> for Multi<F>
+where
+    F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised,
+{
+    fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
-    fn grad_log(&self, input: &I, actions: &Vector<f64>, sigma: Matrix<f64>) -> Matrix<f64> {
-        // (N x 1)
-        let phi = self.embed(input);
-
+    fn grad_log(&self, input: &I, actions: &Vec<f64>, sigma: Matrix<f64>) -> Matrix<f64> {
         // (A x 1)
-        let gl_partial = self.gl_fmv_partial(&phi, actions, sigma);
+        let gl_partial = self.gl_fmv_partial(input, actions, sigma);
 
         // (N x A)
-        let jacobian = self.0.jacobian(&phi);
+        let jacobian = self.0.grad(input).into();
 
         jacobian * gl_partial.t()
     }
 
-    fn update_mean(&mut self, input: &I, actions: &Vector<f64>, sigma: Matrix<f64>, error: f64) {
-        let phi = self.embed(input);
-        let gl_partial = self
-            .gl_fmv_partial(&phi, actions, sigma)
-            .index_axis_move(Axis(1), 0);
+    fn update_mean(&mut self, input: &I, actions: &Vec<f64>, sigma: Matrix<f64>, error: f64) {
+        let gl_partial = self.gl_fmv_partial(input, actions, sigma);
 
-        self.update(&phi, gl_partial * error).ok();
+        self.update(input, (gl_partial * error).into_raw_vec());
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, Parameterised, Features, basis::Projector, VFunction},
+    fa::{VFunction, DifferentiableVFunction, Parameterised},
     geometry::{Space, MatrixView, MatrixViewMut},
     policies::Policy,
 };

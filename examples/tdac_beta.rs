@@ -7,11 +7,9 @@ use rsrl::{
     core::{run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
     fa::{
-        basis::fixed::Fourier,
+        linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
         transforms::Softplus,
-        Composable,
         TransformedLFA,
-        LFA,
     },
     logging,
     policies::Beta,
@@ -22,7 +20,7 @@ fn main() {
     let domain = ContinuousMountainCar::default();
     let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
-    let critic = TD::new(LFA::scalar(bases.clone()), 0.01, 0.99);
+    let critic = TD::new(LFA::scalar(bases.clone(), SGD(1.0)), 0.01, 0.99);
     let policy = Beta::new(
         TransformedLFA::scalar(bases.clone(), Softplus),
         TransformedLFA::scalar(bases, Softplus),

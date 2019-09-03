@@ -1,5 +1,4 @@
 //! Logging utilities module.
-
 use slog::*;
 use slog_async;
 use slog_term;

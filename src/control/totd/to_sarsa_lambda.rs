@@ -1,8 +1,18 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, Parameterised, Features, QFunction},
-    geometry::{MatrixView, MatrixViewMut},
+    fa::{
+        Gradient,
+        Parameterised,
+        StateActionFunction,
+        FiniteActionFunction,
+        linear::{
+            LinearStateActionFunction,
+            Features, Weights, WeightsView, WeightsViewMut,
+            dot_features
+        },
+        traces::Trace,
+    },
     policies::{Policy, FinitePolicy},
 };
 use rand::{thread_rng, Rng};
@@ -14,115 +24,114 @@ use rand::{thread_rng, Rng};
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
 #[derive(Parameterised)]
-pub struct TOSARSALambda<F, P> {
-    #[weights] pub q_func: F,
+pub struct TOSARSALambda<F, P, T> {
+    #[weights] pub fa_theta: F,
     pub policy: P,
 
     pub alpha: Parameter,
     pub gamma: Parameter,
+    pub lambda: Parameter,
 
-    trace: Trace,
+    trace: T,
     q_old: f64,
 }
 
-impl<F, P> TOSARSALambda<F, P> {
-    pub fn new<T1, T2>(
-        q_func: F,
+impl<F, P, T> TOSARSALambda<F, P, T> {
+    pub fn new<T1, T2, T3>(
+        fa_theta: F,
         policy: P,
-        trace: Trace,
+        trace: T,
         alpha: T1,
         gamma: T2,
+        lambda: T3,
     ) -> Self
     where
         T1: Into<Parameter>,
         T2: Into<Parameter>,
+        T3: Into<Parameter>,
     {
         TOSARSALambda {
-            q_func,
+            fa_theta,
             policy,
 
             alpha: alpha.into(),
             gamma: gamma.into(),
+            lambda: lambda.into(),
 
             trace,
             q_old: 0.0,
         }
     }
-
-    #[inline(always)]
-    fn update_traces(&mut self, phi: Vector<f64>, decay_rate: f64) {
-        let trace_update = (
-            1.0 -
-            self.alpha.value() * decay_rate * self.trace.get().dot(&phi)
-        ) * phi;
-
-        self.trace.decay(decay_rate);
-        self.trace.update(&trace_update);
-    }
 }
 
-impl<F, P> Algorithm for TOSARSALambda<F, P> {
+impl<F, P: Algorithm, T: Algorithm> Algorithm for TOSARSALambda<F, P, T> {
     fn handle_terminal(&mut self) {
         self.alpha = self.alpha.step();
         self.gamma = self.gamma.step();
+        self.lambda = self.lambda.step();
+
+        self.policy.handle_terminal();
+        self.trace.handle_terminal();
+
+        self.q_old = 0.0;
     }
 }
 
-impl<S, F, P> OnlineLearner<S, P::Action> for TOSARSALambda<F, P>
+impl<S, F, P, T> OnlineLearner<S, P::Action> for TOSARSALambda<F, P, T>
 where
-    F: QFunction<S>,
-    P: Policy<S, Action = usize>,
+    F: FiniteActionFunction<S> + LinearStateActionFunction<S, usize>,
+    P: FinitePolicy<S>,
+    T: Trace<F::Gradient>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.q_func.embed(s);
+        let qsa = self.fa_theta.evaluate(s, &t.action);
 
-        // Update traces:
-        let decay_rate = self.trace.lambda.value() * self.gamma.value();
+        // Update trace with latest feature vector:
+        let grad_sa = self.fa_theta.grad(s, &t.action);
+        let phi_sa = grad_sa.features(&t.action).unwrap();
 
-        self.update_traces(phi_s.clone().expanded(self.q_func.n_features()), decay_rate);
+        let alpha = self.alpha.value();
+        let update_rate = self.lambda.value() * self.gamma.value();
 
-        // Update weight vectors:
-        let z = self.trace.get();
-        let qsa = self.q_func.evaluate_index(&phi_s, t.action).unwrap();
-        let q_old = self.q_old;
+        let dotted = if let Some(trace_f) = self.trace.deref().features(&t.action) {
+            dot_features(phi_sa, trace_f)
+        } else { 0.0 };
 
-        let residual = if t.terminated() {
+        self.trace.combine_inplace(&grad_sa, |x, y| {
+            update_rate * x + (1.0 - alpha * update_rate * dotted) * y
+        });
+
+        if t.terminated() {
+            self.fa_theta.update_grad_scaled(
+                self.trace.deref(), self.alpha * (t.reward - self.q_old),
+            );
+            self.fa_theta.update_grad_scaled(
+                &grad_sa, self.alpha * (self.q_old - qsa),
+            );
+
             self.q_old = 0.0;
-            self.trace.decay(0.0);
-
-            t.reward - q_old
-
+            self.trace.reset();
         } else {
             let ns = t.to.state();
-            let phi_ns = self.q_func.embed(ns);
-
             let na = self.sample_behaviour(&mut thread_rng(), ns);
-            let nqsna = self.q_func.evaluate_index(&phi_ns, na).unwrap();
+            let nqsna = self.fa_theta.evaluate(ns, &na);
+
+            let residual = t.reward + self.gamma * nqsna - qsa;
+
+            self.fa_theta.update_grad_scaled(
+                self.trace.deref(), self.alpha * residual,
+            );
+            self.fa_theta.update_grad_scaled(
+                &grad_sa, self.alpha * (self.q_old - qsa),
+            );
 
             self.q_old = nqsna;
-
-            t.reward + self.gamma * nqsna - q_old
         };
-
-        self.q_func.update_index(
-            &Features::Dense(z),
-            t.action,
-            self.alpha * residual,
-        ).ok();
-
-        self.q_func.update_index(
-            &phi_s, t.action,
-            self.alpha * (q_old - qsa),
-        ).ok();
     }
 }
 
-impl<S, F, P> Controller<S, P::Action> for TOSARSALambda<F, P>
-where
-    F: QFunction<S>,
-    P: Policy<S>,
-{
+impl<S, F, P: Policy<S>, T> Controller<S, P::Action> for TOSARSALambda<F, P, T> {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
         self.policy.sample(rng, s)
     }
@@ -132,24 +141,24 @@ where
     }
 }
 
-impl<S, F, P> ValuePredictor<S> for TOSARSALambda<F, P>
+impl<S, F, P, T> ValuePredictor<S> for TOSARSALambda<F, P, T>
 where
-    F: QFunction<S>,
+    F: FiniteActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
-        self.q_func.evaluate(&self.q_func.embed(s)).unwrap().into_iter()
+        self.fa_theta.evaluate_all(s).into_iter()
             .zip(self.policy.probabilities(s).into_iter())
             .fold(0.0, |acc, (x, y)| acc + x * y)
     }
 }
 
-impl<S, F, P> ActionValuePredictor<S, P::Action> for TOSARSALambda<F, P>
+impl<S, F, P, T> ActionValuePredictor<S, P::Action> for TOSARSALambda<F, P, T>
 where
-    F: QFunction<S>,
-    P: FinitePolicy<S>,
+    F: StateActionFunction<S, P::Action, Output = f64>,
+    P: Policy<S>,
 {
     fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
+        self.fa_theta.evaluate(s, &a)
     }
 }

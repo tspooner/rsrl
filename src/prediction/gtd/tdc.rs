@@ -1,7 +1,12 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Approximator, Parameterised, Features, VFunction};
-use crate::geometry::{Space, MatrixView, MatrixViewMut};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{
+        Weights, WeightsView, WeightsViewMut, Parameterised,
+        StateFunction, DifferentiableStateFunction,
+        Gradient,
+    },
+};
 
 #[derive(Parameterised)]
 pub struct TDC<F> {
@@ -49,34 +54,36 @@ impl<F> Algorithm for TDC<F> {
     }
 }
 
-impl<S, A, F: VFunction<S>> OnlineLearner<S, A> for TDC<F> {
+impl<S, A, F> OnlineLearner<S, A> for TDC<F>
+where
+    F: DifferentiableStateFunction<S, Output = f64>,
+{
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let (phi_s, phi_ns) = t.map_states(|s| self.fa_theta.embed(s));
+        let (s, ns) = t.states();
 
-        let v = self.fa_theta.evaluate(&phi_s).unwrap();
+        let w_s = self.fa_w.evaluate(s);
+        let theta_s = self.fa_theta.evaluate(s);
 
-        let td_estimate = self.fa_w.evaluate(&phi_s).unwrap();
         let td_error = if t.terminated() {
-            t.reward - v
+            t.reward - theta_s
         } else {
-            t.reward + self.gamma * self.fa_theta.evaluate(&phi_ns).unwrap() - v
+            t.reward + self.gamma * self.fa_theta.evaluate(ns) - theta_s
         };
 
-        self.fa_w.update(&phi_s, self.beta * (td_error - td_estimate)).ok();
+        self.fa_w.update(s, self.beta * (td_error - w_s));
 
-        let dim = self.fa_theta.n_features();
-        let phi =
-            td_error * phi_s.expanded(dim) -
-            td_estimate * self.gamma.value() * phi_ns.expanded(dim);
+        let grad = self.fa_theta
+            .grad(s).combine(&self.fa_theta.grad(ns), |x, y| td_error * x - w_s * y);
 
-        self.fa_theta.update(&Features::Dense(phi), self.alpha.value()).ok();
+        self.fa_theta.update_grad_scaled(&grad, self.alpha.value());
     }
 }
 
-impl<S, F: VFunction<S>> ValuePredictor<S> for TDC<F> {
+impl<S, F> ValuePredictor<S> for TDC<F>
+where
+    F: StateFunction<S, Output = f64>,
+{
     fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
+        self.fa_theta.evaluate(s)
     }
 }
-
-impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for TDC<F> {}
