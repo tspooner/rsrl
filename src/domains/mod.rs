@@ -213,7 +213,6 @@ import_all!(acrobat);
 import_all!(hiv);
 import_all!(cliff_walk);
 import_all!(windy_cliff_walk);
-import_all!(snakes_ladders);
 
 #[cfg(feature = "openai")]
 import_all!(openai);

@@ -60,8 +60,7 @@ impl Acrobat {
 
     fn update_state(&mut self, a: usize) {
         let fx = |_x, y| Acrobat::grad(ALL_ACTIONS[a], y);
-
-        let mut ns = runge_kutta4(&fx, 0.0, self.0.to_vec(), DT);
+        let ns = runge_kutta4(&fx, 0.0, self.0.to_vec(), DT);
 
         self.0[StateIndex::THETA1] =
             wrap!(LIMITS_THETA1[0], ns[StateIndex::THETA1], LIMITS_THETA1[1]);
