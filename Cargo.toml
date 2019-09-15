@@ -29,11 +29,12 @@ serialize = ["lfa/serialize", "spaces/serialize", "ndarray/serde-1"]
 lfa = "0.13"
 rstat = "0.3"
 spaces = "5.0"
-elementwise = { version = "0.3", features = ["ndarray"] }
 
 rand = "0.7"
 rand_distr = "0.2"
-cpython = { version = "0.2", optional = true }
+
+cpython = { version = "0.3", optional = true }
+
 ndarray = { version = "0.12", features = ["blas", "serde-1"] }
 ndarray-linalg = "0.11"
 special-fun = "0.2"
@@ -45,7 +46,7 @@ slog-term = "2.4"
 slog-async = "2.3"
 
 [dev-dependencies]
-quickcheck = "0.8"
+quickcheck = "0.9"
 
 serde_test = "1.0"
 

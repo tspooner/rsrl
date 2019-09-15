@@ -1,24 +1,26 @@
 use crate::{
     core::{Parameter, Algorithm},
-    fa::gradients::{Gradient, PartialDerivative},
     geometry::{Vector, Matrix, MatrixViewMut},
+    linalg::MatrixLike,
 };
 use ndarray::{ArrayBase, Data, Ix1};
 use std::ops::{AddAssign, MulAssign, Deref, DerefMut};
 use super::Trace;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Accumulating<G: Gradient>(G);
+pub struct Accumulating<G: MatrixLike>(G);
 
-impl<G: Gradient> Accumulating<G> {
+impl<G: MatrixLike> Accumulating<G> {
     pub fn new(grad: G) -> Self { Accumulating(grad) }
+
+    pub fn zeros(dim: [usize; 2]) -> Self { Accumulating::new(G::zeros(dim)) }
 }
 
-impl<G: Gradient> Algorithm for Accumulating<G> {
+impl<G: MatrixLike> Algorithm for Accumulating<G> {
     fn handle_terminal(&mut self) {}
 }
 
-impl<G: Gradient> Trace<G> for Accumulating<G> {
+impl<G: MatrixLike> Trace<G> for Accumulating<G> {
     fn update(&mut self, grad: &G) {
         self.0.combine_inplace(grad, |x, y| x + y);
     }
@@ -28,13 +30,13 @@ impl<G: Gradient> Trace<G> for Accumulating<G> {
     }
 }
 
-impl<G: Gradient> Deref for Accumulating<G> {
+impl<G: MatrixLike> Deref for Accumulating<G> {
     type Target = G;
 
     fn deref(&self) -> &G { &self.0 }
 }
 
-impl<G: Gradient> DerefMut for Accumulating<G> {
+impl<G: MatrixLike> DerefMut for Accumulating<G> {
     fn deref_mut(&mut self) -> &mut G { &mut self.0 }
 }
 

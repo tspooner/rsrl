@@ -5,7 +5,7 @@ extern crate slog;
 use rsrl::{
     control::td::SARSALambda,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
-    domains::{Domain, MountainCar},
+    domains::{Domain, MountainCar, State},
     fa::{
         Parameterised, DifferentiableStateActionFunction, traces,
         linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
@@ -22,7 +22,7 @@ fn main() {
 
         let bases = Fourier::from_space(3, domain.state_space()).with_constant();
         let q_func = make_shared(LFA::vector(bases, SGD(1.0), n_actions));
-        let trace = traces::Replacing::new(q_func.zero_grad());
+        let trace = traces::Replacing::zeros(q_func.weights_dim());
 
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),

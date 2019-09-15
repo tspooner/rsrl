@@ -3,7 +3,7 @@ use crate::{
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction, FiniteActionFunction
+        StateActionFunction, EnumerableStateActionFunction
     },
     policies::{Policy, FinitePolicy},
 };
@@ -86,7 +86,7 @@ impl<S, Q, P: Policy<S>> Controller<S, P::Action> for SARSA<Q, P> {
 
 impl<S, Q, P> ValuePredictor<S> for SARSA<Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {

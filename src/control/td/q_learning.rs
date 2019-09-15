@@ -3,7 +3,7 @@ use crate::{
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction, FiniteActionFunction,
+        StateActionFunction, EnumerableStateActionFunction,
     },
     policies::{Greedy, Policy, FinitePolicy},
 };
@@ -57,7 +57,7 @@ impl<Q, P: Algorithm> Algorithm for QLearning<Q, P> {
 
 impl<S, Q, P> OnlineLearner<S, P::Action> for QLearning<Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
@@ -68,7 +68,7 @@ where
             t.reward - qsa
         } else {
             let ns = t.to.state();
-            let (_, nqsna) = self.q_func.evaluate_max(ns);
+            let (_, nqsna) = self.q_func.find_max(ns);
 
             t.reward + self.gamma * nqsna - qsa
         };
@@ -79,11 +79,11 @@ where
 
 impl<S, Q, P> Controller<S, P::Action> for QLearning<Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn sample_target(&self, _: &mut impl Rng, s: &S) -> P::Action {
-        self.q_func.evaluate_max(s).0
+        self.q_func.find_max(s).0
     }
 
     fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
@@ -93,15 +93,15 @@ where
 
 impl<S, Q, P> ValuePredictor<S> for QLearning<Q, P>
 where
-    Q: FiniteActionFunction<S, Output = f64>,
+    Q: EnumerableStateActionFunction<S, Output = f64>,
     P: Policy<S>,
 {
-    fn predict_v(&self, s: &S) -> f64 { self.q_func.evaluate_max(s).1 }
+    fn predict_v(&self, s: &S) -> f64 { self.q_func.find_max(s).1 }
 }
 
 impl<S, Q, P> ActionValuePredictor<S, <Greedy<Q> as Policy<S>>::Action> for QLearning<Q, P>
 where
-    Q: FiniteActionFunction<S, Output = f64>,
+    Q: EnumerableStateActionFunction<S, Output = f64>,
     P: Policy<S>,
 {
     fn predict_qsa(&self, s: &S, a: <Greedy<Q> as Policy<S>>::Action) -> f64 {

@@ -1,6 +1,5 @@
 use geometry::Matrix;
-use super::{Gradient, PartialDerivative};
-// use std::ops::{Add, Mul};
+use super::{Gradient, Entry};
 
 /// Apply negation to the output.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -26,7 +25,7 @@ impl<G: Gradient> Gradient for Negate<G> {
         unimplemented!()
     }
 
-    fn for_each(&self, mut f: impl FnMut(PartialDerivative)) {
+    fn for_each(&self, mut f: impl FnMut(Entry)) {
         self.0.for_each(|mut pd| {
             pd.gradient = -pd.gradient;
 
@@ -61,7 +60,7 @@ impl<G1: Gradient, G2: Gradient> Gradient for Sum<G1, G2> {
         unimplemented!()
     }
 
-    fn for_each(&self, mut f: impl FnMut(PartialDerivative)) {
+    fn for_each(&self, mut f: impl FnMut(Entry)) {
         self.0.for_each(|mut pd| {
             pd.gradient = -pd.gradient;
 

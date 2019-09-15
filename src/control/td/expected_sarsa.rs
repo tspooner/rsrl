@@ -3,7 +3,7 @@ use crate::{
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction, FiniteActionFunction,
+        StateActionFunction, EnumerableStateActionFunction,
     },
     policies::{Policy, FinitePolicy},
 };
@@ -54,7 +54,7 @@ impl<Q, P: Algorithm> Algorithm for ExpectedSARSA<Q, P> {
 
 impl<S, Q, P> OnlineLearner<S, P::Action> for ExpectedSARSA<Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
@@ -85,7 +85,7 @@ impl<S, Q, P: Policy<S>> Controller<S, P::Action> for ExpectedSARSA<Q, P> {
 
 impl<S, Q, P> ValuePredictor<S> for ExpectedSARSA<Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {

@@ -4,7 +4,7 @@ use crate::{
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
         StateActionFunction,
-        FiniteActionFunction,
+        EnumerableStateActionFunction,
         DifferentiableStateActionFunction,
         traces::Trace,
     },
@@ -111,7 +111,7 @@ impl<S, F, P: Policy<S>, T> Controller<S, P::Action> for SARSALambda<F, P, T> {
 
 impl<S, F, P, T> ValuePredictor<S> for SARSALambda<F, P, T>
 where
-    F: FiniteActionFunction<S>,
+    F: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {

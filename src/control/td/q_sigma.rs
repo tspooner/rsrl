@@ -4,7 +4,7 @@ use crate::{
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
         StateActionFunction,
-        FiniteActionFunction,
+        EnumerableStateActionFunction,
     },
     policies::{Greedy, Policy, FinitePolicy},
 };
@@ -119,7 +119,7 @@ impl<S, Q, P> QSigma<S, Shared<Q>, P> {
     }
 }
 
-impl<S, Q: FiniteActionFunction<S>, P> QSigma<S, Q, P> {
+impl<S, Q: EnumerableStateActionFunction<S>, P> QSigma<S, Q, P> {
     fn update_backup(&mut self, entry: BackupEntry<S>) {
         self.backup.push(entry);
 
@@ -152,7 +152,7 @@ impl<S, Q, P: Algorithm> Algorithm for QSigma<S, Q, P> {
 impl<S, Q, P> OnlineLearner<S, P::Action> for QSigma<S, Q, P>
 where
     S: Clone,
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
@@ -207,7 +207,7 @@ where
 
 impl<S, Q, P> Controller<S, P::Action> for QSigma<S, Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
@@ -221,7 +221,7 @@ where
 
 impl<S, Q, P> ValuePredictor<S> for QSigma<S, Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
@@ -229,7 +229,7 @@ where
 
 impl<S, Q, P> ActionValuePredictor<S, <Greedy<Q> as Policy<S>>::Action> for QSigma<S, Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_qsa(&self, s: &S, a: <Greedy<Q> as Policy<S>>::Action) -> f64 {

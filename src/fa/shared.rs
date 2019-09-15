@@ -19,11 +19,13 @@ impl<X: ?Sized, T: DifferentiableStateFunction<X>> DifferentiableStateFunction<X
 
     fn grad(&self, state: &X) -> Self::Gradient { self.borrow().grad(state) }
 
-    fn update_grad<G: Gradient>(&mut self, grad: &G) {
+    // fn zero_grad(&self) -> Self::Gradient { self.borrow().zero_grad() }
+
+    fn update_grad<G: crate::linalg::MatrixLike>(&mut self, grad: &G) {
         self.borrow_mut().update_grad(grad)
     }
 
-    fn update_grad_scaled<G: Gradient>(&mut self, grad: &G, factor: f64) {
+    fn update_grad_scaled<G: crate::linalg::MatrixLike>(&mut self, grad: &G, factor: f64) {
         self.borrow_mut().update_grad_scaled(grad, factor)
     }
 }
@@ -48,16 +50,18 @@ where
 
     fn grad(&self, state: &X, action: &U) -> Self::Gradient { self.borrow().grad(state, action) }
 
-    fn update_grad<G: Gradient>(&mut self, grad: &G) {
+    // fn zero_grad(&self) -> Self::Gradient { self.borrow().zero_grad() }
+
+    fn update_grad<G: crate::linalg::MatrixLike>(&mut self, grad: &G) {
         self.borrow_mut().update_grad(grad)
     }
 
-    fn update_grad_scaled<G: Gradient>(&mut self, grad: &G, factor: f64) {
+    fn update_grad_scaled<G: crate::linalg::MatrixLike>(&mut self, grad: &G, factor: f64) {
         self.borrow_mut().update_grad_scaled(grad, factor)
     }
 }
 
-impl<X: ?Sized, T: FiniteActionFunction<X>> FiniteActionFunction<X> for Shared<T> {
+impl<X: ?Sized, T: EnumerableStateActionFunction<X>> EnumerableStateActionFunction<X> for Shared<T> {
     fn n_actions(&self) -> usize { self.borrow().n_actions() }
 
     fn evaluate_all(&self, state: &X) -> Vec<f64> { self.borrow().evaluate_all(state) }

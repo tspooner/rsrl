@@ -1,6 +1,6 @@
 use crate::{
-    fa::gradients::{Gradient, PartialDerivative},
     geometry::{Vector, Matrix, MatrixViewMut},
+    linalg::{MatrixLike, Entry},
 };
 use ndarray::Array1;
 use std::{
@@ -19,13 +19,6 @@ pub struct LFAGradient {
 impl LFAGradient {
     pub fn new(dim: [usize; 2], features: HashMap<usize, Features>) -> Self {
         LFAGradient { dim, features, }
-    }
-
-    pub fn empty(dim: [usize; 2]) -> Self {
-        Self {
-            dim,
-            features: HashMap::new(),
-        }
     }
 
     pub fn from_features(dim: [usize; 2], column: usize, features: Features) -> Self {
@@ -47,7 +40,11 @@ impl LFAGradient {
     }
 }
 
-impl Gradient for LFAGradient {
+impl MatrixLike for LFAGradient {
+    fn zeros(dim: [usize; 2]) -> Self {
+        Self::new(dim, HashMap::new())
+    }
+
     fn dim(&self) -> [usize; 2] { self.dim }
 
     fn map(mut self, f: impl Fn(f64) -> f64) -> Self {
@@ -84,17 +81,17 @@ impl Gradient for LFAGradient {
         }
     }
 
-    fn for_each(&self, mut f: impl FnMut(PartialDerivative)) {
+    fn for_each(&self, mut f: impl FnMut(Entry)) {
         for (&c, features) in self.features.iter() {
             match features {
                 Features::Dense(activations) => {
-                    activations.iter().enumerate().for_each(|(i, &a)| f(PartialDerivative {
+                    activations.iter().enumerate().for_each(|(i, &a)| f(Entry {
                         index: [i, c],
                         gradient: a,
                     }))
                 },
                 Features::Sparse(_, activations) => {
-                    activations.iter().for_each(|(&i, &a)| f(PartialDerivative {
+                    activations.iter().for_each(|(&i, &a)| f(Entry {
                         index: [i, c],
                         gradient: a,
                     }))

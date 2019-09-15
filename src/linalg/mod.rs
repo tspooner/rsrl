@@ -1,13 +1,19 @@
 use crate::geometry::{Vector, Matrix, MatrixViewMut};
 use std::ops::{AddAssign, MulAssign};
 
-pub struct PartialDerivative {
+pub struct Entry {
     pub index: [usize; 2],
     pub gradient: f64,
 }
 
-pub trait Gradient: Clone + Into<Matrix<f64>> {
+pub trait MatrixLike: Clone + Into<Matrix<f64>> {
+    fn zeros(dim: [usize; 2]) -> Self;
+
     fn dim(&self) -> [usize; 2];
+
+    fn n_rows(&self) -> usize { self.dim()[0] }
+
+    fn n_cols(&self) -> usize { self.dim()[1] }
 
     fn map(mut self, f: impl Fn(f64) -> f64) -> Self {
         self.map_inplace(f); self
@@ -21,7 +27,7 @@ pub trait Gradient: Clone + Into<Matrix<f64>> {
 
     fn combine_inplace(&mut self, other: &Self, f: impl Fn(f64, f64) -> f64);
 
-    fn for_each(&self, f: impl FnMut(PartialDerivative));
+    fn for_each(&self, f: impl FnMut(Entry));
 
     fn addto(&self, weights: &mut MatrixViewMut<f64>) {
         self.for_each(|pd| weights[pd.index] += pd.gradient);
@@ -31,11 +37,10 @@ pub trait Gradient: Clone + Into<Matrix<f64>> {
         self.for_each(|pd| weights[pd.index] += alpha * pd.gradient);
     }
 
-    fn to_matrix(&self) -> Matrix<f64> { self.clone().into() }
+    fn to_dense(&self) -> Matrix<f64> { self.clone().into() }
 }
 
-import_all!(matrix);
-// import_all!(column);
+import_all!(dense);
 import_all!(columnar);
 import_all!(sparse);
 

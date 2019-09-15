@@ -3,7 +3,7 @@ use crate::{
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction, FiniteActionFunction,
+        StateActionFunction, EnumerableStateActionFunction,
     },
     policies::{Policy, FinitePolicy, Greedy},
 };
@@ -58,7 +58,7 @@ impl<Q, P: Algorithm> Algorithm for PAL<Q, P> {
 
 impl<S, Q, P> OnlineLearner<S, P::Action> for PAL<Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
@@ -86,7 +86,7 @@ where
 
 impl<S, Q, P> Controller<S, P::Action> for PAL<Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
@@ -100,7 +100,7 @@ where
 
 impl<S, Q, P> ValuePredictor<S> for PAL<Q, P>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }

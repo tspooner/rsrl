@@ -48,8 +48,6 @@ where
         let phi_s = self.fa_theta.features(s);
         let theta_s = self.fa_theta.evaluate_features(&phi_s);
 
-        let n = phi_s.n_features();
-
         if t.terminated() {
             // (D x 1)
             let phi_s = phi_s.expanded().insert_axis(Axis(1));

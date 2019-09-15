@@ -109,3 +109,5 @@ import_all!(identity);
 import_all!(softplus);
 import_all!(logistic);
 import_all!(exponential);
+
+// TODO: Add implementations of standard activation functions.

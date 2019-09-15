@@ -4,7 +4,7 @@ use crate::{
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
         StateActionFunction,
-        FiniteActionFunction,
+        EnumerableStateActionFunction,
         DifferentiableStateActionFunction,
         traces::Trace,
     },
@@ -76,7 +76,7 @@ impl<F, P: Algorithm, T: Algorithm> Algorithm for QLambda<F, P, T> {
 
 impl<S, F, P, T> OnlineLearner<S, P::Action> for QLambda<F, P, T>
 where
-    F: FiniteActionFunction<S> + DifferentiableStateActionFunction<S, usize>,
+    F: EnumerableStateActionFunction<S> + DifferentiableStateActionFunction<S, usize>,
     P: FinitePolicy<S>,
     T: Trace<F::Gradient>,
 {
@@ -85,7 +85,7 @@ where
         let qsa = self.fa_theta.evaluate(s, &t.action);
 
         // Update trace:
-        self.trace.scale(if t.action == self.fa_theta.evaluate_max(s).0 {
+        self.trace.scale(if t.action == self.fa_theta.find_max(s).0 {
             self.lambda.value() * self.gamma.value()
         } else {
             0.0
@@ -98,7 +98,7 @@ where
             self.trace.reset();
         } else {
             let ns = t.to.state();
-            let (_, nqs_max) = self.fa_theta.evaluate_max(ns);
+            let (_, nqs_max) = self.fa_theta.find_max(ns);
             let residual = t.reward + self.gamma * nqs_max - qsa;
 
             self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * residual);
@@ -108,11 +108,11 @@ where
 
 impl<S, F, P, T> Controller<S, P::Action> for QLambda<F, P, T>
 where
-    F: FiniteActionFunction<S, Output = f64>,
+    F: EnumerableStateActionFunction<S, Output = f64>,
     P: FinitePolicy<S>,
 {
     fn sample_target(&self, _: &mut impl Rng, s: &S) -> P::Action {
-        self.fa_theta.evaluate_max(s).0
+        self.fa_theta.find_max(s).0
     }
 
     fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
@@ -122,10 +122,10 @@ where
 
 impl<S, F, P, T> ValuePredictor<S> for QLambda<F, P, T>
 where
-    F: FiniteActionFunction<S, Output = f64>,
+    F: EnumerableStateActionFunction<S, Output = f64>,
     P: Policy<S>,
 {
-    fn predict_v(&self, s: &S) -> f64 { self.fa_theta.evaluate_max(s).1 }
+    fn predict_v(&self, s: &S) -> f64 { self.fa_theta.find_max(s).1 }
 }
 
 impl<S, F, P, T> ActionValuePredictor<S, P::Action> for QLambda<F, P, T>

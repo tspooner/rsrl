@@ -1,5 +1,5 @@
 use super::{FinitePolicy, Greedy, Policy, Random};
-use crate::{core::*, domains::Transition, fa::FiniteActionFunction};
+use crate::{core::*, domains::Transition, fa::EnumerableStateActionFunction};
 use rand::Rng;
 
 pub struct EpsilonGreedy<Q> {
@@ -21,7 +21,7 @@ impl<Q> EpsilonGreedy<Q> {
 
     #[allow(non_snake_case)]
     pub fn from_Q<S, T: Into<Parameter>>(q_func: Q, epsilon: T) -> Self
-    where Q: FiniteActionFunction<S> {
+    where Q: EnumerableStateActionFunction<S> {
         let greedy = Greedy::new(q_func);
         let random = Random::new(greedy.n_actions());
 
@@ -38,7 +38,7 @@ impl<Q> Algorithm for EpsilonGreedy<Q> {
     }
 }
 
-impl<S, Q: FiniteActionFunction<S>> Policy<S> for EpsilonGreedy<Q> {
+impl<S, Q: EnumerableStateActionFunction<S>> Policy<S> for EpsilonGreedy<Q> {
     type Action = usize;
 
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R, s: &S) -> usize {
@@ -54,7 +54,7 @@ impl<S, Q: FiniteActionFunction<S>> Policy<S> for EpsilonGreedy<Q> {
     fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
 }
 
-impl<S, Q: FiniteActionFunction<S>> FinitePolicy<S> for EpsilonGreedy<Q> {
+impl<S, Q: EnumerableStateActionFunction<S>> FinitePolicy<S> for EpsilonGreedy<Q> {
     fn n_actions(&self) -> usize { self.greedy.n_actions() }
 
     fn probabilities(&self, s: &S) -> Vec<f64> {

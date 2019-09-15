@@ -9,7 +9,7 @@ use rsrl::{
     fa::{
         Parameterised, DifferentiableStateActionFunction,
         linear::{LFA, basis::{Projector, Polynomial}, optim::SGD},
-        traces::Replacing,
+        traces,
     },
     geometry::Space,
     logging,
@@ -23,7 +23,7 @@ fn main() {
 
         let bases = Polynomial::new(domain.state_space().dim().into(), 3).with_constant();
         let q_func = make_shared(LFA::vector(bases, SGD(1.0), n_actions));
-        let trace = Replacing::new(q_func.zero_grad());
+        let trace = traces::Replacing::zeros(q_func.weights_dim());
 
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),

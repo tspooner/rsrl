@@ -3,8 +3,7 @@ use crate::{
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
-        StateActionFunction, DifferentiableStateActionFunction, FiniteActionFunction,
-        gradients::Columnar,
+        StateActionFunction, DifferentiableStateActionFunction, EnumerableStateActionFunction,
         linear::{
             Approximator, ScalarApproximator, VectorApproximator,
             ScalarFunction, PairFunction, VectorFunction,
@@ -14,6 +13,7 @@ use crate::{
         },
         transforms,
     },
+    linalg::Columnar,
 };
 use std::ops::{Deref, AddAssign};
 
@@ -167,7 +167,7 @@ where
     // }
 // }
 
-// impl<X, B, A> FiniteActionFunction<X> for TransformedLFA<B, A>
+// impl<X, B, A> EnumerableStateActionFunction<X> for TransformedLFA<B, A>
 // where
     // X: DerefSlice,
     // B: Projector,

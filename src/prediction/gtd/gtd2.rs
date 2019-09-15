@@ -4,8 +4,8 @@ use crate::{
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
-        Gradient,
     },
+    linalg::MatrixLike,
 };
 
 #[derive(Parameterised)]

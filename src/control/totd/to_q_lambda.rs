@@ -2,8 +2,7 @@ use crate::{
     core::*,
     domains::Transition,
     fa::{
-        Parameterised, StateFunction, StateActionFunction, FiniteActionFunction,
-        gradients::Gradient,
+        Parameterised, StateFunction, StateActionFunction, EnumerableStateActionFunction,
         linear::{
             LinearStateFunction, LinearStateActionFunction,
             Features, Weights, WeightsView, WeightsViewMut,
@@ -12,6 +11,7 @@ use crate::{
         traces::Trace,
     },
     geometry::{MatrixView, MatrixViewMut},
+    linalg::MatrixLike,
     policies::{Greedy, Policy, FinitePolicy},
 };
 use rand::{thread_rng, Rng};
@@ -82,7 +82,7 @@ impl<F, P: Algorithm, T: Algorithm> Algorithm for TOQLambda<F, P, T> {
 
 impl<S, F, P, T> OnlineLearner<S, P::Action> for TOQLambda<F, P, T>
 where
-    F: FiniteActionFunction<S> + LinearStateActionFunction<S, usize>,
+    F: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
     P: FinitePolicy<S>,
     T: Trace<F::Gradient>,
 {
@@ -94,7 +94,7 @@ where
         let grad_sa = self.fa_theta.grad(s, &t.action);
         let phi_sa = grad_sa.features(&t.action).unwrap();
 
-        if t.action == self.fa_theta.evaluate_max(s).0 {
+        if t.action == self.fa_theta.find_max(s).0 {
             let alpha = self.alpha.value();
             let update_rate = self.lambda.value() * self.gamma.value();
 
@@ -106,7 +106,7 @@ where
                 update_rate * x + (1.0 - alpha * update_rate * dotted) * y
             });
         } else {
-            self.trace.combine_inplace(&grad_sa, |x, y| y);
+            self.trace.combine_inplace(&grad_sa, |_, y| y);
         }
 
         // Update weight vectors:
@@ -140,7 +140,7 @@ where
 
 impl<S, F, P, T> Controller<S, P::Action> for TOQLambda<F, P, T>
 where
-    F: FiniteActionFunction<S>,
+    F: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
@@ -154,7 +154,7 @@ where
 
 impl<S, F, P, T> ValuePredictor<S> for TOQLambda<F, P, T>
 where
-    F: FiniteActionFunction<S, Output = f64>,
+    F: EnumerableStateActionFunction<S, Output = f64>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }

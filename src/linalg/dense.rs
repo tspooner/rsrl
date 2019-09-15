@@ -1,8 +1,12 @@
-use crate::{geometry::{Matrix, MatrixView, MatrixViewMut}};
+use crate::{
+    geometry::{Matrix, MatrixView, MatrixViewMut},
+    linalg::{MatrixLike, Entry},
+};
 use std::ops::{Add, AddAssign, Mul, MulAssign};
-use super::{Gradient, PartialDerivative};
 
-impl Gradient for Matrix<f64> {
+impl MatrixLike for Matrix<f64> {
+    fn zeros(dim: [usize; 2]) -> Self { Self::zeros(dim) }
+
     fn dim(&self) -> [usize; 2] { let (r, c) = self.dim(); [r, c] }
 
     fn map(self, f: impl Fn(f64) -> f64) -> Self { self.mapv_into(f) }
@@ -13,8 +17,8 @@ impl Gradient for Matrix<f64> {
         self.zip_mut_with(other, |x, y| *x = f(*x, *y));
     }
 
-    fn for_each(&self, f: impl FnMut(PartialDerivative)) {
-        self.indexed_iter().map(|(index, gradient)| PartialDerivative {
+    fn for_each(&self, f: impl FnMut(Entry)) {
+        self.indexed_iter().map(|(index, gradient)| Entry {
             index: [index.0, index.1],
             gradient: *gradient,
         }).for_each(f);

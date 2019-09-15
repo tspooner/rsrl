@@ -1,6 +1,6 @@
 use crate::{
     core::*,
-    fa::FiniteActionFunction,
+    fa::EnumerableStateActionFunction,
     policies::{FinitePolicy, Policy},
     utils::{argmaxima},
 };
@@ -17,7 +17,7 @@ impl<Q> Greedy<Q> {
 
 impl<Q> Algorithm for Greedy<Q> {}
 
-impl<S, Q: FiniteActionFunction<S>> Policy<S> for Greedy<Q> {
+impl<S, Q: EnumerableStateActionFunction<S>> Policy<S> for Greedy<Q> {
     type Action = usize;
 
     fn mpa(&self, s: &S) -> usize {
@@ -27,7 +27,7 @@ impl<S, Q: FiniteActionFunction<S>> Policy<S> for Greedy<Q> {
     fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
 }
 
-impl<S, Q: FiniteActionFunction<S>> FinitePolicy<S> for Greedy<Q> {
+impl<S, Q: EnumerableStateActionFunction<S>> FinitePolicy<S> for Greedy<Q> {
     fn n_actions(&self) -> usize { self.0.n_actions() }
 
     fn probabilities(&self, s: &S) -> Vec<f64> {

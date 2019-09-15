@@ -16,7 +16,6 @@ extern crate serde;
 
 #[macro_use]
 extern crate lfa;
-extern crate elementwise;
 
 pub mod geometry {
     extern crate spaces;
@@ -39,6 +38,7 @@ mod utils;
 
 pub(crate) mod consts;
 pub mod core;
+pub mod linalg;
 pub mod domains;
 pub mod logging;
 

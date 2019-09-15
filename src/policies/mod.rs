@@ -9,7 +9,13 @@
 //! considered a special case of stochastic policies in which all probability mass is placed on a
 //! single action _u'_ for any given state _x_. For continuous policies, this can be seen as a
 //! dirac delta distribution, _δ(u' - u)_.
-use crate::{core::*, domains::Transition, fa::{Parameterised, Gradient}, geometry::MatrixView};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::Parameterised,
+    geometry::MatrixView,
+    linalg::MatrixLike
+};
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use std::ops::AddAssign;
 

@@ -3,7 +3,7 @@ use crate::{
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
-        StateActionFunction, DifferentiableStateActionFunction, FiniteActionFunction,
+        StateActionFunction, DifferentiableStateActionFunction, EnumerableStateActionFunction,
         linear::{
             LFAGradient, Features,
             LinearStateFunction, LinearStateActionFunction,
@@ -14,8 +14,6 @@ use crate::{
         }
     },
 };
-use ndarray::{Axis, Array2, ArrayView2, ArrayViewMut2};
-use std::ops::{Deref, AddAssign};
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, Debug, Parameterised)]
@@ -32,10 +30,6 @@ impl<B: Projector, O: Optimiser, A: Approximator> LFA<B, O, A> {
             optimiser,
             approximator,
         }
-    }
-
-    pub fn zero_grad(&self) -> LFAGradient {
-        LFAGradient::empty(self.weights_dim())
     }
 }
 
@@ -170,7 +164,7 @@ where
     }
 }
 
-impl<X, B, O, A> FiniteActionFunction<X> for LFA<B, O, A>
+impl<X, B, O, A> EnumerableStateActionFunction<X> for LFA<B, O, A>
 where
     X: DerefSlice,
     B: Projector,

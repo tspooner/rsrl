@@ -3,7 +3,7 @@ use crate::{
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, StateActionFunction, DifferentiableStateActionFunction,
-        FiniteActionFunction,
+        EnumerableStateActionFunction,
         linear::{
             LinearStateFunction, LinearStateActionFunction,
             Approximator, ScalarFunction, LFAGradient, Features,
@@ -13,8 +13,7 @@ use crate::{
     },
     policies::{Policy, DifferentiablePolicy},
 };
-use ndarray::{Axis, Array2, ArrayView2, ArrayViewMut2};
-use std::ops::{Deref, AddAssign};
+use ndarray::Axis;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, Parameterised)]
@@ -67,6 +66,10 @@ where
             self.features(state, action)
         )
     }
+
+    // fn zero_grad(&self) -> Self::Gradient {
+        // LFAGradient::empty(self.weights_dim())
+    // }
 }
 
 impl<X, U, P, O> LinearStateActionFunction<X, U> for CFA<P, O>
@@ -111,10 +114,6 @@ impl<P: Parameterised, B: Projector, O: Optimiser> StableCFA<P, B, O> {
         let approximator = ScalarFunction::zeros(wd[0] * wd[1] + bf);
 
         StableCFA { policy, basis, optimiser, approximator }
-    }
-
-    pub fn zero_grad(&self) -> LFAGradient {
-        LFAGradient::empty(self.weights_dim())
     }
 
     pub fn to_lfa(&self) -> crate::fa::linear::LFA<B, O, ScalarFunction>
@@ -192,6 +191,10 @@ where
             self.features(state, action)
         )
     }
+
+    // fn zero_grad(&self) -> Self::Gradient {
+        // LFAGradient::empty(self.weights_dim())
+    // }
 }
 
 impl<X, U, B, P, O> LinearStateActionFunction<X, U> for StableCFA<P, B, O>

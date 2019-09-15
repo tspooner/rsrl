@@ -1,6 +1,8 @@
-use crate::geometry::{Vector, VectorView, Matrix, MatrixViewMut};
+use crate::{
+    geometry::{Vector, VectorView, Matrix, MatrixViewMut},
+    linalg::{MatrixLike, Entry},
+};
 use std::ops::{Add, AddAssign, Mul, MulAssign};
-use super::{Gradient, PartialDerivative};
 
 type GradMap = ::std::collections::HashMap<usize, Vector<f64>>;
 
@@ -43,19 +45,16 @@ impl Columnar {
         }
     }
 
-    pub fn empty(dim: [usize; 2]) -> Self {
-        Self {
-            dim,
-            grads: GradMap::new(),
-        }
-    }
-
     pub unsafe fn new_unchecked(dim: [usize; 2], grads: GradMap) -> Columnar {
         Columnar { dim, grads }
     }
 }
 
-impl Gradient for Columnar {
+impl MatrixLike for Columnar {
+    fn zeros(dim: [usize; 2]) -> Self {
+        unsafe { Self::new_unchecked(dim, GradMap::new()) }
+    }
+
     fn dim(&self) -> [usize; 2] { self.dim }
 
     fn map(self, f: impl Fn(f64) -> f64) -> Self {
@@ -83,9 +82,9 @@ impl Gradient for Columnar {
         }
     }
 
-    fn for_each(&self, mut f: impl FnMut(PartialDerivative)) {
+    fn for_each(&self, mut f: impl FnMut(Entry)) {
         for (&c, pds) in self.grads.iter() {
-            pds.iter().enumerate().map(|(row, gradient)| PartialDerivative {
+            pds.iter().enumerate().map(|(row, gradient)| Entry {
                 index: [row, c],
                 gradient: *gradient,
             }).for_each(|pd| f(pd));

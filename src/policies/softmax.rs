@@ -3,7 +3,7 @@ use crate::{
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
-        DifferentiableStateActionFunction, FiniteActionFunction,
+        DifferentiableStateActionFunction, EnumerableStateActionFunction,
     },
     geometry::{MatrixView, MatrixViewMut},
     policies::{
@@ -67,7 +67,7 @@ impl<F> Softmax<F> {
     }
 
     fn gl_matrix<S>(&self, state: &S, a: &usize) -> Matrix<f64>
-        where F: FiniteActionFunction<S> + DifferentiableStateActionFunction<S, usize>,
+        where F: EnumerableStateActionFunction<S> + DifferentiableStateActionFunction<S, usize>,
     {
         // (A x 1)
         let mut scale_factors = self.probabilities(state);
@@ -88,7 +88,7 @@ impl<F> Algorithm for Softmax<F> {
     fn handle_terminal(&mut self) { self.tau = self.tau.step(); }
 }
 
-impl<S, F: FiniteActionFunction<S>> Policy<S> for Softmax<F> {
+impl<S, F: EnumerableStateActionFunction<S>> Policy<S> for Softmax<F> {
     type Action = usize;
 
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R, s: &S) -> usize {
@@ -102,7 +102,7 @@ impl<S, F: FiniteActionFunction<S>> Policy<S> for Softmax<F> {
     fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
 }
 
-impl<S, F: FiniteActionFunction<S>> FinitePolicy<S> for Softmax<F> {
+impl<S, F: EnumerableStateActionFunction<S>> FinitePolicy<S> for Softmax<F> {
     fn n_actions(&self) -> usize { self.fa.n_actions() }
 
     fn probabilities(&self, s: &S) -> Vec<f64> {
@@ -114,7 +114,7 @@ impl<S, F: FiniteActionFunction<S>> FinitePolicy<S> for Softmax<F> {
 
 impl<S, F> DifferentiablePolicy<S> for Softmax<F>
 where
-    F: FiniteActionFunction<S> + DifferentiableStateActionFunction<S, usize> + Parameterised
+    F: EnumerableStateActionFunction<S> + DifferentiableStateActionFunction<S, usize> + Parameterised
 {
     fn update(&mut self, input: &S, a: &usize, error: f64) {
         self.fa.update_grad_scaled(&self.gl_matrix(input, a), error);

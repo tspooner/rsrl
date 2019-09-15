@@ -3,7 +3,7 @@ use crate::{
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, StateActionFunction, FiniteActionFunction,
+        StateFunction, StateActionFunction, EnumerableStateActionFunction,
         linear::{Features, LinearStateFunction, LinearStateActionFunction},
     },
     policies::{Greedy, Policy, FinitePolicy},
@@ -71,7 +71,7 @@ impl<Q, W, PB> Algorithm for GreedyGQ<Q, W, PB> {
 
 impl<S, Q, W, PB> OnlineLearner<S, PB::Action> for GreedyGQ<Q, W, PB>
 where
-    Q: FiniteActionFunction<S> + LinearStateActionFunction<S, usize>,
+    Q: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
     W: StateFunction<S, Output = f64> + LinearStateFunction<S>,
     PB: FinitePolicy<S>,
 {
@@ -130,7 +130,7 @@ where
 
 impl<S, Q, W, PB> Controller<S, PB::Action> for GreedyGQ<Q, W, PB>
 where
-    Q: FiniteActionFunction<S>,
+    Q: EnumerableStateActionFunction<S>,
     PB: FinitePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> PB::Action {

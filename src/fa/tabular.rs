@@ -1,27 +1,22 @@
-use crate::{
-    core::DerefSlice,
-    fa::{StateFunction, StateActionFunction, FiniteActionFunction, Parameterised},
-    geometry::Matrix,
-};
-use ndarray::{Array2, ArrayView2, ArrayViewMut2};
+use crate::fa::{StateActionFunction, EnumerableStateActionFunction};
 use std::ops::IndexMut;
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug)]
-pub struct IndexedTabular(Vec<Vec<f64>>);
+pub struct Tabular(Vec<Vec<f64>>);
 
-impl IndexedTabular {
+impl Tabular {
     pub fn new(weights: Vec<Vec<f64>>) -> Self {
-        IndexedTabular(weights)
+        Tabular(weights)
     }
 
     pub fn zeros(dim: [usize; 2]) -> Self {
-        IndexedTabular(vec![vec![0.0; dim[0]]; dim[1]])
+        Tabular(vec![vec![0.0; dim[0]]; dim[1]])
     }
 }
 
 // Q(s, a):
-impl StateActionFunction<usize, usize> for IndexedTabular {
+impl StateActionFunction<usize, usize> for Tabular {
     type Output = f64;
 
     fn evaluate(&self, state: &usize, action: &usize) -> f64 {
@@ -33,7 +28,7 @@ impl StateActionFunction<usize, usize> for IndexedTabular {
     }
 }
 
-impl FiniteActionFunction<usize> for IndexedTabular {
+impl EnumerableStateActionFunction<usize> for Tabular {
     fn n_actions(&self) -> usize { self.0.len() }
 
     fn evaluate_all(&self, state: &usize) -> Vec<f64> {

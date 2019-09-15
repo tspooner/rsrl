@@ -2,10 +2,9 @@ use crate::{
     core::*,
     domains::Transition,
     fa::{
-        Gradient,
         Parameterised,
         StateActionFunction,
-        FiniteActionFunction,
+        EnumerableStateActionFunction,
         linear::{
             LinearStateActionFunction,
             Features, Weights, WeightsView, WeightsViewMut,
@@ -13,6 +12,7 @@ use crate::{
         },
         traces::Trace,
     },
+    linalg::MatrixLike,
     policies::{Policy, FinitePolicy},
 };
 use rand::{thread_rng, Rng};
@@ -79,7 +79,7 @@ impl<F, P: Algorithm, T: Algorithm> Algorithm for TOSARSALambda<F, P, T> {
 
 impl<S, F, P, T> OnlineLearner<S, P::Action> for TOSARSALambda<F, P, T>
 where
-    F: FiniteActionFunction<S> + LinearStateActionFunction<S, usize>,
+    F: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
     P: FinitePolicy<S>,
     T: Trace<F::Gradient>,
 {
@@ -143,7 +143,7 @@ impl<S, F, P: Policy<S>, T> Controller<S, P::Action> for TOSARSALambda<F, P, T> 
 
 impl<S, F, P, T> ValuePredictor<S> for TOSARSALambda<F, P, T>
 where
-    F: FiniteActionFunction<S>,
+    F: EnumerableStateActionFunction<S>,
     P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {

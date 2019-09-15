@@ -1,6 +1,6 @@
 use crate::{
     core::{make_shared, Shared},
-    fa::{StateActionFunction, FiniteActionFunction, Parameterised},
+    fa::{StateActionFunction, EnumerableStateActionFunction, Parameterised},
     geometry::{MatrixView, MatrixViewMut},
 };
 use std::marker::PhantomData;
@@ -42,7 +42,7 @@ impl StateActionFunction<Vec<f64>, usize> for MockQ {
     fn update(&mut self, _: &Vec<f64>, _: &usize, _: f64) {}
 }
 
-impl FiniteActionFunction<Vec<f64>> for MockQ {
+impl EnumerableStateActionFunction<Vec<f64>> for MockQ {
     fn n_actions(&self) -> usize {
         match self.output {
             Some(ref out) => out.len(),
