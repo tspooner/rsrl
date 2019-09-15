@@ -1,19 +1,23 @@
 //! Agent policy module.
 //!
-//! This module contains [fixed](fixed/index.html) and
-//! [parameterised](parameterised/index.html) policies for reinforcement
-//! learning control problems. A policy is considered to be either deterministic
-//! or stochastic, for which we have the following definitions, respectively: 1)
-//! _π(X) -> U_; 2) _π(X, U) -> R_, or equivalently, _π(x) -> Ω(U)_;
-//!
-//! where _X_ and _U_ are the state and action spaces, respectively; _R_ is the
-//! set of real values; and _Ω(U)_ is the set of probability measures on the
-//! action set _U_. In general, deterministic policies may be considered a
-//! special case of stochastic policies in which all probability mass
-//! is placed on a single action _u'_ for any given state _x_. For continuous
-//! policies, this can be seen as a dirac delta distribution, _δ(u' - u)_.
-use crate::{core::*, domains::Transition, fa::Parameterised};
+//! This module contains [fixed](fixed/index.html) and [parameterised](parameterised/index.html)
+//! policies for reinforcement learning control problems. A policy is considered to be either
+//! deterministic or stochastic, for which we have the following definitions, respectively: 1)
+//! _π(X) -> U_; 2) _π(X, U) -> R_, or equivalently, _π(x) -> Ω(U)_; where _X_ and _U_ are the
+//! state and action spaces, respectively; _R_ is the set of real values; and _Ω(U)_ is the set of
+//! probability measures on the action set _U_. In general, deterministic policies may be
+//! considered a special case of stochastic policies in which all probability mass is placed on a
+//! single action _u'_ for any given state _x_. For continuous policies, this can be seen as a
+//! dirac delta distribution, _δ(u' - u)_.
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::Parameterised,
+    geometry::MatrixView,
+    linalg::MatrixLike
+};
 use rand::{seq::SliceRandom, thread_rng, Rng};
+use std::ops::AddAssign;
 
 pub mod gaussian;
 
@@ -21,12 +25,13 @@ import_all!(random);
 import_all!(greedy);
 import_all!(epsilon_greedy);
 import_all!(softmax);
-import_all!(dirac);
 import_all!(beta);
+import_all!(dirichlet);
 import_all!(gamma);
 
 import_all!(ipp);
-import_all!(perturbation);
+import_all!(shared);
+// import_all!(perturbation);
 
 #[allow(dead_code)]
 #[inline]
@@ -35,7 +40,7 @@ pub(self) fn sample_probs(probabilities: &[f64]) -> usize {
 }
 
 #[inline]
-pub(self) fn sample_probs_with_rng(rng: &mut impl Rng, probabilities: &[f64]) -> usize {
+pub(self) fn sample_probs_with_rng<R: Rng + ?Sized>(rng: &mut R, probabilities: &[f64]) -> usize {
     let r = rng.gen::<f64>();
 
     match probabilities
@@ -59,7 +64,7 @@ pub trait Policy<S>: Algorithm {
 
     /// Sample the (possibly stochastic) policy distribution for a given
     /// `state`.
-    fn sample(&self, rng: &mut impl Rng, state: &S) -> Self::Action { self.mpa(state) }
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, state: &S) -> Self::Action { self.mpa(state) }
 
     /// Return the "most probable action" according to the policy distribution,
     /// if well-defined.
@@ -75,11 +80,23 @@ pub trait FinitePolicy<S>: Policy<S, Action = usize> {
     fn n_actions(&self) -> usize;
 
     /// Return the probability of selecting each action for a given `state`.
-    fn probabilities(&self, state: &S) -> Vector<f64>;
+    fn probabilities(&self, state: &S) -> Vec<f64>;
 }
 
-/// Trait for policies that have a differentiable representation.
-pub trait DifferentiablePolicy<S>: Policy<S> {
+/// Trait for policies that have a representation that is differentiable wrt its parameters.
+pub trait DifferentiablePolicy<S>: Policy<S> + Parameterised {
+    /// Update the weights in the direction of an error for a given state and
+    /// action.
+    fn update(&mut self, state: &S, a: &Self::Action, error: f64);
+
+    fn update_grad(&mut self, grad: &MatrixView<f64>) {
+        self.weights_view_mut().add_assign(grad);
+    }
+
+    fn update_grad_scaled(&mut self, grad: &MatrixView<f64>, factor: f64) {
+        self.weights_view_mut().scaled_add(factor, grad);
+    }
+
     /// Compute the gradient of the log probability wrt the policy weights.
     fn grad(&self, state: &S, a: &Self::Action) -> Matrix<f64> {
         let p = self.probability(state, a);
@@ -92,45 +109,5 @@ pub trait DifferentiablePolicy<S>: Policy<S> {
         let p = self.probability(state, a);
 
         self.grad(state, a) * p
-    }
-}
-
-/// Trait for policies that are parameterised by a vector of weights.
-pub trait ParameterisedPolicy<S>: Policy<S> + Parameterised {
-    /// Update the weights in the direction of an error for a given state and
-    /// action.
-    fn update(&mut self, state: &S, a: &Self::Action, error: f64);
-}
-
-// Shared<T> impls:
-impl<S, T: Policy<S>> Policy<S> for Shared<T> {
-    type Action = T::Action;
-
-    fn sample(&self, rng: &mut impl Rng, state: &S) -> Self::Action {
-        self.borrow().sample(rng, state)
-    }
-
-    fn mpa(&self, s: &S) -> Self::Action { self.borrow().mpa(s) }
-
-    fn probability(&self, state: &S, a: &Self::Action) -> f64 {
-        self.borrow().probability(state, a)
-    }
-}
-
-impl<S, T: FinitePolicy<S>> FinitePolicy<S> for Shared<T> {
-    fn n_actions(&self) -> usize { self.borrow().n_actions() }
-
-    fn probabilities(&self, state: &S) -> Vector<f64> { self.borrow().probabilities(state) }
-}
-
-impl<S, T: DifferentiablePolicy<S>> DifferentiablePolicy<S> for Shared<T> {
-    fn grad_log(&self, state: &S, a: &Self::Action) -> Matrix<f64> {
-        self.borrow().grad_log(state, a)
-    }
-}
-
-impl<S, T: ParameterisedPolicy<S>> ParameterisedPolicy<S> for Shared<T> {
-    fn update(&mut self, state: &S, a: &Self::Action, error: f64) {
-        self.borrow_mut().update(state, a, error)
     }
 }

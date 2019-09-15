@@ -1,9 +1,8 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::Parameterised,
-    geometry::{MatrixView, MatrixViewMut},
-    policies::{Policy, ParameterisedPolicy},
+    fa::{Weights, WeightsView, WeightsViewMut, Parameterised},
+    policies::{Policy, DifferentiablePolicy},
 };
 use rand::Rng;
 
@@ -41,7 +40,7 @@ impl<P: Algorithm> Algorithm for REINFORCE<P> {
 
 impl<S, P> BatchLearner<S, P::Action> for REINFORCE<P>
 where
-    P: ParameterisedPolicy<S>,
+    P: DifferentiablePolicy<S>,
     P::Action: Clone,
 {
     fn handle_batch(&mut self, batch: &[Transition<S, P::Action>]) {
@@ -60,7 +59,7 @@ where
     }
 }
 
-impl<S, P: ParameterisedPolicy<S>> Controller<S, P::Action> for REINFORCE<P> {
+impl<S, P: Policy<S>> Controller<S, P::Action> for REINFORCE<P> {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
         self.policy.sample(rng, s)
     }

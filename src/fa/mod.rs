@@ -1,69 +1,85 @@
 //! Function approximation and value function representation module.
-use crate::{
-    core::Shared,
-    geometry::{Matrix, MatrixView, MatrixViewMut, Vector},
-};
-
-pub use lfa::{basis, composition::Composable, core::*, transforms, TransformedLFA, LFA};
-
-mod macros;
+use crate::geometry::Vector;
 
 #[cfg(test)]
 pub(crate) mod mocking;
 
-/// An interface for state-value functions.
-pub trait VFunction<S: ?Sized>: Embedding<S> + ScalarApproximator {
-    fn state_value(&self, s: &S) -> f64 { self.evaluate(&self.embed(s)).unwrap() }
+pub mod traces;
+
+pub mod linear;
+pub mod tabular;
+
+pub mod transforms;
+import_all!(transformed);
+
+import_all!(shared);
+
+pub use self::linear::{Parameterised, Weights, WeightsView, WeightsViewMut};
+
+/// An interface for state value functions.
+pub trait StateFunction<X: ?Sized> {
+    type Output;
+
+    fn evaluate(&self, state: &X) -> Self::Output;
+
+    fn update(&mut self, state: &X, error: Self::Output);
 }
 
-impl<S: ?Sized, T: Embedding<S> + ScalarApproximator<Output = f64>> VFunction<S> for T {}
+pub trait DifferentiableStateFunction<X: ?Sized>: StateFunction<X> + Parameterised {
+    type Gradient: crate::linalg::MatrixLike;
 
-/// An interface for action-value functions.
-pub trait QFunction<S: ?Sized>: Embedding<S> + VectorApproximator {
-    fn action_values(&self, s: &S) -> Vector<f64> { self.evaluate(&self.embed(s)).unwrap() }
+    fn grad(&self, state: &X) -> Self::Gradient;
 
-    fn action_value(&self, s: &S, a: usize) -> f64 { self.action_values(s)[a] }
-}
-
-impl<S: ?Sized, T: Embedding<S> + VectorApproximator> QFunction<S> for T {}
-
-// Shared<T> impls:
-impl<S: ?Sized, T: Embedding<S>> Embedding<S> for Shared<T> {
-    fn n_features(&self) -> usize { self.borrow().n_features() }
-
-    fn embed(&self, s: &S) -> Features { self.borrow().embed(s) }
-}
-
-impl<T: Approximator> Approximator for Shared<T> {
-    type Output = T::Output;
-
-    fn n_outputs(&self) -> usize { self.borrow().n_outputs() }
-
-    fn evaluate(&self, features: &Features) -> EvaluationResult<Self::Output> {
-        self.borrow().evaluate(features)
+    fn update_grad<G: crate::linalg::MatrixLike>(&mut self, grad: &G) {
+        grad.addto(&mut self.weights_view_mut());
     }
 
-    fn jacobian(&self, features: &Features) -> Matrix<f64> { self.borrow().jacobian(features) }
-
-    fn update_grad(&mut self, grad: &Matrix<f64>, update: Self::Output) -> UpdateResult<()> {
-        self.borrow_mut().update_grad(grad, update)
-    }
-
-    fn update(&mut self, features: &Features, update: Self::Output) -> UpdateResult<()> {
-        self.borrow_mut().update(features, update)
+    fn update_grad_scaled<G: crate::linalg::MatrixLike>(&mut self, grad: &G, factor: f64) {
+        grad.scaled_addto(factor, &mut self.weights_view_mut());
     }
 }
 
-impl<T: Parameterised> Parameterised for Shared<T> {
-    fn weights(&self) -> Matrix<f64> { self.borrow().weights() }
+/// An interface for state-action value functions.
+pub trait StateActionFunction<X: ?Sized, U: ?Sized> {
+    type Output;
 
-    fn weights_view(&self) -> MatrixView<f64> {
-        unsafe { self.as_ptr().as_ref().unwrap().weights_view() }
+    fn evaluate(&self, state: &X, action: &U) -> Self::Output;
+
+    fn update(&mut self, state: &X, action: &U, error: Self::Output);
+}
+
+pub trait DifferentiableStateActionFunction<X: ?Sized, U: ?Sized>: StateActionFunction<X, U> + Parameterised {
+    type Gradient: crate::linalg::MatrixLike;
+
+    fn grad(&self, state: &X, action: &U) -> Self::Gradient;
+
+    fn update_grad<G: crate::linalg::MatrixLike>(&mut self, grad: &G) {
+        grad.addto(&mut self.weights_view_mut());
     }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unsafe { self.as_ptr().as_mut().unwrap().weights_view_mut() }
+    fn update_grad_scaled<G: crate::linalg::MatrixLike>(&mut self, grad: &G, factor: f64) {
+        grad.scaled_addto(factor, &mut self.weights_view_mut());
+    }
+}
+
+pub trait EnumerableStateActionFunction<X: ?Sized>: StateActionFunction<X, usize, Output = f64> {
+    fn n_actions(&self) -> usize;
+
+    fn evaluate_all(&self, state: &X) -> Vec<f64>;
+
+    fn update_all(&mut self, state: &X, errors: Vec<f64>);
+
+    fn find_min(&self, state: &X) -> (usize, f64) {
+        let mut iter = self.evaluate_all(state).into_iter().enumerate();
+        let first = iter.next().unwrap();
+
+        iter.fold(first, |acc, (i, x)| if acc.1 < x { acc } else { (i, x) })
     }
 
-    fn weights_dim(&self) -> (usize, usize) { self.borrow().weights_dim() }
+    fn find_max(&self, state: &X) -> (usize, f64) {
+        let mut iter = self.evaluate_all(state).into_iter().enumerate();
+        let first = iter.next().unwrap();
+
+        iter.fold(first, |acc, (i, x)| if acc.1 > x { acc } else { (i, x) })
+    }
 }

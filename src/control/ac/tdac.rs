@@ -1,8 +1,7 @@
 use crate::{
     core::*,
-    fa::Parameterised,
     domains::Transition,
-    policies::{Policy, ParameterisedPolicy, DifferentiablePolicy},
+    policies::{Policy, DifferentiablePolicy},
 };
 use rand::Rng;
 
@@ -49,7 +48,7 @@ where
 impl<S, C, P> OnlineLearner<S, P::Action> for TDAC<C, P>
 where
     C: OnlineLearner<S, P::Action> + ValuePredictor<S>,
-    P: ParameterisedPolicy<S>,
+    P: DifferentiablePolicy<S>,
     P::Action: Clone,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
@@ -80,10 +79,6 @@ where
     C: ActionValuePredictor<S, P::Action>,
     P: Policy<S>,
 {
-    fn predict_qs(&self, s: &S) -> Vector<f64> {
-        self.critic.predict_qs(s)
-    }
-
     fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
         self.critic.predict_qsa(s, a)
     }

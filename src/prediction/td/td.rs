@@ -1,7 +1,8 @@
-use crate::core::*;
-use crate::domains::Transition;
-use crate::fa::{Parameterised, Approximator, VFunction};
-use crate::geometry::{Matrix, MatrixView, MatrixViewMut};
+use crate::{
+    core::*,
+    domains::Transition,
+    fa::{Weights, WeightsView, WeightsViewMut, Parameterised, StateFunction},
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
 pub struct TD<V> {
@@ -33,25 +34,27 @@ impl<V> Algorithm for TD<V> {
     }
 }
 
-impl<S, A, V: VFunction<S>> OnlineLearner<S, A> for TD<V> {
+impl<S, A, V> OnlineLearner<S, A> for TD<V>
+where
+    V: StateFunction<S, Output = f64>
+{
     fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let phi_s = self.v_func.embed(t.from.state());
-        let v = self.v_func.evaluate(&phi_s).unwrap();
+        let s = t.from.state();
+        let v = self.v_func.evaluate(s);
 
         let td_error = if t.terminated() {
             t.reward - v
         } else {
-            t.reward + self.gamma * self.predict_v(t.to.state()) - v
+            t.reward + self.gamma * self.v_func.evaluate(t.to.state()) - v
         };
 
-        self.v_func.update(&phi_s, self.alpha * td_error).ok();
+        self.v_func.update(s, self.alpha * td_error);
     }
 }
 
-impl<S, V: VFunction<S>> ValuePredictor<S> for TD<V> {
-    fn predict_v(&self, s: &S) -> f64 {
-        self.v_func.evaluate(&self.v_func.embed(s)).unwrap()
-    }
+impl<S, V> ValuePredictor<S> for TD<V>
+where
+    V: StateFunction<S, Output = f64>
+{
+    fn predict_v(&self, s: &S) -> f64 { self.v_func.evaluate(s) }
 }
-
-impl<S, A, V: VFunction<S>> ActionValuePredictor<S, A> for TD<V> {}

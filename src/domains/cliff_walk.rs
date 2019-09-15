@@ -1,5 +1,5 @@
 use crate::core::Matrix;
-use crate::geometry::{discrete::Ordinal, product::PairSpace};
+use crate::geometry::{TwoSpace, discrete::Ordinal};
 use super::{
     grid_world::{GridWorld, Motion},
     Domain,
@@ -16,14 +16,14 @@ const ALL_ACTIONS: [Motion; 4] = [
 
 pub struct CliffWalk {
     gw: GridWorld<u8>,
-    loc: (usize, usize),
+    loc: [usize; 2],
 }
 
 impl CliffWalk {
     pub fn new(height: usize, width: usize) -> CliffWalk {
         CliffWalk {
             gw: GridWorld::new(Matrix::zeros((height, width))),
-            loc: (0, 0),
+            loc: [0; 2],
         }
     }
 
@@ -37,10 +37,10 @@ impl Default for CliffWalk {
 }
 
 impl Domain for CliffWalk {
-    type StateSpace = PairSpace<Ordinal, Ordinal>;
+    type StateSpace = TwoSpace<Ordinal>;
     type ActionSpace = Ordinal;
 
-    fn emit(&self) -> Observation<(usize, usize)> {
+    fn emit(&self) -> Observation<[usize; 2]> {
         if self.is_terminal() {
             Observation::Terminal(self.loc)
         } else {
@@ -48,7 +48,7 @@ impl Domain for CliffWalk {
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<(usize, usize), usize> {
+    fn step(&mut self, action: usize) -> Transition<[usize; 2], usize> {
         let from = self.emit();
 
         self.update_state(action);
@@ -63,38 +63,98 @@ impl Domain for CliffWalk {
         }
     }
 
-    fn reward(
-        &self,
-        from: &Observation<(usize, usize)>,
-        to: &Observation<(usize, usize)>,
-    ) -> f64
-    {
+    fn reward(&self, _: &Observation<[usize; 2]>, to: &Observation<[usize; 2]>) -> f64 {
         match *to {
             Observation::Terminal(_) => {
-                if to.state().0 == self.gw.width() - 1 {
+                let x = to.state()[0];
+
+                if x == self.gw.width() - 1 {
                     50.0
                 } else {
                     -50.0
                 }
             },
-            _ => {
-                if from.state() == to.state() {
-                    -1.0
-                } else {
-                    0.0
-                }
-            },
+            _ => { 0.0 },
         }
     }
 
-    fn is_terminal(&self) -> bool { self.loc.0 > 0 && self.loc.1 == 0 }
+    fn is_terminal(&self) -> bool { self.loc[0] > 0 && self.loc[1] == 0 }
 
     fn state_space(&self) -> Self::StateSpace {
-        PairSpace::new(
+        TwoSpace::new([
             Ordinal::new(self.gw.width()),
             Ordinal::new(self.gw.height()),
-        )
+        ])
     }
 
     fn action_space(&self) -> Ordinal { Ordinal::new(4) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CliffWalk, Domain};
+
+    #[test]
+    fn test_cliff_direct() {
+        let mut cw = CliffWalk::default();
+
+        cw.step(2);
+        assert!(!cw.is_terminal());
+
+        cw.step(3);
+        assert!(!cw.is_terminal());
+
+        cw.step(1);
+        assert!(cw.is_terminal());
+    }
+
+    #[test]
+    fn test_cliff_indirect() {
+        let mut cw = CliffWalk::default();
+
+        cw.step(0);
+        cw.step(1);
+        cw.step(1);
+        assert!(!cw.is_terminal());
+
+        let t = cw.step(2);
+
+        assert!(cw.is_terminal());
+        assert!(t.terminated());
+        assert!(t.reward.is_sign_negative());
+    }
+
+    #[test]
+    fn test_optimal() {
+        let mut cw = CliffWalk::default();
+
+        cw.step(0);
+        for _ in 0..11 { cw.step(1); }
+        assert!(!cw.is_terminal());
+
+        let t = cw.step(2);
+
+        assert!(cw.is_terminal());
+        assert!(t.terminated());
+        assert!(t.reward.is_sign_positive());
+    }
+
+    #[test]
+    fn test_safe() {
+        let mut cw = CliffWalk::default();
+
+        for _ in 0..4 { cw.step(0); }
+        for _ in 0..11 { cw.step(1); }
+        assert!(!cw.is_terminal());
+
+        cw.step(2);
+        assert!(!cw.is_terminal());
+
+        for _ in 0..2 { cw.step(2); }
+        let t = cw.step(2);
+
+        assert!(cw.is_terminal());
+        assert!(t.terminated());
+        assert!(t.reward.is_sign_positive());
+    }
 }

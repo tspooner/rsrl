@@ -1,10 +1,13 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Parameterised, QFunction},
-    geometry::{MatrixView, MatrixViewMut},
-    policies::{Policy, Greedy},
+    fa::{
+        Parameterised, Weights, WeightsView, WeightsViewMut,
+        StateActionFunction, EnumerableStateActionFunction,
+    },
+    policies::{Policy, FinitePolicy, Greedy},
 };
+use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::{thread_rng, Rng};
 
 /// Persistent Advantage Learning
@@ -55,19 +58,17 @@ impl<Q, P: Algorithm> Algorithm for PAL<Q, P> {
 
 impl<S, Q, P> OnlineLearner<S, P::Action> for PAL<Q, P>
 where
-    Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: EnumerableStateActionFunction<S>,
+    P: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.q_func.embed(s);
-        let qs = self.q_func.evaluate(&phi_s).unwrap();
-
         let residual = if t.terminated() {
-            t.reward - qs[t.action]
+            t.reward - self.q_func.evaluate(s, &t.action)
         } else {
             let ns = t.to.state();
-            let nqs = self.predict_qs(ns);
+            let qs = self.q_func.evaluate_all(s);
+            let nqs = self.q_func.evaluate_all(ns);
 
             let mut rng = thread_rng();
             let a_star = self.sample_target(&mut rng, s);
@@ -79,14 +80,14 @@ where
             al_error.max(td_error - self.alpha * (nqs[na_star] - nqs[t.action]))
         };
 
-        self.q_func.update_index(&phi_s, t.action, self.alpha * residual).ok();
+        self.q_func.update(s, &t.action, self.alpha * residual);
     }
 }
 
 impl<S, Q, P> Controller<S, P::Action> for PAL<Q, P>
 where
-    Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: EnumerableStateActionFunction<S>,
+    P: FinitePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
         self.target.sample(rng, s)
@@ -99,22 +100,18 @@ where
 
 impl<S, Q, P> ValuePredictor<S> for PAL<Q, P>
 where
-    Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: EnumerableStateActionFunction<S>,
+    P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
 }
 
 impl<S, Q, P> ActionValuePredictor<S, P::Action> for PAL<Q, P>
 where
-    Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: StateActionFunction<S, P::Action, Output = f64>,
+    P: Policy<S>,
 {
-    fn predict_qs(&self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(&self.q_func.embed(s)).unwrap()
-    }
-
     fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
+        self.q_func.evaluate(s, &a)
     }
 }

@@ -1,10 +1,14 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Parameterised, Features, QFunction},
-    geometry::{MatrixView, MatrixViewMut},
+    fa::{
+        Parameterised, Weights, WeightsView, WeightsViewMut,
+        StateActionFunction,
+        EnumerableStateActionFunction,
+    },
     policies::{Greedy, Policy, FinitePolicy},
 };
+use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::{thread_rng, Rng};
 use std::collections::VecDeque;
 
@@ -18,6 +22,42 @@ struct BackupEntry<S> {
     pub sigma: f64,
     pub pi: f64,
     pub mu: f64,
+}
+
+struct Backup<S> {
+    n_steps: usize,
+    entries: VecDeque<BackupEntry<S>>,
+}
+
+impl<S> Backup<S> {
+    pub fn new(n_steps: usize) -> Backup<S> {
+        Backup { n_steps, entries: VecDeque::new() }
+    }
+
+    pub fn len(&self) -> usize { self.entries.len() }
+
+    pub fn pop(&mut self) -> Option<BackupEntry<S>> { self.entries.pop_front() }
+
+    pub fn push(&mut self, entry: BackupEntry<S>) { self.entries.push_back(entry); }
+
+    pub fn clear(&mut self) { self.entries.clear(); }
+
+    pub fn propagate(&self, gamma: f64) -> (f64, f64) {
+        let mut g = self.entries[0].q;
+        let mut z = 1.0;
+        let mut isr = 1.0;
+
+        for k in 0..(self.n_steps - 1) {
+            let b1 = &self.entries[k];
+            let b2 = &self.entries[k + 1];
+
+            g += z * b1.residual;
+            z *= gamma * ((1.0 - b2.sigma) * b2.pi + b2.sigma);
+            isr *= 1.0 - b1.sigma + b1.sigma * b1.pi / b1.mu;
+        }
+
+        (isr, g)
+    }
 }
 
 /// General multi-step temporal-difference learning algorithm.
@@ -44,9 +84,8 @@ pub struct QSigma<S, Q, P> {
     pub alpha: Parameter,
     pub gamma: Parameter,
     pub sigma: Parameter,
-    pub n_steps: usize,
 
-    backup: VecDeque<BackupEntry<S>>,
+    backup: Backup<S>,
 }
 
 impl<S, Q, P> QSigma<S, Shared<Q>, P> {
@@ -74,46 +113,26 @@ impl<S, Q, P> QSigma<S, Shared<Q>, P> {
             alpha: alpha.into(),
             gamma: gamma.into(),
             sigma: sigma.into(),
-            n_steps,
 
-            backup: VecDeque::new(),
+            backup: Backup::new(n_steps),
         }
     }
 }
 
-impl<S, Q: QFunction<S>, P> QSigma<S, Q, P> {
-    fn consume_backup(&mut self) {
-        let mut g = self.backup[0].q;
-        let mut z = 1.0;
-        let mut rho = 1.0;
-
-        for k in 0..(self.n_steps - 1) {
-            let b1 = &self.backup[k];
-            let b2 = &self.backup[k + 1];
-
-            g += z * b1.residual;
-            z *= self.gamma * ((1.0 - b2.sigma) * b2.pi + b2.sigma);
-            rho *= 1.0 - b1.sigma + b1.sigma * b1.pi / b1.mu;
-        }
-
-        let phi_s = self.q_func.embed(&self.backup[0].s);
-        let qsa = self.q_func.evaluate_index(&phi_s, self.backup[0].a).unwrap();
-
-        self.q_func.update_index(
-            &phi_s,
-            self.backup[0].a,
-            self.alpha * rho * (g - qsa),
-        ).ok();
-
-        self.backup.pop_front();
-    }
-
-    #[inline(always)]
+impl<S, Q: EnumerableStateActionFunction<S>, P> QSigma<S, Q, P> {
     fn update_backup(&mut self, entry: BackupEntry<S>) {
-        self.backup.push_back(entry);
+        self.backup.push(entry);
 
-        if self.backup.len() >= self.n_steps {
-            self.consume_backup()
+        if self.backup.len() >= self.backup.n_steps {
+            let (isr, g) = self.backup.propagate(self.gamma.value());
+
+            let anchor = self.backup.pop().unwrap();
+            let qsa = self.q_func.evaluate(&anchor.s, &anchor.a);
+
+            self.q_func.update(
+                &anchor.s, &anchor.a,
+                self.alpha * isr * (g - qsa),
+            );
         }
     }
 }
@@ -125,19 +144,20 @@ impl<S, Q, P: Algorithm> Algorithm for QSigma<S, Q, P> {
 
         self.policy.handle_terminal();
         self.target.handle_terminal();
+
+        self.backup.clear();
     }
 }
 
 impl<S, Q, P> OnlineLearner<S, P::Action> for QSigma<S, Q, P>
 where
     S: Clone,
-    Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: EnumerableStateActionFunction<S>,
+    P: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let phi_s = self.q_func.embed(s);
-        let qa = self.q_func.evaluate_index(&phi_s, t.action).unwrap();
+        let qa = self.q_func.evaluate(s, &t.action);
         let sigma = {
             self.sigma = self.sigma.step();
             self.sigma.value()
@@ -160,18 +180,15 @@ where
 
         } else {
             let ns = t.to.state();
-            let na = self.sample_behaviour(&mut thread_rng(), ns);
-
-            let phi_ns = self.q_func.embed(ns);
-            let nqs = self.q_func.evaluate(&phi_ns).unwrap();
-            let nqa = nqs[na];
+            let na = self.policy.sample(&mut thread_rng(), ns);
+            let nqs = self.q_func.evaluate_all(ns);
 
             let pi = self.target.probabilities(&ns);
-            let exp_nqs = nqs.dot(&pi);
-
             let mu = self.policy.probability(ns, &na);
 
-            let residual = t.reward + self.gamma * (sigma * nqa + (1.0 - sigma) * exp_nqs) - qa;
+            let exp_nqs = nqs.iter().zip(pi.iter()).fold(0.0, |acc, (q, p)| acc + q * p);
+            let residual =
+                t.reward + self.gamma * (sigma * nqs[na] + (1.0 - sigma) * exp_nqs) - qa;
 
             self.update_backup(BackupEntry {
                 s: s.clone(),
@@ -190,8 +207,8 @@ where
 
 impl<S, Q, P> Controller<S, P::Action> for QSigma<S, Q, P>
 where
-    Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: EnumerableStateActionFunction<S>,
+    P: FinitePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
         self.target.sample(rng, s)
@@ -204,22 +221,18 @@ where
 
 impl<S, Q, P> ValuePredictor<S> for QSigma<S, Q, P>
 where
-    Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: EnumerableStateActionFunction<S>,
+    P: FinitePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
 }
 
-impl<S, Q, P> ActionValuePredictor<S, P::Action> for QSigma<S, Q, P>
+impl<S, Q, P> ActionValuePredictor<S, <Greedy<Q> as Policy<S>>::Action> for QSigma<S, Q, P>
 where
-    Q: QFunction<S>,
-    P: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: EnumerableStateActionFunction<S>,
+    P: FinitePolicy<S>,
 {
-    fn predict_qs(&self, s: &S) -> Vector<f64> {
-        self.q_func.evaluate(&self.q_func.embed(s)).unwrap()
-    }
-
-    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate_index(&self.q_func.embed(s), a).unwrap()
+    fn predict_qsa(&self, s: &S, a: <Greedy<Q> as Policy<S>>::Action) -> f64 {
+        self.q_func.evaluate(s, &a)
     }
 }

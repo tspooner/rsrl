@@ -9,6 +9,37 @@ macro_rules! impl_into {
     };
 }
 
+macro_rules! make_index {
+    ($tname:ident [$($name:ident => $idx:literal),+]) => {
+        use std::ops::{Index, IndexMut};
+
+        #[derive(Debug, Clone, Copy)]
+        enum $tname {
+            $($name = $idx),+
+        }
+
+        impl Index<$tname> for Vec<f64> {
+            type Output = f64;
+
+            fn index(&self, idx: StateIndex) -> &f64 { self.index(idx as usize) }
+        }
+
+        impl Index<$tname> for [f64] {
+            type Output = f64;
+
+            fn index(&self, idx: StateIndex) -> &f64 { self.index(idx as usize) }
+        }
+
+        impl IndexMut<$tname> for Vec<f64> {
+            fn index_mut(&mut self, idx: StateIndex) -> &mut f64 { self.index_mut(idx as usize) }
+        }
+
+        impl IndexMut<$tname> for [f64] {
+            fn index_mut(&mut self, idx: StateIndex) -> &mut f64 { self.index_mut(idx as usize) }
+        }
+    }
+}
+
 /// Container class for data associated with a domain observation.
 #[derive(Clone, Copy, Debug)]
 pub enum Observation<S> {
@@ -30,6 +61,16 @@ impl<S> Observation<S> {
 
         match self {
             Full(ref state) | Partial(ref state) | Terminal(ref state) => state,
+        }
+    }
+
+    pub fn map<O>(&self, f: impl Fn(&S) -> O) -> Observation<O> {
+        use self::Observation::*;
+
+        match self {
+            Full(ref state) => Full(f(state)),
+            Partial(ref state) => Partial(f(state)),
+            Terminal(ref state) => Terminal(f(state)),
         }
     }
 
@@ -81,8 +122,13 @@ impl<S, A> Transition<S, A> {
 
     /// Apply a closure to the `from` and `to` states associated with this
     /// transition.
-    pub fn map_states<O>(&self, f: impl Fn(&S) -> O) -> (O, O) {
-        (f(self.from.state()), f(self.to.state()))
+    pub fn map_states<O>(self, f: impl Fn(&S) -> O) -> Transition<O, A> {
+        Transition {
+            from: self.from.map(&f),
+            action: self.action,
+            reward: self.reward,
+            to: self.to.map(f),
+        }
     }
 
     /// Returns true if the transition ends in a terminal state.
@@ -126,6 +172,9 @@ impl_into!(Transition<S, isize> => Transition<S, ()>);
 impl_into!(Transition<S, f32> => Transition<S, ()>);
 impl_into!(Transition<S, f64> => Transition<S, ()>);
 
+pub type State<D> = <<D as Domain>::StateSpace as Space>::Value;
+pub type Action<D> = <<D as Domain>::ActionSpace as Space>::Value;
+
 /// An interface for constructing reinforcement learning problem domains.
 pub trait Domain {
     /// State space representation type class.
@@ -135,24 +184,16 @@ pub trait Domain {
     type ActionSpace: Space;
 
     /// Emit an observation of the current state of the environment.
-    fn emit(&self) -> Observation<<Self::StateSpace as Space>::Value>;
+    fn emit(&self) -> Observation<State<Self>>;
 
     /// Transition the environment forward a single step given an action, `a`.
-    fn step(
-        &mut self,
-        a: <Self::ActionSpace as Space>::Value,
-    ) -> Transition<<Self::StateSpace as Space>::Value, <Self::ActionSpace as Space>::Value>;
+    fn step(&mut self, a: Action<Self>) -> Transition<State<Self>, Action<Self>>;
 
     /// Returns true if the current state is terminal.
     fn is_terminal(&self) -> bool;
 
-    /// Compute the reward associated with a transition from one state to
-    /// another.
-    fn reward(
-        &self,
-        from: &Observation<<Self::StateSpace as Space>::Value>,
-        to: &Observation<<Self::StateSpace as Space>::Value>,
-    ) -> f64;
+    /// Compute the reward associated with a transition from one state to another.
+    fn reward(&self, from: &Observation<State<Self>>, to: &Observation<State<Self>>) -> f64;
 
     /// Returns an instance of the state space type class.
     fn state_space(&self) -> Self::StateSpace;
@@ -171,6 +212,7 @@ import_all!(cart_pole);
 import_all!(acrobat);
 import_all!(hiv);
 import_all!(cliff_walk);
+import_all!(windy_cliff_walk);
 
 #[cfg(feature = "openai")]
 import_all!(openai);

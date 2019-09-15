@@ -6,7 +6,7 @@ use rsrl::{
     control::td::PAL,
     core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Fourier, Composable, LFA},
+    fa::linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
     geometry::Space,
     logging,
     policies::{EpsilonGreedy, Greedy, Random},
@@ -18,7 +18,7 @@ fn main() {
         let n_actions = domain.action_space().card().into();
 
         let bases = Fourier::from_space(3, domain.state_space()).with_constant();
-        let q_func = make_shared(LFA::vector(bases, n_actions));
+        let q_func = make_shared(LFA::vector(bases, SGD(1.0), n_actions));
 
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),

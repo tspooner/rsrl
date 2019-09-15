@@ -15,7 +15,7 @@ pub struct Random(usize);
 impl Random {
     pub fn new(n_actions: usize) -> Self { Random(n_actions) }
 
-    pub fn from_space<S: Space>(space: S) -> Self { Self::new(space.dim()) }
+    pub fn from_space<S: Space>(space: S) -> Self { Self::new(space.dim().into()) }
 }
 
 impl Algorithm for Random {}
@@ -23,7 +23,7 @@ impl Algorithm for Random {}
 impl<S> Policy<S> for Random {
     type Action = usize;
 
-    fn sample(&self, rng: &mut impl Rng, _: &S) -> usize {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, _: &S) -> usize {
         Uniform::new(0, self.0).sample(rng)
     }
 
@@ -33,12 +33,12 @@ impl<S> Policy<S> for Random {
 impl<S> FinitePolicy<S> for Random {
     fn n_actions(&self) -> usize { self.0 }
 
-    fn probabilities(&self, _: &S) -> Vector<f64> { vec![1.0 / self.0 as f64; self.0].into() }
+    fn probabilities(&self, _: &S) -> Vec<f64> { vec![1.0 / self.0 as f64; self.0].into() }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::geometry::Vector;
+    use crate::utils::compare_floats;
     use rand::thread_rng;
     use super::{FinitePolicy, Policy, Random};
 
@@ -66,18 +66,21 @@ mod tests {
     fn test_probabilites() {
         let p = Random::new(4);
 
-        assert!(p
-            .probabilities(&[1.0, 0.0, 0.0, 1.0])
-            .all_close(&Vector::from_vec(vec![0.25; 4]), 1e-6));
+        assert!(compare_floats(
+            p.probabilities(&vec![1.0, 0.0, 0.0, 1.0]),
+            &[0.25; 4], 1e-6
+        ));
 
         let p = Random::new(5);
 
-        assert!(p
-            .probabilities(&[1.0, 0.0, 0.0, 0.0, 0.0])
-            .all_close(&Vector::from_vec(vec![0.2; 5]), 1e-6));
+        assert!(compare_floats(
+            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0]),
+            &[0.2; 5], 1e-6
+        ));
 
-        assert!(p
-            .probabilities(&[0.0, 0.0, 0.0, 0.0, 1.0])
-            .all_close(&Vector::from_vec(vec![0.2; 5]), 1e-6));
+        assert!(compare_floats(
+            p.probabilities(&vec![0.0, 0.0, 0.0, 0.0, 1.0]),
+            &[0.2; 5], 1e-6
+        ));
     }
 }

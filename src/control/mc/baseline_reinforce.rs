@@ -1,9 +1,8 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::Parameterised,
-    geometry::{MatrixView, MatrixViewMut},
-    policies::{Policy, ParameterisedPolicy},
+    fa::{Weights, WeightsView, WeightsViewMut, Parameterised},
+    policies::{Policy, DifferentiablePolicy},
 };
 use rand::Rng;
 
@@ -34,7 +33,6 @@ impl<B, P> BaselineREINFORCE<B, P> {
 
 impl<B, P> Algorithm for BaselineREINFORCE<B, P>
 where
-    B: Algorithm,
     P: Algorithm,
 {
     fn handle_terminal(&mut self) {
@@ -42,20 +40,17 @@ where
         self.gamma = self.gamma.step();
 
         self.policy.handle_terminal();
-        self.baseline.handle_terminal();
     }
 }
 
 impl<S, B, P> BatchLearner<S, P::Action> for BaselineREINFORCE<B, P>
 where
     S: Clone,
-    P: ParameterisedPolicy<S>,
+    P: DifferentiablePolicy<S>,
     P::Action: Clone,
-    B: BatchLearner<S, P::Action> + ActionValuePredictor<S, P::Action>,
+    B: ActionValuePredictor<S, P::Action>,
 {
     fn handle_batch(&mut self, batch: &[Transition<S, P::Action>]) {
-        self.baseline.handle_batch(batch);
-
         let mut ret = 0.0;
 
         for t in batch.into_iter().rev() {
@@ -69,7 +64,7 @@ where
     }
 }
 
-impl<S, B, P: ParameterisedPolicy<S>> Controller<S, P::Action> for BaselineREINFORCE<B, P> {
+impl<S, B, P: Policy<S>> Controller<S, P::Action> for BaselineREINFORCE<B, P> {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
         self.policy.sample(rng, s)
     }

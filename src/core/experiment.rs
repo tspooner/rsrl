@@ -7,7 +7,7 @@ use rand::{thread_rng, Rng};
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
 
 /// Container for episodic statistics.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Episode {
     /// The number of steps taken to reach the terminal state.
     pub steps: u64,
@@ -17,7 +17,7 @@ pub struct Episode {
 }
 
 impl KV for Episode {
-    fn serialize(&self, _: &Record, serializer: &mut Serializer) -> LogResult {
+    fn serialize(&self, _: &Record, serializer: &mut dyn Serializer) -> LogResult {
         serializer.emit_u64("steps", self.steps)?;
         serializer.emit_f64("reward", self.reward)?;
 
@@ -50,7 +50,7 @@ pub fn run(
 /// Utility for running a single evaluation episode.
 pub struct Evaluation<'a, C: 'a, D> {
     agent: &'a mut C,
-    domain_factory: Box<Fn() -> D>,
+    domain_factory: Box<dyn Fn() -> D>,
 }
 
 impl<'a, S: Space, A: Space, C, D> Evaluation<'a, C, D>
@@ -58,7 +58,7 @@ where
     C: Controller<S::Value, A::Value>,
     D: Domain<StateSpace = S, ActionSpace = A>,
 {
-    pub fn new(agent: &'a mut C, domain_factory: Box<Fn() -> D>) -> Evaluation<'a, C, D> {
+    pub fn new(agent: &'a mut C, domain_factory: Box<dyn Fn() -> D>) -> Evaluation<'a, C, D> {
         Evaluation {
             agent,
             domain_factory,
@@ -102,7 +102,7 @@ where
 /// Utility for running a sequence of training episodes.
 pub struct SerialExperiment<'a, C: 'a, D> {
     agent: &'a mut C,
-    domain_factory: Box<Fn() -> D>,
+    domain_factory: Box<dyn Fn() -> D>,
 
     step_limit: u64,
 }
@@ -114,7 +114,7 @@ where
 {
     pub fn new(
         agent: &'a mut C,
-        domain_factory: Box<Fn() -> D>,
+        domain_factory: Box<dyn Fn() -> D>,
         step_limit: u64,
     ) -> SerialExperiment<'a, C, D>
     {

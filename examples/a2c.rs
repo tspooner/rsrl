@@ -6,7 +6,7 @@ use rsrl::{
     control::{ac::A2C, td::SARSA},
     core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::{basis::fixed::Fourier, Composable, LFA},
+    fa::linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
     geometry::Space,
     logging,
     policies::Gibbs,
@@ -19,17 +19,17 @@ fn main() {
     let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
     let policy = make_shared({
-        let fa = LFA::vector(bases.clone(), n_actions);
+        let fa = LFA::vector(bases.clone(), SGD(1.0), n_actions);
 
         Gibbs::standard(fa)
     });
     let critic = {
-        let q_func = LFA::vector(bases, n_actions);
+        let q_func = LFA::vector(bases, SGD(1.0), n_actions);
 
-        SARSA::new(q_func, policy.clone(), 0.01, 0.99)
+        SARSA::new(q_func, policy.clone(), 0.001, 1.0)
     };
 
-    let mut agent = A2C::new(critic, policy, 0.01);
+    let mut agent = A2C::new(critic, policy, 0.001);
 
     let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(MountainCar::default);

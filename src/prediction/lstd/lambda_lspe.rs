@@ -1,8 +1,11 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::{Approximator, VFunction, Parameterised},
-    geometry::{Space, Matrix, MatrixView, MatrixViewMut},
+    fa::{
+        Weights, WeightsView, WeightsViewMut, Parameterised,
+        StateFunction,
+        linear::{Features, LinearStateFunction},
+    },
     utils::{argmaxima, pinv},
 };
 use ndarray::Axis;
@@ -38,8 +41,8 @@ impl<F: Parameterised> LambdaLSPE<F> {
             gamma: gamma.into(),
             lambda: lambda.into(),
 
-            a: Matrix::zeros(dim),
-            b: Vector::zeros(dim.0),
+            a: Matrix::eye(dim[0]) * 1e-6,
+            b: Vector::zeros(dim[0]),
             delta: 0.0,
         }
     }
@@ -71,28 +74,37 @@ impl<M> Algorithm for LambdaLSPE<M> {
     }
 }
 
-impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LambdaLSPE<F> {
+impl<S, A, F> BatchLearner<S, A> for LambdaLSPE<F>
+where
+    F: LinearStateFunction<S, Output = f64>,
+{
     fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
         batch.into_iter().rev().for_each(|ref t| {
-            let phi_s = self.fa_theta.embed(t.from.state());
-            let v = self.fa_theta.evaluate(&phi_s).unwrap();
-            let phi_s = phi_s.expanded(self.a.rows());
+            let (s, ns) = t.states();
+            let phi_s = self.fa_theta.features(s);
+
+            self.delta *= self.gamma * self.lambda;
 
             if t.terminated() {
-                let residual = t.reward - v;
+                let phi_s = phi_s.expanded();
 
-                self.b.scaled_add(v + self.gamma * self.lambda * self.delta + residual, &phi_s);
-                self.a += &phi_s.clone().insert_axis(Axis(1)).dot(&(phi_s.insert_axis(Axis(0))));
-
+                self.b.scaled_add(self.delta + t.reward, &phi_s);
+                self.a +=
+                    &phi_s.view().insert_axis(Axis(1))
+                    .dot(&(phi_s.view().insert_axis(Axis(0))));
+                self.delta = 0.0;
             } else {
-                let phi_ns = self.fa_theta.embed(t.to.state());
-                let residual =
-                    t.reward + self.gamma * self.fa_theta.evaluate(&phi_ns).unwrap() - v;
+                let theta_s = self.fa_theta.evaluate_features(&phi_s);
+                let phi_s = phi_s.expanded();
 
-                self.delta = self.gamma * self.lambda * self.delta + residual;
+                let theta_ns = self.fa_theta.evaluate(ns);
+                let residual = t.reward + self.gamma * theta_ns - theta_s;
 
-                self.b.scaled_add(v + self.delta, &phi_s);
-                self.a += &phi_s.clone().insert_axis(Axis(1)).dot(&(phi_s.insert_axis(Axis(0))));
+                self.delta += residual;
+                self.b.scaled_add(theta_s + self.delta, &phi_s);
+                self.a +=
+                    &phi_s.view().insert_axis(Axis(1))
+                    .dot(&(phi_s.view().insert_axis(Axis(0))));
             };
         });
 
@@ -100,10 +112,11 @@ impl<S, A, F: VFunction<S> + Parameterised> BatchLearner<S, A> for LambdaLSPE<F>
     }
 }
 
-impl<S, F: VFunction<S>> ValuePredictor<S> for LambdaLSPE<F> {
+impl<S, F> ValuePredictor<S> for LambdaLSPE<F>
+where
+    F: StateFunction<S, Output = f64>
+{
     fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(&self.fa_theta.embed(s)).unwrap()
+        self.fa_theta.evaluate(s)
     }
 }
-
-impl<S, A, F: VFunction<S>> ActionValuePredictor<S, A> for LambdaLSPE<F> {}

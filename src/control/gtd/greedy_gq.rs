@@ -1,11 +1,17 @@
 use crate::{
     core::*,
     domains::Transition,
-    fa::*,
-    geometry::{MatrixView, MatrixViewMut},
+    fa::{
+        Weights, WeightsView, WeightsViewMut, Parameterised,
+        StateFunction, StateActionFunction, EnumerableStateActionFunction,
+        linear::{Features, LinearStateFunction, LinearStateActionFunction},
+    },
     policies::{Greedy, Policy, FinitePolicy},
 };
+use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::{thread_rng, Rng};
+
+// TODO: Extract prediction component GQ / GQ(lambda) into seperate implementations.
 
 /// Greedy GQ control algorithm.
 ///
@@ -65,82 +71,67 @@ impl<Q, W, PB> Algorithm for GreedyGQ<Q, W, PB> {
 
 impl<S, Q, W, PB> OnlineLearner<S, PB::Action> for GreedyGQ<Q, W, PB>
 where
-    Q: QFunction<S>,
-    W: VFunction<S>,
-    PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
+    W: StateFunction<S, Output = f64> + LinearStateFunction<S>,
+    PB: FinitePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, PB::Action>) {
         let s = t.from.state();
-        let phi_s = self.fa_w.embed(s);
-        let estimate = self.fa_w.evaluate(&phi_s).unwrap();
+
+        let phi_s_w = self.fa_w.features(s);
+        let phi_s_q = self.fa_q.features(s, &t.action);
+
+        let qsa = self.fa_q.evaluate_features(&phi_s_q, &t.action);
+        let estimate = self.fa_w.evaluate_features(&phi_s_w);
 
         if t.terminated() {
-            let residual = t.reward - self.fa_q.evaluate_index(&phi_s, t.action).unwrap();
+            let residual = t.reward - qsa;
 
-            self.fa_w.update(
-                &phi_s,
-                self.alpha * self.beta * (residual - estimate)
-            ).ok();
-            self.fa_q.update_index(
-                &phi_s,
-                t.action,
-                self.alpha.value() * residual
-            ).ok();
+            self.fa_w.update_features(&phi_s_w, self.alpha * self.beta * (residual - estimate));
+            self.fa_q.update_features(&phi_s_q, &t.action, self.alpha * residual);
         } else {
             let ns = t.to.state();
             let na = self.sample_target(&mut thread_rng(), ns);
-            let phi_ns = self.fa_w.embed(ns);
+            let phi_ns_q = self.fa_q.features(ns, &na);
 
             let residual =
-                t.reward
-                + self.gamma.value() * self.fa_q.evaluate_index(&phi_ns, na).unwrap()
-                - self.fa_q.evaluate_index(&phi_s, t.action).unwrap();
+                t.reward + self.gamma * self.fa_q.evaluate_features(&phi_ns_q, &na) - qsa;
 
-            let n_features = self.fa_q.n_features();
-            let update_q = residual * phi_s.clone().expanded(n_features)
-                - estimate * self.gamma.value() * phi_ns.expanded(n_features);
+            let gamma = self.gamma.value();
+            let update_q = phi_s_q.combine(&phi_ns_q, move |x, y| {
+                residual * x - estimate * gamma * y
+            });
 
-            self.fa_w.update(
-                &phi_s,
-                self.alpha * self.beta * (residual - estimate)
-            ).ok();
-            self.fa_q.update_index(
-                &Features::Dense(update_q),
-                t.action,
-                self.alpha.value()
-            ).ok();
+            self.fa_w.update_features(&phi_s_w, self.alpha * self.beta * (residual - estimate));
+            self.fa_q.update_features(&update_q, &t.action, self.alpha.value());
         }
     }
 }
 
 impl<S, Q, W, PB> ValuePredictor<S> for GreedyGQ<Q, W, PB>
 where
-    Q: QFunction<S>,
-    PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: StateActionFunction<S, <Greedy<Q> as Policy<S>>::Action, Output = f64>,
+    Greedy<Q>: Policy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
-        self.predict_qs(s).dot(&self.target_policy.probabilities(s))
+        self.fa_q.evaluate(s, &self.target_policy.mpa(s))
     }
 }
 
-impl<S, Q, W, PB> ActionValuePredictor<S, PB::Action> for GreedyGQ<Q, W, PB>
+impl<S, Q, W, PB> ActionValuePredictor<S, <Greedy<Q> as Policy<S>>::Action> for GreedyGQ<Q, W, PB>
 where
-    Q: QFunction<S>,
-    PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: StateActionFunction<S, <Greedy<Q> as Policy<S>>::Action, Output = f64>,
+    Greedy<Q>: Policy<S>,
 {
-    fn predict_qs(&self, s: &S) -> Vector<f64> {
-        self.fa_q.evaluate(&self.fa_q.embed(s)).unwrap()
-    }
-
-    fn predict_qsa(&self, s: &S, a: usize) -> f64 {
-        self.fa_q.evaluate_index(&self.fa_q.embed(s), a).unwrap()
+    fn predict_qsa(&self, s: &S, a: <Greedy<Q> as Policy<S>>::Action) -> f64 {
+        self.fa_q.evaluate(s, &a)
     }
 }
 
 impl<S, Q, W, PB> Controller<S, PB::Action> for GreedyGQ<Q, W, PB>
 where
-    Q: QFunction<S>,
-    PB: Policy<S, Action = <Greedy<Q> as Policy<S>>::Action>,
+    Q: EnumerableStateActionFunction<S>,
+    PB: FinitePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
         self.target_policy.sample(rng, s)
