@@ -4,9 +4,9 @@ use crate::{
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
-        traces::Trace,
     },
     prediction::ValuePredictor,
+    traces::Trace,
 };
 
 #[derive(Parameterised)]

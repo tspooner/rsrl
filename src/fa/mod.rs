@@ -2,8 +2,6 @@
 #[cfg(test)]
 pub(crate) mod mocking;
 
-pub mod traces;
-
 pub mod linear;
 pub mod tabular;
 

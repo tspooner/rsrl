@@ -9,11 +9,11 @@ use crate::{
             Weights, WeightsView, WeightsViewMut,
             dot_features,
         },
-        traces::Trace,
     },
     linalg::MatrixLike,
     policies::{Greedy, Policy, FinitePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
+    traces::Trace,
 };
 use rand::{thread_rng, Rng};
 

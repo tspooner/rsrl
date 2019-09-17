@@ -36,6 +36,7 @@ pub extern crate spaces;
 
 #[macro_use]
 pub mod fa;
+pub mod traces;
 pub mod control;
 pub mod policies;
 pub mod prediction;

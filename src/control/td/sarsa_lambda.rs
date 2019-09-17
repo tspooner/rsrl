@@ -7,10 +7,10 @@ use crate::{
         StateActionFunction,
         EnumerableStateActionFunction,
         DifferentiableStateActionFunction,
-        traces::Trace,
     },
     policies::{Policy, FinitePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
+    traces::Trace,
 };
 use rand::{thread_rng, Rng};
 
