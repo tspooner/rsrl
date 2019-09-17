@@ -2,7 +2,6 @@ use crate::{
     fa::{Parameterised, StateFunction, Weights, WeightsView, WeightsViewMut},
     policies::{DifferentiablePolicy, Policy},
     spaces::Space,
-    Algorithm,
 };
 use ndarray::{Array2, ArrayView2, Axis};
 use rand::Rng;
@@ -55,8 +54,6 @@ impl<M, S> Gaussian<M, S> {
         self.stddev.stddev(input)
     }
 }
-
-impl<M, S> Algorithm for Gaussian<M, S> {}
 
 impl<I, M, S> Policy<I> for Gaussian<M, S>
 where

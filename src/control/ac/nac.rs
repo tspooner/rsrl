@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter,
+    OnlineLearner,
     control::Controller,
     domains::Transition,
     fa::Parameterised,
@@ -13,34 +13,23 @@ pub struct NAC<C, P> {
     pub critic: C,
     pub policy: P,
 
-    pub alpha: Parameter,
+    pub alpha: f64,
+    pub update_freq: usize,
 
-    n_updates: usize,
+    counter: usize,
 }
 
 impl<C, P> NAC<C, P> {
-    pub fn new<T: Into<Parameter>>(critic: C, policy: P, alpha: T) -> Self {
+    pub fn new(critic: C, policy: P, alpha: f64, update_freq: usize) -> Self {
         NAC {
             critic,
             policy,
 
-            alpha: alpha.into(),
+            alpha,
+            update_freq,
 
-            n_updates: 0,
+            counter: 0,
         }
-    }
-}
-
-impl<C, P> Algorithm for NAC<C, P>
-where
-    C: Algorithm,
-    P: Algorithm,
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-
-        self.critic.handle_terminal();
-        self.policy.handle_terminal();
     }
 }
 
@@ -50,7 +39,7 @@ impl<C, P> NAC<C, P> {
         C: Parameterised,
         P: DifferentiablePolicy<S>,
     {
-        if self.n_updates % 100 == 0 {
+        if self.counter % self.update_freq == 0 {
             let pw_dim = self.policy.weights_dim();
             let n_features = pw_dim[0] * pw_dim[1];
 
@@ -58,7 +47,9 @@ impl<C, P> NAC<C, P> {
             let grad = cw.slice(s![0..n_features, ..]).into_shape(pw_dim).unwrap();
             let norm = grad.fold(0.0, |acc, g| acc + g * g).sqrt().max(1e-3);
 
-            self.policy.update_grad_scaled(&grad, self.alpha.value() / norm);
+            self.policy.update_grad_scaled(&grad, self.alpha / norm);
+
+            self.counter = 0;
         }
     }
 }
@@ -70,16 +61,13 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         self.critic.handle_transition(t);
-        self.n_updates += 1;
+        self.counter += 1;
 
         self.update_policy();
     }
 
-    fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
-        self.critic.handle_sequence(seq);
-        self.n_updates += seq.len();
-
-        self.update_policy();
+    fn handle_terminal(&mut self) {
+        self.critic.handle_terminal();
     }
 }
 

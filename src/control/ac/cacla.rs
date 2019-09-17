@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter,
+    OnlineLearner,
     control::Controller,
     domains::Transition,
     policies::{Policy, DifferentiablePolicy},
@@ -14,48 +14,27 @@ pub struct CACLA<C, PT, PB> {
     pub target_policy: PT,
     pub behaviour_policy: PB,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
 }
 
 impl<C, PT, PB> CACLA<C, PT, PB> {
-    pub fn new<T1, T2>(
+    pub fn new(
         critic: C,
         target_policy: PT,
         behaviour_policy: PB,
-        alpha: T1,
-        gamma: T2
-    ) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+        alpha: f64,
+        gamma: f64,
+    ) -> Self {
         CACLA {
             critic,
 
             target_policy,
             behaviour_policy,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
+            alpha,
+            gamma,
         }
-    }
-}
-
-impl<C, PT, PB> Algorithm for CACLA<C, PT, PB>
-where
-    C: Algorithm,
-    PT: Algorithm,
-    PB: Algorithm,
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-
-        self.critic.handle_terminal();
-
-        self.target_policy.handle_terminal();
-        self.behaviour_policy.handle_terminal();
     }
 }
 
@@ -63,7 +42,6 @@ impl<S, C, PT, PB> OnlineLearner<S, PT::Action> for CACLA<C, PT, PB>
 where
     C: OnlineLearner<S, PT::Action> + ValuePredictor<S>,
     PT: DifferentiablePolicy<S, Action = f64>,
-    PB: Algorithm,
 {
     fn handle_transition(&mut self, t: &Transition<S, PT::Action>) {
         let s = t.from.state();
@@ -81,6 +59,10 @@ where
 
             self.target_policy.update(s, &t.action, self.alpha * (t.action - mpa));
         }
+    }
+
+    fn handle_terminal(&mut self) {
+        self.critic.handle_terminal();
     }
 }
 

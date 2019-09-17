@@ -1,5 +1,4 @@
 use crate::{
-    Algorithm, Parameter,
     fa::EnumerableStateActionFunction,
     policies::{FinitePolicy, Greedy, Policy, Random}
 };
@@ -9,22 +8,21 @@ pub struct EpsilonGreedy<Q> {
     greedy: Greedy<Q>,
     random: Random,
 
-    epsilon: Parameter,
+    pub epsilon: f64,
 }
 
 impl<Q> EpsilonGreedy<Q> {
-    pub fn new<T: Into<Parameter>>(greedy: Greedy<Q>, random: Random, epsilon: T) -> Self {
+    pub fn new(greedy: Greedy<Q>, random: Random, epsilon: f64) -> Self {
         EpsilonGreedy {
             greedy,
             random,
 
-            epsilon: epsilon.into(),
+            epsilon,
         }
     }
 
     #[allow(non_snake_case)]
-    pub fn from_Q<S, T: Into<Parameter>>(q_func: Q, epsilon: T) -> Self
-    where Q: EnumerableStateActionFunction<S> {
+    pub fn from_Q<S>(q_func: Q, epsilon: f64) -> Self where Q: EnumerableStateActionFunction<S> {
         let greedy = Greedy::new(q_func);
         let random = Random::new(greedy.n_actions());
 
@@ -32,20 +30,11 @@ impl<Q> EpsilonGreedy<Q> {
     }
 }
 
-impl<Q> Algorithm for EpsilonGreedy<Q> {
-    fn handle_terminal(&mut self) {
-        self.epsilon = self.epsilon.step();
-
-        self.greedy.handle_terminal();
-        self.random.handle_terminal();
-    }
-}
-
 impl<S, Q: EnumerableStateActionFunction<S>> Policy<S> for EpsilonGreedy<Q> {
     type Action = usize;
 
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R, s: &S) -> usize {
-        if rng.gen_bool(self.epsilon.value()) {
+        if rng.gen_bool(self.epsilon) {
             self.random.sample(rng, s)
         } else {
             self.greedy.sample(rng, s)
@@ -76,7 +65,7 @@ mod tests {
         utils::compare_floats,
     };
     use rand::thread_rng;
-    use super::{Algorithm, EpsilonGreedy, FinitePolicy, Parameter, Policy};
+    use super::{EpsilonGreedy, FinitePolicy, Policy};
 
     #[test]
     fn test_sampling() {
@@ -135,20 +124,5 @@ mod tests {
             &[0.25, 0.25, 0.25, 0.25],
             1e-6
         ));
-    }
-
-    #[test]
-    fn test_terminal() {
-        let mut epsilon = Parameter::exponential(100.0, 1.0, 0.9);
-
-        let q = MockQ::new_shared(Some(vec![].into()));
-        let mut p = EpsilonGreedy::from_Q(q, epsilon);
-
-        for _ in 0..100 {
-            epsilon = epsilon.step();
-            p.handle_terminal();
-
-            assert_eq!(epsilon.value(), p.epsilon.value());
-        }
     }
 }

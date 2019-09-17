@@ -22,7 +22,7 @@ fn main() {
     let domain = ContinuousMountainCar::default();
     let bases = Fourier::from_space(3, domain.state_space()).with_constant();
 
-    let critic = iLSTD::new(LFA::scalar(bases.clone(), SGD(1.0)), 2, 0.0001, 0.99);
+    let critic = iLSTD::new(LFA::scalar(bases.clone(), SGD(1.0)), 0.0001, 0.99, 2);
     let policy = Gaussian::new(
         gaussian::mean::Scalar(LFA::scalar(bases, SGD(1.0))),
         gaussian::stddev::Constant(1.0),
@@ -41,8 +41,6 @@ fn main() {
         // Realise 2000 episodes of the experiment generator.
         run(e, 2000, Some(logger.clone()))
     };
-    use rsrl::fa::Parameterised;
-    println!("{}", agent.critic.weights_view());
 
     // Testing phase:
     let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();

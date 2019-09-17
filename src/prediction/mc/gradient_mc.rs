@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, BatchLearner, Parameter,
+    BatchLearner,
     domains::Transition,
     fa::{Weights, WeightsView, WeightsViewMut, Parameterised, StateFunction},
     prediction::ValuePredictor,
@@ -9,29 +9,18 @@ use crate::{
 pub struct GradientMC<V> {
     #[weights] pub v_func: V,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
 }
 
 impl<V> GradientMC<V> {
-    pub fn new<T1, T2>(v_func: V, alpha: T1, gamma: T2) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+    pub fn new(v_func: V, alpha: f64, gamma: f64) -> Self {
         GradientMC {
             v_func,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
+            alpha,
+            gamma,
         }
-    }
-}
-
-impl<V> Algorithm for GradientMC<V> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
     }
 }
 

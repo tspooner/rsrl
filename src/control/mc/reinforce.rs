@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, BatchLearner, Parameter,
+    BatchLearner,
     control::Controller,
     domains::Transition,
     fa::{Weights, WeightsView, WeightsViewMut, Parameterised},
@@ -11,31 +11,18 @@ use rand::Rng;
 pub struct REINFORCE<P> {
     #[weights] pub policy: P,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
 }
 
 impl<P> REINFORCE<P> {
-    pub fn new<T1, T2>(policy: P, alpha: T1, gamma: T2) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+    pub fn new(policy: P, alpha: f64, gamma: f64) -> Self {
         REINFORCE {
             policy,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
+            alpha,
+            gamma,
         }
-    }
-}
-
-impl<P: Algorithm> Algorithm for REINFORCE<P> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-
-        self.policy.handle_terminal();
     }
 }
 

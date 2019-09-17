@@ -16,27 +16,22 @@ pub struct GTDLambdaIS<F, T, B> {
     target: T,
     behaviour: B,
 
-    pub alpha: Parameter,
-    pub beta: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub beta: f64,
+    pub gamma: f64,
 }
 
 impl<F: Parameterised, T, B> GTDLambdaIS<F, T, B> {
-    pub fn new<T1, T2, T3>(
+    pub fn new(
         fa_theta: F,
         fa_w: F,
         trace: Trace,
         target: T,
         behaviour: B,
-        alpha: T1,
-        beta: T2,
-        gamma: T3,
-    ) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-        T3: Into<Parameter>,
-    {
+        alpha: f64,
+        beta: f64,
+        gamma: f64,
+    ) -> Self {
         if fa_theta.weights_dim() != fa_w.weights_dim() {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }

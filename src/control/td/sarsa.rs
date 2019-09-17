@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter,
+    OnlineLearner,
     control::Controller,
     domains::Transition,
     fa::{
@@ -23,32 +23,19 @@ pub struct SARSA<Q, P> {
     #[weights] pub q_func: Q,
     pub policy: P,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
 }
 
 impl<Q, P> SARSA<Q, P> {
-    pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+    pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64) -> Self {
         SARSA {
             q_func,
             policy,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
+            alpha,
+            gamma,
         }
-    }
-}
-
-impl<Q, P: Algorithm> Algorithm for SARSA<Q, P> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-
-        self.policy.handle_terminal();
     }
 }
 

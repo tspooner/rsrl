@@ -11,7 +11,7 @@
 //! stochastic policies in which all probability mass is placed on a
 //! single action _u'_ for any given state _x_. For continuous policies, this
 //! can be seen as a dirac delta distribution, _δ(u' - u)_.
-use crate::{fa::Parameterised, Algorithm};
+use crate::fa::Parameterised;
 use ndarray::{Array2, ArrayView2};
 use rand::{thread_rng, Rng};
 use std::ops::AddAssign;
@@ -56,7 +56,7 @@ pub(self) fn sample_probs_with_rng<R: Rng + ?Sized>(rng: &mut R, probabilities: 
 
 /// Policy trait for functions that define a probability distribution over
 /// actions.
-pub trait Policy<S>: Algorithm {
+pub trait Policy<S> {
     type Action;
 
     /// Sample the (possibly stochastic) policy distribution for a given

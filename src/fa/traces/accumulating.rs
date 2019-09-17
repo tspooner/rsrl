@@ -1,4 +1,4 @@
-use crate::{Algorithm, linalg::MatrixLike};
+use crate::linalg::MatrixLike;
 use std::ops::{Deref, DerefMut};
 use super::Trace;
 
@@ -9,10 +9,6 @@ impl<G: MatrixLike> Accumulating<G> {
     pub fn new(grad: G) -> Self { Accumulating(grad) }
 
     pub fn zeros(dim: [usize; 2]) -> Self { Accumulating::new(G::zeros(dim)) }
-}
-
-impl<G: MatrixLike> Algorithm for Accumulating<G> {
-    fn handle_terminal(&mut self) {}
 }
 
 impl<G: MatrixLike> Trace<G> for Accumulating<G> {

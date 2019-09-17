@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    OnlineLearner, Shared, make_shared,
     control::Controller,
     domains::Transition,
     fa::{
@@ -81,27 +81,22 @@ pub struct QSigma<S, Q, P> {
     pub policy: P,
     pub target: Greedy<Q>,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
-    pub sigma: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
+    pub sigma: f64,
 
     backup: Backup<S>,
 }
 
 impl<S, Q, P> QSigma<S, Shared<Q>, P> {
-    pub fn new<T1, T2, T3>(
+    pub fn new(
         q_func: Q,
         policy: P,
-        alpha: T1,
-        gamma: T2,
-        sigma: T3,
+        alpha: f64,
+        gamma: f64,
+        sigma: f64,
         n_steps: usize,
-    ) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-        T3: Into<Parameter>,
-    {
+    ) -> Self {
         let q_func = make_shared(q_func);
 
         QSigma {
@@ -110,9 +105,9 @@ impl<S, Q, P> QSigma<S, Shared<Q>, P> {
             policy,
             target: Greedy::new(q_func),
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
-            sigma: sigma.into(),
+            alpha,
+            gamma,
+            sigma,
 
             backup: Backup::new(n_steps),
         }
@@ -124,7 +119,7 @@ impl<S, Q: EnumerableStateActionFunction<S>, P> QSigma<S, Q, P> {
         self.backup.push(entry);
 
         if self.backup.len() >= self.backup.n_steps {
-            let (isr, g) = self.backup.propagate(self.gamma.value());
+            let (isr, g) = self.backup.propagate(self.gamma);
 
             let anchor = self.backup.pop().unwrap();
             let qsa = self.q_func.evaluate(&anchor.s, &anchor.a);
@@ -137,18 +132,6 @@ impl<S, Q: EnumerableStateActionFunction<S>, P> QSigma<S, Q, P> {
     }
 }
 
-impl<S, Q, P: Algorithm> Algorithm for QSigma<S, Q, P> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-
-        self.policy.handle_terminal();
-        self.target.handle_terminal();
-
-        self.backup.clear();
-    }
-}
-
 impl<S, Q, P> OnlineLearner<S, P::Action> for QSigma<S, Q, P>
 where
     S: Clone,
@@ -158,10 +141,6 @@ where
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
         let qa = self.q_func.evaluate(s, &t.action);
-        let sigma = {
-            self.sigma = self.sigma.step();
-            self.sigma.value()
-        };
 
         if t.terminated() {
             self.update_backup(BackupEntry {
@@ -171,7 +150,7 @@ where
                 q: qa,
                 residual: t.reward - qa,
 
-                sigma: sigma,
+                sigma: self.sigma,
                 pi: 0.0,
                 mu: 1.0,
             });
@@ -188,7 +167,7 @@ where
 
             let exp_nqs = nqs.iter().zip(pi.iter()).fold(0.0, |acc, (q, p)| acc + q * p);
             let residual =
-                t.reward + self.gamma * (sigma * nqs[na] + (1.0 - sigma) * exp_nqs) - qa;
+                t.reward + self.gamma * (self.sigma * nqs[na] + (1.0 - self.sigma) * exp_nqs) - qa;
 
             self.update_backup(BackupEntry {
                 s: s.clone(),
@@ -197,11 +176,15 @@ where
                 q: qa,
                 residual: residual,
 
-                sigma: sigma,
+                sigma: self.sigma,
                 pi: pi[na],
                 mu: mu,
             });
         };
+    }
+
+    fn handle_terminal(&mut self) {
+        self.backup.clear();
     }
 }
 

@@ -16,7 +16,6 @@ use rsrl::{
     run,
     spaces::Space,
     Evaluation,
-    Parameter,
     SerialExperiment,
 };
 
@@ -31,7 +30,7 @@ fn main() {
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.5, 0.001, 0.99),
+            0.2,
         );
 
         PAL::new(q_func, policy, 0.001, 1.0)

@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    OnlineLearner, Shared, make_shared,
     control::Controller,
     domains::Transition,
     fa::{
@@ -23,16 +23,12 @@ pub struct PAL<Q, P> {
     pub policy: P,
     pub target: Greedy<Q>,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
 }
 
 impl<Q, P> PAL<Shared<Q>, P> {
-    pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+    pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64) -> Self {
         let q_func = make_shared(q_func);
 
         PAL {
@@ -41,19 +37,9 @@ impl<Q, P> PAL<Shared<Q>, P> {
             policy,
             target: Greedy::new(q_func),
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
+            alpha,
+            gamma,
         }
-    }
-}
-
-impl<Q, P: Algorithm> Algorithm for PAL<Q, P> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-
-        self.policy.handle_terminal();
-        self.target.handle_terminal();
     }
 }
 

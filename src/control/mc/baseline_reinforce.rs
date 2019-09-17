@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, BatchLearner, Parameter,
+    BatchLearner,
     control::Controller,
     domains::Transition,
     fa::{Weights, WeightsView, WeightsViewMut, Parameterised},
@@ -13,35 +13,19 @@ pub struct BaselineREINFORCE<B, P> {
     #[weights] pub policy: P,
     pub baseline: B,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
 }
 
 impl<B, P> BaselineREINFORCE<B, P> {
-    pub fn new<T1, T2>(policy: P, baseline: B, alpha: T1, gamma: T2) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+    pub fn new(policy: P, baseline: B, alpha: f64, gamma: f64) -> Self {
         BaselineREINFORCE {
             policy,
             baseline,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
+            alpha,
+            gamma,
         }
-    }
-}
-
-impl<B, P> Algorithm for BaselineREINFORCE<B, P>
-where
-    P: Algorithm,
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-
-        self.policy.handle_terminal();
     }
 }
 

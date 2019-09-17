@@ -1,38 +1,32 @@
-use crate::{Parameter, Algorithm, linalg::MatrixLike};
+use crate::linalg::MatrixLike;
 use std::ops::{Deref, DerefMut};
 use super::Trace;
 
 #[derive(Clone, Debug)]
 pub struct Dutch<G: MatrixLike> {
-    alpha: Parameter,
+    alpha: f64,
     grad: G,
 }
 
 impl<G: MatrixLike> Dutch<G> {
-    pub fn new<T: Into<Parameter>>(alpha: T, grad: G) -> Self {
+    pub fn new(alpha: f64, grad: G) -> Self {
         Dutch { alpha: alpha.into(), grad }
     }
 
-    pub fn zeros<T: Into<Parameter>>(alpha: T, dim: [usize; 2]) -> Self {
+    pub fn zeros(alpha: f64, dim: [usize; 2]) -> Self {
         Dutch::new(alpha, G::zeros(dim))
-    }
-}
-
-impl<G: MatrixLike> Algorithm for Dutch<G> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
     }
 }
 
 impl<G: MatrixLike> Trace<G> for Dutch<G> {
     fn update(&mut self, grad: &G) {
-        let scale = 1.0 - self.alpha.value();
+        let scale = 1.0 - self.alpha;
 
         self.grad.combine_inplace(grad, move |x, y| scale * x + y);
     }
 
     fn scaled_update(&mut self, factor: f64, grad: &G) {
-        let scale = factor * (1.0 - self.alpha.value());
+        let scale = factor * (1.0 - self.alpha);
 
         self.grad.combine_inplace(grad, move |x, y| scale * x + y);
     }

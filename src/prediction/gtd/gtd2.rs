@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter,
+    OnlineLearner,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
@@ -14,24 +14,19 @@ pub struct GTD2<F> {
     #[weights] pub fa_theta: F,
     pub fa_w: F,
 
-    pub alpha: Parameter,
-    pub beta: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub beta: f64,
+    pub gamma: f64,
 }
 
 impl<F: Parameterised> GTD2<F> {
-    pub fn new<T1, T2, T3>(
+    pub fn new(
         fa_theta: F,
         fa_w: F,
-        alpha: T1,
-        beta: T2,
-        gamma: T3,
-    ) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-        T3: Into<Parameter>,
-    {
+        alpha: f64,
+        beta: f64,
+        gamma: f64,
+    ) -> Self {
         if fa_theta.weights_dim() != fa_w.weights_dim() {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
@@ -40,18 +35,10 @@ impl<F: Parameterised> GTD2<F> {
             fa_theta,
             fa_w,
 
-            alpha: alpha.into(),
-            beta: beta.into(),
-            gamma: gamma.into(),
+            alpha,
+            beta,
+            gamma,
         }
-    }
-}
-
-impl<F> Algorithm for GTD2<F> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.beta = self.alpha.step();
-        self.gamma = self.gamma.step();
     }
 }
 
@@ -76,8 +63,7 @@ where
 
         self.fa_w.update_grad_scaled(&grad, self.beta * (td_error - w_s));
 
-        let gamma = self.gamma.value();
-        let grad = grad.combine(&self.fa_theta.grad(ns), move |x, y| x - gamma * y);
+        let grad = grad.combine(&self.fa_theta.grad(ns), |x, y| x - self.gamma * y);
 
         self.fa_theta.update_grad_scaled(&grad, self.alpha * w_s);
     }

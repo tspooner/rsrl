@@ -1,7 +1,4 @@
-use crate::{
-    Algorithm,
-    policies::{FinitePolicy, Policy},
-};
+use crate::policies::{FinitePolicy, Policy};
 use rand::{distributions::{Distribution, Uniform}, Rng};
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -11,8 +8,6 @@ pub struct Random(usize);
 impl Random {
     pub fn new(n_actions: usize) -> Self { Random(n_actions) }
 }
-
-impl Algorithm for Random {}
 
 impl<S> Policy<S> for Random {
     type Action = usize;

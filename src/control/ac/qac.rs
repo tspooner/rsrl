@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter,
+    OnlineLearner,
     control::Controller,
     domains::Transition,
     policies::{Policy, DifferentiablePolicy},
@@ -13,30 +13,17 @@ pub struct QAC<C, P> {
     pub critic: C,
     pub policy: P,
 
-    pub alpha: Parameter,
+    pub alpha: f64,
 }
 
 impl<C, P> QAC<C, P> {
-    pub fn new<T: Into<Parameter>>(critic: C, policy: P, alpha: T) -> Self {
+    pub fn new(critic: C, policy: P, alpha: f64) -> Self {
         QAC {
             critic,
             policy,
 
-            alpha: alpha.into(),
+            alpha,
         }
-    }
-}
-
-impl<C, P> Algorithm for QAC<C, P>
-where
-    C: Algorithm,
-    P: Algorithm,
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-
-        self.critic.handle_terminal();
-        self.policy.handle_terminal();
     }
 }
 
@@ -66,12 +53,8 @@ where
         self.update_policy(t);
     }
 
-    fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
-        self.critic.handle_sequence(seq);
-
-        for t in seq {
-            self.update_policy(t);
-        }
+    fn handle_terminal(&mut self) {
+        self.critic.handle_terminal();
     }
 }
 

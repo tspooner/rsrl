@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    OnlineLearner, Shared, make_shared,
     control::Controller,
     domains::Transition,
     fa::{
@@ -26,27 +26,22 @@ pub struct QLambda<F, P, T> {
 
     pub policy: P,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
-    pub lambda: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
+    pub lambda: f64,
 
     trace: T,
 }
 
 impl<F, P, T> QLambda<Shared<F>, P, T> {
-    pub fn new<T1, T2, T3>(
+    pub fn new(
         fa_theta: F,
         policy: P,
         trace: T,
-        alpha: T1,
-        gamma: T2,
-        lambda: T3,
-    ) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-        T3: Into<Parameter>,
-    {
+        alpha: f64,
+        gamma: f64,
+        lambda: f64,
+    ) -> Self {
         let fa_theta = make_shared(fa_theta);
 
         QLambda {
@@ -54,23 +49,12 @@ impl<F, P, T> QLambda<Shared<F>, P, T> {
 
             policy,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
-            lambda: lambda.into(),
+            alpha,
+            gamma,
+            lambda,
 
             trace,
         }
-    }
-}
-
-impl<F, P: Algorithm, T: Algorithm> Algorithm for QLambda<F, P, T> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-        self.lambda = self.lambda.step();
-
-        self.policy.handle_terminal();
-        self.trace.handle_terminal();
     }
 }
 
@@ -86,7 +70,7 @@ where
 
         // Update trace:
         self.trace.scale(if t.action == self.fa_theta.find_max(s).0 {
-            self.lambda.value() * self.gamma.value()
+            self.lambda * self.gamma
         } else {
             0.0
         });

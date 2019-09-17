@@ -1,5 +1,4 @@
 use crate::{
-    Algorithm,
     fa::EnumerableStateActionFunction,
     policies::{FinitePolicy, Policy},
     utils::{argmaxima},
@@ -14,8 +13,6 @@ impl<Q> Greedy<Q> {
 
     pub fn argmax_qs(qs: &[f64]) -> usize { argmaxima(qs).1[0] }
 }
-
-impl<Q> Algorithm for Greedy<Q> {}
 
 impl<S, Q: EnumerableStateActionFunction<S>> Policy<S> for Greedy<Q> {
     type Action = usize;

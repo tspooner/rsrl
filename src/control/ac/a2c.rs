@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter,
+    OnlineLearner,
     control::Controller,
     domains::Transition,
     policies::{Policy, DifferentiablePolicy},
@@ -12,30 +12,17 @@ pub struct A2C<C, P> {
     pub critic: C,
     pub policy: P,
 
-    pub alpha: Parameter,
+    pub alpha: f64,
 }
 
 impl<C, P> A2C<C, P> {
-    pub fn new<T: Into<Parameter>>(critic: C, policy: P, alpha: T) -> Self {
+    pub fn new(critic: C, policy: P, alpha: f64) -> Self {
         A2C {
             critic,
             policy,
 
-            alpha: alpha.into(),
+            alpha,
         }
-    }
-}
-
-impl<C, P> Algorithm for A2C<C, P>
-where
-    C: Algorithm,
-    P: Algorithm,
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-
-        self.critic.handle_terminal();
-        self.policy.handle_terminal();
     }
 }
 
@@ -55,16 +42,8 @@ where
         self.policy.update(s, &t.action, self.alpha * (qsa - v));
     }
 
-    fn handle_sequence(&mut self, seq: &[Transition<S, P::Action>]) {
-        self.critic.handle_sequence(seq);
-
-        for t in seq {
-            let s = t.from.state();
-            let v = self.critic.predict_v(s);
-            let qsa = self.critic.predict_qsa(s, t.action.clone());
-
-            self.policy.update(s, &t.action, self.alpha * (qsa - v));
-        }
+    fn handle_terminal(&mut self) {
+        self.critic.handle_terminal();
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter,
+    OnlineLearner,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
@@ -14,24 +14,19 @@ pub struct TDC<F> {
     #[weights] pub fa_theta: F,
     pub fa_w: F,
 
-    pub alpha: Parameter,
-    pub beta: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub beta: f64,
+    pub gamma: f64,
 }
 
 impl<F: Parameterised> TDC<F> {
-    pub fn new<T1, T2, T3>(
+    pub fn new(
         fa_theta: F,
         fa_w: F,
-        alpha: T1,
-        beta: T2,
-        gamma: T3,
-    ) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-        T3: Into<Parameter>,
-    {
+        alpha: f64,
+        beta: f64,
+        gamma: f64,
+    ) -> Self {
         if fa_theta.weights_dim() != fa_w.weights_dim() {
             panic!("fa_theta and fa_w must be equivalent function approximators.")
         }
@@ -40,18 +35,10 @@ impl<F: Parameterised> TDC<F> {
             fa_theta,
             fa_w,
 
-            alpha: alpha.into(),
-            beta: beta.into(),
-            gamma: gamma.into(),
+            alpha,
+            beta,
+            gamma,
         }
-    }
-}
-
-impl<F> Algorithm for TDC<F> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.beta = self.alpha.step();
-        self.gamma = self.gamma.step();
     }
 }
 
@@ -76,7 +63,7 @@ where
         let grad = self.fa_theta
             .grad(s).combine(&self.fa_theta.grad(ns), |x, y| td_error * x - w_s * y);
 
-        self.fa_theta.update_grad_scaled(&grad, self.alpha.value());
+        self.fa_theta.update_grad_scaled(&grad, self.alpha);
     }
 }
 

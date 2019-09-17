@@ -20,7 +20,6 @@ use rsrl::{
     run,
     spaces::Space,
     Evaluation,
-    Parameter,
     SerialExperiment,
 };
 
@@ -40,7 +39,7 @@ fn main() {
         SARSA::new(q_func, policy.clone(), 0.01, 1.0)
     };
 
-    let mut agent = NAC::new(critic, policy, 0.01);
+    let mut agent = NAC::new(critic, policy, 0.01, 100);
 
     let logger = logging::root(logging::stdout());
     let domain_builder = Box::new(MountainCar::default);

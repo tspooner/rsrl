@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    OnlineLearner, Shared, make_shared,
     control::Controller,
     domains::Transition,
     fa::{
@@ -27,25 +27,20 @@ pub struct GreedyGQ<Q, W, PB> {
     pub target_policy: Greedy<Q>,
     pub behaviour_policy: PB,
 
-    pub alpha: Parameter,
-    pub beta: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub beta: f64,
+    pub gamma: f64,
 }
 
 impl<Q, W, PB> GreedyGQ<Shared<Q>, W, PB> {
-    pub fn new<P1, P2, P3>(
+    pub fn new(
         fa_q: Q,
         fa_w: W,
         behaviour_policy: PB,
-        alpha: P1,
-        beta: P2,
-        gamma: P3,
-    ) -> Self
-    where
-        P1: Into<Parameter>,
-        P2: Into<Parameter>,
-        P3: Into<Parameter>,
-    {
+        alpha: f64,
+        beta: f64,
+        gamma: f64,
+    ) -> Self {
         let fa_q = make_shared(fa_q);
 
         GreedyGQ {
@@ -55,18 +50,10 @@ impl<Q, W, PB> GreedyGQ<Shared<Q>, W, PB> {
             target_policy: Greedy::new(fa_q),
             behaviour_policy,
 
-            alpha: alpha.into(),
-            beta: beta.into(),
-            gamma: gamma.into(),
+            alpha,
+            beta,
+            gamma,
         }
-    }
-}
-
-impl<Q, W, PB> Algorithm for GreedyGQ<Q, W, PB> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.beta = self.beta.step();
-        self.gamma = self.gamma.step();
     }
 }
 
@@ -98,13 +85,12 @@ where
             let residual =
                 t.reward + self.gamma * self.fa_q.evaluate_features(&phi_ns_q, &na) - qsa;
 
-            let gamma = self.gamma.value();
-            let update_q = phi_s_q.combine(&phi_ns_q, move |x, y| {
-                residual * x - estimate * gamma * y
+            let update_q = phi_s_q.combine(&phi_ns_q, |x, y| {
+                residual * x - estimate * self.gamma * y
             });
 
             self.fa_w.update_features(&phi_s_w, self.alpha * self.beta * (residual - estimate));
-            self.fa_q.update_features(&update_q, &t.action, self.alpha.value());
+            self.fa_q.update_features(&update_q, &t.action, self.alpha);
         }
     }
 }

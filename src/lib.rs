@@ -25,7 +25,6 @@ mod utils;
 pub(crate) mod consts;
 
 import_all!(memory);
-import_all!(parameter);
 import_all!(experiment);
 import_all!(deref_slice);
 
@@ -41,26 +40,12 @@ pub mod control;
 pub mod policies;
 pub mod prediction;
 
-pub trait Algorithm {
-    /// Perform housekeeping after terminal state observation.
-    fn handle_terminal(&mut self) {}
-}
-
-impl<T: Algorithm> Algorithm for Shared<T> {
-    fn handle_terminal(&mut self) { self.borrow_mut().handle_terminal() }
-}
-
-pub trait OnlineLearner<S, A>: Algorithm {
+pub trait OnlineLearner<S, A> {
     /// Handle a single transition collected from the problem environment.
     fn handle_transition(&mut self, transition: &domains::Transition<S, A>);
 
-    /// Handle an arbitrary sequence of transitions collected from the problem
-    /// environment.
-    fn handle_sequence(&mut self, sequence: &[domains::Transition<S, A>]) {
-        sequence
-            .into_iter()
-            .for_each(|ref t| self.handle_transition(t));
-    }
+    /// Perform housekeeping after terminal state observation.
+    fn handle_terminal(&mut self) {}
 }
 
 impl<S, A, T: OnlineLearner<S, A>> OnlineLearner<S, A> for Shared<T> {
@@ -68,12 +53,12 @@ impl<S, A, T: OnlineLearner<S, A>> OnlineLearner<S, A> for Shared<T> {
         self.borrow_mut().handle_transition(transition)
     }
 
-    fn handle_sequence(&mut self, sequence: &[domains::Transition<S, A>]) {
-        self.borrow_mut().handle_sequence(sequence)
+    fn handle_terminal(&mut self) {
+        self.borrow_mut().handle_terminal()
     }
 }
 
-pub trait BatchLearner<S, A>: Algorithm {
+pub trait BatchLearner<S, A> {
     /// Handle a batch of samples collected from the problem environment.
     fn handle_batch(&mut self, batch: &[domains::Transition<S, A>]);
 }

@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, BatchLearner, Parameter,
+    BatchLearner,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
@@ -16,8 +16,8 @@ use ndarray_linalg::Solve;
 pub struct LSTDLambda<F> {
     #[weights] pub fa_theta: F,
 
-    pub gamma: Parameter,
-    pub lambda: Parameter,
+    pub gamma: f64,
+    pub lambda: f64,
 
     z: Array1<f64>,
 
@@ -26,18 +26,14 @@ pub struct LSTDLambda<F> {
 }
 
 impl<F: Parameterised> LSTDLambda<F> {
-    pub fn new<T1, T2>(fa_theta: F, gamma: T1, lambda: T2) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+    pub fn new(fa_theta: F, gamma: f64, lambda: f64) -> Self {
         let dim = fa_theta.weights_dim();
 
         LSTDLambda {
             fa_theta,
 
-            gamma: gamma.into(),
-            lambda: lambda.into(),
+            gamma,
+            lambda,
 
             z: Array1::zeros(dim[0]),
 
@@ -61,12 +57,6 @@ impl<F: Parameterised> LSTDLambda<F> {
     }
 }
 
-impl<F> Algorithm for LSTDLambda<F> {
-    fn handle_terminal(&mut self) {
-        self.gamma = self.gamma.step();
-    }
-}
-
 impl<S, A, F> BatchLearner<S, A> for LSTDLambda<F>
 where
     F: LinearStateFunction<S, Output = f64>,
@@ -78,9 +68,9 @@ where
             let phi_s = self.fa_theta.features(s).expanded();
 
             // Update trace:
-            let decay_rate = self.lambda.value() * self.gamma.value();
+            let c = self.lambda * self.gamma;
 
-            self.z.zip_mut_with(&phi_s, move |x, &y| *x = decay_rate * *x + y);
+            self.z.zip_mut_with(&phi_s, move |x, &y| *x = c * *x + y);
 
             // Update matrices:
             self.b.scaled_add(t.reward, &self.z);
@@ -90,9 +80,8 @@ where
                 self.z.fill(0.0);
             } else {
                 let mut pd = self.fa_theta.features(ns).expanded();
-                let gamma = self.gamma.value();
 
-                pd.zip_mut_with(&phi_s, move |x, &y| *x = y - gamma * *x);
+                pd.zip_mut_with(&phi_s, |x, &y| *x = y - self.gamma * *x);
 
                 self.a += &self.z.view().insert_axis(Axis(1)).dot(&pd.insert_axis(Axis(0)));
             }

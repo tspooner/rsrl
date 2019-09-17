@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    OnlineLearner, Shared, make_shared,
     control::Controller,
     domains::Transition,
     fa::{
@@ -24,16 +24,12 @@ pub struct QLearning<Q, P> {
 
     pub policy: P,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
 }
 
 impl<Q, P> QLearning<Shared<Q>, P> {
-    pub fn new<T1, T2>(q_func: Q, policy: P, alpha: T1, gamma: T2) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+    pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64) -> Self {
         let q_func = make_shared(q_func);
 
         QLearning {
@@ -41,18 +37,9 @@ impl<Q, P> QLearning<Shared<Q>, P> {
 
             policy,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
+            alpha,
+            gamma,
         }
-    }
-}
-
-impl<Q, P: Algorithm> Algorithm for QLearning<Q, P> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-
-        self.policy.handle_terminal();
     }
 }
 

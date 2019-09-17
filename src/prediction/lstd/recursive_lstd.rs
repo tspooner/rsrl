@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter,
+    OnlineLearner,
     domains::Transition,
     fa::{
         StateFunction,
@@ -13,29 +13,23 @@ use ndarray::{Array2, Axis};
 #[derive(Parameterised)]
 pub struct RecursiveLSTD<F> {
     #[weights] pub fa_theta: F,
-    pub gamma: Parameter,
+
+    pub gamma: f64,
 
     c_mat: Array2<f64>,
 }
 
 impl<F: Parameterised> RecursiveLSTD<F> {
-    pub fn new<T: Into<Parameter>>(fa_theta: F, gamma: T) -> Self {
+    pub fn new(fa_theta: F, gamma: f64) -> Self {
         let n_features = fa_theta.weights_dim()[0];
 
         RecursiveLSTD {
             fa_theta,
-            gamma: gamma.into(),
+
+            gamma,
 
             c_mat: Array2::eye(n_features) * 1e-5,
         }
-    }
-}
-
-impl<F> Algorithm for RecursiveLSTD<F> {
-    fn handle_terminal(&mut self) {
-        self.gamma = self.gamma.step();
-
-        self.c_mat.fill(0.0);
     }
 }
 
@@ -76,7 +70,7 @@ where
             let phi_s = phi_s.expanded().insert_axis(Axis(1));
             let phi_ns = phi_ns.expanded().insert_axis(Axis(1));
 
-            let pd = (-self.gamma.value() * phi_ns) + &phi_s;
+            let pd = (-self.gamma * phi_ns) + &phi_s;
 
             // (1 x D) <- ((D x D) . (D x 1))T
             //  Note: self.permuted_axes([1, 0]) is equivalent to taking the transpose.
@@ -95,6 +89,10 @@ where
             self.c_mat.scaled_add(-1.0 / a, &vg);
             self.fa_theta.weights_view_mut().scaled_add(residual / a, &v);
         }
+    }
+
+    fn handle_terminal(&mut self) {
+        self.c_mat.fill(0.0);
     }
 }
 

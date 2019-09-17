@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    OnlineLearner, Shared, make_shared,
     control::Controller,
     domains::Transition,
     fa::{
@@ -30,28 +30,23 @@ pub struct TOQLambda<F, P, T> {
     pub policy: P,
     pub target: Greedy<F>,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
-    pub lambda: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
+    pub lambda: f64,
 
     trace: T,
     q_old: f64,
 }
 
 impl<F, P, T> TOQLambda<Shared<F>, P, T> {
-    pub fn new<T1, T2, T3>(
+    pub fn new(
         fa_theta: F,
         policy: P,
         trace: T,
-        alpha: T1,
-        gamma: T2,
-        lambda: T3,
-    ) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-        T3: Into<Parameter>,
-    {
+        alpha: f64,
+        gamma: f64,
+        lambda: f64,
+    ) -> Self {
         let fa_theta = make_shared(fa_theta);
 
         TOQLambda {
@@ -70,17 +65,6 @@ impl<F, P, T> TOQLambda<Shared<F>, P, T> {
     }
 }
 
-impl<F, P: Algorithm, T: Algorithm> Algorithm for TOQLambda<F, P, T> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-        self.lambda = self.lambda.step();
-
-        self.policy.handle_terminal();
-        self.trace.handle_terminal();
-    }
-}
-
 impl<S, F, P, T> OnlineLearner<S, P::Action> for TOQLambda<F, P, T>
 where
     F: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
@@ -96,15 +80,14 @@ where
         let phi_sa = grad_sa.features(&t.action).unwrap();
 
         if t.action == self.fa_theta.find_max(s).0 {
-            let alpha = self.alpha.value();
-            let update_rate = self.lambda.value() * self.gamma.value();
-
+            let a = self.alpha;
+            let c = self.lambda * self.gamma;
             let dotted = if let Some(trace_f) = self.trace.deref().features(&t.action) {
                 dot_features(phi_sa, trace_f)
             } else { 0.0 };
 
-            self.trace.combine_inplace(&grad_sa, |x, y| {
-                update_rate * x + (1.0 - alpha * update_rate * dotted) * y
+            self.trace.combine_inplace(&grad_sa, move |x, y| {
+                c * x + (1.0 - a * c * dotted) * y
             });
         } else {
             self.trace.combine_inplace(&grad_sa, |_, y| y);
@@ -136,6 +119,10 @@ where
                 self.trace.reset();
             }
         }
+    }
+
+    fn handle_terminal(&mut self) {
+        self.q_old = 0.0;
     }
 }
 

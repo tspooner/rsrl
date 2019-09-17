@@ -1,4 +1,4 @@
-use crate::{Algorithm, linalg::MatrixLike};
+use crate::linalg::MatrixLike;
 use std::ops::{Deref, DerefMut};
 use super::Trace;
 
@@ -9,10 +9,6 @@ impl<G: MatrixLike> Replacing<G> {
     pub fn new(grad: G) -> Self { Replacing(grad) }
 
     pub fn zeros(dim: [usize; 2]) -> Self { Replacing::new(G::zeros(dim)) }
-}
-
-impl<G: MatrixLike> Algorithm for Replacing<G> {
-    fn handle_terminal(&mut self) {}
 }
 
 impl<G: MatrixLike> Trace<G> for Replacing<G> {

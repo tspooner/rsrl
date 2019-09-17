@@ -21,7 +21,6 @@ use rsrl::{
     run,
     spaces::Space,
     Evaluation,
-    Parameter,
     SerialExperiment,
 };
 
@@ -37,7 +36,7 @@ fn main() {
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.3, 0.001, 0.999),
+            0.2,
         );
 
         SARSALambda::new(q_func, policy, trace, 0.001, 0.99, 0.7)

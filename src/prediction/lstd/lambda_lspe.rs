@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, BatchLearner, Parameter,
+    BatchLearner,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
@@ -17,9 +17,9 @@ use std::ops::MulAssign;
 pub struct LambdaLSPE<F> {
     #[weights] pub fa_theta: F,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
-    pub lambda: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
+    pub lambda: f64,
 
     a: Array2<f64>,
     b: Array1<f64>,
@@ -27,20 +27,15 @@ pub struct LambdaLSPE<F> {
 }
 
 impl<F: Parameterised> LambdaLSPE<F> {
-    pub fn new<T1, T2, T3>(fa_theta: F, alpha: T1, gamma: T2, lambda: T3) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-        T3: Into<Parameter>,
-    {
+    pub fn new(fa_theta: F, alpha: f64, gamma: f64, lambda: f64) -> Self {
         let dim = fa_theta.weights_dim();
 
         LambdaLSPE {
             fa_theta,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
-            lambda: lambda.into(),
+            alpha,
+            gamma,
+            lambda,
 
             a: Array2::eye(dim[0]) * 1e-6,
             b: Array1::zeros(dim[0]),
@@ -58,20 +53,12 @@ impl<F: Parameterised> LambdaLSPE<F> {
             let mut w = self.fa_theta.weights_view_mut();
 
             w.mul_assign(1.0 - self.alpha);
-            w.scaled_add(self.alpha.value(), &theta);
+            w.scaled_add(self.alpha, &theta);
 
             self.a.fill(0.0);
             self.b.fill(0.0);
             self.delta = 0.0;
         }
-    }
-}
-
-impl<M> Algorithm for LambdaLSPE<M> {
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-        self.lambda = self.lambda.step();
     }
 }
 

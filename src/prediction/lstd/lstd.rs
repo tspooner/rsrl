@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, BatchLearner, Parameter,
+    BatchLearner,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
@@ -16,20 +16,20 @@ use ndarray_linalg::Solve;
 pub struct LSTD<F> {
     #[weights] pub fa_theta: F,
 
-    pub gamma: Parameter,
+    pub gamma: f64,
 
     a: Array2<f64>,
     b: Array1<f64>,
 }
 
 impl<F: Parameterised> LSTD<F> {
-    pub fn new<T: Into<Parameter>>(fa_theta: F, gamma: T) -> Self {
+    pub fn new(fa_theta: F, gamma: f64) -> Self {
         let dim = fa_theta.weights_dim();
 
         LSTD {
             fa_theta,
 
-            gamma: gamma.into(),
+            gamma,
 
             a: Array2::eye(dim[0]) * 1e-6,
             b: Array1::zeros(dim[0]),
@@ -51,12 +51,6 @@ impl<F: Parameterised> LSTD<F> {
     }
 }
 
-impl<F> Algorithm for LSTD<F> {
-    fn handle_terminal(&mut self) {
-        self.gamma = self.gamma.step();
-    }
-}
-
 impl<S, A, F> BatchLearner<S, A> for LSTD<F>
 where
     F: LinearStateFunction<S, Output = f64>,
@@ -75,7 +69,7 @@ where
                 self.a += &phi_s.view().dot(&phi_s.t());
             } else {
                 let phi_ns = self.fa_theta.features(ns).expanded();
-                let pd = (self.gamma.value() * phi_ns - &phi_s).insert_axis(Axis(0));
+                let pd = (self.gamma * phi_ns - &phi_s).insert_axis(Axis(0));
 
                 self.a -= &phi_s.insert_axis(Axis(1)).dot(&pd);
             }

@@ -1,7 +1,6 @@
 extern crate special_fun;
 
 use crate::{
-    Algorithm,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
@@ -54,8 +53,6 @@ impl<F> Dirichlet<F> {
             .map(move |(l, d)| l - d + digamma_sum_alphas)
     }
 }
-
-impl<F> Algorithm for Dirichlet<F> {}
 
 impl<S, F> Policy<S> for Dirichlet<F>
 where

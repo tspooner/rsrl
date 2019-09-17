@@ -1,7 +1,6 @@
 extern crate special_fun;
 
 use crate::{
-    Algorithm,
     fa::{
         StateFunction, DifferentiableStateFunction,
         Parameterised, Weights, WeightsView, WeightsViewMut,
@@ -68,8 +67,6 @@ impl<A, B> Beta<A, B> {
         ]
     }
 }
-
-impl<A, B> Algorithm for Beta<A, B> {}
 
 impl<S, A, B> Policy<S> for Beta<A, B>
 where

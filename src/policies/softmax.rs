@@ -1,5 +1,4 @@
 use crate::{
-    Algorithm, Parameter,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         DifferentiableStateActionFunction, EnumerableStateActionFunction,
@@ -43,21 +42,17 @@ pub type Gibbs<F> = Softmax<F>;
 #[derive(Parameterised)]
 pub struct Softmax<F> {
     #[weights] fa: F,
-    tau: Parameter,
+
+    pub tau: f64,
 }
 
 impl<F> Softmax<F> {
-    pub fn new<T: Into<Parameter>>(fa: F, tau: T) -> Self {
-        let tau: Parameter = tau.into();
-
-        if tau.value().abs() < 1e-7 {
+    pub fn new(fa: F, tau: f64) -> Self {
+        if tau.abs() < 1e-7 {
             panic!("Tau parameter in Softmax must be non-zero.");
         }
 
-        Softmax {
-            fa,
-            tau: tau.into(),
-        }
+        Softmax { fa, tau, }
     }
 
     pub fn standard(fa: F) -> Self {
@@ -82,10 +77,6 @@ impl<F> Softmax<F> {
     }
 }
 
-impl<F> Algorithm for Softmax<F> {
-    fn handle_terminal(&mut self) { self.tau = self.tau.step(); }
-}
-
 impl<S, F: EnumerableStateActionFunction<S>> Policy<S> for Softmax<F> {
     type Action = usize;
 
@@ -106,7 +97,7 @@ impl<S, F: EnumerableStateActionFunction<S>> FinitePolicy<S> for Softmax<F> {
     fn probabilities(&self, s: &S) -> Vec<f64> {
         let values = self.fa.evaluate_all(s);
 
-        softmax_stable(&values, self.tau.value())
+        softmax_stable(&values, self.tau)
     }
 }
 
@@ -196,18 +187,5 @@ mod tests {
 
         assert!(ps[0] < ps[1]);
         assert!(ps[2] < ps[1]);
-    }
-
-    #[test]
-    fn test_terminal() {
-        let mut tau = Parameter::exponential(100.0, 1.0, 0.9);
-        let mut p = Softmax::new(MockQ::new_shared(None), tau);
-
-        for _ in 0..100 {
-            tau = tau.step();
-            p.handle_terminal();
-
-            assert_eq!(tau.value(), p.tau.value());
-        }
     }
 }

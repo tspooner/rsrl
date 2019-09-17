@@ -1,5 +1,4 @@
 use crate::{
-    Algorithm,
     fa::{Parameterised, Weights, WeightsView, WeightsViewMut},
     policies::{DifferentiablePolicy, Policy},
 };
@@ -13,13 +12,6 @@ pub struct IPP<P1, P2>(pub P1, pub P2);
 
 impl<P1, P2> IPP<P1, P2> {
     pub fn new(p1: P1, p2: P2) -> Self { IPP(p1, p2) }
-}
-
-impl<P1: Algorithm, P2: Algorithm> Algorithm for IPP<P1, P2> {
-    fn handle_terminal(&mut self) {
-        self.0.handle_terminal();
-        self.1.handle_terminal();
-    }
 }
 
 impl<S, P1, P2> Policy<S> for IPP<P1, P2>

@@ -1,5 +1,5 @@
 use crate::{
-    Algorithm, OnlineLearner, Parameter,
+    OnlineLearner,
     control::Controller,
     domains::Transition,
     policies::{Policy, DifferentiablePolicy},
@@ -13,37 +13,19 @@ pub struct TDAC<C, P> {
     pub critic: C,
     pub policy: P,
 
-    pub alpha: Parameter,
-    pub gamma: Parameter,
+    pub alpha: f64,
+    pub gamma: f64,
 }
 
 impl<C, P> TDAC<C, P> {
-    pub fn new<T1, T2>(critic: C, policy: P, alpha: T1, gamma: T2) -> Self
-    where
-        T1: Into<Parameter>,
-        T2: Into<Parameter>,
-    {
+    pub fn new(critic: C, policy: P, alpha: f64, gamma: f64) -> Self {
         TDAC {
             critic,
             policy,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
+            alpha,
+            gamma,
         }
-    }
-}
-
-impl<C, P> Algorithm for TDAC<C, P>
-where
-    C: Algorithm,
-    P: Algorithm,
-{
-    fn handle_terminal(&mut self) {
-        self.alpha = self.alpha.step();
-        self.gamma = self.gamma.step();
-
-        self.critic.handle_terminal();
-        self.policy.handle_terminal();
     }
 }
 
@@ -64,6 +46,10 @@ where
 
         self.critic.handle_transition(t);
         self.policy.update(s, &t.action, self.alpha * td_error);
+    }
+
+    fn handle_terminal(&mut self) {
+        self.critic.handle_terminal();
     }
 }
 

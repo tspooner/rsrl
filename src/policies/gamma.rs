@@ -1,7 +1,6 @@
 extern crate special_fun;
 
 use crate::{
-    Algorithm,
     fa::{
         StateFunction, DifferentiableStateFunction,
         Parameterised, Weights, WeightsView, WeightsViewMut,
@@ -59,8 +58,6 @@ impl<A, T> Gamma<A, T> {
         [(x / theta + 1e-5).ln() - alpha.digamma(), x / theta / theta - alpha / theta]
     }
 }
-
-impl<A, T> Algorithm for Gamma<A, T> {}
 
 impl<S, A, T> Policy<S> for Gamma<A, T>
 where
