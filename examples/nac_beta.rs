@@ -4,8 +4,8 @@ extern crate rstat;
 extern crate slog;
 
 use rsrl::{
+    make_shared, run, Evaluation, SerialExperiment, Parameter,
     control::{ac::NAC, td::SARSA},
-    core::{make_shared, run, Evaluation, SerialExperiment, Parameter},
     domains::{Domain, ContinuousMountainCar},
     fa::{
         Parameterised,
@@ -13,9 +13,9 @@ use rsrl::{
         transforms::Softplus,
         TransformedLFA,
     },
-    geometry::Space,
     logging,
     policies::Beta,
+    spaces::Space,
 };
 
 fn main() {

@@ -32,21 +32,7 @@ pub mod domains;
 pub mod logging;
 
 pub mod linalg;
-pub mod geometry {
-    extern crate spaces;
-
-    pub use self::spaces::*;
-
-    /// 1d array type.
-    pub type Vector<T = f64> = ndarray::Array1<T>;
-    pub type VectorView<'a, T = f64> = ndarray::ArrayView1<'a, T>;
-    pub type VectorViewMut<'a, T = f64> = ndarray::ArrayViewMut1<'a, T>;
-
-    /// 2d array type.
-    pub type Matrix<T = f64> = ndarray::Array2<T>;
-    pub type MatrixView<'a, T = f64> = ndarray::ArrayView2<'a, T>;
-    pub type MatrixViewMut<'a, T = f64> = ndarray::ArrayViewMut2<'a, T>;
-}
+pub extern crate spaces;
 
 #[macro_use]
 pub mod fa;

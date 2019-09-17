@@ -1,6 +1,6 @@
 extern crate cpython;
 
-use crate::geometry::{ProductSpace, discrete::Ordinal, real::Interval};
+use crate::spaces::{ProductSpace, discrete::Ordinal, real::Interval};
 use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
 use std::f64;
 use super::{Domain, Observation, Transition};

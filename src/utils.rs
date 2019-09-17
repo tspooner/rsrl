@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::geometry::Matrix;
+use ndarray::Array2;
 use rand::{seq::SliceRandom, Rng, thread_rng};
 use std::f64;
 
@@ -57,7 +57,7 @@ pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {
 }
 
 /// Compute the pseudo-inverse of a real matrix using SVD.
-pub fn pinv(m: &Matrix<f64>) -> Result<Matrix<f64>, ndarray_linalg::error::LinalgError> {
+pub fn pinv(m: &Array2<f64>) -> Result<Array2<f64>, ndarray_linalg::error::LinalgError> {
     use ndarray::Axis;
     use ndarray_linalg::svd::SVD;
 

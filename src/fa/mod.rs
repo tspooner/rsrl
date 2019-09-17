@@ -1,6 +1,4 @@
 //! Function approximation and value function representation module.
-use crate::geometry::Vector;
-
 #[cfg(test)]
 pub(crate) mod mocking;
 

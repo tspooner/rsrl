@@ -1,10 +1,10 @@
 use crate::{
     Algorithm,
-    fa::{Parameterised, StateFunction},
-    geometry::{Matrix, MatrixView, MatrixViewMut, Space},
+    fa::{Parameterised, StateFunction, Weights, WeightsView, WeightsViewMut},
+    spaces::Space,
     policies::{DifferentiablePolicy, Policy},
 };
-use ndarray::Axis;
+use ndarray::{Array2, ArrayView2, Axis};
 use rand::Rng;
 use rstat::{ContinuousDistribution, Distribution};
 use std::fmt::Debug;
@@ -97,7 +97,7 @@ where
         self.stddev.update_stddev(input, &a, mean, error);
     }
 
-    fn update_grad(&mut self, grad: &MatrixView<f64>) {
+    fn update_grad(&mut self, grad: &ArrayView2<f64>) {
         let w_mean = self.mean.weights_dim();
 
         match w_mean {
@@ -119,7 +119,7 @@ where
         }
     }
 
-    fn update_grad_scaled(&mut self, grad: &MatrixView<f64>, factor: f64) {
+    fn update_grad_scaled(&mut self, grad: &ArrayView2<f64>, factor: f64) {
         let w_mean = self.mean.weights_dim();
 
         match w_mean {
@@ -141,7 +141,7 @@ where
         }
     }
 
-    fn grad_log(&self, input: &I, a: &Self::Action) -> Matrix<f64> {
+    fn grad_log(&self, input: &I, a: &Self::Action) -> Array2<f64> {
         let mean = self.compute_mean(input);
         let stddev = self.compute_stddev(input);
 
@@ -157,16 +157,16 @@ where
     M: Parameterised,
     S: Parameterised,
 {
-    fn weights(&self) -> Matrix<f64> {
+    fn weights(&self) -> Weights {
         let w_mean = self.mean.weights();
         let w_stddev = self.stddev.weights();
 
         if w_stddev.len() == 0 { w_mean } else { stack![Axis(0), w_mean, w_stddev] }
     }
 
-    fn weights_view(&self) -> MatrixView<f64> { unimplemented!() }
+    fn weights_view(&self) -> WeightsView { unimplemented!() }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> { unimplemented!() }
+    fn weights_view_mut(&mut self) -> WeightsViewMut { unimplemented!() }
 
     fn weights_dim(&self) -> [usize; 2] {
         let [rm, cm] = self.mean.weights_dim();

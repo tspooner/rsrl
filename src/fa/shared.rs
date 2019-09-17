@@ -1,4 +1,4 @@
-use crate::{Shared, geometry::{Matrix, MatrixView, MatrixViewMut}};
+use crate::Shared;
 use super::*;
 
 impl<X: ?Sized, T: StateFunction<X>> StateFunction<X> for Shared<T> {
@@ -65,13 +65,13 @@ impl<X: ?Sized, T: EnumerableStateActionFunction<X>> EnumerableStateActionFuncti
 }
 
 impl<T: Parameterised> Parameterised for Shared<T> {
-    fn weights(&self) -> Matrix<f64> { self.borrow().weights() }
+    fn weights(&self) -> Weights { self.borrow().weights() }
 
-    fn weights_view(&self) -> MatrixView<f64> {
+    fn weights_view(&self) -> WeightsView {
         unsafe { self.as_ptr().as_ref().unwrap().weights_view() }
     }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+    fn weights_view_mut(&mut self) -> WeightsViewMut {
         unsafe { self.as_ptr().as_mut().unwrap().weights_view_mut() }
     }
 

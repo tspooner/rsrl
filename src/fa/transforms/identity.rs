@@ -1,4 +1,4 @@
-use crate::geometry::Vector;
+use ndarray::Array1;
 use super::Transform;
 
 // f(x) ≜ x
@@ -34,20 +34,20 @@ impl Transform<Vec<f64>> for Identity {
     fn grad_scaled(&self, _: Vec<f64>, errors: Vec<f64>) -> Vec<f64> { errors }
 }
 
-impl Transform<Vector<f64>> for Identity {
-    type Output = Vector<f64>;
+impl Transform<Array1<f64>> for Identity {
+    type Output = Array1<f64>;
 
-    fn transform(&self, x: Vector<f64>) -> Vector<f64> { x }
+    fn transform(&self, x: Array1<f64>) -> Array1<f64> { x }
 
-    fn grad(&self, mut x: Vector<f64>) -> Vector<f64> { x.fill(1.0); x }
+    fn grad(&self, mut x: Array1<f64>) -> Array1<f64> { x.fill(1.0); x }
 
-    fn grad_scaled(&self, _: Vector<f64>, errors: Vector<f64>) -> Vector<f64> { errors }
+    fn grad_scaled(&self, _: Array1<f64>, errors: Array1<f64>) -> Array1<f64> { errors }
 }
 
 #[cfg(test)]
 mod tests {
     use quickcheck::quickcheck;
-    use super::{Identity, Transform, Vector};
+    use super::{Identity, Transform, Array1};
 
     #[test]
     fn test_scalar() {
@@ -102,13 +102,13 @@ mod tests {
     #[test]
     fn test_vector() {
         fn prop_transform(val: Vec<f64>) -> bool {
-            let t = Identity.transform(Vector::from_vec(val.clone()));
+            let t = Identity.transform(Array1::from_vec(val.clone()));
 
             t.into_iter().zip(val.into_iter()).all(|(v1, v2)| (v1 - v2).abs() < 1e-7)
         }
 
         fn prop_grad(val: Vec<f64>) -> bool {
-            let g = Identity.grad(Vector::from_vec(val));
+            let g = Identity.grad(Array1::from_vec(val));
 
             g.into_iter().all(|v| (v - 1.0).abs() < 1e-7)
         }

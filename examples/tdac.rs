@@ -3,8 +3,8 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
+    run, Evaluation, SerialExperiment,
     control::ac::TDAC,
-    core::{run, Evaluation, SerialExperiment},
     domains::{ContinuousMountainCar, Domain},
     fa::linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
     logging,

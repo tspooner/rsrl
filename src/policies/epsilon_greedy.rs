@@ -73,7 +73,6 @@ mod tests {
     use crate::{
         domains::{Domain, MountainCar},
         fa::mocking::MockQ,
-        geometry::Vector,
         utils::compare_floats,
     };
     use rand::thread_rng;

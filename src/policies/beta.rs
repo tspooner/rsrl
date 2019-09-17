@@ -2,11 +2,13 @@ extern crate special_fun;
 
 use crate::{
     Algorithm,
-    fa::{StateFunction, DifferentiableStateFunction, Parameterised},
-    geometry::{Matrix, MatrixView, MatrixViewMut},
+    fa::{
+        StateFunction, DifferentiableStateFunction,
+        Parameterised, Weights, WeightsView, WeightsViewMut,
+    },
     policies::{DifferentiablePolicy, Policy},
 };
-use ndarray::Axis;
+use ndarray::{Array2, ArrayView2, Axis};
 use rand::Rng;
 use rstat::{
     Distribution, ContinuousDistribution,
@@ -93,15 +95,15 @@ where
 }
 
 impl<A: Parameterised, B: Parameterised> Parameterised for Beta<A, B> {
-    fn weights(&self) -> Matrix<f64> {
+    fn weights(&self) -> Weights {
         stack![Axis(0), self.alpha.weights(), self.beta.weights()]
     }
 
-    fn weights_view(&self) -> MatrixView<f64> {
+    fn weights_view(&self) -> WeightsView {
         unimplemented!()
     }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+    fn weights_view_mut(&mut self) -> WeightsViewMut {
         unimplemented!()
     }
 
@@ -128,7 +130,7 @@ where
         self.beta.update(state, gl_beta * error);
     }
 
-    fn update_grad(&mut self, grad: &MatrixView<f64>) {
+    fn update_grad(&mut self, grad: &ArrayView2<f64>) {
         match self.alpha.weights_dim() {
             [r, _] if r > 0 => {
                 let grad_alpha = grad.slice(s![0..r, ..]);
@@ -146,7 +148,7 @@ where
         }
     }
 
-    fn update_grad_scaled(&mut self, grad: &MatrixView<f64>, factor: f64) {
+    fn update_grad_scaled(&mut self, grad: &ArrayView2<f64>, factor: f64) {
         match self.alpha.weights_dim() {
             [r, _] if r > 0 => {
                 let grad_alpha = grad.slice(s![0..self.alpha.weights_dim()[0], ..]);
@@ -164,12 +166,12 @@ where
         }
     }
 
-    fn grad_log(&self, state: &S, a: &f64) -> Matrix<f64> {
+    fn grad_log(&self, state: &S, a: &f64) -> Array2<f64> {
         let val_alpha = self.alpha.evaluate(state) + MIN_TOL;
-        let grad_alpha: Matrix<f64> = self.alpha.grad(state).into();
+        let grad_alpha: Array2<f64> = self.alpha.grad(state).into();
 
         let val_beta = self.beta.evaluate(state) + MIN_TOL;
-        let grad_beta: Matrix<f64> = self.beta.grad(state).into();
+        let grad_beta: Array2<f64> = self.beta.grad(state).into();
 
         let [gl_alpha, gl_beta] = self.gl_partial(val_alpha, val_beta, *a);
 

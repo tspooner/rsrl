@@ -1,10 +1,9 @@
-use crate::{
-    geometry::{Vector, VectorView, Matrix, MatrixViewMut},
-    linalg::{MatrixLike, Entry},
-};
+use crate::linalg::{MatrixLike, Entry};
+use ndarray::{Array1, ArrayView1};
 use std::ops::{Add, AddAssign, Mul, MulAssign};
+use super::*;
 
-type GradMap = ::std::collections::HashMap<usize, Vector<f64>>;
+type GradMap = ::std::collections::HashMap<usize, Array1<f64>>;
 
 #[derive(Clone, Debug, Default)]
 pub struct Columnar {
@@ -36,7 +35,7 @@ impl Columnar {
         }
     }
 
-    pub fn from_column(n_cols: usize, column: usize, grad: Vector<f64>) -> Columnar {
+    pub fn from_column(n_cols: usize, column: usize, grad: Array1<f64>) -> Columnar {
         let mut grads = GradMap::new();
         grads.insert(column, grad);
 
@@ -91,29 +90,29 @@ impl MatrixLike for Columnar {
         }
     }
 
-    fn addto(&self, weights: &mut MatrixViewMut<f64>) {
+    fn addto<D: DataMut<Elem = f64>>(&self, weights: &mut ArrayBase<D, Ix2>) {
         for (&c, pds) in self.grads.iter() {
-            let view = unsafe { VectorView::from_shape_ptr(pds.len(), pds.as_ptr()) };
+            let view = unsafe { ArrayView1::from_shape_ptr(pds.len(), pds.as_ptr()) };
 
             weights.column_mut(c).add_assign(&view);
         }
     }
 
-    fn scaled_addto(&self, alpha: f64, weights: &mut MatrixViewMut<f64>) {
+    fn scaled_addto<D: DataMut<Elem = f64>>(&self, alpha: f64, weights: &mut ArrayBase<D, Ix2>) {
         for (&c, pds) in self.grads.iter() {
-            let view = unsafe { VectorView::from_shape_ptr(pds.len(), pds.as_ptr()) };
+            let view = unsafe { ArrayView1::from_shape_ptr(pds.len(), pds.as_ptr()) };
 
             weights.column_mut(c).scaled_add(alpha, &view);
         }
     }
 }
 
-impl Into<Matrix<f64>> for Columnar {
-    fn into(self) -> Matrix<f64> {
-        let mut g_matrix = Matrix::zeros((self.dim[0], self.dim[1]));
+impl Into<Array2<f64>> for Columnar {
+    fn into(self) -> Array2<f64> {
+        let mut g_matrix = Array2::zeros((self.dim[0], self.dim[1]));
 
         for (c, g_vector) in self.grads.into_iter() {
-            let view = unsafe { VectorView::from_shape_ptr(g_vector.len(), g_vector.as_ptr()) };
+            let view = unsafe { ArrayView1::from_shape_ptr(g_vector.len(), g_vector.as_ptr()) };
 
             g_matrix.column_mut(c).assign(&view);
         }

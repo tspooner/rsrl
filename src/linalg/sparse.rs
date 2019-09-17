@@ -1,4 +1,5 @@
-use crate::{geometry::{Matrix, MatrixViewMut}, linalg::{MatrixLike, Entry}};
+use crate::linalg::{MatrixLike, Entry};
+use super::*;
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 type GradMap = ::std::collections::HashMap<[usize; 2], f64>;
@@ -65,7 +66,7 @@ impl MatrixLike for Sparse {
         }).for_each(|pd| f(pd));
     }
 
-    fn addto(&self, weights: &mut MatrixViewMut<f64>) {
+    fn addto<D: DataMut<Elem = f64>>(&self, weights: &mut ArrayBase<D, Ix2>) {
         for (&idx, pd) in self.grads.iter() {
             if let Some(w) = weights.get_mut(idx) {
                 w.add_assign(pd);
@@ -73,7 +74,7 @@ impl MatrixLike for Sparse {
         }
     }
 
-    fn scaled_addto(&self, alpha: f64, weights: &mut MatrixViewMut<f64>) {
+    fn scaled_addto<D: DataMut<Elem = f64>>(&self, alpha: f64, weights: &mut ArrayBase<D, Ix2>) {
         for (&idx, &pd) in self.grads.iter() {
             if let Some(w) = weights.get_mut(idx) {
                 *w = w.mul_add(alpha, pd);
@@ -82,9 +83,9 @@ impl MatrixLike for Sparse {
     }
 }
 
-impl Into<Matrix<f64>> for Sparse {
-    fn into(self) -> Matrix<f64> {
-        let mut g_matrix = Matrix::zeros((self.dim[0], self.dim[1]));
+impl Into<Array2<f64>> for Sparse {
+    fn into(self) -> Array2<f64> {
+        let mut g_matrix = Array2::zeros((self.dim[0], self.dim[1]));
 
         for ([r, c], g) in self.grads.into_iter() {
             g_matrix[(r, c)] = g;

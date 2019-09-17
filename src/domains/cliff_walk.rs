@@ -1,4 +1,5 @@
-use crate::geometry::{Matrix, TwoSpace, discrete::Ordinal};
+use crate::spaces::{TwoSpace, discrete::Ordinal};
+use ndarray::Array2;
 use super::{Domain, Observation, Transition, grid_world::{GridWorld, Motion}};
 
 const ALL_ACTIONS: [Motion; 4] = [
@@ -9,14 +10,16 @@ const ALL_ACTIONS: [Motion; 4] = [
 ];
 
 pub struct CliffWalk {
-    gw: GridWorld<u8>,
+    gw: GridWorld<()>,
     loc: [usize; 2],
 }
 
 impl CliffWalk {
     pub fn new(height: usize, width: usize) -> CliffWalk {
+        let gw = Array2::from_elem((height, width), ());
+
         CliffWalk {
-            gw: GridWorld::new(Matrix::zeros((height, width))),
+            gw: GridWorld::new(gw),
             loc: [0; 2],
         }
     }

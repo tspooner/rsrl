@@ -4,7 +4,6 @@ use crate::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         DifferentiableStateActionFunction, EnumerableStateActionFunction,
     },
-    geometry::Matrix,
     policies::{
         sample_probs_with_rng,
         DifferentiablePolicy,
@@ -13,6 +12,7 @@ use crate::{
     },
     utils::argmaxima,
 };
+use ndarray::Array2;
 use rand::Rng;
 use std::{f64, iter::FromIterator};
 
@@ -64,7 +64,7 @@ impl<F> Softmax<F> {
         Self::new(fa, 1.0)
     }
 
-    fn gl_matrix<S>(&self, state: &S, a: &usize) -> Matrix<f64>
+    fn gl_matrix<S>(&self, state: &S, a: &usize) -> Array2<f64>
         where F: EnumerableStateActionFunction<S> + DifferentiableStateActionFunction<S, usize>,
     {
         // (A x 1)
@@ -72,7 +72,7 @@ impl<F> Softmax<F> {
         scale_factors[*a] = scale_factors[*a] - 1.0;
 
         // (N x A)
-        let mut jac = Matrix::zeros(self.weights_dim());
+        let mut jac = Array2::zeros(self.weights_dim());
 
         for (ref col, sf) in (0..self.n_actions()).zip(scale_factors.into_iter()) {
             jac.scaled_add(-sf, &self.fa.grad(state, col).into());
@@ -118,7 +118,7 @@ where
         self.fa.update_grad_scaled(&self.gl_matrix(input, a), error);
     }
 
-    fn grad_log(&self, input: &S, a: &usize) -> Matrix<f64> { self.gl_matrix(input, a) }
+    fn grad_log(&self, input: &S, a: &usize) -> Array2<f64> { self.gl_matrix(input, a) }
 }
 
 #[cfg(test)]

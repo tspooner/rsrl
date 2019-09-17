@@ -1,12 +1,6 @@
-use crate::{
-    geometry::{Matrix, MatrixViewMut},
-    linalg::{MatrixLike, Entry},
-};
-use ndarray::Array1;
-use std::{
-    collections::HashMap,
-    ops::{AddAssign, Mul, MulAssign},
-};
+use crate::linalg::{MatrixLike, Entry};
+use ndarray::{ArrayBase, Array1, Array2, DataMut, Ix2};
+use std::{collections::HashMap, ops::{AddAssign, Mul, MulAssign}};
 use super::{Features, dot_features};
 
 #[derive(Clone)]
@@ -100,22 +94,22 @@ impl MatrixLike for LFAGradient {
         }
     }
 
-    fn addto(&self, weights: &mut MatrixViewMut<f64>) {
+    fn addto<D: DataMut<Elem = f64>>(&self, arr: &mut ArrayBase<D, Ix2>) {
         for (&c, features) in self.features.iter() {
-            features.addto(&mut weights.column_mut(c));
+            features.addto(&mut arr.column_mut(c));
         }
     }
 
-    fn scaled_addto(&self, alpha: f64, weights: &mut MatrixViewMut<f64>) {
+    fn scaled_addto<D: DataMut<Elem = f64>>(&self, alpha: f64, arr: &mut ArrayBase<D, Ix2>) {
         for (&c, features) in self.features.iter() {
-            features.scaled_addto(alpha, &mut weights.column_mut(c));
+            features.scaled_addto(alpha, &mut arr.column_mut(c));
         }
     }
 }
 
-impl Into<Matrix<f64>> for LFAGradient {
-    fn into(self) -> Matrix<f64> {
-        let mut g_matrix = Matrix::zeros((self.dim[0], self.dim[1]));
+impl Into<Array2<f64>> for LFAGradient {
+    fn into(self) -> Array2<f64> {
+        let mut g_matrix = Array2::zeros((self.dim[0], self.dim[1]));
 
         for (c, f) in self.features.into_iter() {
             f.addto(&mut g_matrix.column_mut(c));

@@ -37,27 +37,27 @@ impl<G: MatrixLike> DerefMut for Accumulating<G> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Trace, Accumulating, Matrix};
-    use ndarray::arr1;
+    use ndarray::{arr1, Array2};
+    use super::*;
 
     const LAMBDA: f64 = 0.95;
 
     #[test]
     fn test_accumulating() {
-        let mut trace = Accumulating::new(Matrix::zeros((10, 1)));
+        let mut trace = Accumulating::new(Array2::zeros((10, 1)));
 
         assert_eq!(trace.0.column(0), arr1(&[0.0f64; 10]));
 
         trace.scale(LAMBDA);
         assert_eq!(trace.0.column(0), arr1(&[0.0f64; 10]));
 
-        trace.update(&Matrix::ones((10, 1)));
+        trace.update(&Array2::ones((10, 1)));
         assert_eq!(trace.0.column(0), arr1(&[1.0f64; 10]));
 
         trace.scale(LAMBDA);
         assert_eq!(trace.0.column(0), arr1(&[0.95f64; 10]));
 
-        trace.update(&Matrix::ones((10, 1)));
+        trace.update(&Array2::ones((10, 1)));
         assert_eq!(trace.0.column(0), arr1(&[1.95f64; 10]));
 
         trace.reset();

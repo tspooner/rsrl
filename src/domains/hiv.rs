@@ -1,4 +1,4 @@
-use crate::geometry::{ProductSpace, real::Interval, discrete::Ordinal};
+use crate::spaces::{ProductSpace, real::Interval, discrete::Ordinal};
 use super::{Domain, Observation, Transition, runge_kutta4};
 
 // Model parameters

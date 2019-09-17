@@ -1,5 +1,5 @@
 //! Learning benchmark domains module.
-use crate::geometry::Space;
+use crate::spaces::Space;
 
 macro_rules! impl_into {
     (Transition < S, $type:ty > => Transition < S,() >) => {
@@ -212,7 +212,6 @@ import_all!(cart_pole);
 import_all!(acrobat);
 import_all!(hiv);
 import_all!(cliff_walk);
-import_all!(windy_cliff_walk);
 
 #[cfg(feature = "openai")]
 import_all!(openai);

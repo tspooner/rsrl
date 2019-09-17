@@ -2,11 +2,13 @@ extern crate special_fun;
 
 use crate::{
     Algorithm,
-    fa::{Parameterised, StateFunction, DifferentiableStateFunction},
-    geometry::{Matrix, MatrixView, MatrixViewMut},
+    fa::{
+        StateFunction, DifferentiableStateFunction,
+        Parameterised, Weights, WeightsView, WeightsViewMut,
+    },
     policies::{DifferentiablePolicy, Policy},
 };
-use ndarray::Axis;
+use ndarray::{Array2, ArrayView2, Axis};
 use rand::Rng;
 use rstat::{
     Distribution, ContinuousDistribution,
@@ -95,7 +97,7 @@ where
         self.theta.update(state, gl_theta * error);
     }
 
-    fn update_grad(&mut self, grad: &MatrixView<f64>) {
+    fn update_grad(&mut self, grad: &ArrayView2<f64>) {
         match self.alpha.weights_dim() {
             [r, _] if r > 0 => {
                 let grad_k = grad.slice(s![0..r, ..]);
@@ -113,7 +115,7 @@ where
         }
     }
 
-    fn update_grad_scaled(&mut self, grad: &MatrixView<f64>, factor: f64) {
+    fn update_grad_scaled(&mut self, grad: &ArrayView2<f64>, factor: f64) {
         match self.alpha.weights_dim() {
             [r, _] if r > 0 => {
                 let grad_k = grad.slice(s![0..self.alpha.weights_dim()[0], ..]);
@@ -131,12 +133,12 @@ where
         }
     }
 
-    fn grad_log(&self, state: &S, a: &f64) -> Matrix<f64> {
+    fn grad_log(&self, state: &S, a: &f64) -> Array2<f64> {
         let val_alpha = self.compute_theta(state);
-        let grad_alpha: Matrix<f64> = self.alpha.grad(state).into();
+        let grad_alpha: Array2<f64> = self.alpha.grad(state).into();
 
         let val_theta = self.compute_theta(state);
-        let grad_theta: Matrix<f64> = self.theta.grad(state).into();
+        let grad_theta: Array2<f64> = self.theta.grad(state).into();
 
         let [gl_alpha, gl_theta] = self.gl_partial(val_alpha, val_theta, *a);
 
@@ -145,17 +147,13 @@ where
 }
 
 impl<A: Parameterised, T: Parameterised> Parameterised for Gamma<A, T> {
-    fn weights(&self) -> Matrix<f64> {
+    fn weights(&self) -> Weights {
         stack![Axis(0), self.alpha.weights(), self.theta.weights()]
     }
 
-    fn weights_view(&self) -> MatrixView<f64> {
-        unimplemented!()
-    }
+    fn weights_view(&self) -> WeightsView { unimplemented!() }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        unimplemented!()
-    }
+    fn weights_view_mut(&mut self) -> WeightsViewMut { unimplemented!() }
 
     fn weights_dim(&self) -> [usize; 2] {
         let [ra, _] = self.alpha.weights_dim();

@@ -1,6 +1,6 @@
 use crate::{
     domains::{Domain, Observation, Transition},
-    geometry::{ProductSpace, real::Interval, discrete::Ordinal},
+    spaces::{ProductSpace, real::Interval, discrete::Ordinal},
 };
 
 const X_MIN: f64 = -1.2;

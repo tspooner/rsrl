@@ -3,10 +3,9 @@ use crate::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
     },
-    geometry::{Matrix, Vector, VectorView},
     utils::pinv,
 };
-use ndarray::Axis;
+use ndarray::{Array1, Array2, ArrayView1, Axis};
 use std::ops::MulAssign;
 
 const STDDEV_TOL: f64 = 0.2;
@@ -14,7 +13,7 @@ const STDDEV_TOL: f64 = 0.2;
 pub trait Mean<I, S>: StateFunction<I> + Parameterised {
     fn mean(&self, input: &I) -> Self::Output;
 
-    fn grad_log(&self, input: &I, a: &Self::Output, stddev: S) -> Matrix<f64>;
+    fn grad_log(&self, input: &I, a: &Self::Output, stddev: S) -> Array2<f64>;
 
     fn update_mean(&mut self, input: &I, a: &Self::Output, stddev: S, error: f64);
 }
@@ -40,7 +39,7 @@ where
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
-    fn grad_log(&self, input: &I, a: &f64, stddev: f64) -> Matrix<f64> {
+    fn grad_log(&self, input: &I, a: &f64, stddev: f64) -> Array2<f64> {
         let mean = self.evaluate(input);
         let stddev = stddev.max(STDDEV_TOL);
 
@@ -76,7 +75,7 @@ where
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
-    fn grad_log(&self, input: &I, actions: &[f64; 2], stddev: f64) -> Matrix<f64> {
+    fn grad_log(&self, input: &I, actions: &[f64; 2], stddev: f64) -> Array2<f64> {
         // (2 x 1)
         let means = self.evaluate(input);
         let stddev = stddev.max(STDDEV_TOL);
@@ -107,7 +106,7 @@ where
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
-    fn grad_log(&self, input: &I, actions: &[f64; 2], stddev: [f64; 2]) -> Matrix<f64> {
+    fn grad_log(&self, input: &I, actions: &[f64; 2], stddev: [f64; 2]) -> Array2<f64> {
         // (2 x 1)
         let means = self.evaluate(input);
         let stddev = [stddev[0].max(STDDEV_TOL), stddev[1].max(STDDEV_TOL)];
@@ -152,13 +151,13 @@ impl<F> Multi<F> {
         &self,
         input: &I,
         actions: &[f64],
-        sigma: Matrix<f64>,
-    ) -> Matrix<f64>
+        sigma: Array2<f64>,
+    ) -> Array2<f64>
     where
         F: StateFunction<I, Output = Vec<f64>>,
     {
         // A x 1
-        let a_diff = Vector::from_iter(
+        let a_diff = Array1::from_iter(
             self.evaluate(input).into_iter().zip(actions.iter()).map(|(m, a)| a - m)
         );
 
@@ -176,11 +175,11 @@ where
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
-    fn grad_log(&self, input: &I, actions: &Vec<f64>, stddev: f64) -> Matrix<f64> {
-        let actions = unsafe { VectorView::from_shape_ptr(actions.len(), actions.as_ptr()) };
+    fn grad_log(&self, input: &I, actions: &Vec<f64>, stddev: f64) -> Array2<f64> {
+        let actions = unsafe { ArrayView1::from_shape_ptr(actions.len(), actions.as_ptr()) };
 
         // (A x 1)
-        let means = Vector::from_vec(self.evaluate(input));
+        let means = Array1::from_vec(self.evaluate(input));
         let stddev = stddev.max(STDDEV_TOL);
 
         // (A x 1)
@@ -209,7 +208,7 @@ where
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
-    fn grad_log(&self, input: &I, actions: &Vec<f64>, stddev: Vec<f64>) -> Matrix<f64> {
+    fn grad_log(&self, input: &I, actions: &Vec<f64>, stddev: Vec<f64>) -> Array2<f64> {
         // (A x 1)
         let means = self.evaluate(input);
 
@@ -222,7 +221,7 @@ where
 
                 (a - m) / (s * s)
             })
-            .collect::<Vector<f64>>()
+            .collect::<Array1<f64>>()
             .insert_axis(Axis(1));
 
         // (N x A)
@@ -248,13 +247,13 @@ where
     }
 }
 
-impl<I, F> Mean<I, Matrix<f64>> for Multi<F>
+impl<I, F> Mean<I, Array2<f64>> for Multi<F>
 where
     F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised,
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
-    fn grad_log(&self, input: &I, actions: &Vec<f64>, sigma: Matrix<f64>) -> Matrix<f64> {
+    fn grad_log(&self, input: &I, actions: &Vec<f64>, sigma: Array2<f64>) -> Array2<f64> {
         // (A x 1)
         let gl_partial = self.gl_fmv_partial(input, actions, sigma);
 
@@ -264,7 +263,7 @@ where
         jacobian * gl_partial.t()
     }
 
-    fn update_mean(&mut self, input: &I, actions: &Vec<f64>, sigma: Matrix<f64>, error: f64) {
+    fn update_mean(&mut self, input: &I, actions: &Vec<f64>, sigma: Array2<f64>, error: f64) {
         let gl_partial = self.gl_fmv_partial(input, actions, sigma);
 
         self.update(input, (gl_partial * error).into_raw_vec());

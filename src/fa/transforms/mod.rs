@@ -86,18 +86,18 @@ macro_rules! impl_variants {
             }
         }
 
-        impl Transform<Vector<f64>> for $name {
-            type Output = Vector<f64>;
+        impl Transform<Array1<f64>> for $name {
+            type Output = Array1<f64>;
 
-            fn transform(&self, x: Vector<f64>) -> Vector<f64> {
+            fn transform(&self, x: Array1<f64>) -> Array1<f64> {
                 x.mapv_into(|v| Transform::<f64>::transform(self, v))
             }
 
-            fn grad(&self, x: Vector<f64>) -> Vector<f64> {
+            fn grad(&self, x: Array1<f64>) -> Array1<f64> {
                 x.mapv_into(|v| Transform::<f64>::grad(self, v))
             }
 
-            fn grad_scaled(&self, x: Vector<f64>, errors: Vector<f64>) -> Vector<f64> {
+            fn grad_scaled(&self, x: Array1<f64>, errors: Array1<f64>) -> Array1<f64> {
                 self.grad(x) * errors
             }
         }

@@ -1,4 +1,4 @@
-use crate::geometry::Vector;
+use ndarray::Array1;
 use super::Transform;
 
 // f(x) ≜ exp(x)

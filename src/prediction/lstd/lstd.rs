@@ -6,12 +6,11 @@ use crate::{
         StateFunction,
         linear::LinearStateFunction,
     },
-    geometry::{Vector, Matrix},
     prediction::ValuePredictor,
     utils::pinv,
 };
-use ndarray::Axis;
-use ndarray_linalg::solve::Solve;
+use ndarray::{Array1, Array2, Axis};
+use ndarray_linalg::Solve;
 
 #[derive(Parameterised)]
 pub struct LSTD<F> {
@@ -19,8 +18,8 @@ pub struct LSTD<F> {
 
     pub gamma: Parameter,
 
-    a: Matrix<f64>,
-    b: Vector<f64>,
+    a: Array2<f64>,
+    b: Array1<f64>,
 }
 
 impl<F: Parameterised> LSTD<F> {
@@ -32,8 +31,8 @@ impl<F: Parameterised> LSTD<F> {
 
             gamma: gamma.into(),
 
-            a: Matrix::eye(dim[0]) * 1e-6,
-            b: Vector::zeros(dim[0]),
+            a: Array2::eye(dim[0]) * 1e-6,
+            b: Array1::zeros(dim[0]),
         }
     }
 }

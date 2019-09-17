@@ -3,8 +3,8 @@ use crate::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
     },
-    geometry::{Matrix, MatrixView, MatrixViewMut},
 };
+use ndarray::Array2;
 use std::ops::MulAssign;
 
 const MIN_STDDEV: f64 = 0.1;
@@ -20,7 +20,7 @@ fn gl_from_mv(a: f64, mean: f64, stddev: f64) -> f64 {
 pub trait StdDev<I, M>: StateFunction<I> + Parameterised {
     fn stddev(&self, input: &I) -> Self::Output;
 
-    fn grad_log(&self, input: &I, a: &M, mean: M) -> Matrix<f64>;
+    fn grad_log(&self, input: &I, a: &M, mean: M) -> Array2<f64>;
 
     fn update_stddev(&mut self, input: &I, a: &M, mean: M, error: f64);
 }
@@ -38,19 +38,19 @@ impl<I, V: Clone> StateFunction<I> for Constant<V> {
 }
 
 impl<V> Parameterised for Constant<V> {
-    fn weights(&self) -> Matrix<f64> { Matrix::zeros((0, 0)) }
+    fn weights(&self) -> Weights { Weights::zeros((0, 0)) }
 
-    fn weights_view(&self) -> MatrixView<f64> { MatrixView::from_shape((0, 0), &[]).unwrap() }
+    fn weights_view(&self) -> WeightsView { WeightsView::from_shape((0, 0), &[]).unwrap() }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
-        MatrixViewMut::from_shape((0, 0), &mut []).unwrap()
+    fn weights_view_mut(&mut self) -> WeightsViewMut {
+        WeightsViewMut::from_shape((0, 0), &mut []).unwrap()
     }
 }
 
 impl<I, V: Clone, M> StdDev<I, M> for Constant<V> {
     fn stddev(&self, _: &I) -> V { self.0.clone() }
 
-    fn grad_log(&self, _: &I, _: &M, _: M) -> Matrix<f64> { Matrix::default((0, 0)) }
+    fn grad_log(&self, _: &I, _: &M, _: M) -> Array2<f64> { Array2::default((0, 0)) }
 
     fn update_stddev(&mut self, _: &I, _: &M, _: M, _: f64) {}
 }
@@ -80,7 +80,7 @@ where
         self.evaluate(input)
     }
 
-    fn grad_log(&self, input: &I, a: &f64, mean: f64) -> Matrix<f64> {
+    fn grad_log(&self, input: &I, a: &f64, mean: f64) -> Array2<f64> {
         self.0.grad(input).into() * gl_from_mv(*a, mean, self.evaluate(input))
     }
 
@@ -121,7 +121,7 @@ where
         self.evaluate(input)
     }
 
-    fn grad_log(&self, input: &I, a: &[f64; 2], mean: [f64; 2]) -> Matrix<f64> {
+    fn grad_log(&self, input: &I, a: &[f64; 2], mean: [f64; 2]) -> Array2<f64> {
         let mut g = self.0.grad(input).into();
         let stddev = self.evaluate(input);
 

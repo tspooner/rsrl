@@ -1,6 +1,6 @@
 use crate::{
     consts::{PI_OVER_2, G},
-    geometry::{
+    spaces::{
         ProductSpace,
         real::Interval,
         discrete::Ordinal,

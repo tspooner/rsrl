@@ -1,11 +1,10 @@
 use crate::{
     Algorithm,
-    fa::Parameterised,
-    geometry::{Matrix, MatrixView, MatrixViewMut},
+    fa::{Parameterised, Weights, WeightsView, WeightsViewMut},
     policies::{DifferentiablePolicy, Policy},
 };
+use ndarray::{Array2, ArrayView2, Axis};
 use rand::Rng;
-use ndarray::Axis;
 
 /// Independent Policy Pair (IPP).
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -53,7 +52,7 @@ where
         self.1.update(input, &a.1, error);
     }
 
-    fn update_grad(&mut self, grad: &MatrixView<f64>) {
+    fn update_grad(&mut self, grad: &ArrayView2<f64>) {
         let w_0 = self.0.weights_dim();
 
         match w_0 {
@@ -75,7 +74,7 @@ where
         }
     }
 
-    fn update_grad_scaled(&mut self, grad: &MatrixView<f64>, factor: f64) {
+    fn update_grad_scaled(&mut self, grad: &ArrayView2<f64>, factor: f64) {
         let w_0 = self.0.weights_dim();
 
         match w_0 {
@@ -97,17 +96,17 @@ where
         }
     }
 
-    fn grad_log(&self, input: &S, a: &Self::Action) -> Matrix<f64> {
+    fn grad_log(&self, input: &S, a: &Self::Action) -> Array2<f64> {
         let mut gl_0 = self.0.grad_log(input, &a.0);
         let nr_0 = gl_0.rows();
 
         let mut gl_1 = self.1.grad_log(input, &a.1);
         let nr_1 = gl_1.rows();
 
-        fn resize(gl: Matrix<f64>, n_rows: usize) -> Matrix<f64> {
+        fn resize(gl: Array2<f64>, n_rows: usize) -> Array2<f64> {
             let gl_rows = gl.rows();
 
-            let mut new_gl = unsafe { Matrix::uninitialized((n_rows, gl.cols())) };
+            let mut new_gl = unsafe { Array2::uninitialized((n_rows, gl.cols())) };
 
             new_gl.slice_mut(s![0..gl_rows, ..]).assign(&gl);
             new_gl.slice_mut(s![gl_rows.., ..]).fill(0.0);
@@ -126,15 +125,15 @@ where
 }
 
 impl<P1: Parameterised, P2: Parameterised> Parameterised for IPP<P1, P2> {
-    fn weights(&self) -> Matrix<f64> {
+    fn weights(&self) -> Weights {
         stack![Axis(1), self.0.weights(), self.1.weights()]
     }
 
-    fn weights_view(&self) -> MatrixView<f64> {
+    fn weights_view(&self) -> WeightsView {
         unimplemented!()
     }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> {
+    fn weights_view_mut(&mut self) -> WeightsViewMut {
         unimplemented!()
     }
 

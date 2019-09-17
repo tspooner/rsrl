@@ -2,9 +2,9 @@ use crate::{
     OnlineLearner,
     control::Controller,
     domains::{Domain, Observation},
-    geometry::Space,
+    spaces::Space,
 };
-use rand::{thread_rng, Rng};
+use rand::thread_rng;
 use slog::{Logger, Record, Result as LogResult, Serializer, KV};
 
 /// Container for episodic statistics.

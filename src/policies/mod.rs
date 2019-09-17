@@ -9,11 +9,8 @@
 //! considered a special case of stochastic policies in which all probability mass is placed on a
 //! single action _u'_ for any given state _x_. For continuous policies, this can be seen as a
 //! dirac delta distribution, _δ(u' - u)_.
-use crate::{
-    Algorithm,
-    fa::Parameterised,
-    geometry::{Matrix, MatrixView},
-};
+use crate::{Algorithm, fa::Parameterised};
+use ndarray::{Array2, ArrayView2};
 use rand::{thread_rng, Rng};
 use std::ops::AddAssign;
 
@@ -87,23 +84,23 @@ pub trait DifferentiablePolicy<S>: Policy<S> + Parameterised {
     /// action.
     fn update(&mut self, state: &S, a: &Self::Action, error: f64);
 
-    fn update_grad(&mut self, grad: &MatrixView<f64>) {
+    fn update_grad(&mut self, grad: &ArrayView2<f64>) {
         self.weights_view_mut().add_assign(grad);
     }
 
-    fn update_grad_scaled(&mut self, grad: &MatrixView<f64>, factor: f64) {
+    fn update_grad_scaled(&mut self, grad: &ArrayView2<f64>, factor: f64) {
         self.weights_view_mut().scaled_add(factor, grad);
     }
 
     /// Compute the gradient of the log probability wrt the policy weights.
-    fn grad(&self, state: &S, a: &Self::Action) -> Matrix<f64> {
+    fn grad(&self, state: &S, a: &Self::Action) -> Array2<f64> {
         let p = self.probability(state, a);
 
         self.grad_log(state, a) / p
     }
 
     /// Compute the gradient of the log probability wrt the policy weights.
-    fn grad_log(&self, state: &S, a: &Self::Action) -> Matrix<f64> {
+    fn grad_log(&self, state: &S, a: &Self::Action) -> Array2<f64> {
         let p = self.probability(state, a);
 
         self.grad(state, a) * p

@@ -1,4 +1,4 @@
-use crate::geometry::{Matrix, Vector};
+use ndarray::{Array1, Array2};
 use rstat::{
     Distribution, ContinuousDistribution,
     univariate::continuous::Normal,
@@ -42,29 +42,29 @@ impl DistBuilder<[f64; 2], [f64; 2]> for GB {
     }
 }
 
-impl DistBuilder<Vector<f64>, f64> for GB {
+impl DistBuilder<Array1<f64>, f64> for GB {
     type Distribution = MultivariateNormal;
 
-    fn build(mean: Vector<f64>, stddev: f64) -> MultivariateNormal {
+    fn build(mean: Array1<f64>, stddev: f64) -> MultivariateNormal {
         MultivariateNormal::isotropic(mean, stddev)
     }
 }
 
-impl DistBuilder<Vector<f64>, Vector<f64>> for GB {
+impl DistBuilder<Array1<f64>, Array1<f64>> for GB {
     type Distribution = MultivariateNormal;
 
-    fn build(mean: Vector<f64>, stddev: Vector<f64>) -> MultivariateNormal {
-        let mut sigma = Matrix::eye(mean.len());
+    fn build(mean: Array1<f64>, stddev: Array1<f64>) -> MultivariateNormal {
+        let mut sigma = Array2::eye(mean.len());
         sigma.diag_mut().assign(&stddev);
 
         MultivariateNormal::new(mean, sigma)
     }
 }
 
-impl DistBuilder<Vector<f64>, Matrix<f64>> for GB {
+impl DistBuilder<Array1<f64>, Array2<f64>> for GB {
     type Distribution = MultivariateNormal;
 
-    fn build(mean: Vector<f64>, sigma: Matrix<f64>) -> MultivariateNormal {
+    fn build(mean: Array1<f64>, sigma: Array2<f64>) -> MultivariateNormal {
         MultivariateNormal::new(mean, sigma)
     }
 }

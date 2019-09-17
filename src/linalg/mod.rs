@@ -1,11 +1,11 @@
-use crate::geometry::{Matrix, MatrixViewMut};
+use ndarray::{ArrayBase, Array2, DataMut, Ix2};
 
 pub struct Entry {
     pub index: [usize; 2],
     pub gradient: f64,
 }
 
-pub trait MatrixLike: Clone + Into<Matrix<f64>> {
+pub trait MatrixLike: Clone + Into<Array2<f64>> {
     fn zeros(dim: [usize; 2]) -> Self;
 
     fn dim(&self) -> [usize; 2];
@@ -28,15 +28,15 @@ pub trait MatrixLike: Clone + Into<Matrix<f64>> {
 
     fn for_each(&self, f: impl FnMut(Entry));
 
-    fn addto(&self, weights: &mut MatrixViewMut<f64>) {
-        self.for_each(|pd| weights[pd.index] += pd.gradient);
+    fn addto<D: DataMut<Elem = f64>>(&self, arr: &mut ArrayBase<D, Ix2>) {
+        self.for_each(|pd| arr[pd.index] += pd.gradient);
     }
 
-    fn scaled_addto(&self, alpha: f64, weights: &mut MatrixViewMut<f64>) {
-        self.for_each(|pd| weights[pd.index] += alpha * pd.gradient);
+    fn scaled_addto<D: DataMut<Elem = f64>>(&self, alpha: f64, arr: &mut ArrayBase<D, Ix2>) {
+        self.for_each(|pd| arr[pd.index] += alpha * pd.gradient);
     }
 
-    fn to_dense(&self) -> Matrix<f64> { self.clone().into() }
+    fn to_dense(&self) -> Array2<f64> { self.clone().into() }
 }
 
 import_all!(dense);

@@ -6,11 +6,10 @@ use crate::{
         StateFunction,
         linear::LinearStateFunction,
     },
-    geometry::{Vector, Matrix},
     prediction::ValuePredictor,
     utils::argmaxima,
 };
-use ndarray::Axis;
+use ndarray::{Array1, Array2, Axis};
 
 #[allow(non_camel_case_types)]
 #[derive(Parameterised)]
@@ -21,8 +20,8 @@ pub struct iLSTD<F> {
     pub alpha: Parameter,
     pub gamma: Parameter,
 
-    a: Matrix<f64>,
-    mu: Vector<f64>,
+    a: Array2<f64>,
+    mu: Array1<f64>,
 }
 
 impl<F: Parameterised> iLSTD<F> {
@@ -39,8 +38,8 @@ impl<F: Parameterised> iLSTD<F> {
             alpha: alpha.into(),
             gamma: gamma.into(),
 
-            a: Matrix::eye(dim[0]),
-            mu: Vector::zeros(dim[0]),
+            a: Array2::eye(dim[0]),
+            mu: Array1::zeros(dim[0]),
         }
     }
 }

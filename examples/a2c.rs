@@ -3,13 +3,13 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
+    make_shared, run, Evaluation, SerialExperiment,
     control::{ac::A2C, td::SARSA},
-    core::{make_shared, run, Evaluation, SerialExperiment},
     domains::{Domain, MountainCar},
     fa::linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
-    geometry::Space,
     logging,
     policies::Gibbs,
+    spaces::Space,
 };
 
 fn main() {

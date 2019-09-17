@@ -1,8 +1,10 @@
-use crate::consts::{FOUR_THIRDS, G, TWELVE_DEGREES};
-use crate::geometry::{
-    ProductSpace,
-    real::Interval,
-    discrete::Ordinal,
+use crate::{
+    consts::{FOUR_THIRDS, G, TWELVE_DEGREES},
+    spaces::{
+        ProductSpace,
+        real::Interval,
+        discrete::Ordinal,
+    },
 };
 use super::{runge_kutta4, Domain, Observation, Transition};
 

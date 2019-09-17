@@ -1,14 +1,8 @@
 use crate::{
     Algorithm,
-    geometry::Space,
     policies::{FinitePolicy, Policy},
 };
 use rand::{distributions::{Distribution, Uniform}, Rng};
-
-// TODO: Generalise the random policy to work on any `Space`. This won't be hard
-// at all, just use T: Into<Space>. Just make sure that you add all the relevant
-// From implementations for the different spaces in the `spaces` crate; i.e.
-// From<usize> for Ordinal etc etc...
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug)]
@@ -16,8 +10,6 @@ pub struct Random(usize);
 
 impl Random {
     pub fn new(n_actions: usize) -> Self { Random(n_actions) }
-
-    pub fn from_space<S: Space>(space: S) -> Self { Self::new(space.dim().into()) }
 }
 
 impl Algorithm for Random {}

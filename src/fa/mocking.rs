@@ -1,8 +1,5 @@
-use crate::{
-    Shared, make_shared,
-    fa::{StateActionFunction, EnumerableStateActionFunction, Parameterised},
-    geometry::{MatrixView, MatrixViewMut},
-};
+use crate::{Shared, make_shared};
+use super::*;
 use std::marker::PhantomData;
 
 pub struct MockQ {
@@ -24,9 +21,9 @@ impl MockQ {
 }
 
 impl Parameterised for MockQ {
-    fn weights_view(&self) -> MatrixView<f64> { unimplemented!() }
+    fn weights_view(&self) -> WeightsView { unimplemented!() }
 
-    fn weights_view_mut(&mut self) -> MatrixViewMut<f64> { unimplemented!() }
+    fn weights_view_mut(&mut self) -> WeightsViewMut { unimplemented!() }
 }
 
 impl StateActionFunction<Vec<f64>, usize> for MockQ {

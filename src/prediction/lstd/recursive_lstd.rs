@@ -2,21 +2,20 @@ use crate::{
     Algorithm, OnlineLearner, Parameter,
     domains::Transition,
     fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction,
+        Weights, WeightsView, WeightsViewMut, Parameterised,
         linear::LinearStateFunction,
     },
-    geometry::Matrix,
     prediction::ValuePredictor,
 };
-use ndarray::Axis;
+use ndarray::{Array2, Axis};
 
 #[derive(Parameterised)]
 pub struct RecursiveLSTD<F> {
     #[weights] pub fa_theta: F,
     pub gamma: Parameter,
 
-    c_mat: Matrix<f64>,
+    c_mat: Array2<f64>,
 }
 
 impl<F: Parameterised> RecursiveLSTD<F> {
@@ -27,7 +26,7 @@ impl<F: Parameterised> RecursiveLSTD<F> {
             fa_theta,
             gamma: gamma.into(),
 
-            c_mat: Matrix::eye(n_features) * 1e-5,
+            c_mat: Array2::eye(n_features) * 1e-5,
         }
     }
 }

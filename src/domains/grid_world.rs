@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::geometry::Matrix;
+use ndarray::Array2;
 use std::{cmp, fmt::Debug, fs::File, io::{Error as IOError, Read}, str::FromStr};
 
 #[derive(Clone, Copy)]
@@ -28,11 +28,11 @@ impl Motion {
 }
 
 pub struct GridWorld<T> {
-    layout: Matrix<T>,
+    layout: Array2<T>,
 }
 
 impl<T> GridWorld<T> {
-    pub fn new(layout: Matrix<T>) -> GridWorld<T> { GridWorld { layout } }
+    pub fn new(layout: Array2<T>) -> GridWorld<T> { GridWorld { layout } }
 
     pub fn from_str(layout: &str) -> GridWorld<T>
     where
@@ -52,7 +52,7 @@ impl<T> GridWorld<T> {
         let mvals = m.into_iter().flat_map(|v| v).collect();
 
         GridWorld {
-            layout: Matrix::from_shape_vec(shape, mvals).unwrap(),
+            layout: Array2::from_shape_vec(shape, mvals).unwrap(),
         }
     }
 

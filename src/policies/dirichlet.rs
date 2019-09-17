@@ -6,9 +6,9 @@ use crate::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
     },
-    geometry::{Matrix, MatrixView},
     policies::{DifferentiablePolicy, Policy},
 };
+use ndarray::{Array2, ArrayView2};
 use rand::Rng;
 use rstat::{
     Distribution, ContinuousDistribution,
@@ -87,15 +87,15 @@ where
         self.alphas.update(state, update);
     }
 
-    fn update_grad(&mut self, grad: &MatrixView<f64>) {
+    fn update_grad(&mut self, grad: &ArrayView2<f64>) {
         self.alphas.weights_view_mut().add_assign(grad);
     }
 
-    fn update_grad_scaled(&mut self, grad: &MatrixView<f64>, factor: f64) {
+    fn update_grad_scaled(&mut self, grad: &ArrayView2<f64>, factor: f64) {
         self.alphas.weights_view_mut().scaled_add(factor, grad);
     }
 
-    fn grad_log(&self, state: &S, a: &Vec<f64>) -> Matrix<f64> {
+    fn grad_log(&self, state: &S, a: &Vec<f64>) -> Array2<f64> {
         let alphas = self.compute_alphas(state);
         let sum_alphas: f64 = alphas.iter().sum();
         let digamma_sum_alphas = sum_alphas.digamma();
@@ -105,7 +105,7 @@ where
             .zip(alphas.into_iter().map(|a| a.digamma()))
             .map(|(l, d)| l - d + digamma_sum_alphas);
 
-        let mut grad_alphas: Matrix<f64> = self.alphas.grad(state).into();
+        let mut grad_alphas: Array2<f64> = self.alphas.grad(state).into();
 
         for (mut c, gl) in grad_alphas.gencolumns_mut().into_iter().zip(gl) {
             c.mul_assign(gl);

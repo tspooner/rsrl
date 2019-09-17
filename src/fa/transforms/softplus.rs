@@ -1,4 +1,4 @@
-use crate::geometry::Vector;
+use ndarray::Array1;
 use super::{Transform, Logistic};
 
 // f(x) ≜ log(1 + exp(x))
@@ -107,21 +107,21 @@ impl Transform<[f64; 3]> for LogSumExp {
     }
 }
 
-impl Transform<Vector<f64>> for LogSumExp {
+impl Transform<Array1<f64>> for LogSumExp {
     type Output = f64;
 
-    fn transform(&self, x: Vector<f64>) -> f64 {
+    fn transform(&self, x: Array1<f64>) -> f64 {
         (self.0 + x.into_iter().fold(0.0f64, |acc, v| acc + v.exp())).ln()
     }
 
-    fn grad(&self, x: Vector<f64>) -> Vector<f64> {
+    fn grad(&self, x: Array1<f64>) -> Array1<f64> {
         let e = x.mapv_into(|v| v.exp());
         let z = self.0 + e.sum();
 
         e / z
     }
 
-    fn grad_scaled(&self, x: Vector<f64>, error: f64) -> Vector<f64> {
+    fn grad_scaled(&self, x: Array1<f64>, error: f64) -> Array1<f64> {
         let e = x.mapv_into(|v| v.exp());
         let z = self.0 + e.sum();
 

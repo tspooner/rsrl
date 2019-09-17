@@ -1,4 +1,5 @@
-use crate::{Shared, geometry::{Matrix, MatrixView}};
+use crate::Shared;
+use ndarray::{Array2, ArrayView2};
 use super::*;
 
 impl<S, T: Policy<S>> Policy<S> for Shared<T> {
@@ -26,19 +27,19 @@ impl<S, T: DifferentiablePolicy<S>> DifferentiablePolicy<S> for Shared<T> {
         self.borrow_mut().update(state, a, error)
     }
 
-    fn update_grad(&mut self, grad: &MatrixView<f64>) {
+    fn update_grad(&mut self, grad: &ArrayView2<f64>) {
         self.borrow_mut().update_grad(grad)
     }
 
-    fn update_grad_scaled(&mut self, grad: &MatrixView<f64>, factor: f64) {
+    fn update_grad_scaled(&mut self, grad: &ArrayView2<f64>, factor: f64) {
         self.borrow_mut().update_grad_scaled(grad, factor)
     }
 
-    fn grad(&self, state: &S, a: &Self::Action) -> Matrix<f64> {
+    fn grad(&self, state: &S, a: &Self::Action) -> Array2<f64> {
         self.borrow().grad(state, a)
     }
 
-    fn grad_log(&self, state: &S, a: &Self::Action) -> Matrix<f64> {
+    fn grad_log(&self, state: &S, a: &Self::Action) -> Array2<f64> {
         self.borrow().grad_log(state, a)
     }
 }

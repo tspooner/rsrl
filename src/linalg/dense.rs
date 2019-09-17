@@ -1,7 +1,8 @@
-use crate::{geometry::{Matrix, MatrixViewMut}, linalg::{MatrixLike, Entry}};
+use ndarray::Array2;
 use std::ops::AddAssign;
+use super::*;
 
-impl MatrixLike for Matrix<f64> {
+impl MatrixLike for Array2<f64> {
     fn zeros(dim: [usize; 2]) -> Self { Self::zeros(dim) }
 
     fn dim(&self) -> [usize; 2] { let (r, c) = self.dim(); [r, c] }
@@ -21,11 +22,11 @@ impl MatrixLike for Matrix<f64> {
         }).for_each(f);
     }
 
-    fn addto(&self, weights: &mut MatrixViewMut<f64>) {
+    fn addto<D: DataMut<Elem = f64>>(&self, weights: &mut ArrayBase<D, Ix2>) {
         weights.add_assign(self);
     }
 
-    fn scaled_addto(&self, alpha: f64, weights: &mut MatrixViewMut<f64>) {
+    fn scaled_addto<D: DataMut<Elem = f64>>(&self, alpha: f64, weights: &mut ArrayBase<D, Ix2>) {
         weights.scaled_add(alpha, self);
     }
 }
