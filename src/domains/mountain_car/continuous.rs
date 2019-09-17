@@ -1,7 +1,6 @@
-use crate::domains::{Domain, Observation, Transition};
-use crate::geometry::{
-    Surjection, ProductSpace,
-    real::Interval,
+use crate::{
+    domains::{Domain, Observation, Transition},
+    geometry::{Surjection, ProductSpace, real::Interval},
 };
 
 const X_MIN: f64 = -1.2;

@@ -1,14 +1,15 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
+    control::Controller,
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction, EnumerableStateActionFunction
+        StateActionFunction, EnumerableStateActionFunction,
     },
     policies::{Policy, FinitePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
-use ndarray::{Array2, ArrayView2, ArrayViewMut2};
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 
 /// On-policy variant of Watkins' Q-learning (aka "modified Q-learning").
 ///

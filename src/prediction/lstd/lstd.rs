@@ -1,15 +1,16 @@
 use crate::{
-    core::*,
+    Algorithm, BatchLearner, Parameter,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction,
-        linear::{Features, LinearStateFunction},
+        linear::LinearStateFunction,
     },
-    geometry::{Space, Matrix, MatrixView, MatrixViewMut},
-    utils::{argmaxima, pinv},
+    geometry::{Vector, Matrix},
+    prediction::ValuePredictor,
+    utils::pinv,
 };
-use ndarray::{Axis, Array2, ArrayView2, ArrayViewMut2};
+use ndarray::Axis;
 use ndarray_linalg::solve::Solve;
 
 #[derive(Parameterised)]

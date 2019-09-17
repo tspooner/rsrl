@@ -1,5 +1,6 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
+    control::Controller,
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
@@ -9,8 +10,8 @@ use crate::{
         traces::Trace,
     },
     policies::{Policy, FinitePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
-use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::{thread_rng, Rng};
 
 /// On-policy variant of Watkins' Q-learning with eligibility traces (aka

@@ -1,13 +1,11 @@
 use crate::{
-    core::DerefSlice,
+    DerefSlice,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
-        StateActionFunction, DifferentiableStateActionFunction, EnumerableStateActionFunction,
         linear::{
-            Approximator, ScalarApproximator, VectorApproximator,
+            Approximator, ScalarApproximator,
             ScalarFunction, PairFunction, VectorFunction,
-            Features,
             basis::Projector,
             optim::SGD,
         },
@@ -15,7 +13,6 @@ use crate::{
     },
     linalg::Columnar,
 };
-use std::ops::{Deref, AddAssign};
 
 /// Transformed linear function approximator.
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]

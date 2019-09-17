@@ -1,17 +1,15 @@
-use crate::core::*;
-use crate::fa::Parameterised;
-use crate::geometry::{Space, MatrixView, MatrixViewMut};
-use crate::policies::{FinitePolicy, DifferentiablePolicy, Policy};
-use rand::{
-    rngs::ThreadRng,
-    Rng,
-    thread_rng,
+use crate::{
+    Algorithm,
+    fa::Parameterised,
+    geometry::{Matrix, MatrixView, MatrixViewMut},
+    policies::{DifferentiablePolicy, Policy},
 };
+use rand::Rng;
 use ndarray::Axis;
-use std::ops::{Add, AddAssign};
 
 /// Independent Policy Pair (IPP).
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct IPP<P1, P2>(pub P1, pub P2);
 
 impl<P1, P2> IPP<P1, P2> {

@@ -1,11 +1,12 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
         traces::Trace,
     },
+    prediction::ValuePredictor,
 };
 
 #[derive(Parameterised)]

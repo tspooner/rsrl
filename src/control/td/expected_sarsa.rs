@@ -1,11 +1,13 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
+    control::Controller,
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
         StateActionFunction, EnumerableStateActionFunction,
     },
     policies::{Policy, FinitePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::Rng;
 

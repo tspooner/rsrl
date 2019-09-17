@@ -3,7 +3,7 @@ use crate::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
     },
-    geometry::{Matrix, MatrixView, MatrixViewMut, Vector, VectorView},
+    geometry::{Matrix, Vector, VectorView},
     utils::pinv,
 };
 use ndarray::Axis;

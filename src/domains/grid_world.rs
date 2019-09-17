@@ -1,12 +1,6 @@
 #![allow(dead_code)]
-use crate::core::Matrix;
-use std::{
-    cmp,
-    fmt::Debug,
-    fs::File,
-    io::{Error as IOError, Read},
-    str::FromStr,
-};
+use crate::geometry::Matrix;
+use std::{cmp, fmt::Debug, fs::File, io::{Error as IOError, Read}, str::FromStr};
 
 #[derive(Clone, Copy)]
 pub enum Motion {

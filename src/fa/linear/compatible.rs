@@ -1,17 +1,16 @@
 use crate::{
-    core::DerefSlice,
+    DerefSlice,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, StateActionFunction, DifferentiableStateActionFunction,
-        EnumerableStateActionFunction,
+        StateActionFunction, DifferentiableStateActionFunction,
         linear::{
-            LinearStateFunction, LinearStateActionFunction,
+            LinearStateActionFunction,
             Approximator, ScalarFunction, LFAGradient, Features,
             basis::Projector,
             optim::Optimiser,
         }
     },
-    policies::{Policy, DifferentiablePolicy},
+    policies::DifferentiablePolicy,
 };
 use ndarray::Axis;
 

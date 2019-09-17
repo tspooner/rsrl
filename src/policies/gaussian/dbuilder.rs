@@ -1,4 +1,4 @@
-use crate::geometry::{Space, Matrix, Vector};
+use crate::geometry::{Matrix, Vector};
 use rstat::{
     Distribution, ContinuousDistribution,
     univariate::continuous::Normal,

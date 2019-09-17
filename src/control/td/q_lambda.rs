@@ -1,17 +1,17 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    control::Controller,
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction,
-        EnumerableStateActionFunction,
+        StateActionFunction, EnumerableStateActionFunction,
         DifferentiableStateActionFunction,
         traces::Trace,
     },
     policies::{Policy, FinitePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
-use ndarray::{Array2, ArrayView2, ArrayViewMut2};
-use rand::{thread_rng, Rng};
+use rand::Rng;
 
 /// Watkins' Q-learning with eligibility traces.
 ///

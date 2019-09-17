@@ -1,24 +1,23 @@
 extern crate special_fun;
 
 use crate::{
-    core::{Algorithm, Parameter},
+    Algorithm,
     fa::{Parameterised, StateFunction, DifferentiableStateFunction},
-    geometry::{Vector, Matrix, MatrixView, MatrixViewMut},
+    geometry::{Matrix, MatrixView, MatrixViewMut},
     policies::{DifferentiablePolicy, Policy},
 };
 use ndarray::Axis;
 use rand::Rng;
 use rstat::{
     Distribution, ContinuousDistribution,
-    core::Modes,
     univariate::{UnivariateMoments, continuous::Gamma as GammaDist},
 };
-use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
-use std::{fmt, ops::AddAssign, marker::PhantomData};
+use std::ops::AddAssign;
 
 const MIN_TOL: f64 = 0.1;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct Gamma<A, T = A> {
     pub alpha: A,
     pub theta: T,

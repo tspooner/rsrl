@@ -1,14 +1,4 @@
-use crate::{
-    fa::{
-        StateFunction,
-        StateActionFunction,
-        DifferentiableStateFunction,
-        DifferentiableStateActionFunction,
-    },
-    geometry::{Vector, MatrixViewMut},
-};
-use ndarray::Axis;
-use std::ops::AddAssign;
+use crate::fa::{DifferentiableStateFunction, DifferentiableStateActionFunction};
 
 pub use lfa::*;
 

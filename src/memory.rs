@@ -1,9 +1,4 @@
-use std::{
-    cell::{RefCell, Ref, RefMut},
-    fmt,
-    ops::{Deref, DerefMut},
-    rc::Rc,
-};
+use std::{cell::{RefCell, Ref, RefMut}, fmt, ops::Deref, rc::Rc};
 
 pub fn make_shared<T>(t: T) -> Shared<T> { Shared(Rc::new(RefCell::new(t))) }
 

@@ -1,7 +1,4 @@
-use crate::{
-    core::Shared,
-    geometry::{Matrix, MatrixView, MatrixViewMut},
-};
+use crate::{Shared, geometry::{Matrix, MatrixView, MatrixViewMut}};
 use super::*;
 
 impl<X: ?Sized, T: StateFunction<X>> StateFunction<X> for Shared<T> {
@@ -18,8 +15,6 @@ impl<X: ?Sized, T: DifferentiableStateFunction<X>> DifferentiableStateFunction<X
     type Gradient = T::Gradient;
 
     fn grad(&self, state: &X) -> Self::Gradient { self.borrow().grad(state) }
-
-    // fn zero_grad(&self) -> Self::Gradient { self.borrow().zero_grad() }
 
     fn update_grad<G: crate::linalg::MatrixLike>(&mut self, grad: &G) {
         self.borrow_mut().update_grad(grad)
@@ -49,8 +44,6 @@ where
     type Gradient = T::Gradient;
 
     fn grad(&self, state: &X, action: &U) -> Self::Gradient { self.borrow().grad(state, action) }
-
-    // fn zero_grad(&self) -> Self::Gradient { self.borrow().zero_grad() }
 
     fn update_grad<G: crate::linalg::MatrixLike>(&mut self, grad: &G) {
         self.borrow_mut().update_grad(grad)

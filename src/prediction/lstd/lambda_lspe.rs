@@ -1,12 +1,14 @@
 use crate::{
-    core::*,
+    Algorithm, BatchLearner, Parameter,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction,
-        linear::{Features, LinearStateFunction},
+        linear::LinearStateFunction,
     },
-    utils::{argmaxima, pinv},
+    geometry::{Vector, Matrix},
+    prediction::ValuePredictor,
+    utils::pinv,
 };
 use ndarray::Axis;
 use ndarray_linalg::solve::Solve;

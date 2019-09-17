@@ -1,11 +1,5 @@
-use crate::core::Matrix;
-use crate::geometry::{TwoSpace, discrete::Ordinal};
-use super::{
-    grid_world::{GridWorld, Motion},
-    Domain,
-    Observation,
-    Transition,
-};
+use crate::geometry::{Matrix, TwoSpace, discrete::Ordinal};
+use super::{Domain, Observation, Transition, grid_world::{GridWorld, Motion}};
 
 const ALL_ACTIONS: [Motion; 4] = [
     Motion::North(1),

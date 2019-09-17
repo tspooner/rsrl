@@ -1,9 +1,9 @@
 extern crate special_fun;
 
 use crate::{
-    core::{Algorithm, Parameter},
+    Algorithm,
     fa::{StateFunction, DifferentiableStateFunction, Parameterised},
-    geometry::{Vector, Matrix, MatrixView, MatrixViewMut},
+    geometry::{Matrix, MatrixView, MatrixViewMut},
     policies::{DifferentiablePolicy, Policy},
 };
 use ndarray::Axis;
@@ -17,7 +17,8 @@ use std::ops::AddAssign;
 
 const MIN_TOL: f64 = 1.0;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct Beta<A, B = A> {
     pub alpha: A,
     pub beta: B,

@@ -1,5 +1,5 @@
 use crate::{
-    core::*,
+    Algorithm,
     geometry::Space,
     policies::{FinitePolicy, Policy},
 };
@@ -10,6 +10,8 @@ use rand::{distributions::{Distribution, Uniform}, Rng};
 // From implementations for the different spaces in the `spaces` crate; i.e.
 // From<usize> for Ordinal etc etc...
 
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct Random(usize);
 
 impl Random {

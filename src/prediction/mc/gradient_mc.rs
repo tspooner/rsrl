@@ -1,9 +1,9 @@
 use crate::{
-    core::*,
+    Algorithm, BatchLearner, Parameter,
     domains::Transition,
     fa::{Weights, WeightsView, WeightsViewMut, Parameterised, StateFunction},
+    prediction::ValuePredictor,
 };
-use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 
 #[derive(Parameterised)]
 pub struct GradientMC<V> {

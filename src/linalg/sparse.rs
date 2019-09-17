@@ -1,7 +1,4 @@
-use crate::{
-    geometry::{Vector, Matrix, MatrixViewMut},
-    linalg::{MatrixLike, Entry},
-};
+use crate::{geometry::{Matrix, MatrixViewMut}, linalg::{MatrixLike, Entry}};
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 type GradMap = ::std::collections::HashMap<[usize; 2], f64>;

@@ -1,8 +1,5 @@
-use crate::{
-    geometry::{Matrix, MatrixView, MatrixViewMut},
-    linalg::{MatrixLike, Entry},
-};
-use std::ops::{Add, AddAssign, Mul, MulAssign};
+use crate::{geometry::{Matrix, MatrixViewMut}, linalg::{MatrixLike, Entry}};
+use std::ops::AddAssign;
 
 impl MatrixLike for Matrix<f64> {
     fn zeros(dim: [usize; 2]) -> Self { Self::zeros(dim) }

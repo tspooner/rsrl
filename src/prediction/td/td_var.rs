@@ -1,5 +1,5 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
     domains::Transition,
     fa::{Parameterised, StateFunction},
     geometry::{Matrix, MatrixView, MatrixViewMut},

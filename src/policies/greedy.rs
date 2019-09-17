@@ -1,12 +1,12 @@
 use crate::{
-    core::*,
+    Algorithm,
     fa::EnumerableStateActionFunction,
     policies::{FinitePolicy, Policy},
     utils::{argmaxima},
 };
-use rand::thread_rng;
 
-#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct Greedy<Q>(Q);
 
 impl<Q> Greedy<Q> {

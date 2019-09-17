@@ -1,9 +1,11 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
+    control::Controller,
     domains::Transition,
     policies::{Policy, DifferentiablePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
-use rand::{thread_rng, Rng};
+use rand::Rng;
 
 /// Continuous Actor-Critic Learning Automaton
 pub struct CACLA<C, PT, PB> {

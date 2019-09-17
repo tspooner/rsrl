@@ -1,5 +1,6 @@
 use crate::{
-    core::*,
+    OnlineLearner,
+    control::Controller,
     domains::{Domain, Observation},
     geometry::Space,
 };

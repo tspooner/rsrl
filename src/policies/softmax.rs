@@ -1,11 +1,10 @@
 use crate::{
-    core::*,
-    domains::Transition,
+    Algorithm, Parameter,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         DifferentiableStateActionFunction, EnumerableStateActionFunction,
     },
-    geometry::{MatrixView, MatrixViewMut},
+    geometry::Matrix,
     policies::{
         sample_probs_with_rng,
         DifferentiablePolicy,
@@ -14,9 +13,8 @@ use crate::{
     },
     utils::argmaxima,
 };
-use ndarray::{Axis, Array2, ArrayView2, ArrayViewMut2};
 use rand::Rng;
-use std::{f64, iter::FromIterator, ops::MulAssign};
+use std::{f64, iter::FromIterator};
 
 fn softmax<C: FromIterator<f64>>(values: &[f64], tau: f64, c: f64) -> C {
     let mut z = 0.0;

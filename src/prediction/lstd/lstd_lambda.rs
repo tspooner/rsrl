@@ -1,12 +1,13 @@
 use crate::{
-    core::*,
+    Algorithm, BatchLearner, Parameter,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction,
-        traces::Trace,
-        linear::{Features, LinearStateFunction},
+        linear::LinearStateFunction,
     },
+    geometry::{Vector, Matrix},
+    prediction::ValuePredictor,
     utils::pinv,
 };
 use ndarray::Axis;

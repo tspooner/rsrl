@@ -1,13 +1,7 @@
-use crate::core::Matrix;
-use crate::geometry::{TwoSpace, discrete::Ordinal};
+use crate::geometry::{Matrix, TwoSpace, discrete::Ordinal};
 use rand::{thread_rng, Rng};
-use rand_distr::{Distribution, Binomial};
-use super::{
-    grid_world::{GridWorld, Motion},
-    Domain,
-    Observation,
-    Transition,
-};
+use rand_distr::Binomial;
+use super::{Domain, Observation, Transition, grid_world::{GridWorld, Motion}};
 
 const ALL_ACTIONS: [Motion; 8] = [
     Motion::North(1),

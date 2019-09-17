@@ -1,5 +1,6 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    control::Controller,
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
@@ -7,8 +8,8 @@ use crate::{
         EnumerableStateActionFunction,
     },
     policies::{Greedy, Policy, FinitePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
-use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::{thread_rng, Rng};
 use std::collections::VecDeque;
 

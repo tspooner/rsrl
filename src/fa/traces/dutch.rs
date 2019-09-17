@@ -1,10 +1,5 @@
-use crate::{
-    core::{Parameter, Algorithm},
-    geometry::{Vector, Matrix, MatrixViewMut},
-    linalg::MatrixLike,
-};
-use ndarray::{ArrayBase, Data, Ix1};
-use std::ops::{AddAssign, MulAssign, Deref, DerefMut};
+use crate::{Parameter, Algorithm, linalg::MatrixLike};
+use std::ops::{Deref, DerefMut};
 use super::Trace;
 
 #[derive(Clone, Debug)]

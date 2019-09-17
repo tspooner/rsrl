@@ -1,5 +1,5 @@
 //! Eligibility trace types
-use crate::core::Algorithm;
+use crate::Algorithm;
 use std::ops::{Deref, DerefMut};
 
 pub trait Trace<G: crate::linalg::MatrixLike>: Algorithm + Deref<Target = G> + DerefMut {

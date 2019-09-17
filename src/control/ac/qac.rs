@@ -1,7 +1,9 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
+    control::Controller,
     domains::Transition,
     policies::{Policy, DifferentiablePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::Rng;
 

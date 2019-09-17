@@ -1,14 +1,15 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    control::Controller,
     domains::Transition,
     fa::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
         StateActionFunction, EnumerableStateActionFunction,
     },
-    policies::{Policy, FinitePolicy, Greedy},
+    policies::{Greedy, Policy, FinitePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
-use ndarray::{Array2, ArrayView2, ArrayViewMut2};
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 
 /// Persistent Advantage Learning
 ///

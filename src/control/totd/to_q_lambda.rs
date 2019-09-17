@@ -1,18 +1,19 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    control::Controller,
     domains::Transition,
     fa::{
         Parameterised, StateFunction, StateActionFunction, EnumerableStateActionFunction,
         linear::{
             LinearStateFunction, LinearStateActionFunction,
-            Features, Weights, WeightsView, WeightsViewMut,
+            Weights, WeightsView, WeightsViewMut,
             dot_features,
         },
         traces::Trace,
     },
-    geometry::{MatrixView, MatrixViewMut},
     linalg::MatrixLike,
     policies::{Greedy, Policy, FinitePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::{thread_rng, Rng};
 

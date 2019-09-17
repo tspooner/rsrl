@@ -1,11 +1,12 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
+    control::Controller,
     domains::Transition,
-    fa::{Parameterised, linear::basis::Projector},
+    fa::Parameterised,
     policies::{Policy, DifferentiablePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::Rng;
-use ndarray::Axis;
 
 /// Natural actor-critic.
 pub struct NAC<C, P> {

@@ -1,18 +1,16 @@
-use crate::{
-    core::DerefSlice,
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, DifferentiableStateFunction,
-        StateActionFunction, DifferentiableStateActionFunction, EnumerableStateActionFunction,
-        linear::{
-            LFAGradient, Features,
-            LinearStateFunction, LinearStateActionFunction,
-            Approximator, ScalarApproximator, VectorApproximator,
-            ScalarFunction, PairFunction, VectorFunction,
-            basis::Projector,
-            optim::Optimiser,
-        }
-    },
+use crate::DerefSlice;
+use crate::fa::{
+    Weights, WeightsView, WeightsViewMut, Parameterised,
+    StateFunction, DifferentiableStateFunction,
+    StateActionFunction, DifferentiableStateActionFunction, EnumerableStateActionFunction,
+    linear::{
+        LFAGradient, Features,
+        LinearStateFunction, LinearStateActionFunction,
+        Approximator, ScalarApproximator, VectorApproximator,
+        ScalarFunction, PairFunction, VectorFunction,
+        basis::Projector,
+        optim::Optimiser,
+    }
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]

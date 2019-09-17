@@ -1,4 +1,4 @@
-use crate::core::Shared;
+use crate::Shared;
 use super::{Features, LinearStateFunction, LinearStateActionFunction};
 
 impl<X: ?Sized, T: LinearStateFunction<X>> LinearStateFunction<X> for Shared<T> {

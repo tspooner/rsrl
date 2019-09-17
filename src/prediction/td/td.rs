@@ -1,7 +1,8 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
     domains::Transition,
     fa::{Weights, WeightsView, WeightsViewMut, Parameterised, StateFunction},
+    prediction::ValuePredictor,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]

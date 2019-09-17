@@ -1,10 +1,11 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
+    control::Controller,
     domains::Transition,
     fa::{Weights, WeightsView, WeightsViewMut, Parameterised},
     policies::{Policy, DifferentiablePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
-use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::Rng;
 
 /// Off-policy TD-based actor-critic.

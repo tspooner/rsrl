@@ -1,5 +1,6 @@
 use crate::{
-    core::*,
+    Algorithm, BatchLearner, Parameter,
+    control::Controller,
     domains::Transition,
     fa::{Weights, WeightsView, WeightsViewMut, Parameterised},
     policies::{Policy, DifferentiablePolicy},

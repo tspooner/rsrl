@@ -1,27 +1,26 @@
 extern crate special_fun;
 
 use crate::{
-    core::{Algorithm, Parameter},
+    Algorithm,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, DifferentiableStateFunction,
     },
-    geometry::{Vector, Matrix, MatrixView, MatrixViewMut},
+    geometry::{Matrix, MatrixView},
     policies::{DifferentiablePolicy, Policy},
 };
 use rand::Rng;
 use rstat::{
     Distribution, ContinuousDistribution,
-    core::Modes,
     multivariate::{MultivariateMoments, continuous::Dirichlet as DirichletDist},
 };
-use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
 use special_fun::FloatSpecial;
-use std::{fmt, ops::{AddAssign, MulAssign}, marker::PhantomData};
+use std::ops::{AddAssign, MulAssign};
 
 const MIN_TOL: f64 = 1.0;
 
-#[derive(Clone, Debug, Parameterised, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Parameterised)]
 pub struct Dirichlet<F> {
     pub alphas: F,
 }

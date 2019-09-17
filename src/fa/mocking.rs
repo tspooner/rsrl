@@ -1,5 +1,5 @@
 use crate::{
-    core::{make_shared, Shared},
+    Shared, make_shared,
     fa::{StateActionFunction, EnumerableStateActionFunction, Parameterised},
     geometry::{MatrixView, MatrixViewMut},
 };

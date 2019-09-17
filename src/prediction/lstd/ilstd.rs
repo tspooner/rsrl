@@ -1,11 +1,13 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction,
-        linear::{Features, LinearStateFunction},
+        linear::LinearStateFunction,
     },
+    geometry::{Vector, Matrix},
+    prediction::ValuePredictor,
     utils::argmaxima,
 };
 use ndarray::Axis;

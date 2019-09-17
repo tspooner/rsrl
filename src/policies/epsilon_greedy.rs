@@ -1,5 +1,8 @@
-use super::{FinitePolicy, Greedy, Policy, Random};
-use crate::{core::*, domains::Transition, fa::EnumerableStateActionFunction};
+use crate::{
+    Algorithm, Parameter,
+    fa::EnumerableStateActionFunction,
+    policies::{FinitePolicy, Greedy, Policy, Random}
+};
 use rand::Rng;
 
 pub struct EpsilonGreedy<Q> {

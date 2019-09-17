@@ -1,5 +1,4 @@
-use crate::geometry::{Vector, Matrix, MatrixViewMut};
-use std::ops::{AddAssign, MulAssign};
+use crate::geometry::{Matrix, MatrixViewMut};
 
 pub struct Entry {
     pub index: [usize; 2],

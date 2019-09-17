@@ -1,11 +1,5 @@
-use crate::{
-    geometry::{
-        ProductSpace,
-        real::Interval,
-        discrete::Ordinal,
-    },
-};
-use super::{runge_kutta4, Domain, Observation, Transition};
+use crate::geometry::{ProductSpace, real::Interval, discrete::Ordinal};
+use super::{Domain, Observation, Transition, runge_kutta4};
 
 // Model parameters
 // (https://pdfs.semanticscholar.org/c030/127238b1dbad2263fba6b64b5dec7c3ffa20.pdf):

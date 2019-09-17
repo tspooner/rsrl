@@ -4,7 +4,6 @@ use crate::geometry::{
     real::Interval,
     discrete::Ordinal,
 };
-use ndarray::{Ix1, NdIndex};
 use super::{runge_kutta4, Domain, Observation, Transition};
 
 const DT: f64 = 0.02;

@@ -1,18 +1,13 @@
 use crate::{
-    core::{Algorithm, Parameter},
+    Algorithm,
     fa::{Parameterised, StateFunction},
-    geometry::{real::Interval, Matrix, MatrixView, MatrixViewMut, Space, Vector},
+    geometry::{Matrix, MatrixView, MatrixViewMut, Space},
     policies::{DifferentiablePolicy, Policy},
 };
-use ndarray::{ArrayBase, Axis, Dimension};
+use ndarray::Axis;
 use rand::Rng;
-use rstat::{univariate::continuous::Normal, ContinuousDistribution, Distribution};
-use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
-use std::{
-    fmt::{self, Debug},
-    marker::PhantomData,
-    ops::AddAssign,
-};
+use rstat::{ContinuousDistribution, Distribution};
+use std::fmt::Debug;
 
 pub mod mean;
 use self::mean::Mean;
@@ -22,7 +17,8 @@ use self::stddev::StdDev;
 
 import_all!(dbuilder);
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct Gaussian<M, S> {
     pub mean: M,
     pub stddev: S,

@@ -10,9 +10,9 @@
 
 ## Overview
 
-``rsrl`` provides generic constructs for running reinforcement learning (RL)
-experiments by providing a simple, extensible framework and efficient
-implementations of existing methods for rapid prototyping.
+``rsrl`` provides generic constructs for reinforcement learning (RL)
+experiments in an extensible framework with efficient implementations of
+existing methods for rapid prototyping.
 
 ## Installation
 ```toml

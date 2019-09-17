@@ -1,7 +1,4 @@
-use crate::{
-    core::Shared,
-    geometry::{Matrix, MatrixView, MatrixViewMut},
-};
+use crate::{Shared, geometry::{Matrix, MatrixView}};
 use super::*;
 
 impl<S, T: Policy<S>> Policy<S> for Shared<T> {

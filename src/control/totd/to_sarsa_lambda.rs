@@ -1,5 +1,6 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter,
+    control::Controller,
     domains::Transition,
     fa::{
         Parameterised,
@@ -7,13 +8,14 @@ use crate::{
         EnumerableStateActionFunction,
         linear::{
             LinearStateActionFunction,
-            Features, Weights, WeightsView, WeightsViewMut,
+            Weights, WeightsView, WeightsViewMut,
             dot_features
         },
         traces::Trace,
     },
     linalg::MatrixLike,
     policies::{Policy, FinitePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::{thread_rng, Rng};
 

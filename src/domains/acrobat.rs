@@ -6,7 +6,6 @@ use crate::{
         discrete::Ordinal,
     },
 };
-use ndarray::{Ix1, NdIndex};
 use std::f64::consts::PI;
 use super::{runge_kutta4, Domain, Observation, Transition};
 

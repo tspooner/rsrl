@@ -1,14 +1,15 @@
 use crate::{
-    core::*,
+    Algorithm, OnlineLearner, Parameter, Shared, make_shared,
+    control::Controller,
     domains::Transition,
     fa::{
         Weights, WeightsView, WeightsViewMut, Parameterised,
         StateFunction, StateActionFunction, EnumerableStateActionFunction,
-        linear::{Features, LinearStateFunction, LinearStateActionFunction},
+        linear::{LinearStateFunction, LinearStateActionFunction},
     },
     policies::{Greedy, Policy, FinitePolicy},
+    prediction::{ValuePredictor, ActionValuePredictor},
 };
-use ndarray::{Array2, ArrayView2, ArrayViewMut2};
 use rand::{thread_rng, Rng};
 
 // TODO: Extract prediction component GQ / GQ(lambda) into seperate implementations.

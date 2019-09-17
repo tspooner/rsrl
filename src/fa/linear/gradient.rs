@@ -1,11 +1,11 @@
 use crate::{
-    geometry::{Vector, Matrix, MatrixViewMut},
+    geometry::{Matrix, MatrixViewMut},
     linalg::{MatrixLike, Entry},
 };
 use ndarray::Array1;
 use std::{
     collections::HashMap,
-    ops::{Add, AddAssign, Mul, MulAssign},
+    ops::{AddAssign, Mul, MulAssign},
 };
 use super::{Features, dot_features};
 
