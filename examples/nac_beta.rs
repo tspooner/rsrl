@@ -4,18 +4,27 @@ extern crate rstat;
 extern crate slog;
 
 use rsrl::{
-    make_shared, run, Evaluation, SerialExperiment, Parameter,
     control::{ac::NAC, td::SARSA},
-    domains::{Domain, ContinuousMountainCar},
+    domains::{ContinuousMountainCar, Domain},
     fa::{
-        Parameterised,
-        linear::{LFA, StableCFA, basis::{Projector, Chebyshev}, optim::SGD},
+        linear::{
+            basis::{Chebyshev, Projector},
+            optim::SGD,
+            StableCFA,
+            LFA,
+        },
         transforms::Softplus,
+        Parameterised,
         TransformedLFA,
     },
     logging,
+    make_shared,
     policies::Beta,
+    run,
     spaces::Space,
+    Evaluation,
+    Parameter,
+    SerialExperiment,
 };
 
 fn main() {

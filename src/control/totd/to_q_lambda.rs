@@ -3,9 +3,9 @@ use crate::{
     control::Controller,
     domains::Transition,
     fa::{
-        Parameterised, StateFunction, StateActionFunction, EnumerableStateActionFunction,
+        Parameterised, StateActionFunction, EnumerableStateActionFunction,
         linear::{
-            LinearStateFunction, LinearStateActionFunction,
+            LinearStateActionFunction,
             Weights, WeightsView, WeightsViewMut,
             dot_features,
         },

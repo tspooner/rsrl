@@ -8,7 +8,8 @@ pub trait Transform<T: ?Sized> {
     /// Return the gradient of the transform for input `x`.
     fn grad(&self, x: T) -> T;
 
-    /// Return the gradient of the transform for input `x` scaled the output error.
+    /// Return the gradient of the transform for input `x` scaled the output
+    /// error.
     fn grad_scaled(&self, x: T, error: Self::Output) -> T;
 }
 
@@ -20,21 +21,21 @@ macro_rules! impl_variants {
             fn transform(&self, x: [f64; 2]) -> [f64; 2] {
                 [
                     Transform::<f64>::transform(self, x[0]),
-                    Transform::<f64>::transform(self, x[1])
+                    Transform::<f64>::transform(self, x[1]),
                 ]
             }
 
             fn grad(&self, x: [f64; 2]) -> [f64; 2] {
                 [
                     Transform::<f64>::grad(self, x[0]),
-                    Transform::<f64>::grad(self, x[1])
+                    Transform::<f64>::grad(self, x[1]),
                 ]
             }
 
             fn grad_scaled(&self, x: [f64; 2], errors: [f64; 2]) -> [f64; 2] {
                 [
                     Transform::<f64>::grad(self, x[0]) * errors[0],
-                    Transform::<f64>::grad(self, x[1]) * errors[1]
+                    Transform::<f64>::grad(self, x[1]) * errors[1],
                 ]
             }
         }
@@ -46,7 +47,7 @@ macro_rules! impl_variants {
                 [
                     Transform::<f64>::transform(self, x[0]),
                     Transform::<f64>::transform(self, x[1]),
-                    Transform::<f64>::transform(self, x[2])
+                    Transform::<f64>::transform(self, x[2]),
                 ]
             }
 
@@ -54,7 +55,7 @@ macro_rules! impl_variants {
                 [
                     Transform::<f64>::grad(self, x[0]),
                     Transform::<f64>::grad(self, x[1]),
-                    Transform::<f64>::grad(self, x[2])
+                    Transform::<f64>::grad(self, x[2]),
                 ]
             }
 
@@ -62,7 +63,7 @@ macro_rules! impl_variants {
                 [
                     Transform::<f64>::grad(self, x[0]) * errors[0],
                     Transform::<f64>::grad(self, x[1]) * errors[1],
-                    Transform::<f64>::grad(self, x[2]) * errors[2]
+                    Transform::<f64>::grad(self, x[2]) * errors[2],
                 ]
             }
         }
@@ -71,11 +72,15 @@ macro_rules! impl_variants {
             type Output = Vec<f64>;
 
             fn transform(&self, x: Vec<f64>) -> Vec<f64> {
-                x.into_iter().map(|v| Transform::<f64>::transform(self, v)).collect()
+                x.into_iter()
+                    .map(|v| Transform::<f64>::transform(self, v))
+                    .collect()
             }
 
             fn grad(&self, x: Vec<f64>) -> Vec<f64> {
-                x.into_iter().map(|v| Transform::<f64>::grad(self, v)).collect()
+                x.into_iter()
+                    .map(|v| Transform::<f64>::grad(self, v))
+                    .collect()
             }
 
             fn grad_scaled(&self, x: Vec<f64>, errors: Vec<f64>) -> Vec<f64> {

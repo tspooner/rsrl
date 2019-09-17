@@ -1,5 +1,5 @@
-use crate::{Shared, make_shared};
 use super::*;
+use crate::{make_shared, Shared};
 use std::marker::PhantomData;
 
 pub struct MockQ {
@@ -9,9 +9,7 @@ pub struct MockQ {
 impl MockQ {
     pub fn new(output: Option<Vec<f64>>) -> Self { MockQ { output: output } }
 
-    pub fn new_shared(output: Option<Vec<f64>>) -> Shared<Self> {
-        make_shared(Self::new(output))
-    }
+    pub fn new_shared(output: Option<Vec<f64>>) -> Shared<Self> { make_shared(Self::new(output)) }
 
     #[allow(dead_code)]
     pub fn set_output(&mut self, output: Vec<f64>) { self.output = Some(output) }

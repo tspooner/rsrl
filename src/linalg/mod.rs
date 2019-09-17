@@ -1,4 +1,4 @@
-use ndarray::{ArrayBase, Array2, DataMut, Ix2};
+use ndarray::{Array2, ArrayBase, DataMut, Ix2};
 
 pub struct Entry {
     pub index: [usize; 2],
@@ -15,13 +15,15 @@ pub trait MatrixLike: Clone + Into<Array2<f64>> {
     fn n_cols(&self) -> usize { self.dim()[1] }
 
     fn map(mut self, f: impl Fn(f64) -> f64) -> Self {
-        self.map_inplace(f); self
+        self.map_inplace(f);
+        self
     }
 
     fn map_inplace(&mut self, f: impl Fn(f64) -> f64);
 
     fn combine(mut self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self {
-        self.combine_inplace(other, f); self
+        self.combine_inplace(other, f);
+        self
     }
 
     fn combine_inplace(&mut self, other: &Self, f: impl Fn(f64, f64) -> f64);

@@ -1,15 +1,17 @@
 //! Agent policy module.
 //!
-//! This module contains [fixed](fixed/index.html) and [parameterised](parameterised/index.html)
-//! policies for reinforcement learning control problems. A policy is considered to be either
-//! deterministic or stochastic, for which we have the following definitions, respectively: 1)
-//! _π(X) -> U_; 2) _π(X, U) -> R_, or equivalently, _π(x) -> Ω(U)_; where _X_ and _U_ are the
-//! state and action spaces, respectively; _R_ is the set of real values; and _Ω(U)_ is the set of
-//! probability measures on the action set _U_. In general, deterministic policies may be
-//! considered a special case of stochastic policies in which all probability mass is placed on a
-//! single action _u'_ for any given state _x_. For continuous policies, this can be seen as a
-//! dirac delta distribution, _δ(u' - u)_.
-use crate::{Algorithm, fa::Parameterised};
+//! This module contains [fixed](fixed/index.html) and
+//! [parameterised](parameterised/index.html) policies for reinforcement
+//! learning control problems. A policy is considered to be either deterministic
+//! or stochastic, for which we have the following definitions, respectively: 1)
+//! _π(X) -> U_; 2) _π(X, U) -> R_, or equivalently, _π(x) -> Ω(U)_; where _X_
+//! and _U_ are the state and action spaces, respectively; _R_ is the set of
+//! real values; and _Ω(U)_ is the set of probability measures on the action set
+//! _U_. In general, deterministic policies may be considered a special case of
+//! stochastic policies in which all probability mass is placed on a
+//! single action _u'_ for any given state _x_. For continuous policies, this
+//! can be seen as a dirac delta distribution, _δ(u' - u)_.
+use crate::{fa::Parameterised, Algorithm};
 use ndarray::{Array2, ArrayView2};
 use rand::{thread_rng, Rng};
 use std::ops::AddAssign;
@@ -78,15 +80,14 @@ pub trait FinitePolicy<S>: Policy<S, Action = usize> {
     fn probabilities(&self, state: &S) -> Vec<f64>;
 }
 
-/// Trait for policies that have a representation that is differentiable wrt its parameters.
+/// Trait for policies that have a representation that is differentiable wrt its
+/// parameters.
 pub trait DifferentiablePolicy<S>: Policy<S> + Parameterised {
     /// Update the weights in the direction of an error for a given state and
     /// action.
     fn update(&mut self, state: &S, a: &Self::Action, error: f64);
 
-    fn update_grad(&mut self, grad: &ArrayView2<f64>) {
-        self.weights_view_mut().add_assign(grad);
-    }
+    fn update_grad(&mut self, grad: &ArrayView2<f64>) { self.weights_view_mut().add_assign(grad); }
 
     fn update_grad_scaled(&mut self, grad: &ArrayView2<f64>, factor: f64) {
         self.weights_view_mut().scaled_add(factor, grad);

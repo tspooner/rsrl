@@ -46,7 +46,9 @@ pub trait StateActionFunction<X: ?Sized, U: ?Sized> {
     fn update(&mut self, state: &X, action: &U, error: Self::Output);
 }
 
-pub trait DifferentiableStateActionFunction<X: ?Sized, U: ?Sized>: StateActionFunction<X, U> + Parameterised {
+pub trait DifferentiableStateActionFunction<X: ?Sized, U: ?Sized>:
+    StateActionFunction<X, U> + Parameterised
+{
     type Gradient: crate::linalg::MatrixLike;
 
     fn grad(&self, state: &X, action: &U) -> Self::Gradient;
@@ -60,7 +62,9 @@ pub trait DifferentiableStateActionFunction<X: ?Sized, U: ?Sized>: StateActionFu
     }
 }
 
-pub trait EnumerableStateActionFunction<X: ?Sized>: StateActionFunction<X, usize, Output = f64> {
+pub trait EnumerableStateActionFunction<X: ?Sized>:
+    StateActionFunction<X, usize, Output = f64>
+{
     fn n_actions(&self) -> usize;
 
     fn evaluate_all(&self, state: &X) -> Vec<f64>;

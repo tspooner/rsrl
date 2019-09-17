@@ -3,16 +3,26 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    make_shared, run, Evaluation, SerialExperiment, Parameter,
     control::td::SARSALambda,
     domains::{Domain, MountainCar, State},
     fa::{
-        Parameterised, DifferentiableStateActionFunction, traces,
-        linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
+        linear::{
+            basis::{Fourier, Projector},
+            optim::SGD,
+            LFA,
+        },
+        traces,
+        DifferentiableStateActionFunction,
+        Parameterised,
     },
     logging,
+    make_shared,
     policies::{EpsilonGreedy, Greedy, Random},
+    run,
     spaces::Space,
+    Evaluation,
+    Parameter,
+    SerialExperiment,
 };
 
 fn main() {

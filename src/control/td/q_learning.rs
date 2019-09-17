@@ -3,8 +3,8 @@ use crate::{
     control::Controller,
     domains::Transition,
     fa::{
+        EnumerableStateActionFunction,
         Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction, EnumerableStateActionFunction,
     },
     policies::{Greedy, Policy, FinitePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},

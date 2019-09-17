@@ -3,13 +3,19 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
-    run, Evaluation, SerialExperiment,
     control::ac::TDAC,
     domains::{ContinuousMountainCar, Domain},
-    fa::linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
+    fa::linear::{
+        basis::{Fourier, Projector},
+        optim::SGD,
+        LFA,
+    },
     logging,
     policies::gaussian::{self, Gaussian},
     prediction::lstd::iLSTD,
+    run,
+    Evaluation,
+    SerialExperiment,
 };
 
 fn main() {

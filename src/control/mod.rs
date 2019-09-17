@@ -11,9 +11,7 @@ pub trait Controller<S, A> {
 }
 
 impl<S, A, T: Controller<S, A>> Controller<S, A> for Shared<T> {
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> A {
-        self.borrow().sample_target(rng, s)
-    }
+    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> A { self.borrow().sample_target(rng, s) }
 
     fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> A {
         self.borrow().sample_behaviour(rng, s)

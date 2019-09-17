@@ -1,6 +1,12 @@
 #![allow(dead_code)]
 use ndarray::Array2;
-use std::{cmp, fmt::Debug, fs::File, io::{Error as IOError, Read}, str::FromStr};
+use std::{
+    cmp,
+    fmt::Debug,
+    fs::File,
+    io::{Error as IOError, Read},
+    str::FromStr,
+};
 
 #[derive(Clone, Copy)]
 pub enum Motion {
@@ -81,27 +87,39 @@ impl<T> GridWorld<T> {
     pub fn move_north(&self, loc: [usize; 2], n: usize) -> [usize; 2] {
         [
             loc[0],
-            cmp::max(0, cmp::min(loc[1].saturating_add(n), self.layout.rows() - 1)),
+            cmp::max(
+                0,
+                cmp::min(loc[1].saturating_add(n), self.layout.rows() - 1),
+            ),
         ]
     }
 
     pub fn move_south(&self, loc: [usize; 2], n: usize) -> [usize; 2] {
         [
             loc[0],
-            cmp::max(0, cmp::min(loc[1].saturating_sub(n), self.layout.rows() - 1)),
+            cmp::max(
+                0,
+                cmp::min(loc[1].saturating_sub(n), self.layout.rows() - 1),
+            ),
         ]
     }
 
     pub fn move_east(&self, loc: [usize; 2], n: usize) -> [usize; 2] {
         [
-            cmp::max(0, cmp::min(loc[0].saturating_add(n), self.layout.cols() - 1)),
+            cmp::max(
+                0,
+                cmp::min(loc[0].saturating_add(n), self.layout.cols() - 1),
+            ),
             loc[1],
         ]
     }
 
     pub fn move_west(&self, loc: [usize; 2], n: usize) -> [usize; 2] {
         [
-            cmp::max(0, cmp::min(loc[0].saturating_sub(n), self.layout.cols() - 1)),
+            cmp::max(
+                0,
+                cmp::min(loc[0].saturating_sub(n), self.layout.cols() - 1),
+            ),
             loc[1],
         ]
     }
@@ -136,18 +154,18 @@ impl<T> GridWorld<T> {
             Motion::East(n) => loc[0] <= self.layout.cols() - 1 - n,
             Motion::West(n) => loc[0] >= n,
 
-            Motion::NorthEast(n) =>
-                self.valid_motion(loc, Motion::North(n)) &&
-                self.valid_motion(loc, Motion::East(n)),
-            Motion::NorthWest(n) =>
-                self.valid_motion(loc, Motion::North(n)) &&
-                self.valid_motion(loc, Motion::West(n)),
-            Motion::SouthEast(n) =>
-                self.valid_motion(loc, Motion::South(n)) &&
-                self.valid_motion(loc, Motion::East(n)),
-            Motion::SouthWest(n) =>
-                self.valid_motion(loc, Motion::South(n)) &&
-                self.valid_motion(loc, Motion::West(n)),
+            Motion::NorthEast(n) => {
+                self.valid_motion(loc, Motion::North(n)) && self.valid_motion(loc, Motion::East(n))
+            },
+            Motion::NorthWest(n) => {
+                self.valid_motion(loc, Motion::North(n)) && self.valid_motion(loc, Motion::West(n))
+            },
+            Motion::SouthEast(n) => {
+                self.valid_motion(loc, Motion::South(n)) && self.valid_motion(loc, Motion::East(n))
+            },
+            Motion::SouthWest(n) => {
+                self.valid_motion(loc, Motion::South(n)) && self.valid_motion(loc, Motion::West(n))
+            },
         }
     }
 }

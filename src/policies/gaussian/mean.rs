@@ -1,7 +1,11 @@
 use crate::{
     fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, DifferentiableStateFunction,
+        DifferentiableStateFunction,
+        Parameterised,
+        StateFunction,
+        Weights,
+        WeightsView,
+        WeightsViewMut,
     },
     utils::pinv,
 };
@@ -23,8 +27,7 @@ pub trait Mean<I, S>: StateFunction<I> + Parameterised {
 pub struct Scalar<F>(pub F);
 
 impl<I, F> StateFunction<I> for Scalar<F>
-where
-    F: StateFunction<I, Output = f64>,
+where F: StateFunction<I, Output = f64>
 {
     type Output = f64;
 
@@ -34,8 +37,7 @@ where
 }
 
 impl<I, F> Mean<I, f64> for Scalar<F>
-where
-    F: DifferentiableStateFunction<I, Output = f64> + Parameterised,
+where F: DifferentiableStateFunction<I, Output = f64> + Parameterised
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
@@ -59,8 +61,7 @@ where
 pub struct Pair<F>(pub F);
 
 impl<I, F> StateFunction<I> for Pair<F>
-where
-    F: StateFunction<I, Output = [f64; 2]>,
+where F: StateFunction<I, Output = [f64; 2]>
 {
     type Output = [f64; 2];
 
@@ -70,8 +71,7 @@ where
 }
 
 impl<I, F> Mean<I, f64> for Pair<F>
-where
-    F: DifferentiableStateFunction<I, Output = [f64; 2]> + Parameterised,
+where F: DifferentiableStateFunction<I, Output = [f64; 2]> + Parameterised
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
@@ -83,8 +83,10 @@ where
         // (N x 2)
         let mut g = self.0.grad(input).into();
 
-        g.column_mut(0).mul_assign((actions[0] - means[0]) / (stddev * stddev));
-        g.column_mut(1).mul_assign((actions[1] - means[1]) / (stddev * stddev));
+        g.column_mut(0)
+            .mul_assign((actions[0] - means[0]) / (stddev * stddev));
+        g.column_mut(1)
+            .mul_assign((actions[1] - means[1]) / (stddev * stddev));
 
         g
     }
@@ -93,16 +95,18 @@ where
         let means = self.evaluate(input);
         let stddev = stddev.max(STDDEV_TOL);
 
-        self.update(input, [
-            (actions[0] - means[0]) / (stddev * stddev) * error,
-            (actions[1] - means[1]) / (stddev * stddev) * error,
-        ]);
+        self.update(
+            input,
+            [
+                (actions[0] - means[0]) / (stddev * stddev) * error,
+                (actions[1] - means[1]) / (stddev * stddev) * error,
+            ],
+        );
     }
 }
 
 impl<I, F> Mean<I, [f64; 2]> for Pair<F>
-where
-    F: DifferentiableStateFunction<I, Output = [f64; 2]> + Parameterised,
+where F: DifferentiableStateFunction<I, Output = [f64; 2]> + Parameterised
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
@@ -114,8 +118,10 @@ where
         // (N x 2)
         let mut g = self.0.grad(input).into();
 
-        g.column_mut(0).mul_assign((actions[0] - means[0]) / (stddev[0] * stddev[0]));
-        g.column_mut(1).mul_assign((actions[1] - means[1]) / (stddev[1] * stddev[1]));
+        g.column_mut(0)
+            .mul_assign((actions[0] - means[0]) / (stddev[0] * stddev[0]));
+        g.column_mut(1)
+            .mul_assign((actions[1] - means[1]) / (stddev[1] * stddev[1]));
 
         g
     }
@@ -124,10 +130,13 @@ where
         let means = self.evaluate(input);
         let stddev = [stddev[0].max(STDDEV_TOL), stddev[1].max(STDDEV_TOL)];
 
-        self.update(input, [
-            (actions[0] - means[0]) / (stddev[0] * stddev[0]) * error,
-            (actions[1] - means[1]) / (stddev[1] * stddev[1]) * error,
-        ]);
+        self.update(
+            input,
+            [
+                (actions[0] - means[0]) / (stddev[0] * stddev[0]) * error,
+                (actions[1] - means[1]) / (stddev[1] * stddev[1]) * error,
+            ],
+        );
     }
 }
 
@@ -136,8 +145,7 @@ where
 pub struct Multi<F>(pub F);
 
 impl<I, F> StateFunction<I> for Multi<F>
-where
-    F: StateFunction<I, Output = Vec<f64>>,
+where F: StateFunction<I, Output = Vec<f64>>
 {
     type Output = Vec<f64>;
 
@@ -147,18 +155,14 @@ where
 }
 
 impl<F> Multi<F> {
-    fn gl_fmv_partial<I>(
-        &self,
-        input: &I,
-        actions: &[f64],
-        sigma: Array2<f64>,
-    ) -> Array2<f64>
-    where
-        F: StateFunction<I, Output = Vec<f64>>,
-    {
+    fn gl_fmv_partial<I>(&self, input: &I, actions: &[f64], sigma: Array2<f64>) -> Array2<f64>
+    where F: StateFunction<I, Output = Vec<f64>> {
         // A x 1
         let a_diff = Array1::from_iter(
-            self.evaluate(input).into_iter().zip(actions.iter()).map(|(m, a)| a - m)
+            self.evaluate(input)
+                .into_iter()
+                .zip(actions.iter())
+                .map(|(m, a)| a - m),
         );
 
         // A x A
@@ -170,8 +174,7 @@ impl<F> Multi<F> {
 }
 
 impl<I, F> Mean<I, f64> for Multi<F>
-where
-    F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised,
+where F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
@@ -196,15 +199,17 @@ where
         let stddev = stddev.max(STDDEV_TOL);
         let var = stddev * stddev;
 
-        let updates = means.into_iter().zip(actions.iter()).map(|(m, a)| (a - m) / var * error);
+        let updates = means
+            .into_iter()
+            .zip(actions.iter())
+            .map(|(m, a)| (a - m) / var * error);
 
         self.update(input, updates.collect());
     }
 }
 
 impl<I, F> Mean<I, Vec<f64>> for Multi<F>
-where
-    F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised,
+where F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 
@@ -248,8 +253,7 @@ where
 }
 
 impl<I, F> Mean<I, Array2<f64>> for Multi<F>
-where
-    F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised,
+where F: DifferentiableStateFunction<I, Output = Vec<f64>> + Parameterised
 {
     fn mean(&self, input: &I) -> Self::Output { self.0.evaluate(input) }
 

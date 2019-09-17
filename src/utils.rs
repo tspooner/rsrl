@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use ndarray::Array2;
-use rand::{seq::SliceRandom, Rng, thread_rng};
+use rand::{seq::SliceRandom, thread_rng, Rng};
 use std::f64;
 
 pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
@@ -178,7 +178,9 @@ where
     T2: std::borrow::Borrow<f64>,
     I2: IntoIterator<Item = T2>,
 {
-    a.into_iter().zip(b.into_iter()).all(move |(x, y)| (x.borrow() - y.borrow()).abs() < tol)
+    a.into_iter()
+        .zip(b.into_iter())
+        .all(move |(x, y)| (x.borrow() - y.borrow()).abs() < tol)
 }
 
 #[cfg(test)]

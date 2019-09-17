@@ -1,8 +1,10 @@
-use crate::{
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, DifferentiableStateFunction,
-    },
+use crate::fa::{
+    DifferentiableStateFunction,
+    Parameterised,
+    StateFunction,
+    Weights,
+    WeightsView,
+    WeightsViewMut,
 };
 use ndarray::Array2;
 use std::ops::MulAssign;
@@ -60,25 +62,19 @@ impl<I, V: Clone, M> StdDev<I, M> for Constant<V> {
 pub struct Scalar<F>(pub F);
 
 impl<I, F> StateFunction<I> for Scalar<F>
-where
-    F: StateFunction<I, Output = f64>,
+where F: StateFunction<I, Output = f64>
 {
     type Output = f64;
 
-    fn evaluate(&self, state: &I) -> Self::Output {
-        (self.0.evaluate(state) + MIN_STDDEV).max(0.0)
-    }
+    fn evaluate(&self, state: &I) -> Self::Output { (self.0.evaluate(state) + MIN_STDDEV).max(0.0) }
 
     fn update(&mut self, state: &I, error: Self::Output) { self.0.update(state, error) }
 }
 
 impl<I, F> StdDev<I, f64> for Scalar<F>
-where
-    F: DifferentiableStateFunction<I, Output = f64> + Parameterised,
+where F: DifferentiableStateFunction<I, Output = f64> + Parameterised
 {
-    fn stddev(&self, input: &I) -> Self::Output {
-        self.evaluate(input)
-    }
+    fn stddev(&self, input: &I) -> Self::Output { self.evaluate(input) }
 
     fn grad_log(&self, input: &I, a: &f64, mean: f64) -> Array2<f64> {
         self.0.grad(input).into() * gl_from_mv(*a, mean, self.evaluate(input))
@@ -96,8 +92,7 @@ where
 pub struct Pair<F>(pub F);
 
 impl<I, F> StateFunction<I> for Pair<F>
-where
-    F: StateFunction<I, Output = [f64; 2]>,
+where F: StateFunction<I, Output = [f64; 2]>
 {
     type Output = [f64; 2];
 
@@ -106,7 +101,7 @@ where
 
         [
             (raw[0] + MIN_STDDEV).max(0.0),
-            (raw[1] + MIN_STDDEV).max(0.0)
+            (raw[1] + MIN_STDDEV).max(0.0),
         ]
     }
 
@@ -114,19 +109,18 @@ where
 }
 
 impl<I, F> StdDev<I, [f64; 2]> for Pair<F>
-where
-    F: DifferentiableStateFunction<I, Output = [f64; 2]> + Parameterised,
+where F: DifferentiableStateFunction<I, Output = [f64; 2]> + Parameterised
 {
-    fn stddev(&self, input: &I) -> Self::Output {
-        self.evaluate(input)
-    }
+    fn stddev(&self, input: &I) -> Self::Output { self.evaluate(input) }
 
     fn grad_log(&self, input: &I, a: &[f64; 2], mean: [f64; 2]) -> Array2<f64> {
         let mut g = self.0.grad(input).into();
         let stddev = self.evaluate(input);
 
-        g.column_mut(0).mul_assign(gl_from_mv(a[0], mean[0], stddev[0]));
-        g.column_mut(0).mul_assign(gl_from_mv(a[1], mean[1], stddev[1]));
+        g.column_mut(0)
+            .mul_assign(gl_from_mv(a[0], mean[0], stddev[0]));
+        g.column_mut(0)
+            .mul_assign(gl_from_mv(a[1], mean[1], stddev[1]));
 
         g
     }

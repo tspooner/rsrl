@@ -192,7 +192,8 @@ pub trait Domain {
     /// Returns true if the current state is terminal.
     fn is_terminal(&self) -> bool;
 
-    /// Compute the reward associated with a transition from one state to another.
+    /// Compute the reward associated with a transition from one state to
+    /// another.
     fn reward(&self, from: &Observation<State<Self>>, to: &Observation<State<Self>>) -> f64;
 
     /// Returns an instance of the state space type class.

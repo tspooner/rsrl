@@ -1,8 +1,8 @@
 use crate::{
-    Algorithm,
     fa::{Parameterised, StateFunction, Weights, WeightsView, WeightsViewMut},
-    spaces::Space,
     policies::{DifferentiablePolicy, Policy},
+    spaces::Space,
+    Algorithm,
 };
 use ndarray::{Array2, ArrayView2, Axis};
 use rand::Rng;
@@ -75,7 +75,8 @@ where
 
     fn mpa(&self, input: &I) -> Self::Action { self.compute_mean(input) }
 
-    fn probability(&self, input: &I, a: &Self::Action) -> f64 where Self::Action: Clone {
+    fn probability(&self, input: &I, a: &Self::Action) -> f64
+    where Self::Action: Clone {
         GB::build(self.compute_mean(input), self.compute_stddev(input)).pdf(a.clone())
     }
 }
@@ -104,7 +105,9 @@ where
             [r, c] if r > 0 => {
                 let grad_mean = grad.slice(s![0..r, 0..c]);
 
-                self.mean.weights_view_mut().scaled_add(self.alpha, &grad_mean);
+                self.mean
+                    .weights_view_mut()
+                    .scaled_add(self.alpha, &grad_mean);
             },
             _ => {},
         }
@@ -113,7 +116,9 @@ where
             [r, c] if r > 0 => {
                 let grad_stddev = grad.slice(s![w_mean[0]..(w_mean[0] + r), 0..c]);
 
-                self.stddev.weights_view_mut().scaled_add(self.alpha, &grad_stddev);
+                self.stddev
+                    .weights_view_mut()
+                    .scaled_add(self.alpha, &grad_stddev);
             },
             _ => {},
         }
@@ -126,7 +131,9 @@ where
             [r, c] if r > 0 => {
                 let grad_mean = grad.slice(s![0..r, 0..c]);
 
-                self.mean.weights_view_mut().scaled_add(self.alpha * factor, &grad_mean);
+                self.mean
+                    .weights_view_mut()
+                    .scaled_add(self.alpha * factor, &grad_mean);
             },
             _ => {},
         }
@@ -135,7 +142,9 @@ where
             [r, c] if r > 0 => {
                 let grad_stddev = grad.slice(s![w_mean[0]..(w_mean[0] + r), 0..c]);
 
-                self.stddev.weights_view_mut().scaled_add(self.alpha * factor, &grad_stddev);
+                self.stddev
+                    .weights_view_mut()
+                    .scaled_add(self.alpha * factor, &grad_stddev);
             },
             _ => {},
         }
@@ -148,7 +157,11 @@ where
         let gl_mean = self.mean.grad_log(input, &a, stddev);
         let gl_stddev = self.stddev.grad_log(input, &a, mean);
 
-        if gl_stddev.len() == 0 { gl_mean } else { stack![Axis(0), gl_mean, gl_stddev] }
+        if gl_stddev.len() == 0 {
+            gl_mean
+        } else {
+            stack![Axis(0), gl_mean, gl_stddev]
+        }
     }
 }
 
@@ -161,7 +174,11 @@ where
         let w_mean = self.mean.weights();
         let w_stddev = self.stddev.weights();
 
-        if w_stddev.len() == 0 { w_mean } else { stack![Axis(0), w_mean, w_stddev] }
+        if w_stddev.len() == 0 {
+            w_mean
+        } else {
+            stack![Axis(0), w_mean, w_stddev]
+        }
     }
 
     fn weights_view(&self) -> WeightsView { unimplemented!() }

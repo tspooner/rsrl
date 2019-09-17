@@ -1,7 +1,8 @@
 //! Reinforcement learning should be _fast_, _safe_ and _easy to use_.
 //!
-//! `rsrl` provides generic constructs for reinforcement learning (RL) experiments in an extensible
-//! framework with efficient implementations of existing methods for rapid prototyping.
+//! `rsrl` provides generic constructs for reinforcement learning (RL)
+//! experiments in an extensible framework with efficient implementations of
+//! existing methods for rapid prototyping.
 #[macro_use]
 extern crate ndarray;
 extern crate ndarray_linalg;
@@ -36,9 +37,9 @@ pub extern crate spaces;
 
 #[macro_use]
 pub mod fa;
-pub mod prediction;
-pub mod policies;
 pub mod control;
+pub mod policies;
+pub mod prediction;
 
 pub trait Algorithm {
     /// Perform housekeeping after terminal state observation.
@@ -46,18 +47,19 @@ pub trait Algorithm {
 }
 
 impl<T: Algorithm> Algorithm for Shared<T> {
-    fn handle_terminal(&mut self) {
-        self.borrow_mut().handle_terminal()
-    }
+    fn handle_terminal(&mut self) { self.borrow_mut().handle_terminal() }
 }
 
 pub trait OnlineLearner<S, A>: Algorithm {
     /// Handle a single transition collected from the problem environment.
     fn handle_transition(&mut self, transition: &domains::Transition<S, A>);
 
-    /// Handle an arbitrary sequence of transitions collected from the problem environment.
+    /// Handle an arbitrary sequence of transitions collected from the problem
+    /// environment.
     fn handle_sequence(&mut self, sequence: &[domains::Transition<S, A>]) {
-        sequence.into_iter().for_each(|ref t| self.handle_transition(t));
+        sequence
+            .into_iter()
+            .for_each(|ref t| self.handle_transition(t));
     }
 }
 

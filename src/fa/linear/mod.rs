@@ -1,4 +1,4 @@
-use crate::fa::{DifferentiableStateFunction, DifferentiableStateActionFunction};
+use crate::fa::{DifferentiableStateActionFunction, DifferentiableStateFunction};
 
 pub use lfa::*;
 
@@ -6,12 +6,15 @@ import_all!(gradient);
 
 pub(crate) fn dot_features(f1: &Features, f2: &Features) -> f64 {
     match (f1, f2) {
-        (Features::Sparse(_, a1), Features::Sparse(_, a2)) =>
-            a1.iter().fold(0.0, |acc, (i, a)| acc + a * a2.get(i).cloned().unwrap_or(0.0)),
-        (Features::Sparse(_, a1), Features::Dense(a2)) =>
-            a1.iter().fold(0.0, |acc, (&i, a)| acc + a * a2.get(i).cloned().unwrap_or(0.0)),
-        (Features::Dense(a1), Features::Sparse(_, a2)) =>
-            a2.iter().fold(0.0, |acc, (&i, a)| acc + a * a1.get(i).cloned().unwrap_or(0.0)),
+        (Features::Sparse(_, a1), Features::Sparse(_, a2)) => a1.iter().fold(0.0, |acc, (i, a)| {
+            acc + a * a2.get(i).cloned().unwrap_or(0.0)
+        }),
+        (Features::Sparse(_, a1), Features::Dense(a2)) => a1.iter().fold(0.0, |acc, (&i, a)| {
+            acc + a * a2.get(i).cloned().unwrap_or(0.0)
+        }),
+        (Features::Dense(a1), Features::Sparse(_, a2)) => a2.iter().fold(0.0, |acc, (&i, a)| {
+            acc + a * a1.get(i).cloned().unwrap_or(0.0)
+        }),
         (Features::Dense(a1), Features::Dense(a2)) => a1.dot(a2),
     }
 }
