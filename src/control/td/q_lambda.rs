@@ -7,7 +7,7 @@ use crate::{
         StateActionFunction, EnumerableStateActionFunction,
         DifferentiableStateActionFunction,
     },
-    policies::{Policy, FinitePolicy},
+    policies::{Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
     traces::Trace,
 };
@@ -61,7 +61,7 @@ impl<F, P, T> QLambda<Shared<F>, P, T> {
 impl<S, F, P, T> OnlineLearner<S, P::Action> for QLambda<F, P, T>
 where
     F: EnumerableStateActionFunction<S> + DifferentiableStateActionFunction<S, usize>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
     T: Trace<F::Gradient>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
@@ -93,7 +93,7 @@ where
 impl<S, F, P, T> Controller<S, P::Action> for QLambda<F, P, T>
 where
     F: EnumerableStateActionFunction<S, Output = f64>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn sample_target(&self, _: &mut impl Rng, s: &S) -> P::Action {
         self.fa_theta.find_max(s).0

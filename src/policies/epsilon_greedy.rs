@@ -1,6 +1,6 @@
 use crate::{
     fa::EnumerableStateActionFunction,
-    policies::{FinitePolicy, Greedy, Policy, Random}
+    policies::{EnumerablePolicy, Greedy, Policy, Random}
 };
 use rand::Rng;
 
@@ -46,7 +46,7 @@ impl<S, Q: EnumerableStateActionFunction<S>> Policy<S> for EpsilonGreedy<Q> {
     fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
 }
 
-impl<S, Q: EnumerableStateActionFunction<S>> FinitePolicy<S> for EpsilonGreedy<Q> {
+impl<S, Q: EnumerableStateActionFunction<S>> EnumerablePolicy<S> for EpsilonGreedy<Q> {
     fn n_actions(&self) -> usize { self.greedy.n_actions() }
 
     fn probabilities(&self, s: &S) -> Vec<f64> {
@@ -65,7 +65,7 @@ mod tests {
         utils::compare_floats,
     };
     use rand::thread_rng;
-    use super::{EpsilonGreedy, FinitePolicy, Policy};
+    use super::{EpsilonGreedy, EnumerablePolicy, Policy};
 
     #[test]
     fn test_sampling() {

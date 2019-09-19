@@ -7,7 +7,7 @@ use crate::{
         StateFunction, StateActionFunction, EnumerableStateActionFunction,
         linear::{LinearStateFunction, LinearStateActionFunction},
     },
-    policies::{Greedy, Policy, FinitePolicy},
+    policies::{Greedy, Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::{thread_rng, Rng};
@@ -61,7 +61,7 @@ impl<S, Q, W, PB> OnlineLearner<S, PB::Action> for GreedyGQ<Q, W, PB>
 where
     Q: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
     W: StateFunction<S, Output = f64> + LinearStateFunction<S>,
-    PB: FinitePolicy<S>,
+    PB: EnumerablePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, PB::Action>) {
         let s = t.from.state();
@@ -118,7 +118,7 @@ where
 impl<S, Q, W, PB> Controller<S, PB::Action> for GreedyGQ<Q, W, PB>
 where
     Q: EnumerableStateActionFunction<S>,
-    PB: FinitePolicy<S>,
+    PB: EnumerablePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
         self.target_policy.sample(rng, s)

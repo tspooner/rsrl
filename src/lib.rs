@@ -36,10 +36,10 @@ pub extern crate spaces;
 
 #[macro_use]
 pub mod fa;
-pub mod traces;
 pub mod control;
 pub mod policies;
 pub mod prediction;
+pub mod traces;
 
 pub trait OnlineLearner<S, A> {
     /// Handle a single transition collected from the problem environment.
@@ -54,9 +54,7 @@ impl<S, A, T: OnlineLearner<S, A>> OnlineLearner<S, A> for Shared<T> {
         self.borrow_mut().handle_transition(transition)
     }
 
-    fn handle_terminal(&mut self) {
-        self.borrow_mut().handle_terminal()
-    }
+    fn handle_terminal(&mut self) { self.borrow_mut().handle_terminal() }
 }
 
 pub trait BatchLearner<S, A> {

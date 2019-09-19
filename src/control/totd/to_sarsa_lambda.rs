@@ -13,7 +13,7 @@ use crate::{
         },
     },
     linalg::MatrixLike,
-    policies::{Policy, FinitePolicy},
+    policies::{Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
     traces::Trace,
 };
@@ -64,7 +64,7 @@ impl<F, P, T> TOSARSALambda<F, P, T> {
 impl<S, F, P, T> OnlineLearner<S, P::Action> for TOSARSALambda<F, P, T>
 where
     F: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
     T: Trace<F::Gradient>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
@@ -133,7 +133,7 @@ impl<S, F, P: Policy<S>, T> Controller<S, P::Action> for TOSARSALambda<F, P, T> 
 impl<S, F, P, T> ValuePredictor<S> for TOSARSALambda<F, P, T>
 where
     F: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
         self.fa_theta.evaluate_all(s).into_iter()

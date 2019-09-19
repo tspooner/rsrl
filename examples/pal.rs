@@ -27,11 +27,7 @@ fn main() {
         let bases = Fourier::from_space(3, domain.state_space()).with_constant();
         let q_func = make_shared(LFA::vector(bases, SGD(1.0), n_actions));
 
-        let policy = EpsilonGreedy::new(
-            Greedy::new(q_func.clone()),
-            Random::new(n_actions),
-            0.2,
-        );
+        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.2);
 
         PAL::new(q_func, policy, 0.001, 1.0)
     };

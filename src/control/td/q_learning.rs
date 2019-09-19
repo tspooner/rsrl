@@ -6,7 +6,7 @@ use crate::{
         EnumerableStateActionFunction,
         Parameterised, Weights, WeightsView, WeightsViewMut,
     },
-    policies::{Greedy, Policy, FinitePolicy},
+    policies::{Greedy, Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::Rng;
@@ -46,7 +46,7 @@ impl<Q, P> QLearning<Shared<Q>, P> {
 impl<S, Q, P> OnlineLearner<S, P::Action> for QLearning<Q, P>
 where
     Q: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
@@ -68,7 +68,7 @@ where
 impl<S, Q, P> Controller<S, P::Action> for QLearning<Q, P>
 where
     Q: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn sample_target(&self, _: &mut impl Rng, s: &S) -> P::Action {
         self.q_func.find_max(s).0

@@ -6,7 +6,7 @@ use crate::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
         StateActionFunction, EnumerableStateActionFunction,
     },
-    policies::{Policy, FinitePolicy},
+    policies::{Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::Rng;
@@ -44,7 +44,7 @@ impl<Q, P> ExpectedSARSA<Q, P> {
 impl<S, Q, P> OnlineLearner<S, P::Action> for ExpectedSARSA<Q, P>
 where
     Q: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
@@ -75,7 +75,7 @@ impl<S, Q, P: Policy<S>> Controller<S, P::Action> for ExpectedSARSA<Q, P> {
 impl<S, Q, P> ValuePredictor<S> for ExpectedSARSA<Q, P>
 where
     Q: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
         self.q_func.evaluate_all(s).into_iter()

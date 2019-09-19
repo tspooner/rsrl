@@ -6,7 +6,7 @@ use crate::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
         EnumerableStateActionFunction,
     },
-    policies::{Greedy, Policy, FinitePolicy},
+    policies::{Greedy, Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::{thread_rng, Rng};
@@ -136,7 +136,7 @@ impl<S, Q, P> OnlineLearner<S, P::Action> for QSigma<S, Q, P>
 where
     S: Clone,
     Q: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
@@ -191,7 +191,7 @@ where
 impl<S, Q, P> Controller<S, P::Action> for QSigma<S, Q, P>
 where
     Q: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
         self.target.sample(rng, s)
@@ -205,7 +205,7 @@ where
 impl<S, Q, P> ValuePredictor<S> for QSigma<S, Q, P>
 where
     Q: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
 }
@@ -213,7 +213,7 @@ where
 impl<S, Q, P> ActionValuePredictor<S, <Greedy<Q> as Policy<S>>::Action> for QSigma<S, Q, P>
 where
     Q: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn predict_qsa(&self, s: &S, a: <Greedy<Q> as Policy<S>>::Action) -> f64 {
         self.q_func.evaluate(s, &a)

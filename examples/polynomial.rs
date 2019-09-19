@@ -33,11 +33,7 @@ fn main() {
         let q_func = make_shared(LFA::vector(bases, SGD(1.0), n_actions));
         let trace = traces::Replacing::zeros(q_func.weights_dim());
 
-        let policy = EpsilonGreedy::new(
-            Greedy::new(q_func.clone()),
-            Random::new(n_actions),
-            0.2,
-        );
+        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.2);
 
         SARSALambda::new(q_func, policy, trace, 0.01, 0.99, 0.1)
     };

@@ -1,6 +1,6 @@
 use crate::core::*;
 use crate::geometry::Space;
-use crate::policies::{FinitePolicy, Policy};
+use crate::policies::{EnumerablePolicy, Policy};
 use rand::{
     distributions::{Distribution, Normal},
     rngs::ThreadRng,
@@ -55,9 +55,9 @@ where
     }
 }
 
-impl<S, P, D> FinitePolicy<S> for PerturbedPolicy<P, D>
+impl<S, P, D> EnumerablePolicy<S> for PerturbedPolicy<P, D>
 where
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
     D: Distribution<P::Action>,
 {
     fn n_actions(&self) -> usize {

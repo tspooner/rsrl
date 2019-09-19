@@ -8,7 +8,7 @@ use crate::{
         EnumerableStateActionFunction,
         DifferentiableStateActionFunction,
     },
-    policies::{Policy, FinitePolicy},
+    policies::{Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
     traces::Trace,
 };
@@ -98,7 +98,7 @@ impl<S, F, P: Policy<S>, T> Controller<S, P::Action> for SARSALambda<F, P, T> {
 impl<S, F, P, T> ValuePredictor<S> for SARSALambda<F, P, T>
 where
     F: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
         self.fa_theta.evaluate_all(s).into_iter()

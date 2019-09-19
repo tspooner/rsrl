@@ -1,4 +1,4 @@
-use crate::policies::{FinitePolicy, Policy};
+use crate::policies::{EnumerablePolicy, Policy};
 use rand::{distributions::{Distribution, Uniform}, Rng};
 
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
@@ -19,7 +19,7 @@ impl<S> Policy<S> for Random {
     fn probability(&self, _: &S, _: &usize) -> f64 { 1.0 / self.0 as f64 }
 }
 
-impl<S> FinitePolicy<S> for Random {
+impl<S> EnumerablePolicy<S> for Random {
     fn n_actions(&self) -> usize { self.0 }
 
     fn probabilities(&self, _: &S) -> Vec<f64> { vec![1.0 / self.0 as f64; self.0].into() }
@@ -29,7 +29,7 @@ impl<S> FinitePolicy<S> for Random {
 mod tests {
     use crate::utils::compare_floats;
     use rand::thread_rng;
-    use super::{FinitePolicy, Policy, Random};
+    use super::{EnumerablePolicy, Policy, Random};
 
     #[test]
     fn test_sampling() {

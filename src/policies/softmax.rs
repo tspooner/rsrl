@@ -6,7 +6,7 @@ use crate::{
     policies::{
         sample_probs_with_rng,
         DifferentiablePolicy,
-        FinitePolicy,
+        EnumerablePolicy,
         Policy
     },
     utils::argmaxima,
@@ -91,7 +91,7 @@ impl<S, F: EnumerableStateActionFunction<S>> Policy<S> for Softmax<F> {
     fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
 }
 
-impl<S, F: EnumerableStateActionFunction<S>> FinitePolicy<S> for Softmax<F> {
+impl<S, F: EnumerableStateActionFunction<S>> EnumerablePolicy<S> for Softmax<F> {
     fn n_actions(&self) -> usize { self.fa.n_actions() }
 
     fn probabilities(&self, s: &S) -> Vec<f64> {

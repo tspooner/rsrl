@@ -28,11 +28,7 @@ fn main() {
         let optimiser = SGD(1.0);
         let q_func = make_shared(LFA::vector(basis, optimiser, n_actions));
 
-        let policy = EpsilonGreedy::new(
-            Greedy::new(q_func.clone()),
-            Random::new(n_actions),
-            0.2,
-        );
+        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.2);
 
         QLearning::new(q_func, policy, 0.01, 1.0)
     };

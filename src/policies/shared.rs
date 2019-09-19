@@ -16,7 +16,7 @@ impl<S, T: Policy<S>> Policy<S> for Shared<T> {
     }
 }
 
-impl<S, T: FinitePolicy<S>> FinitePolicy<S> for Shared<T> {
+impl<S, T: EnumerablePolicy<S>> EnumerablePolicy<S> for Shared<T> {
     fn n_actions(&self) -> usize { self.borrow().n_actions() }
 
     fn probabilities(&self, state: &S) -> Vec<f64> { self.borrow().probabilities(state) }

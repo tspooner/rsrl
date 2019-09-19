@@ -11,7 +11,7 @@ use crate::{
         },
     },
     linalg::MatrixLike,
-    policies::{Greedy, Policy, FinitePolicy},
+    policies::{Greedy, Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
     traces::Trace,
 };
@@ -68,7 +68,7 @@ impl<F, P, T> TOQLambda<Shared<F>, P, T> {
 impl<S, F, P, T> OnlineLearner<S, P::Action> for TOQLambda<F, P, T>
 where
     F: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
     T: Trace<F::Gradient>,
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
@@ -129,7 +129,7 @@ where
 impl<S, F, P, T> Controller<S, P::Action> for TOQLambda<F, P, T>
 where
     F: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
         self.target.sample(rng, s)
@@ -143,7 +143,7 @@ where
 impl<S, F, P, T> ValuePredictor<S> for TOQLambda<F, P, T>
 where
     F: EnumerableStateActionFunction<S, Output = f64>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
 }

@@ -6,7 +6,7 @@ use crate::{
         Parameterised, Weights, WeightsView, WeightsViewMut,
         StateActionFunction, EnumerableStateActionFunction,
     },
-    policies::{Policy, FinitePolicy},
+    policies::{Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
 };
 use rand::{Rng, thread_rng};
@@ -75,7 +75,7 @@ impl<S, Q, P: Policy<S>> Controller<S, P::Action> for SARSA<Q, P> {
 impl<S, Q, P> ValuePredictor<S> for SARSA<Q, P>
 where
     Q: EnumerableStateActionFunction<S>,
-    P: FinitePolicy<S>,
+    P: EnumerablePolicy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
         self.q_func.evaluate_all(s).into_iter()

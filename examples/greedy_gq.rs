@@ -32,11 +32,7 @@ fn main() {
         let q_func = make_shared(LFA::vector(bases, SGD(1.0), n_actions));
 
         // Build a stochastic behaviour policy with exponential epsilon.
-        let policy = EpsilonGreedy::new(
-            Greedy::new(q_func.clone()),
-            Random::new(n_actions),
-            0.2,
-        );
+        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.2);
 
         GreedyGQ::new(q_func, v_func, policy, 0.01, 0.01, 0.99)
     };

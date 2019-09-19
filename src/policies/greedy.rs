@@ -1,6 +1,6 @@
 use crate::{
     fa::EnumerableStateActionFunction,
-    policies::{FinitePolicy, Policy},
+    policies::{EnumerablePolicy, Policy},
     utils::{argmaxima},
 };
 
@@ -24,7 +24,7 @@ impl<S, Q: EnumerableStateActionFunction<S>> Policy<S> for Greedy<Q> {
     fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
 }
 
-impl<S, Q: EnumerableStateActionFunction<S>> FinitePolicy<S> for Greedy<Q> {
+impl<S, Q: EnumerableStateActionFunction<S>> EnumerablePolicy<S> for Greedy<Q> {
     fn n_actions(&self) -> usize { self.0.n_actions() }
 
     fn probabilities(&self, s: &S) -> Vec<f64> {
@@ -46,7 +46,7 @@ impl<S, Q: EnumerableStateActionFunction<S>> FinitePolicy<S> for Greedy<Q> {
 mod tests {
     use crate::{fa::mocking::MockQ, utils::compare_floats};
     use rand::thread_rng;
-    use super::{FinitePolicy, Greedy, Policy};
+    use super::{EnumerablePolicy, Greedy, Policy};
 
     #[test]
     fn test_1d() {

@@ -1,16 +1,15 @@
-//! Agent policy module.
+//! Agent policies module.
 //!
-//! This module contains [fixed](fixed/index.html) and
-//! [parameterised](parameterised/index.html) policies for reinforcement
+//! This module contains fixed and parameterised policies for reinforcement
 //! learning control problems. A policy is considered to be either deterministic
 //! or stochastic, for which we have the following definitions, respectively: 1)
 //! _π(X) -> U_; 2) _π(X, U) -> R_, or equivalently, _π(x) -> Ω(U)_; where _X_
-//! and _U_ are the state and action spaces, respectively; _R_ is the set of
-//! real values; and _Ω(U)_ is the set of probability measures on the action set
-//! _U_. In general, deterministic policies may be considered a special case of
-//! stochastic policies in which all probability mass is placed on a
-//! single action _u'_ for any given state _x_. For continuous policies, this
-//! can be seen as a dirac delta distribution, _δ(u' - u)_.
+//! and _U_ are the state and action spaces, respectively; _R_ is the set
+//! of real values; and _Ω(U)_ is the set of probability measures on the action
+//! set _U_. In general, deterministic policies may be considered a special case
+//! of stochastic policies in which all probability mass is placed on a single
+//! action _u'_ for any given state _x_. For continuous policies, this can be
+//! seen as a dirac delta distribution, _δ(u' - u)_.
 use crate::fa::Parameterised;
 use ndarray::{Array2, ArrayView2};
 use rand::{thread_rng, Rng};
@@ -71,8 +70,8 @@ pub trait Policy<S> {
     fn probability(&self, state: &S, a: &Self::Action) -> f64;
 }
 
-/// Trait for policies that are defined on a finite action space.
-pub trait FinitePolicy<S>: Policy<S, Action = usize> {
+/// Trait for policies that are defined on an enumerable action space.
+pub trait EnumerablePolicy<S>: Policy<S, Action = usize> {
     /// Return the number of actions available to the policy.
     fn n_actions(&self) -> usize;
 
@@ -80,7 +79,7 @@ pub trait FinitePolicy<S>: Policy<S, Action = usize> {
     fn probabilities(&self, state: &S) -> Vec<f64>;
 }
 
-/// Trait for policies that have a representation that is differentiable wrt its
+/// Trait for policies with a representation that is differentiable wrt its
 /// parameters.
 pub trait DifferentiablePolicy<S>: Policy<S> + Parameterised {
     /// Update the weights in the direction of an error for a given state and
