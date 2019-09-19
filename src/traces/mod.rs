@@ -1,4 +1,4 @@
-//! Eligibility trace types
+//! Eligibility trace types.
 use std::ops::{Deref, DerefMut};
 
 pub trait Trace<G: crate::linalg::MatrixLike>: Deref<Target = G> + DerefMut {
