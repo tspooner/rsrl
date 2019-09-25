@@ -1,5 +1,6 @@
-//! Learning benchmark domains module.
+//! A collection of single-agent-learning benchmark domains.
 use crate::spaces::Space;
+use std::iter;
 
 macro_rules! impl_into {
     (Transition < S, $type:ty > => Transition < S,() >) => {
@@ -71,6 +72,14 @@ impl<S> Observation<S> {
             Full(ref state) => Full(f(state)),
             Partial(ref state) => Partial(f(state)),
             Terminal(ref state) => Terminal(f(state)),
+        }
+    }
+
+    pub fn map_into<O>(&self, f: impl Fn(&S) -> O) -> O {
+        use self::Observation::*;
+
+        match self {
+            Full(ref state) | Partial(ref state) | Terminal(ref state) => f(state),
         }
     }
 
@@ -189,12 +198,16 @@ pub trait Domain {
     /// Transition the environment forward a single step given an action, `a`.
     fn step(&mut self, a: Action<Self>) -> Transition<State<Self>, Action<Self>>;
 
-    /// Returns true if the current state is terminal.
-    fn is_terminal(&self) -> bool;
+    fn rollout(mut self, actor: impl Fn(&State<Self>) -> Action<Self>)
+        -> Vec<Transition<State<Self>, Action<Self>>> where Self: Sized
+    {
+        let first = Some(self.step(self.emit().map_into(&actor)));
 
-    /// Compute the reward associated with a transition from one state to
-    /// another.
-    fn reward(&self, from: &Observation<State<Self>>, to: &Observation<State<Self>>) -> f64;
+        iter::successors(first, |t| match t.to {
+            Observation::Terminal(_) => None,
+            Observation::Full(ref s) | Observation::Partial(ref s) => Some(self.step(actor(s))),
+        }).collect()
+    }
 
     /// Returns an instance of the state space type class.
     fn state_space(&self) -> Self::StateSpace;

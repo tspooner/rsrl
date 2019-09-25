@@ -72,12 +72,10 @@ impl Domain for MountainCar {
     type ActionSpace = Ordinal;
 
     fn emit(&self) -> Observation<Vec<f64>> {
-        let s = vec![self.x, self.v];
-
-        if self.is_terminal() {
-            Observation::Terminal(s)
+        if self.x >= X_MAX {
+            Observation::Terminal(vec![self.x, self.v])
         } else {
-            Observation::Full(s)
+            Observation::Full(vec![self.x, self.v])
         }
     }
 
@@ -85,23 +83,14 @@ impl Domain for MountainCar {
         let from = self.emit();
 
         self.update_state(action);
+
         let to = self.emit();
-        let reward = self.reward(&from, &to);
 
         Transition {
             from,
             action,
-            reward,
+            reward: if to.is_terminal() { REWARD_GOAL } else { REWARD_STEP },
             to,
-        }
-    }
-
-    fn is_terminal(&self) -> bool { self.x >= X_MAX }
-
-    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
-        match *to {
-            Observation::Terminal(_) => REWARD_GOAL,
-            _ => REWARD_STEP,
         }
     }
 

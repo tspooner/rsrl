@@ -111,7 +111,10 @@ impl Domain for Acrobat {
     type ActionSpace = Ordinal;
 
     fn emit(&self) -> Observation<Vec<f64>> {
-        if self.is_terminal() {
+        let theta1 = self.0[StateIndex::THETA1];
+        let theta2 = self.0[StateIndex::THETA2];
+
+        if theta1.cos() + (theta1 + theta2).cos() < -1.0 {
             Observation::Terminal(self.0.to_vec())
         } else {
             Observation::Full(self.0.to_vec())
@@ -122,28 +125,14 @@ impl Domain for Acrobat {
         let from = self.emit();
 
         self.update_state(action);
+
         let to = self.emit();
-        let reward = self.reward(&from, &to);
 
         Transition {
             from,
             action,
-            reward,
+            reward: if to.is_terminal() { REWARD_TERMINAL } else { REWARD_STEP },
             to,
-        }
-    }
-
-    fn is_terminal(&self) -> bool {
-        let theta1 = self.0[StateIndex::THETA1];
-        let theta2 = self.0[StateIndex::THETA2];
-
-        theta1.cos() + (theta1 + theta2).cos() < -1.0
-    }
-
-    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
-        match *to {
-            Observation::Terminal(_) => REWARD_TERMINAL,
-            _ => REWARD_STEP,
         }
     }
 

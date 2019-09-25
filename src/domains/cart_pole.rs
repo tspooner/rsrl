@@ -87,7 +87,16 @@ impl Domain for CartPole {
     type ActionSpace = Ordinal;
 
     fn emit(&self) -> Observation<Vec<f64>> {
-        if self.is_terminal() {
+        let x = self.0[StateIndex::X];
+        let theta = self.0[StateIndex::THETA];
+
+        let is_terminal =
+            x <= LIMITS_X[0] ||
+            x >= LIMITS_X[1] ||
+            theta <= LIMITS_THETA[0] ||
+            theta >= LIMITS_THETA[1];
+
+        if is_terminal {
             Observation::Terminal(self.0.to_vec())
         } else {
             Observation::Full(self.0.to_vec())
@@ -98,29 +107,14 @@ impl Domain for CartPole {
         let from = self.emit();
 
         self.update_state(action);
+
         let to = self.emit();
-        let reward = self.reward(&from, &to);
 
         Transition {
             from,
             action,
-            reward,
+            reward: if to.is_terminal() { REWARD_TERMINAL } else { REWARD_STEP },
             to,
-        }
-    }
-
-    fn is_terminal(&self) -> bool {
-        let x = self.0[StateIndex::X];
-        let theta = self.0[StateIndex::THETA];
-
-        x <= LIMITS_X[0] || x >= LIMITS_X[1] ||
-            theta <= LIMITS_THETA[0] || theta >= LIMITS_THETA[1]
-    }
-
-    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
-        match *to {
-            Observation::Terminal(_) => REWARD_TERMINAL,
-            _ => REWARD_STEP,
         }
     }
 

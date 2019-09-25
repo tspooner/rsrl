@@ -81,7 +81,7 @@ impl Domain for OpenAIGym {
     type ActionSpace = Ordinal;
 
     fn emit(&self) -> Observation<Vec<f64>> {
-        if self.is_terminal() {
+        if self.terminal {
             Observation::Terminal(self.state.clone())
         } else {
             Observation::Full(self.state.clone())
@@ -92,6 +92,7 @@ impl Domain for OpenAIGym {
         let from = self.emit();
 
         self.update_state(a);
+
         let to = self.emit();
 
         Transition {
@@ -100,12 +101,6 @@ impl Domain for OpenAIGym {
             reward: self.last_reward,
             to: to,
         }
-    }
-
-    fn is_terminal(&self) -> bool { self.terminal }
-
-    fn reward(&self, _: &Observation<Vec<f64>>, _: &Observation<Vec<f64>>) -> f64 {
-        self.last_reward
     }
 
     fn state_space(&self) -> Self::StateSpace {

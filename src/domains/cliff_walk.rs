@@ -23,10 +23,6 @@ impl CliffWalk {
             loc: [0; 2],
         }
     }
-
-    fn update_state(&mut self, a: usize) {
-        self.loc = self.gw.perform_motion(self.loc, ALL_ACTIONS[a]);
-    }
 }
 
 impl Default for CliffWalk {
@@ -38,7 +34,7 @@ impl Domain for CliffWalk {
     type ActionSpace = Ordinal;
 
     fn emit(&self) -> Observation<[usize; 2]> {
-        if self.is_terminal() {
+        if self.loc[0] > 0 && self.loc[1] == 0 {
             Observation::Terminal(self.loc)
         } else {
             Observation::Full(self.loc)
@@ -48,34 +44,21 @@ impl Domain for CliffWalk {
     fn step(&mut self, action: usize) -> Transition<[usize; 2], usize> {
         let from = self.emit();
 
-        self.update_state(action);
+        self.loc = self.gw.perform_motion(self.loc, ALL_ACTIONS[action]);
+
         let to = self.emit();
-        let reward = self.reward(&from, &to);
 
         Transition {
             from,
             action,
-            reward,
+            reward: match to {
+                Observation::Terminal(s) if s[0] == self.gw.width() - 1 => 50.0,
+                Observation::Terminal(_) => -50.0,
+                _ => 0.0
+            },
             to,
         }
     }
-
-    fn reward(&self, _: &Observation<[usize; 2]>, to: &Observation<[usize; 2]>) -> f64 {
-        match *to {
-            Observation::Terminal(_) => {
-                let x = to.state()[0];
-
-                if x == self.gw.width() - 1 {
-                    50.0
-                } else {
-                    -50.0
-                }
-            },
-            _ => { 0.0 },
-        }
-    }
-
-    fn is_terminal(&self) -> bool { self.loc[0] > 0 && self.loc[1] == 0 }
 
     fn state_space(&self) -> Self::StateSpace {
         TwoSpace::new([

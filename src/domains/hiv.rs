@@ -109,36 +109,27 @@ impl Domain for HIVTreatment {
     fn emit(&self) -> Observation<Vec<f64>> {
         let s = self.state.iter().map(|v| clip!(LIMITS[0], v.log10(), LIMITS[1]));
 
-        if self.is_terminal() {
-            Observation::Terminal(s.collect())
-        } else {
-            Observation::Full(s.collect())
-        }
+        Observation::Full(s.collect())
     }
 
     fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
         let from = self.emit();
 
         self.update_state(action);
+
         let to = self.emit();
-        let reward = self.reward(&from, &to);
 
         Transition {
             from,
             action,
-            reward,
+            reward: to.map_into(|s| {
+                let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps[0].powi(2)
+                    - 2e3 * self.eps[1].powi(2);
+
+                r / 1e5
+            }),
             to,
         }
-    }
-
-    fn is_terminal(&self) -> bool { false }
-
-    fn reward(&self, _: &Observation<Vec<f64>>, to: &Observation<Vec<f64>>) -> f64 {
-        let s = to.state();
-        let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps[0].powi(2)
-            - 2e3 * self.eps[1].powi(2);
-
-        r / 1e5
     }
 
     fn state_space(&self) -> Self::StateSpace {
