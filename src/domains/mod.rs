@@ -223,7 +223,7 @@ mod grid_world;
 
 import_all!(mountain_car);
 import_all!(cart_pole);
-import_all!(acrobat);
+import_all!(acrobot);
 import_all!(hiv);
 import_all!(cliff_walk);
 

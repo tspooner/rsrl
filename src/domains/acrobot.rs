@@ -50,15 +50,15 @@ make_index!(StateIndex [
 /// length of one link above the base.
 ///
 /// See [https://www.math24.net/double-pendulum/](https://www.math24.net/double-pendulum/)
-pub struct Acrobat([f64; 4]);
+pub struct Acrobot([f64; 4]);
 
-impl Acrobat {
-    fn new(theta1: f64, theta2: f64, dtheta1: f64, dtheta2: f64) -> Acrobat {
-        Acrobat([theta1, theta2, dtheta1, dtheta2])
+impl Acrobot {
+    fn new(theta1: f64, theta2: f64, dtheta1: f64, dtheta2: f64) -> Acrobot {
+        Acrobot([theta1, theta2, dtheta1, dtheta2])
     }
 
     fn update_state(&mut self, a: usize) {
-        let fx = |_x, y| Acrobat::grad(ALL_ACTIONS[a], y);
+        let fx = |_x, y| Acrobot::grad(ALL_ACTIONS[a], y);
         let ns = runge_kutta4(&fx, 0.0, self.0.to_vec(), DT);
 
         self.0[StateIndex::THETA1] =
@@ -102,11 +102,11 @@ impl Acrobat {
     }
 }
 
-impl Default for Acrobat {
-    fn default() -> Acrobat { Acrobat::new(0.0, 0.0, 0.0, 0.0) }
+impl Default for Acrobot {
+    fn default() -> Acrobot { Acrobot::new(0.0, 0.0, 0.0, 0.0) }
 }
 
-impl Domain for Acrobat {
+impl Domain for Acrobot {
     type StateSpace = ProductSpace<Interval>;
     type ActionSpace = Ordinal;
 
@@ -154,7 +154,7 @@ mod tests {
 
     #[test]
     fn test_initial_observation() {
-        let m = Acrobat::default();
+        let m = Acrobot::default();
 
         match m.emit() {
             Observation::Full(ref state) => {
@@ -169,6 +169,6 @@ mod tests {
 
     #[test]
     fn test_is_terminal() {
-        assert!(!Acrobat::default().is_terminal());
+        assert!(!Acrobot::default().is_terminal());
     }
 }
