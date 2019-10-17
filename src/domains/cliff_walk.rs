@@ -79,13 +79,13 @@ mod tests {
         let mut cw = CliffWalk::default();
 
         cw.step(2);
-        assert!(!cw.is_terminal());
+        assert!(!cw.emit().is_terminal());
 
         cw.step(3);
-        assert!(!cw.is_terminal());
+        assert!(!cw.emit().is_terminal());
 
         cw.step(1);
-        assert!(cw.is_terminal());
+        assert!(cw.emit().is_terminal());
     }
 
     #[test]
@@ -95,12 +95,12 @@ mod tests {
         cw.step(0);
         cw.step(1);
         cw.step(1);
-        assert!(!cw.is_terminal());
+        assert!(!cw.emit().is_terminal());
 
         let t = cw.step(2);
 
-        assert!(cw.is_terminal());
         assert!(t.terminated());
+        assert!(t.to.is_terminal());
         assert!(t.reward.is_sign_negative());
     }
 
@@ -110,12 +110,12 @@ mod tests {
 
         cw.step(0);
         for _ in 0..11 { cw.step(1); }
-        assert!(!cw.is_terminal());
+        assert!(!cw.emit().is_terminal());
 
         let t = cw.step(2);
 
-        assert!(cw.is_terminal());
         assert!(t.terminated());
+        assert!(t.to.is_terminal());
         assert!(t.reward.is_sign_positive());
     }
 
@@ -125,16 +125,16 @@ mod tests {
 
         for _ in 0..4 { cw.step(0); }
         for _ in 0..11 { cw.step(1); }
-        assert!(!cw.is_terminal());
+        assert!(!cw.emit().is_terminal());
 
         cw.step(2);
-        assert!(!cw.is_terminal());
+        assert!(!cw.emit().is_terminal());
 
         for _ in 0..2 { cw.step(2); }
         let t = cw.step(2);
 
-        assert!(cw.is_terminal());
         assert!(t.terminated());
+        assert!(t.to.is_terminal());
         assert!(t.reward.is_sign_positive());
     }
 }

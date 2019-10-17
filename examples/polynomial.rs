@@ -11,7 +11,6 @@ use rsrl::{
             optim::SGD,
             LFA,
         },
-        traces,
         DifferentiableStateActionFunction,
         Parameterised,
     },
@@ -20,6 +19,7 @@ use rsrl::{
     policies::{EpsilonGreedy, Greedy, Random},
     run,
     spaces::Space,
+    traces,
     Evaluation,
     SerialExperiment,
 };

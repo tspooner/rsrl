@@ -57,6 +57,10 @@ impl Acrobot {
         Acrobot([theta1, theta2, dtheta1, dtheta2])
     }
 
+    fn is_terminal(theta1: f64, theta2: f64) -> bool {
+        theta1.cos() + (theta1 + theta2).cos() < -1.0
+    }
+
     fn update_state(&mut self, a: usize) {
         let fx = |_x, y| Acrobot::grad(ALL_ACTIONS[a], y);
         let ns = runge_kutta4(&fx, 0.0, self.0.to_vec(), DT);
@@ -81,7 +85,7 @@ impl Acrobot {
         buffer[StateIndex::THETA1] = dtheta1;
         buffer[StateIndex::THETA2] = dtheta2;
 
-        let sin_t2 = theta1.sin();
+        let sin_t2 = theta2.sin();
         let cos_t2 = theta2.cos();
 
         let d1 = M1 * LC1 * LC1 + M2 * (L1 * L1 + LC2 * LC2 + 2.0 * L1 * LC2 * cos_t2) + I1 + I2;
@@ -114,7 +118,7 @@ impl Domain for Acrobot {
         let theta1 = self.0[StateIndex::THETA1];
         let theta2 = self.0[StateIndex::THETA2];
 
-        if theta1.cos() + (theta1 + theta2).cos() < -1.0 {
+        if Acrobot::is_terminal(theta1, theta2) {
             Observation::Terminal(self.0.to_vec())
         } else {
             Observation::Full(self.0.to_vec())
@@ -165,10 +169,7 @@ mod tests {
             },
             _ => panic!("Should yield a fully observable state."),
         }
-    }
 
-    #[test]
-    fn test_is_terminal() {
-        assert!(!Acrobot::default().is_terminal());
+        assert!(!m.emit().is_terminal());
     }
 }
