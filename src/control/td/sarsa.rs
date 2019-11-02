@@ -74,13 +74,11 @@ impl<S, Q, P: Policy<S>> Controller<S, P::Action> for SARSA<Q, P> {
 
 impl<S, Q, P> ValuePredictor<S> for SARSA<Q, P>
 where
-    Q: EnumerableStateActionFunction<S>,
-    P: EnumerablePolicy<S>,
+    Q: StateActionFunction<S, P::Action, Output = f64>,
+    P: Policy<S>,
 {
     fn predict_v(&self, s: &S) -> f64 {
-        self.q_func.evaluate_all(s).into_iter()
-            .zip(self.policy.probabilities(s).into_iter())
-            .fold(0.0, |acc, (q, p)| acc + q * p)
+        self.q_func.evaluate(s, &self.sample_behaviour(&mut thread_rng(), s))
     }
 }
 
