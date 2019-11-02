@@ -44,7 +44,7 @@ pub struct HIVTreatment {
 }
 
 impl HIVTreatment {
-    fn new(t1: f64, t1s: f64, t2: f64, t2s: f64, v: f64, e: f64) -> HIVTreatment {
+    pub fn new(t1: f64, t1s: f64, t2: f64, t2s: f64, v: f64, e: f64) -> HIVTreatment {
         HIVTreatment {
             eps: ALL_ACTIONS[0],
             state: [t1, t1s, t2, t2s, v, e],

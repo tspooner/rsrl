@@ -51,7 +51,7 @@ pub struct MountainCar {
 }
 
 impl MountainCar {
-    fn new(x: f64, v: f64) -> MountainCar { MountainCar { x, v } }
+    pub fn new(x: f64, v: f64) -> MountainCar { MountainCar { x, v } }
 
     fn dv(x: f64, a: f64) -> f64 { FORCE_CAR * a + FORCE_G * (HILL_FREQ * x).cos() }
 

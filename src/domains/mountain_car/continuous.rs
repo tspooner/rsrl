@@ -28,7 +28,7 @@ pub struct ContinuousMountainCar {
 }
 
 impl ContinuousMountainCar {
-    fn new(x: f64, v: f64) -> ContinuousMountainCar {
+    pub fn new(x: f64, v: f64) -> ContinuousMountainCar {
         ContinuousMountainCar {
             x, v,
             action_space: Interval::bounded(MIN_ACTION, MAX_ACTION),

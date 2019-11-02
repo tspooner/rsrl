@@ -37,7 +37,7 @@ make_index!(StateIndex [
 pub struct CartPole([f64; 4]);
 
 impl CartPole {
-    fn new(x: f64, dx: f64, theta: f64, dtheta: f64) -> CartPole {
+    pub fn new(x: f64, dx: f64, theta: f64, dtheta: f64) -> CartPole {
         CartPole([x, dx, theta, dtheta])
     }
 

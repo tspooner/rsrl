@@ -53,7 +53,7 @@ make_index!(StateIndex [
 pub struct Acrobot([f64; 4]);
 
 impl Acrobot {
-    fn new(theta1: f64, theta2: f64, dtheta1: f64, dtheta2: f64) -> Acrobot {
+    pub fn new(theta1: f64, theta2: f64, dtheta1: f64, dtheta2: f64) -> Acrobot {
         Acrobot([theta1, theta2, dtheta1, dtheta2])
     }
 
