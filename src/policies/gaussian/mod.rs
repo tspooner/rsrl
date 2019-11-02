@@ -6,7 +6,7 @@ use crate::{
 use ndarray::{Array2, ArrayView2, Axis};
 use rand::Rng;
 use rstat::{ContinuousDistribution, Distribution};
-use std::fmt::Debug;
+use std::{fmt::Debug, ops::AddAssign};
 
 pub mod mean;
 use self::mean::Mean;
@@ -21,8 +21,6 @@ import_all!(dbuilder);
 pub struct Gaussian<M, S> {
     pub mean: M,
     pub stddev: S,
-
-    pub alpha: f64,
 }
 
 impl<M, S> Gaussian<M, S> {
@@ -30,7 +28,6 @@ impl<M, S> Gaussian<M, S> {
         Gaussian {
             mean,
             stddev,
-            alpha: 1.0,
         }
     }
 }
@@ -102,9 +99,7 @@ where
             [r, c] if r > 0 => {
                 let grad_mean = grad.slice(s![0..r, 0..c]);
 
-                self.mean
-                    .weights_view_mut()
-                    .scaled_add(self.alpha, &grad_mean);
+                self.mean.weights_view_mut().add_assign(&grad_mean);
             },
             _ => {},
         }
@@ -113,9 +108,7 @@ where
             [r, c] if r > 0 => {
                 let grad_stddev = grad.slice(s![w_mean[0]..(w_mean[0] + r), 0..c]);
 
-                self.stddev
-                    .weights_view_mut()
-                    .scaled_add(self.alpha, &grad_stddev);
+                self.stddev.weights_view_mut().add_assign(&grad_stddev);
             },
             _ => {},
         }
@@ -130,7 +123,7 @@ where
 
                 self.mean
                     .weights_view_mut()
-                    .scaled_add(self.alpha * factor, &grad_mean);
+                    .scaled_add(factor, &grad_mean);
             },
             _ => {},
         }
@@ -141,7 +134,7 @@ where
 
                 self.stddev
                     .weights_view_mut()
-                    .scaled_add(self.alpha * factor, &grad_stddev);
+                    .scaled_add(factor, &grad_stddev);
             },
             _ => {},
         }
