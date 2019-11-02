@@ -1,0 +1,26 @@
+[package]
+name = "rsrl_domains"
+
+version = "0.1.0"
+authors = ["Tom Spooner <t.spooner@liverpool.ac.uk>"]
+
+license = "MIT"
+readme = "README.md"
+
+keywords = ["machine", "reinforcement", "learning", "rl", "ai"]
+
+repository = "https://github.com/tspooner/rsrl"
+documentation = "https://docs.rs/rsrl_domains"
+
+edition = "2018"
+
+[features]
+default = []
+
+openai = ["cpython"]
+
+[dependencies]
+spaces = "5.0"
+
+cpython = { version = "0.3", optional = true }
+ndarray = { version = "0.12", features = ["blas"] }

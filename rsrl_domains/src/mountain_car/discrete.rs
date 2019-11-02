@@ -1,5 +1,5 @@
 use crate::{
-    domains::{Domain, Observation, Transition},
+    Domain, Observation, Transition,
     spaces::{ProductSpace, real::Interval, discrete::Ordinal},
 };
 
@@ -104,7 +104,7 @@ impl Domain for MountainCar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domains::{Domain, Observation};
+    use crate::{Domain, Observation};
 
     #[test]
     fn test_initial_observation() {

@@ -154,7 +154,7 @@ impl Domain for Acrobot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domains::{Domain, Observation};
+    use crate::{Domain, Observation};
 
     #[test]
     fn test_initial_observation() {

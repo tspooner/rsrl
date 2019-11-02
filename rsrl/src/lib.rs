@@ -22,13 +22,12 @@ extern crate lfa;
 mod macros;
 mod utils;
 
-pub(crate) mod consts;
-
 import_all!(memory);
 import_all!(experiment);
 import_all!(deref_slice);
 
-pub mod domains;
+pub extern crate rsrl_domains as domains;
+
 pub mod logging;
 
 pub mod linalg;

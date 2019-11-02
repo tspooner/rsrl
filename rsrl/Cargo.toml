@@ -1,0 +1,56 @@
+[package]
+name = "rsrl"
+description = "A fast, extensible reinforcement learning framework in Rust"
+
+version = "0.6.0"
+authors = ["Tom Spooner <t.spooner@liverpool.ac.uk>"]
+
+license = "MIT"
+readme = "README.md"
+
+keywords = ["machine", "reinforcement", "learning", "rl", "ai"]
+
+repository = "https://github.com/tspooner/rsrl"
+documentation = "https://docs.rs/rsrl"
+
+edition = "2018"
+
+[badges]
+travis-ci = { repository = "tspooner/rsrl", branch = "master" }
+coveralls = { repository = "tspooner/rsrl", branch = "master", service = "github" }
+
+[features]
+default = []
+
+openai = ["cpython"]
+serialize = ["lfa/serialize", "spaces/serialize", "ndarray/serde-1"]
+
+[dependencies]
+lfa = "0.13"
+rstat = "0.3"
+spaces = "5.0"
+
+rsrl_domains = { path = "../rsrl_domains", version = "0.1" }
+
+rand = "0.7"
+rand_distr = "0.2"
+
+cpython = { version = "0.3", optional = true }
+
+ndarray = { version = "0.12", features = ["blas", "serde-1"] }
+ndarray-linalg = "0.11"
+special-fun = "0.2"
+
+serde = { version = "1.0", features = ["derive"] }
+
+slog = "2.5"
+slog-term = "2.4"
+slog-async = "2.3"
+
+[dev-dependencies]
+quickcheck = "0.9"
+
+serde_test = "1.0"
+
+blas-src = { version = "0.3", default-features = false, features = ["openblas"] }
+openblas-src = { version = "0.6", default-features = false, features = ["cblas", "system"] }

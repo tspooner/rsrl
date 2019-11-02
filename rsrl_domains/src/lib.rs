@@ -1,6 +1,13 @@
-//! A collection of single-agent-learning benchmark domains.
+//! A collection of reinforcement learning benchmark domains.
+#[macro_use]
+extern crate ndarray;
+extern crate spaces;
+
 use crate::spaces::Space;
 use std::iter;
+
+mod macros;
+mod consts;
 
 macro_rules! impl_into {
     (Transition < S, $type:ty > => Transition < S,() >) => {
