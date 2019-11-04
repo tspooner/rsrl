@@ -22,10 +22,3 @@ macro_rules! clip {
         $lb.max($ub.min($x))
     }};
 }
-
-macro_rules! import_all {
-    ($module:ident) => {
-        mod $module;
-        pub use self::$module::*;
-    };
-}

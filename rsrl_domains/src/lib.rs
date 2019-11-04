@@ -2,12 +2,10 @@
 #[macro_use]
 extern crate ndarray;
 extern crate spaces;
+extern crate rand;
 
 use crate::spaces::Space;
 use std::iter;
-
-mod macros;
-mod consts;
 
 macro_rules! impl_into {
     (Transition < S, $type:ty > => Transition < S,() >) => {
@@ -223,16 +221,32 @@ pub trait Domain {
     fn action_space(&self) -> Self::ActionSpace;
 }
 
+mod consts;
+mod macros;
+mod grid_world;
+
 mod ode;
 use self::ode::*;
 
-mod grid_world;
+mod mountain_car;
+pub use self::mountain_car::*;
 
-import_all!(mountain_car);
-import_all!(cart_pole);
-import_all!(acrobot);
-import_all!(hiv);
-import_all!(cliff_walk);
+mod cart_pole;
+pub use self::cart_pole::*;
+
+mod acrobot;
+pub use self::acrobot::*;
+
+mod hiv;
+pub use self::hiv::*;
+
+mod cliff_walk;
+pub use self::cliff_walk::*;
+
+mod roulette;
+pub use self::roulette::*;
 
 #[cfg(feature = "openai")]
-import_all!(openai);
+mod openai;
+#[cfg(feature = "openai")]
+pub use self::openai::*;

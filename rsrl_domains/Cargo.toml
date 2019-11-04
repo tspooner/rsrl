@@ -20,6 +20,7 @@ default = []
 openai = ["cpython"]
 
 [dependencies]
+rand = "0.7"
 spaces = "5.0"
 
 cpython = { version = "0.3", optional = true }
