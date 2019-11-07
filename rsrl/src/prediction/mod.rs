@@ -12,11 +12,11 @@ impl<S, T: ValuePredictor<S>> ValuePredictor<S> for Shared<T> {
 
 pub trait ActionValuePredictor<S, A> {
     /// Compute the estimated value of Q(s, a).
-    fn predict_qsa(&self, s: &S, a: A) -> f64;
+    fn predict_q(&self, s: &S, a: &A) -> f64;
 }
 
 impl<S, A, T: ActionValuePredictor<S, A>> ActionValuePredictor<S, A> for Shared<T> {
-    fn predict_qsa(&self, s: &S, a: A) -> f64 { self.borrow().predict_qsa(s, a) }
+    fn predict_q(&self, s: &S, a: &A) -> f64 { self.borrow().predict_q(s, a) }
 }
 
 pub mod gtd;

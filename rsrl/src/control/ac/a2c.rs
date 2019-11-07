@@ -37,7 +37,7 @@ where
 
         let s = t.from.state();
         let v = self.critic.predict_v(s);
-        let qsa = self.critic.predict_qsa(s, t.action.clone());
+        let qsa = self.critic.predict_q(s, &t.action);
 
         self.policy.update(s, &t.action, self.alpha * (qsa - v));
     }
@@ -61,8 +61,8 @@ where
     C: ActionValuePredictor<S, P::Action>,
     P: Policy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.critic.predict_qsa(s, a)
+    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
+        self.critic.predict_q(s, a)
     }
 }
 

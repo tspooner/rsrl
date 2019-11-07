@@ -35,7 +35,7 @@ impl<C, P> QAC<C, P> {
         P::Action: Clone,
     {
         let s = t.from.state();
-        let qsa = self.critic.predict_qsa(s, t.action.clone());
+        let qsa = self.critic.predict_q(s, &t.action);
 
         self.policy.update(s, &t.action, self.alpha * qsa);
     }
@@ -72,8 +72,8 @@ where
     C: ActionValuePredictor<S, P::Action>,
     P: Policy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.critic.predict_qsa(s, a)
+    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
+        self.critic.predict_q(s, a)
     }
 }
 

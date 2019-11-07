@@ -110,7 +110,7 @@ where
     F: StateActionFunction<S, P::Action, Output = f64>,
     P: Policy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.evaluate(s, &a)
+    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
+        self.fa_theta.evaluate(s, a)
     }
 }

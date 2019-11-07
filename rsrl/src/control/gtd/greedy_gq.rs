@@ -110,8 +110,8 @@ where
     Q: StateActionFunction<S, <Greedy<Q> as Policy<S>>::Action, Output = f64>,
     Greedy<Q>: Policy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: <Greedy<Q> as Policy<S>>::Action) -> f64 {
-        self.fa_q.evaluate(s, &a)
+    fn predict_q(&self, s: &S, a: &<Greedy<Q> as Policy<S>>::Action) -> f64 {
+        self.fa_q.evaluate(s, a)
     }
 }
 

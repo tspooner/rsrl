@@ -90,7 +90,7 @@ where
     Q: EnumerableStateActionFunction<S>,
     P: EnumerablePolicy<S>,
 {
-    fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
+    fn predict_v(&self, s: &S) -> f64 { self.predict_q(s, &self.target.mpa(s)) }
 }
 
 impl<S, Q, P> ActionValuePredictor<S, P::Action> for PAL<Q, P>
@@ -98,7 +98,7 @@ where
     Q: StateActionFunction<S, P::Action, Output = f64>,
     P: Policy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate(s, &a)
+    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
+        self.q_func.evaluate(s, a)
     }
 }

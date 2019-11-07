@@ -48,7 +48,7 @@ where
 {
     fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
         let s = t.from.state();
-        let qsa = self.predict_qsa(s, t.action);
+        let qsa = self.predict_q(s, &t.action);
         let residual = if t.terminated() {
             t.reward - qsa
         } else {
@@ -89,7 +89,7 @@ where
     Q: StateActionFunction<S, P::Action, Output = f64>,
     P: Policy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.q_func.evaluate(s, &a)
+    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
+        self.q_func.evaluate(s, a)
     }
 }

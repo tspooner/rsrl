@@ -41,7 +41,7 @@ where
 
         for t in batch.into_iter().rev() {
             let s = t.from.state();
-            let baseline = self.baseline.predict_qsa(s, t.action.clone());
+            let baseline = self.baseline.predict_q(s, &t.action);
 
             ret = t.reward + self.gamma * ret;
 

@@ -80,8 +80,8 @@ where
     C: ActionValuePredictor<S, PT::Action>,
     PT: Policy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: PT::Action) -> f64 {
-        self.critic.predict_qsa(s, a)
+    fn predict_q(&self, s: &S, a: &PT::Action) -> f64 {
+        self.critic.predict_q(s, a)
     }
 }
 

@@ -145,7 +145,7 @@ where
     F: EnumerableStateActionFunction<S, Output = f64>,
     P: EnumerablePolicy<S>,
 {
-    fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
+    fn predict_v(&self, s: &S) -> f64 { self.predict_q(s, &self.target.mpa(s)) }
 }
 
 impl<S, F, P, T> ActionValuePredictor<S, P::Action> for TOQLambda<F, P, T>
@@ -153,7 +153,7 @@ where
     F: StateActionFunction<S, P::Action, Output = f64>,
     P: Policy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: P::Action) -> f64 {
-        self.fa_theta.evaluate(s, &a)
+    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
+        self.fa_theta.evaluate(s, a)
     }
 }

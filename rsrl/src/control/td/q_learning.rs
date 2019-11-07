@@ -92,7 +92,7 @@ where
     Q: EnumerableStateActionFunction<S, Output = f64>,
     P: Policy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: <Greedy<Q> as Policy<S>>::Action) -> f64 {
-        self.q_func.evaluate(s, &a)
+    fn predict_q(&self, s: &S, a: &<Greedy<Q> as Policy<S>>::Action) -> f64 {
+        self.q_func.evaluate(s, a)
     }
 }

@@ -207,7 +207,7 @@ where
     Q: EnumerableStateActionFunction<S>,
     P: EnumerablePolicy<S>,
 {
-    fn predict_v(&self, s: &S) -> f64 { self.predict_qsa(s, self.target.mpa(s)) }
+    fn predict_v(&self, s: &S) -> f64 { self.predict_q(s, &self.target.mpa(s)) }
 }
 
 impl<S, Q, P> ActionValuePredictor<S, <Greedy<Q> as Policy<S>>::Action> for QSigma<S, Q, P>
@@ -215,7 +215,7 @@ where
     Q: EnumerableStateActionFunction<S>,
     P: EnumerablePolicy<S>,
 {
-    fn predict_qsa(&self, s: &S, a: <Greedy<Q> as Policy<S>>::Action) -> f64 {
-        self.q_func.evaluate(s, &a)
+    fn predict_q(&self, s: &S, a: &<Greedy<Q> as Policy<S>>::Action) -> f64 {
+        self.q_func.evaluate(s, a)
     }
 }
