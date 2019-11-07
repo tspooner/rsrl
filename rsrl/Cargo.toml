@@ -22,7 +22,6 @@ coveralls = { repository = "tspooner/rsrl", branch = "master", service = "github
 [features]
 default = []
 
-openai = ["cpython"]
 serialize = ["lfa/serialize", "spaces/serialize", "ndarray/serde-1"]
 
 [dependencies]
@@ -34,8 +33,6 @@ rsrl_domains = { path = "../rsrl_domains", version = "0.1" }
 
 rand = "0.7"
 rand_distr = "0.2"
-
-cpython = { version = "0.3", optional = true }
 
 ndarray = { version = "0.12", features = ["blas", "serde-1"] }
 ndarray-linalg = "0.11"
