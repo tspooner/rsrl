@@ -34,13 +34,13 @@ extern crate rsrl;
 extern crate slog;
 
 use rsrl::{
+    run, make_shared, Evaluation, SerialExperiment,
     control::td::QLearning,
-    core::{make_shared, run, Evaluation, Parameter, SerialExperiment},
     domains::{Domain, MountainCar},
-    fa::linear::{LFA, basis::{Projector, Fourier}, optim::SGD},
-    geometry::Space,
+    fa::linear::{basis::{Fourier, Projector}, optim::SGD, LFA},
     logging,
     policies::{EpsilonGreedy, Greedy, Random},
+    spaces::Space,
 };
 
 fn main() {
@@ -49,13 +49,12 @@ fn main() {
         let n_actions = domain.action_space().card().into();
 
         let basis = Fourier::from_space(5, domain.state_space()).with_constant();
-        let optimiser = SGD(1.0);
-        let q_func = make_shared(LFA::vector(basis, optimiser, n_actions));
+        let q_func = make_shared(LFA::vector(basis, SGD(1.0), n_actions));
 
         let policy = EpsilonGreedy::new(
             Greedy::new(q_func.clone()),
             Random::new(n_actions),
-            Parameter::exponential(0.5, 0.0, 0.99),
+            0.2
         );
 
         QLearning::new(q_func, policy, 0.01, 1.0)
