@@ -24,4 +24,4 @@ rand = "0.7"
 spaces = "5.0"
 
 cpython = { version = "0.3", optional = true }
-ndarray = { version = "0.12", features = ["blas"] }
+ndarray = { version = "0.12" }
