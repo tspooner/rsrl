@@ -2,7 +2,7 @@
 name = "rsrl"
 description = "A fast, extensible reinforcement learning framework in Rust"
 
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Tom Spooner <t.spooner@liverpool.ac.uk>"]
 
 license = "MIT"
