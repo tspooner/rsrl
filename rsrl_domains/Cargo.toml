@@ -1,5 +1,6 @@
 [package]
 name = "rsrl_domains"
+description = "Toy domains for reinforcement learning research in Rust."
 
 version = "0.1.0"
 authors = ["Tom Spooner <t.spooner@liverpool.ac.uk>"]
