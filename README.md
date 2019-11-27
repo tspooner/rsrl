@@ -15,10 +15,25 @@ experiments in an extensible framework with efficient implementations of
 existing methods for rapid prototyping.
 
 ## Installation
+
 ```toml
 [dependencies]
 rsrl = "0.7"
 ```
+
+Note that `rsrl` enables the `blas` feature of its [`ndarray`] dependency, so
+if you're building a binary, you additionally need to specify a BLAS backend
+compatible with `ndarray`. For example, you can add these dependencies:
+
+[`ndarray`]: https://crates.io/crates/ndarray
+
+```toml
+blas-src = { version = "0.2.0", default-features = false, features = ["openblas"] }
+openblas-src = { version = "0.6.0", default-features = false, features = ["cblas", "system"] }
+```
+
+See `ndarray`'s [README](https://github.com/rust-ndarray/ndarray#how-to-use-with-cargo)
+for more information.
 
 ## Usage
 The code below shows how one could use `rsrl` to evaluate a QLearning agent
