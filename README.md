@@ -40,7 +40,7 @@ The code below shows how one could use `rsrl` to evaluate a QLearning agent
 using a linear function approximator with Fourier basis projection to solve the
 canonical mountain car problem.
 
-> See [examples/](https://github.com/tspooner/rsrl/tree/master/examples) for
+> See [examples/](https://github.com/tspooner/rsrl/tree/master/rsrl/examples) for
 > more...
 
 ```rust
