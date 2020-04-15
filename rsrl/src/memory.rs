@@ -2,7 +2,7 @@ use std::{cell::{RefCell, Ref, RefMut}, fmt, ops::Deref, rc::Rc};
 
 pub fn make_shared<T>(t: T) -> Shared<T> { Shared(Rc::new(RefCell::new(t))) }
 
-pub struct Shared<T>(Rc<RefCell<T>>);
+pub struct Shared<T>(pub Rc<RefCell<T>>);
 
 impl<T> Shared<T> {
     pub fn new(t: T) -> Shared<T> {
