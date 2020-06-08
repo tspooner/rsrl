@@ -45,52 +45,61 @@ canonical mountain car problem.
 
 ```rust
 extern crate rsrl;
-#[macro_use]
-extern crate slog;
 
+use rand::{rngs::StdRng, SeedableRng};
 use rsrl::{
-    run, make_shared, Evaluation, SerialExperiment,
     control::td::QLearning,
     domains::{Domain, MountainCar},
-    fa::linear::{basis::{Fourier, Projector}, optim::SGD, LFA},
-    logging,
-    policies::{EpsilonGreedy, Greedy, Random},
+    fa::linear::{
+        basis::{Combinators, Fourier},
+        optim::SGD,
+        LFA,
+    },
+    make_shared,
+    policies::{EpsilonGreedy, Greedy, Policy, Random},
     spaces::Space,
+    Handler,
 };
 
 fn main() {
-    let domain = MountainCar::default();
-    let mut agent = {
-        let n_actions = domain.action_space().card().into();
+    let env = MountainCar::default();
+    let n_actions = env.action_space().card().into();
 
-        let basis = Fourier::from_space(5, domain.state_space()).with_constant();
-        let q_func = make_shared(LFA::vector(basis, SGD(1.0), n_actions));
+    let mut rng = StdRng::seed_from_u64(0);
+    let (mut ql, policy) = {
+        let basis = Fourier::from_space(5, env.state_space()).with_bias();
+        let q_func = make_shared(LFA::vector(basis, SGD(0.001), n_actions));
+        let policy = Greedy::new(q_func.clone());
 
-        let policy = EpsilonGreedy::new(
-            Greedy::new(q_func.clone()),
-            Random::new(n_actions),
-            0.2
-        );
-
-        QLearning::new(q_func, policy, 0.01, 1.0)
+        (QLearning::new(q_func, 0.9), policy)
     };
 
-    let logger = logging::root(logging::stdout());
-    let domain_builder = Box::new(MountainCar::default);
+    for e in 0..200 {
+        // Episode loop:
+        let mut j = 0;
+        let mut env = MountainCar::default();
+        let mut action = policy.sample(&mut rng, env.emit().state());
 
-    // Training phase:
-    let _training_result = {
-        // Start a serial learning experiment up to 1000 steps per episode.
-        let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
+        for i in 0.. {
+            // Trajectory loop:
+            j = i;
 
-        // Realise 1000 episodes of the experiment generator.
-        run(e, 1000, Some(logger.clone()))
-    };
+            let t = env.transition(action);
 
-    // Testing phase:
-    let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
+            ql.handle(&t).ok();
+            action = policy.sample(&mut rng, t.to.state());
 
-    info!(logger, "solution"; testing_result);
+            if t.terminated() {
+                break;
+            }
+        }
+
+        println!("Batch {}: {} steps...", e + 1, j + 1);
+    }
+
+    let traj = MountainCar::default().rollout(|s| policy.mode(s), Some(500));
+
+    println!("OOS: {} states...", traj.n_states());
 }
 ```
 
