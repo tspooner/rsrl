@@ -1,34 +1,39 @@
-use crate::linalg::MatrixLike;
+use crate::params::BufferMut;
+use ndarray::Dimension;
 use std::ops::{Deref, DerefMut};
 use super::Trace;
 
 #[derive(Clone, Debug)]
-pub struct Replacing<G: MatrixLike>(G);
+pub struct Replacing<B: BufferMut>(B);
 
-impl<G: MatrixLike> Replacing<G> {
-    pub fn new(grad: G) -> Self { Replacing(grad) }
+impl<B: BufferMut> Replacing<B> {
+    pub fn new(buffer: B) -> Self { Replacing(buffer) }
 
-    pub fn zeros(dim: [usize; 2]) -> Self { Replacing::new(G::zeros(dim)) }
-}
-
-impl<G: MatrixLike> Trace<G> for Replacing<G> {
-    fn update(&mut self, grad: &G) {
-        self.0.combine_inplace(grad, |x, y| f64::max(-1.0, f64::min(1.0, x + y)));
-    }
-
-    fn scaled_update(&mut self, factor: f64, grad: &G) {
-        self.0.combine_inplace(grad, |x, y| f64::max(-1.0, f64::min(1.0, factor * x + y)));
+    pub fn zeros(dim: <B::Dim as Dimension>::Pattern) -> Self {
+        Replacing::new(B::zeros(dim))
     }
 }
 
-impl<G: MatrixLike> Deref for Replacing<G> {
-    type Target = G;
+impl<B: BufferMut> Trace for Replacing<B> {
+    type Buffer = B;
 
-    fn deref(&self) -> &G { &self.0 }
+    fn update(&mut self, buffer: &B) {
+        self.0.merge_inplace(buffer, |x, y| f64::max(-1.0, f64::min(1.0, x + y)));
+    }
+
+    fn scaled_update(&mut self, factor: f64, buffer: &B) {
+        self.0.merge_inplace(buffer, |x, y| f64::max(-1.0, f64::min(1.0, factor * x + y)));
+    }
 }
 
-impl<G: MatrixLike> DerefMut for Replacing<G> {
-    fn deref_mut(&mut self) -> &mut G { &mut self.0 }
+impl<B: BufferMut> Deref for Replacing<B> {
+    type Target = B;
+
+    fn deref(&self) -> &B { &self.0 }
+}
+
+impl<B: BufferMut> DerefMut for Replacing<B> {
+    fn deref_mut(&mut self) -> &mut B { &mut self.0 }
 }
 
 #[cfg(test)]

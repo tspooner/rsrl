@@ -1,43 +1,52 @@
-use crate::linalg::MatrixLike;
+use crate::params::{BufferMut, Parameterised};
+use ndarray::Dimension;
 use std::ops::{Deref, DerefMut};
 use super::Trace;
 
 #[derive(Clone, Debug)]
-pub struct Dutch<G: MatrixLike> {
+pub struct Dutch<J: BufferMut> {
     alpha: f64,
-    grad: G,
+    buffer: J,
 }
 
-impl<G: MatrixLike> Dutch<G> {
-    pub fn new(alpha: f64, grad: G) -> Self {
-        Dutch { alpha: alpha.into(), grad }
+impl<J: BufferMut> Dutch<J> {
+    pub fn new(alpha: f64, buffer: J) -> Self {
+        Dutch { alpha: alpha.into(), buffer }
     }
 
-    pub fn zeros(alpha: f64, dim: [usize; 2]) -> Self {
-        Dutch::new(alpha, G::zeros(dim))
+    pub fn zeros(alpha: f64, dim: <J::Dim as Dimension>::Pattern) -> Self {
+        Dutch::new(alpha, J::zeros(dim))
     }
 }
 
-impl<G: MatrixLike> Trace<G> for Dutch<G> {
-    fn update(&mut self, grad: &G) {
+impl<J: BufferMut<Dim = ndarray::Ix2>> Dutch<J> {
+    pub fn for_fa<F: Parameterised>(fa: &F, alpha: f64) -> Self {
+        Self::zeros(alpha, fa.weights_dim())
+    }
+}
+
+impl<J: BufferMut> Trace for Dutch<J> {
+    type Buffer = J;
+
+    fn update(&mut self, buffer: &J) {
         let scale = 1.0 - self.alpha;
 
-        self.grad.combine_inplace(grad, move |x, y| scale * x + y);
+        self.buffer.merge_inplace(buffer, move |x, y| scale * x + y);
     }
 
-    fn scaled_update(&mut self, factor: f64, grad: &G) {
+    fn scaled_update(&mut self, factor: f64, buffer: &J) {
         let scale = factor * (1.0 - self.alpha);
 
-        self.grad.combine_inplace(grad, move |x, y| scale * x + y);
+        self.buffer.merge_inplace(buffer, move |x, y| scale * x + y);
     }
 }
 
-impl<G: MatrixLike> Deref for Dutch<G> {
-    type Target = G;
+impl<J: BufferMut> Deref for Dutch<J> {
+    type Target = J;
 
-    fn deref(&self) -> &G { &self.grad }
+    fn deref(&self) -> &J { &self.buffer }
 }
 
-impl<G: MatrixLike> DerefMut for Dutch<G> {
-    fn deref_mut(&mut self) -> &mut G { &mut self.grad }
+impl<J: BufferMut> DerefMut for Dutch<J> {
+    fn deref_mut(&mut self) -> &mut J { &mut self.buffer }
 }

@@ -1,57 +1,64 @@
 extern crate rsrl;
-#[macro_use]
-extern crate slog;
 
+use rand::{rngs::StdRng, SeedableRng};
 use rsrl::{
     control::td::SARSALambda,
-    domains::{Domain, MountainCar, State},
-    fa::{
-        linear::{
-            basis::{Fourier, Projector},
-            optim::SGD,
-            LFA,
-        },
-        DifferentiableStateActionFunction,
-        Parameterised,
+    domains::{Domain, MountainCar},
+    fa::linear::{
+        basis::{Combinators, Fourier},
+        optim::SGD,
+        LFA,
     },
-    logging,
     make_shared,
-    policies::{EpsilonGreedy, Greedy, Random},
-    run,
+    params::Parameterised,
+    policies::{EpsilonGreedy, Greedy, Policy, Random},
     spaces::Space,
-    traces,
-    Evaluation,
-    SerialExperiment,
+    traces::Replacing,
+    Handler,
 };
 
 fn main() {
-    let domain = MountainCar::default();
+    let env = MountainCar::default();
+
+    let mut rng = StdRng::seed_from_u64(0);
     let mut agent = {
-        let n_actions = domain.action_space().card().into();
+        let n_actions = env.action_space().card().into();
 
-        let bases = Fourier::from_space(3, domain.state_space()).with_constant();
-        let q_func = make_shared(LFA::vector(bases, SGD(1.0), n_actions));
-        let trace = traces::Replacing::zeros(q_func.weights_dim());
+        let basis = Fourier::from_space(5, env.state_space()).with_bias();
+        let q_func = make_shared(LFA::vector(basis, SGD(1.0), n_actions));
 
-        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.2);
+        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.5);
+        let wdim = q_func.weights_dim();
 
-        SARSALambda::new(q_func, policy, trace, 0.001, 0.99, 0.7)
+        SARSALambda::new(q_func, policy, Replacing::zeros(wdim), 0.001, 1.0, 0.9)
     };
 
-    let logger = logging::root(logging::stdout());
-    let domain_builder = Box::new(MountainCar::default);
+    for e in 0..1000 {
+        // Episode loop:
+        let mut j = 0;
+        let mut env = MountainCar::default();
+        let mut action = agent.policy.sample(&mut rng, env.emit().state());
 
-    // Training phase:
-    let _training_result = {
-        // Start a serial learning experiment up to 1000 steps per episode.
-        let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
+        for i in 0.. {
+            // Trajectory loop:
+            j = i;
 
-        // Realise 1000 episodes of the experiment generator.
-        run(e, 1000, Some(logger.clone()))
-    };
+            let t = env.transition(action);
 
-    // Testing phase:
-    let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
+            agent.handle(&t).ok();
+            action = agent.policy.sample(&mut rng, t.to.state());
 
-    info!(logger, "solution"; testing_result);
+            if t.terminated() {
+                break;
+            }
+        }
+
+        agent.policy.epsilon *= 0.995;
+
+        println!("Batch {}: {} steps...", e + 1, j + 1);
+    }
+
+    let traj = MountainCar::default().rollout(|s| agent.policy.mode(s), Some(1000));
+
+    println!("OOS: {} states...", traj.n_states());
 }

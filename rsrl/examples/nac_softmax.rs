@@ -1,60 +1,81 @@
 extern crate rsrl;
-#[macro_use]
-extern crate slog;
 
+use rand::thread_rng;
 use rsrl::{
     control::{ac::NAC, td::SARSA},
-    domains::{Domain, MountainCar},
+    domains::{MountainCar, Domain},
     fa::{
         linear::{
-            basis::{Fourier, Projector},
+            basis::{Combinators, Fourier, SCB},
             optim::SGD,
-            StableCFA,
             LFA,
         },
-        Parameterised,
+        transforms::Softplus,
+        Composition,
     },
-    logging,
     make_shared,
-    policies::Gibbs,
-    run,
-    spaces::Space,
-    Evaluation,
-    SerialExperiment,
+    policies::{Softmax, Policy},
+    Handler, Differentiable,
 };
+use spaces::{Space, BoundedSpace};
 
 fn main() {
     let domain = MountainCar::default();
+
     let n_actions = domain.action_space().card().into();
+    let limits = domain
+        .state_space()
+        .into_iter()
+        .map(|d| (d.inf().unwrap(), d.sup().unwrap()))
+        .collect();
 
-    let basis = Fourier::from_space(3, domain.state_space()).with_constant();
-    let policy = make_shared({
-        let fa = LFA::vector(basis.clone(), SGD(1.0), n_actions);
+    let basis = Fourier::new(3, limits).with_bias();
+    let lfa = LFA::vector(basis.clone(), SGD(1.0), n_actions);
 
-        Gibbs::standard(fa)
-    });
+    let policy = make_shared(Softmax::new(lfa, 1.0));
     let critic = {
-        let q_func = StableCFA::new(policy.clone(), basis, SGD(1.0));
+        let optimiser = SGD(0.01);
 
-        SARSA::new(q_func, policy.clone(), 0.01, 1.0)
+        let basis_c = SCB {
+            policy: policy.clone(),
+            basis,
+        };
+        let cfa = LFA::scalar(basis_c, optimiser);
+
+        SARSA::new(cfa, policy.clone(), 0.999)
     };
 
-    let mut agent = NAC::new(critic, policy, 0.01, 100);
+    let mut rng = thread_rng();
+    let mut agent = NAC::new(critic, policy, 0.01);
 
-    let logger = logging::root(logging::stdout());
-    let domain_builder = Box::new(MountainCar::default);
+    for e in 0..1000 {
+        // Episode loop:
+        let mut env = MountainCar::default();
+        let mut action = agent.policy.sample(&mut rng, env.emit().state());
+        let mut total_reward = 0.0;
 
-    // Training phase:
-    let _training_result = {
-        // Start a serial learning experiment up to 1000 steps per episode.
-        let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
+        for i in 0..1000 {
+            // Trajectory loop:
+            let t = env.transition(action);
 
-        // Realise 1000 episodes of the experiment generator.
-        run(e, 1000, Some(logger.clone()))
-    };
+            agent.critic.handle(&t).ok();
+            action = agent.policy.sample(&mut rng, t.to.state());
+            total_reward += t.reward;
 
-    // Testing phase:
-    let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
+            if i % 100 == 0 {
+                agent.handle(()).ok();
+            }
 
-    info!(logger, "solution"; testing_result);
+            if t.terminated() {
+                break;
+            }
+        }
+
+        println!("Batch {}: {}", e + 1, total_reward);
+    }
+
+    let traj =
+        MountainCar::default().rollout(|s| agent.policy.mode(s), Some(1000));
+
+    println!("OOS: {}...", traj.total_reward());
 }

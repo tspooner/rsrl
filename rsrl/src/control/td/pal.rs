@@ -1,15 +1,11 @@
 use crate::{
-    OnlineLearner, Shared, make_shared,
-    control::Controller,
+    Handler, Function, Enumerable, Parameterised,
     domains::Transition,
-    fa::{
-        Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction, EnumerableStateActionFunction,
-    },
-    policies::{Greedy, Policy, EnumerablePolicy},
+    fa::StateActionUpdate,
     prediction::{ValuePredictor, ActionValuePredictor},
+    utils::argmax_first,
 };
-use rand::{Rng, thread_rng};
+use std::ops::Index;
 
 /// Persistent Advantage Learning
 ///
@@ -17,25 +13,17 @@ use rand::{Rng, thread_rng};
 /// - Bellemare, Marc G., et al. "Increasing the Action Gap: New Operators for
 /// Reinforcement Learning." AAAI. 2016.
 #[derive(Parameterised)]
-pub struct PAL<Q, P> {
+pub struct PAL<Q> {
     #[weights] pub q_func: Q,
-
-    pub policy: P,
-    pub target: Greedy<Q>,
 
     pub alpha: f64,
     pub gamma: f64,
 }
 
-impl<Q, P> PAL<Shared<Q>, P> {
-    pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64) -> Self {
-        let q_func = make_shared(q_func);
-
+impl<Q> PAL<Q> {
+    pub fn new(q_func: Q, alpha: f64, gamma: f64) -> Self {
         PAL {
-            q_func: q_func.clone(),
-
-            policy,
-            target: Greedy::new(q_func),
+            q_func,
 
             alpha,
             gamma,
@@ -43,23 +31,27 @@ impl<Q, P> PAL<Shared<Q>, P> {
     }
 }
 
-impl<S, Q, P> OnlineLearner<S, P::Action> for PAL<Q, P>
+impl<'m, S, Q> Handler<&'m Transition<S, usize>> for PAL<Q>
 where
-    Q: EnumerableStateActionFunction<S>,
-    P: EnumerablePolicy<S>,
+    Q: Enumerable<(&'m S,), Output = Vec<f64>> + Handler<StateActionUpdate<&'m S, usize, f64>>,
+    <Q as Function<(&'m S,)>>::Output: Index<usize, Output = f64> + IntoIterator,
+    <<Q as Function<(&'m S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+    type Response = Q::Response;
+    type Error = Q::Error;
+
+    fn handle(&mut self, t: &'m Transition<S, usize>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
+
         let residual = if t.terminated() {
-            t.reward - self.q_func.evaluate(s, &t.action)
+            t.reward - self.q_func.evaluate_index((s,), t.action)
         } else {
             let ns = t.to.state();
-            let qs = self.q_func.evaluate_all(s);
-            let nqs = self.q_func.evaluate_all(ns);
+            let qs = self.q_func.evaluate((s,));
+            let nqs = self.q_func.evaluate((ns,));
 
-            let mut rng = thread_rng();
-            let a_star = self.sample_target(&mut rng, s);
-            let na_star = self.sample_target(&mut rng, ns);
+            let a_star = argmax_first(qs.iter().copied()).0;
+            let na_star = argmax_first(nqs.iter().copied()).0;
 
             let td_error = t.reward + self.gamma * nqs[a_star] - qs[t.action];
             let al_error = td_error - self.alpha * (qs[a_star] - qs[t.action]);
@@ -67,38 +59,30 @@ where
             al_error.max(td_error - self.alpha * (nqs[na_star] - nqs[t.action]))
         };
 
-        self.q_func.update(s, &t.action, self.alpha * residual);
+        self.q_func.handle(StateActionUpdate {
+            state: s,
+            action: t.action,
+            error: self.alpha * residual,
+        })
     }
 }
 
-impl<S, Q, P> Controller<S, P::Action> for PAL<Q, P>
+impl<S, Q> ValuePredictor<S> for PAL<Q>
 where
-    Q: EnumerableStateActionFunction<S>,
-    P: EnumerablePolicy<S>,
+    Q: Enumerable<(S,), Output = Vec<f64>>,
+    <Q as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator,
+    <<Q as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.target.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
+    fn predict_v(&self, s: S) -> f64 {
+        argmax_first(self.q_func.evaluate((s,))).1
     }
 }
 
-impl<S, Q, P> ValuePredictor<S> for PAL<Q, P>
+impl<S, Q> ActionValuePredictor<S, usize> for PAL<Q>
 where
-    Q: EnumerableStateActionFunction<S>,
-    P: EnumerablePolicy<S>,
+    Q: Function<(S, usize), Output = f64>,
 {
-    fn predict_v(&self, s: &S) -> f64 { self.predict_q(s, &self.target.mpa(s)) }
-}
-
-impl<S, Q, P> ActionValuePredictor<S, P::Action> for PAL<Q, P>
-where
-    Q: StateActionFunction<S, P::Action, Output = f64>,
-    P: Policy<S>,
-{
-    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
-        self.q_func.evaluate(s, a)
+    fn predict_q(&self, s: S, a: usize) -> f64 {
+        self.q_func.evaluate((s, a))
     }
 }

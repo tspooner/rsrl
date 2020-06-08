@@ -1,15 +1,21 @@
 use crate::{
-    OnlineLearner, Shared, make_shared,
-    control::Controller,
+    Handler, Function, Enumerable, Parameterised,
     domains::Transition,
-    fa::{
-        EnumerableStateActionFunction,
-        Parameterised, Weights, WeightsView, WeightsViewMut,
-    },
-    policies::{Greedy, Policy, EnumerablePolicy},
+    fa::StateActionUpdate,
     prediction::{ValuePredictor, ActionValuePredictor},
 };
-use rand::Rng;
+use std::ops::Index;
+
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response<R> {
+    pub q_res: R,
+    pub error: f64,
+}
 
 /// Watkins' Q-learning.
 ///
@@ -18,81 +24,79 @@ use rand::Rng;
 /// Cambridge University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
-#[derive(Parameterised)]
-pub struct QLearning<Q, P> {
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct QLearning<Q> {
     #[weights] pub q_func: Q,
 
-    pub policy: P,
-
-    pub alpha: f64,
     pub gamma: f64,
 }
 
-impl<Q, P> QLearning<Shared<Q>, P> {
-    pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64) -> Self {
-        let q_func = make_shared(q_func);
-
+impl<Q> QLearning<Q> {
+    pub fn new(q_func: Q, gamma: f64) -> Self {
         QLearning {
-            q_func: q_func.clone(),
+            q_func,
 
-            policy,
-
-            alpha,
             gamma,
         }
     }
+
+    pub fn undiscounted(q_func: Q) -> Self {
+        QLearning::new(q_func, 1.0)
+    }
 }
 
-impl<S, Q, P> OnlineLearner<S, P::Action> for QLearning<Q, P>
+impl<'m, S, Q> Handler<&'m Transition<S, usize>> for QLearning<Q>
 where
-    Q: EnumerableStateActionFunction<S>,
-    P: EnumerablePolicy<S>,
+    Q: Enumerable<(&'m S,)> + Handler<StateActionUpdate<&'m S, usize, f64>>,
+    <Q as Function<(&'m S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <<Q as Function<(&'m S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        let s = t.from.state();
-        let qsa = self.q_func.evaluate(s, &t.action);
+    type Response = Response<Q::Response>;
+    type Error = Q::Error;
 
-        let residual = if t.terminated() {
+    fn handle(&mut self, t: &'m Transition<S, usize>) -> Result<Self::Response, Self::Error> {
+        let state = t.from.state();
+        let qsa = self.q_func.evaluate_index((state,), t.action);
+
+        let error = if t.terminated() {
             t.reward - qsa
         } else {
             let ns = t.to.state();
-            let (_, nqsna) = self.q_func.find_max(ns);
+            let (_, nqsna) = self.q_func.find_max((ns,));
 
             t.reward + self.gamma * nqsna - qsa
         };
 
-        self.q_func.update(s, &t.action, self.alpha * residual);
+        self.q_func.handle(StateActionUpdate {
+            state,
+            action: t.action,
+            error,
+        }).map(|q_res| Response {
+            q_res,
+            error,
+        })
     }
 }
 
-impl<S, Q, P> Controller<S, P::Action> for QLearning<Q, P>
+impl<S, Q> ValuePredictor<S> for QLearning<Q>
 where
-    Q: EnumerableStateActionFunction<S>,
-    P: EnumerablePolicy<S>,
+    Q: Enumerable<(S,)>,
+    <Q as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <<Q as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn sample_target(&self, _: &mut impl Rng, s: &S) -> P::Action {
-        self.q_func.find_max(s).0
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
-    }
+    fn predict_v(&self, s: S) -> f64 { self.q_func.find_max((s,)).1 }
 }
 
-impl<S, Q, P> ValuePredictor<S> for QLearning<Q, P>
+impl<S, Q> ActionValuePredictor<S, usize> for QLearning<Q>
 where
-    Q: EnumerableStateActionFunction<S, Output = f64>,
-    P: Policy<S>,
+    Q: Function<(S, usize), Output = f64>,
 {
-    fn predict_v(&self, s: &S) -> f64 { self.q_func.find_max(s).1 }
-}
-
-impl<S, Q, P> ActionValuePredictor<S, <Greedy<Q> as Policy<S>>::Action> for QLearning<Q, P>
-where
-    Q: EnumerableStateActionFunction<S, Output = f64>,
-    P: Policy<S>,
-{
-    fn predict_q(&self, s: &S, a: &<Greedy<Q> as Policy<S>>::Action) -> f64 {
-        self.q_func.evaluate(s, a)
+    fn predict_q(&self, s: S, a: usize) -> f64 {
+        self.q_func.evaluate((s, a))
     }
 }

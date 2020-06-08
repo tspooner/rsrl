@@ -32,10 +32,6 @@ impl<F: Parameterised, T, B> GTDLambdaIS<F, T, B> {
         beta: f64,
         gamma: f64,
     ) -> Self {
-        if fa_theta.weights_dim() != fa_w.weights_dim() {
-            panic!("fa_theta and fa_w must be equivalent function approximators.")
-        }
-
         GTDLambdaIS {
             fa_theta,
             fa_w,

@@ -1,70 +1,40 @@
-use crate::linalg::{MatrixLike, Entry};
 use super::*;
+use ndarray::Ix2;
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 type GradMap = ::std::collections::HashMap<[usize; 2], f64>;
 
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct Sparse {
-    dim: [usize; 2],
+    dim: (usize, usize),
     grads: GradMap,
 }
 
 impl Sparse {
-    pub fn new(dim: [usize; 2], grads: GradMap) -> Sparse {
+    pub fn new(dim: (usize, usize), grads: GradMap) -> Result<Sparse, String> {
         if grads.len() == 0 {
-            panic!("No gradient information passed into Sparse::new().");
+            Err("No gradient information passed into Sparse::new().".to_owned())
         } else {
-            if grads.keys().all(|&[r, c]| r < dim[0] && c < dim[1]) {
-                Sparse {
-                    dim,
-                    grads,
-                }
+            if grads.keys().all(|&[r, c]| r < dim.0 && c < dim.1) {
+                Ok(Sparse { dim, grads })
             } else {
-                panic!("Inconsistent dimensions in Sparse::new().");
+                Err("Inconsistent dimensions in Sparse::new().".to_owned())
             }
         }
     }
 
-    pub unsafe fn new_unchecked(dim: [usize; 2], grads: GradMap) -> Sparse {
-        Sparse { dim, grads }
-    }
+    pub fn new_unchecked(dim: (usize, usize), grads: GradMap) -> Sparse { Sparse { dim, grads } }
 }
 
-impl MatrixLike for Sparse {
-    fn zeros(dim: [usize; 2]) -> Self {
-        unsafe { Self::new_unchecked(dim, GradMap::new()) }
-    }
+impl Buffer for Sparse {
+    type Dim = Ix2;
 
-    fn dim(&self) -> [usize; 2] { self.dim }
-
-    fn map(self, f: impl Fn(f64) -> f64) -> Self {
-        Sparse {
-            dim: self.dim,
-            grads: self.grads.into_iter().map(|(k, pd)| (k, f(pd))).collect(),
-        }
-    }
-
-    fn map_inplace(&mut self, f: impl Fn(f64) -> f64) {
-        self.grads.values_mut().for_each(|pd| *pd = f(*pd));
-    }
-
-    fn combine_inplace(&mut self, other: &Self, f: impl Fn(f64, f64) -> f64) {
-        for (k, x) in self.grads.iter_mut() {
-            *x = f(*x, other.grads.get(k).cloned().unwrap_or(0.0));
-        }
-
-        for (&k, y) in other.grads.iter() {
-            self.grads.entry(k).or_insert_with(|| f(0.0, *y));
-        }
-    }
-
-    fn for_each(&self, mut f: impl FnMut(Entry)) {
-        self.grads.iter().map(|(index, gradient)| Entry {
-            index: *index,
-            gradient: *gradient,
-        }).for_each(|pd| f(pd));
-    }
+    fn dim(&self) -> (usize, usize) { self.dim }
 
     fn addto<D: DataMut<Elem = f64>>(&self, weights: &mut ArrayBase<D, Ix2>) {
         for (&idx, pd) in self.grads.iter() {
@@ -81,18 +51,54 @@ impl MatrixLike for Sparse {
             }
         }
     }
-}
 
-impl Into<Array2<f64>> for Sparse {
-    fn into(self) -> Array2<f64> {
-        let mut g_matrix = Array2::zeros((self.dim[0], self.dim[1]));
+    fn to_dense(&self) -> Array2<f64> {
+        let mut g_matrix = Array2::zeros(self.dim);
 
-        for ([r, c], g) in self.grads.into_iter() {
+        for (&[r, c], &g) in self.grads.iter() {
             g_matrix[(r, c)] = g;
         }
 
         g_matrix
     }
+}
+
+impl BufferMut for Sparse {
+    fn zeros(dim: (usize, usize)) -> Self { Self::new_unchecked(dim, GradMap::new()) }
+
+    fn map(&self, f: impl Fn(f64) -> f64) -> Self { unimplemented!() }
+
+    fn map_into(self, f: impl Fn(f64) -> f64) -> Self {
+        Sparse {
+            dim: self.dim,
+            grads: self.grads.into_iter().map(|(k, pd)| (k, f(pd))).collect(),
+        }
+    }
+
+    fn map_inplace(&mut self, f: impl Fn(f64) -> f64) {
+        self.grads.values_mut().for_each(|pd| *pd = f(*pd));
+    }
+
+    fn merge(&self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self { unimplemented!() }
+
+    fn merge_into(mut self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self {
+        self.merge_inplace(other, f);
+        self
+    }
+
+    fn merge_inplace(&mut self, other: &Self, f: impl Fn(f64, f64) -> f64) {
+        for (k, x) in self.grads.iter_mut() {
+            *x = f(*x, other.grads.get(k).copied().unwrap_or(0.0));
+        }
+
+        for (&k, y) in other.grads.iter() {
+            self.grads.entry(k).or_insert_with(|| f(0.0, *y));
+        }
+    }
+}
+
+impl Into<Array2<f64>> for Sparse {
+    fn into(self) -> Array2<f64> { self.to_dense() }
 }
 
 impl Add<Sparse> for Sparse {

@@ -1,34 +1,44 @@
-use crate::linalg::MatrixLike;
+use crate::params::{Buffer, BufferMut};
+use ndarray::Dimension;
 use std::ops::{Deref, DerefMut};
 use super::Trace;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Accumulating<G: MatrixLike>(G);
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Accumulating<B: Buffer>(B);
 
-impl<G: MatrixLike> Accumulating<G> {
-    pub fn new(grad: G) -> Self { Accumulating(grad) }
+impl<B: BufferMut> Accumulating<B> {
+    pub fn new(buffer: B) -> Self { Accumulating(buffer) }
 
-    pub fn zeros(dim: [usize; 2]) -> Self { Accumulating::new(G::zeros(dim)) }
-}
-
-impl<G: MatrixLike> Trace<G> for Accumulating<G> {
-    fn update(&mut self, grad: &G) {
-        self.0.combine_inplace(grad, |x, y| x + y);
-    }
-
-    fn scaled_update(&mut self, factor: f64, grad: &G) {
-        self.0.combine_inplace(grad, |x, y| factor * x + y);
+    pub fn zeros(dim: <B::Dim as Dimension>::Pattern) -> Self {
+        Accumulating::new(B::zeros(dim))
     }
 }
 
-impl<G: MatrixLike> Deref for Accumulating<G> {
-    type Target = G;
+impl<B: BufferMut> Trace for Accumulating<B> {
+    type Buffer = B;
 
-    fn deref(&self) -> &G { &self.0 }
+    fn update(&mut self, buffer: &B) {
+        self.0.merge_inplace(buffer, |x, y| x + y);
+    }
+
+    fn scaled_update(&mut self, alpha: f64, buffer: &B) {
+        self.0.merge_inplace(buffer, |x, y| alpha * x + y);
+    }
 }
 
-impl<G: MatrixLike> DerefMut for Accumulating<G> {
-    fn deref_mut(&mut self) -> &mut G { &mut self.0 }
+impl<B: Buffer> Deref for Accumulating<B> {
+    type Target = B;
+
+    fn deref(&self) -> &B { &self.0 }
+}
+
+impl<B: Buffer> DerefMut for Accumulating<B> {
+    fn deref_mut(&mut self) -> &mut B { &mut self.0 }
 }
 
 #[cfg(test)]

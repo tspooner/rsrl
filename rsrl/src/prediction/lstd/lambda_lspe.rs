@@ -1,11 +1,7 @@
 use crate::{
-    BatchLearner,
-    domains::Transition,
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction,
-        linear::LinearStateFunction,
-    },
+    Handler, Parameterised,
+    domains::Batch,
+    fa::linear::{Features, basis::Basis},
     prediction::ValuePredictor,
     utils::pinv,
 };
@@ -13,9 +9,10 @@ use ndarray::{Array1, Array2, Axis};
 use ndarray_linalg::Solve;
 use std::ops::MulAssign;
 
-#[derive(Parameterised)]
-pub struct LambdaLSPE<F> {
-    #[weights] pub fa_theta: F,
+#[derive(Debug, Parameterised)]
+pub struct LambdaLSPE<B> {
+    pub basis: B,
+    #[weights] pub theta: Array1<f64>,
 
     pub alpha: f64,
     pub gamma: f64,
@@ -26,34 +23,35 @@ pub struct LambdaLSPE<F> {
     delta: f64,
 }
 
-impl<F: Parameterised> LambdaLSPE<F> {
-    pub fn new(fa_theta: F, alpha: f64, gamma: f64, lambda: f64) -> Self {
-        let dim = fa_theta.weights_dim();
+impl<B: spaces::Space> LambdaLSPE<B> {
+    pub fn new(basis: B, alpha: f64, gamma: f64, lambda: f64) -> Self {
+        let n_features: usize = basis.dim().into();
 
         LambdaLSPE {
-            fa_theta,
+            basis,
+            theta: Array1::zeros(n_features),
 
             alpha,
             gamma,
             lambda,
 
-            a: Array2::eye(dim[0]) * 1e-6,
-            b: Array1::zeros(dim[0]),
+            a: Array2::eye(n_features) * 1e-6,
+            b: Array1::zeros(n_features),
             delta: 0.0,
         }
     }
 }
 
-impl<F: Parameterised> LambdaLSPE<F> {
+impl<B> LambdaLSPE<B> {
     fn solve(&mut self) {
         // First try the clean approach otherwise solve via SVD:
-        if let Ok(theta) = self.a.solve(&self.b).or_else(|_| {
+        let theta = self.a.solve(&self.b).or_else(|_| {
             pinv(&self.a).map(|ainv| ainv.dot(&self.b))
-        }) {
-            let mut w = self.fa_theta.weights_view_mut();
+        });
 
-            w.mul_assign(1.0 - self.alpha);
-            w.scaled_add(self.alpha, &theta);
+        if let Ok(theta) = theta {
+            self.theta.mul_assign(1.0 - self.alpha);
+            self.theta.scaled_add(self.alpha, &theta);
 
             self.a.fill(0.0);
             self.b.fill(0.0);
@@ -62,19 +60,22 @@ impl<F: Parameterised> LambdaLSPE<F> {
     }
 }
 
-impl<S, A, F> BatchLearner<S, A> for LambdaLSPE<F>
+impl<'m, S, A, B> Handler<&'m Batch<S, A>> for LambdaLSPE<B>
 where
-    F: LinearStateFunction<S, Output = f64>,
+    B: Basis<&'m S, Value = Features>,
 {
-    fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
-        batch.into_iter().rev().for_each(|ref t| {
+    type Response = ();
+    type Error = crate::fa::linear::Error;
+
+    fn handle(&mut self, batch: &'m Batch<S, A>) -> Result<(), Self::Error> {
+        for t in batch.iter().rev() {
             let (s, ns) = t.states();
-            let phi_s = self.fa_theta.features(s);
+            let phi_s = self.basis.project(s)?;
 
             self.delta *= self.gamma * self.lambda;
 
             if t.terminated() {
-                let phi_s = phi_s.expanded();
+                let phi_s = phi_s.into_dense();
 
                 self.b.scaled_add(self.delta + t.reward, &phi_s);
                 self.a +=
@@ -82,10 +83,10 @@ where
                     .dot(&(phi_s.view().insert_axis(Axis(0))));
                 self.delta = 0.0;
             } else {
-                let theta_s = self.fa_theta.evaluate_features(&phi_s);
-                let phi_s = phi_s.expanded();
+                let theta_s = phi_s.dot(&self.theta);
+                let theta_ns = self.basis.project(ns)?.dot(&self.theta);
 
-                let theta_ns = self.fa_theta.evaluate(ns);
+                let phi_s = phi_s.into_dense();
                 let residual = t.reward + self.gamma * theta_ns - theta_s;
 
                 self.delta += residual;
@@ -94,17 +95,16 @@ where
                     &phi_s.view().insert_axis(Axis(1))
                     .dot(&(phi_s.view().insert_axis(Axis(0))));
             };
-        });
+        }
 
         self.solve();
+
+        Ok(())
     }
 }
 
-impl<S, F> ValuePredictor<S> for LambdaLSPE<F>
-where
-    F: StateFunction<S, Output = f64>
-{
-    fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s)
+impl<S, B: Basis<S, Value = Features>> ValuePredictor<S> for LambdaLSPE<B> {
+    fn predict_v(&self, s: S) -> f64 {
+        self.basis.project(s).unwrap().dot(&self.theta)
     }
 }

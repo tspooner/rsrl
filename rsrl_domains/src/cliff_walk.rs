@@ -1,6 +1,11 @@
-use crate::spaces::{TwoSpace, discrete::Ordinal};
+use super::{
+    grid_world::{GridWorld, Motion},
+    Domain,
+    Observation,
+    Reward,
+};
+use crate::spaces::{discrete::Ordinal, TwoSpace};
 use ndarray::Array2;
-use super::{Domain, Observation, Transition, grid_world::{GridWorld, Motion}};
 
 const ALL_ACTIONS: [Motion; 4] = [
     Motion::North(1),
@@ -41,23 +46,19 @@ impl Domain for CliffWalk {
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<[usize; 2], usize> {
-        let from = self.emit();
-
-        self.loc = self.gw.perform_motion(self.loc, ALL_ACTIONS[action]);
+    fn step(&mut self, action: &usize) -> (Observation<[usize; 2]>, Reward) {
+        self.loc = self.gw.perform_motion(self.loc, ALL_ACTIONS[*action]);
 
         let to = self.emit();
 
-        Transition {
-            from,
-            action,
-            reward: match to {
+        (
+            to,
+            match to {
                 Observation::Terminal(s) if s[0] == self.gw.width() - 1 => 50.0,
                 Observation::Terminal(_) => -50.0,
-                _ => 0.0
+                _ => 0.0,
             },
-            to,
-        }
+        )
     }
 
     fn state_space(&self) -> Self::StateSpace {
@@ -78,13 +79,13 @@ mod tests {
     fn test_cliff_direct() {
         let mut cw = CliffWalk::default();
 
-        cw.step(2);
+        cw.step(&2);
         assert!(!cw.emit().is_terminal());
 
-        cw.step(3);
+        cw.step(&3);
         assert!(!cw.emit().is_terminal());
 
-        cw.step(1);
+        cw.step(&1);
         assert!(cw.emit().is_terminal());
     }
 
@@ -92,49 +93,54 @@ mod tests {
     fn test_cliff_indirect() {
         let mut cw = CliffWalk::default();
 
-        cw.step(0);
-        cw.step(1);
-        cw.step(1);
+        cw.step(&0);
+        cw.step(&1);
+        cw.step(&1);
         assert!(!cw.emit().is_terminal());
 
-        let t = cw.step(2);
+        let (ns, r) = cw.step(&2);
 
-        assert!(t.terminated());
-        assert!(t.to.is_terminal());
-        assert!(t.reward.is_sign_negative());
+        assert!(ns.is_terminal());
+        assert!(r.is_sign_negative());
     }
 
     #[test]
     fn test_optimal() {
         let mut cw = CliffWalk::default();
 
-        cw.step(0);
-        for _ in 0..11 { cw.step(1); }
+        cw.step(&0);
+        for _ in 0..11 {
+            cw.step(&1);
+        }
         assert!(!cw.emit().is_terminal());
 
-        let t = cw.step(2);
+        let (ns, r) = cw.step(&2);
 
-        assert!(t.terminated());
-        assert!(t.to.is_terminal());
-        assert!(t.reward.is_sign_positive());
+        assert!(ns.is_terminal());
+        assert!(r.is_sign_positive());
     }
 
     #[test]
     fn test_safe() {
         let mut cw = CliffWalk::default();
 
-        for _ in 0..4 { cw.step(0); }
-        for _ in 0..11 { cw.step(1); }
+        for _ in 0..4 {
+            cw.step(&0);
+        }
+        for _ in 0..11 {
+            cw.step(&1);
+        }
         assert!(!cw.emit().is_terminal());
 
-        cw.step(2);
+        cw.step(&2);
         assert!(!cw.emit().is_terminal());
 
-        for _ in 0..2 { cw.step(2); }
-        let t = cw.step(2);
+        for _ in 0..2 {
+            cw.step(&2);
+        }
+        let (ns, r) = cw.step(&2);
 
-        assert!(t.terminated());
-        assert!(t.to.is_terminal());
-        assert!(t.reward.is_sign_positive());
+        assert!(ns.is_terminal());
+        assert!(r.is_sign_positive());
     }
 }

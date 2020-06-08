@@ -1,6 +1,4 @@
-use super::*;
-use crate::{make_shared, Shared};
-use std::marker::PhantomData;
+use crate::{core::*, make_shared, params::*, Shared};
 
 pub struct MockQ {
     output: Option<Vec<f64>>,
@@ -24,33 +22,44 @@ impl Parameterised for MockQ {
     fn weights_view_mut(&mut self) -> WeightsViewMut { unimplemented!() }
 }
 
-impl StateActionFunction<Vec<f64>, usize> for MockQ {
-    type Output = f64;
+impl<S: std::borrow::Borrow<Vec<f64>>> Function<(S,)> for MockQ {
+    type Output = Vec<f64>;
 
-    fn evaluate(&self, x: &Vec<f64>, action: &usize) -> f64 {
-        match self.output {
-            Some(ref out) => out[*action].clone(),
-            None => x[*action].clone(),
-        }
-    }
-
-    fn update(&mut self, _: &Vec<f64>, _: &usize, _: f64) {}
-}
-
-impl EnumerableStateActionFunction<Vec<f64>> for MockQ {
-    fn n_actions(&self) -> usize {
-        match self.output {
-            Some(ref out) => out.len(),
-            None => unimplemented!(),
-        }
-    }
-
-    fn evaluate_all(&self, x: &Vec<f64>) -> Vec<f64> {
+    fn evaluate(&self, (x,): (S,)) -> Vec<f64> {
         match self.output {
             Some(ref out) => out.clone(),
-            None => x.clone(),
+            None => x.borrow().clone(),
         }
     }
+}
 
-    fn update_all(&mut self, _: &Vec<f64>, _: Vec<f64>) {}
+impl<S, A> Function<(S, A)> for MockQ
+where
+    S: std::borrow::Borrow<Vec<f64>>,
+    A: std::borrow::Borrow<usize>,
+{
+    type Output = f64;
+
+    fn evaluate(&self, (x, action): (S, A)) -> f64 {
+        match self.output {
+            Some(ref out) => out[*action.borrow()].clone(),
+            None => x.borrow()[*action.borrow()].clone(),
+        }
+    }
+}
+
+impl<S: std::borrow::Borrow<Vec<f64>>> Enumerable<(S,)> for MockQ {
+    // fn n_outputs(&self) -> usize {
+    // match self.output {
+    // Some(ref out) => out.len(),
+    // None => unimplemented!(),
+    // }
+    // }
+
+    fn evaluate_index(&self, (x,): (S,), index: usize) -> f64 {
+        match self.output {
+            Some(ref out) => out[index],
+            None => x.borrow()[index],
+        }
+    }
 }

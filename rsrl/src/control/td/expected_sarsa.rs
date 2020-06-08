@@ -1,15 +1,11 @@
 use crate::{
-    OnlineLearner,
-    control::Controller,
+    Handler, Function, Enumerable, Parameterised,
     domains::Transition,
-    fa::{
-        Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction, EnumerableStateActionFunction,
-    },
+    fa::StateActionUpdate,
     policies::{Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
 };
-use rand::Rng;
+use std::ops::Index;
 
 /// Action probability-weighted variant of SARSA (aka "summation Q-learning").
 ///
@@ -41,14 +37,23 @@ impl<Q, P> ExpectedSARSA<Q, P> {
     }
 }
 
-impl<S, Q, P> OnlineLearner<S, P::Action> for ExpectedSARSA<Q, P>
+impl<'m, S, Q, P> Handler<&'m Transition<S, usize>> for ExpectedSARSA<Q, P>
 where
-    Q: EnumerableStateActionFunction<S>,
-    P: EnumerablePolicy<S>,
+    Q: Enumerable<(&'m S,)> + Handler<StateActionUpdate<&'m S, usize, f64>>,
+    P: EnumerablePolicy<&'m S>,
+
+    <Q as Function<(&'m S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <<Q as Function<(&'m S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
+
+    <P as Function<(&'m S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <<P as Function<(&'m S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+    type Response = Q::Response;
+    type Error = Q::Error;
+
+    fn handle(&mut self, t: &'m Transition<S, usize>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
-        let qsa = self.predict_q(s, &t.action);
+        let qsa = self.q_func.evaluate_index((s,), t.action);
         let residual = if t.terminated() {
             t.reward - qsa
         } else {
@@ -58,38 +63,40 @@ where
             t.reward + self.gamma * exp_nv - qsa
         };
 
-        self.q_func.update(s, &t.action, self.alpha * residual);
-    }
-}
-
-impl<S, Q, P: Policy<S>> Controller<S, P::Action> for ExpectedSARSA<Q, P> {
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
+        self.q_func.handle(StateActionUpdate {
+            state: s,
+            action: t.action,
+            error: self.alpha * residual,
+        })
     }
 }
 
 impl<S, Q, P> ValuePredictor<S> for ExpectedSARSA<Q, P>
 where
-    Q: EnumerableStateActionFunction<S>,
+    S: Clone,
+
+    Q: Enumerable<(S,)>,
     P: EnumerablePolicy<S>,
+
+    <Q as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <<Q as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
+
+    <P as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <<P as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn predict_v(&self, s: &S) -> f64 {
-        self.q_func.evaluate_all(s).into_iter()
-            .zip(self.policy.probabilities(s).into_iter())
-            .fold(0.0, |acc, (q, p)| acc + q * p)
+    fn predict_v(&self, s: S) -> f64 {
+        self.q_func.evaluate((s.clone(),)).into_iter()
+                .zip(self.policy.evaluate((s,)).into_iter())
+                .fold(0.0, |acc, (q, p)| acc + q * p)
     }
 }
 
 impl<S, Q, P> ActionValuePredictor<S, P::Action> for ExpectedSARSA<Q, P>
 where
-    Q: StateActionFunction<S, P::Action, Output = f64>,
+    Q: Function<(S, P::Action), Output = f64>,
     P: Policy<S>,
 {
-    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
-        self.q_func.evaluate(s, a)
+    fn predict_q(&self, s: S, a: P::Action) -> f64 {
+        self.q_func.evaluate((s, a))
     }
 }

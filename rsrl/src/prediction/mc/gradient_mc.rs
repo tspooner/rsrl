@@ -1,52 +1,57 @@
 use crate::{
-    BatchLearner,
-    domains::Transition,
-    fa::{Weights, WeightsView, WeightsViewMut, Parameterised, StateFunction},
+    Handler, Function, Parameterised,
+    domains::Trajectory,
+    fa::StateUpdate,
     prediction::ValuePredictor,
 };
 
-#[derive(Parameterised)]
+#[derive(Debug, Parameterised)]
 pub struct GradientMC<V> {
     #[weights] pub v_func: V,
 
-    pub alpha: f64,
     pub gamma: f64,
 }
 
 impl<V> GradientMC<V> {
-    pub fn new(v_func: V, alpha: f64, gamma: f64) -> Self {
+    pub fn new(v_func: V, gamma: f64) -> Self {
         GradientMC {
             v_func,
 
-            alpha,
             gamma,
         }
     }
 }
 
-impl<S, A, V> BatchLearner<S, A> for GradientMC<V>
+impl<'m, S, A, V> Handler<&'m Trajectory<S, A>> for GradientMC<V>
 where
-    V: StateFunction<S, Output = f64>
+    V: Function<(&'m S,), Output = f64> + Handler<StateUpdate<&'m S, f64>>
 {
-    fn handle_batch(&mut self, batch: &[Transition<S, A>]) {
+    type Response = ();
+    type Error = ();
+
+    fn handle(&mut self, trajectory: &'m Trajectory<S, A>) -> Result<(), ()> {
         let mut sum = 0.0;
 
-        batch.into_iter().rev().for_each(|ref t| {
-            sum = t.reward + self.gamma * sum;
+        trajectory.iter().rev().for_each(|transition| {
+            sum = transition.reward + self.gamma * sum;
 
-            let s = t.from.state();
-            let v = self.v_func.evaluate(s);
+            let from = transition.from.state();
+            let pred = self.v_func.evaluate((from,));
 
-            self.v_func.update(s, sum - v);
-        })
+            // TODO: Use the result properly.
+            self.v_func.handle(StateUpdate {
+                state: from,
+                error: sum - pred,
+            }).ok();
+        });
+
+        Ok(())
     }
 }
 
 impl<S, V> ValuePredictor<S> for GradientMC<V>
 where
-    V: StateFunction<S, Output = f64>
+    V: Function<(S,), Output = f64>
 {
-    fn predict_v(&self, s: &S) -> f64 {
-        self.v_func.evaluate(s)
-    }
+    fn predict_v(&self, s: S) -> f64 { self.v_func.evaluate((s,)) }
 }

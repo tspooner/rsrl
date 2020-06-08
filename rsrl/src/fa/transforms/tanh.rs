@@ -2,8 +2,12 @@ use ndarray::Array1;
 use super::Transform;
 
 // f(x) ≜ tanh(x)
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct Tanh;
 
 impl Transform<f64> for Tanh {

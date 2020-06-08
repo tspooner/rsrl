@@ -10,24 +10,31 @@
 //! of stochastic policies in which all probability mass is placed on a single
 //! action _u'_ for any given state _x_. For continuous policies, this can be
 //! seen as a dirac delta distribution, _δ(u' - u)_.
-use crate::fa::Parameterised;
-use ndarray::{Array2, ArrayView2};
+use crate::{Differentiable, Enumerable, Function, OutputOf, Shared};
+use ndarray::Array2;
 use rand::{thread_rng, Rng};
-use std::ops::AddAssign;
 
-pub mod gaussian;
+mod random;
+mod greedy;
+mod epsilon_greedy;
 
-import_all!(random);
-import_all!(greedy);
-import_all!(epsilon_greedy);
-import_all!(softmax);
-import_all!(beta);
-import_all!(dirichlet);
-import_all!(gamma);
+pub use self::random::Random;
+pub use self::greedy::Greedy;
+pub use self::epsilon_greedy::EpsilonGreedy;
 
-import_all!(ipp);
-import_all!(shared);
-// import_all!(perturbation);
+mod softmax;
+mod beta;
+mod gaussian;
+
+pub use self::softmax::{Gibbs, Softmax};
+pub use self::beta::Beta;
+pub use self::gaussian::Gaussian;
+
+mod point;
+mod ipp;
+
+pub use self::point::Point;
+pub use self::ipp::IPP;
 
 #[allow(dead_code)]
 #[inline]
@@ -55,54 +62,59 @@ pub(self) fn sample_probs_with_rng<R: Rng + ?Sized>(rng: &mut R, probabilities: 
 
 /// Policy trait for functions that define a probability distribution over
 /// actions.
-pub trait Policy<S> {
-    type Action;
+pub trait Policy<S>:
+    Function<(S, <Self as Policy<S>>::Action), Output = f64>
+    + for<'a> Function<(S, &'a <Self as Policy<S>>::Action), Output = f64>
+{
+    type Action: Sized;
 
     /// Sample the (possibly stochastic) policy distribution for a given
     /// `state`.
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, state: &S) -> Self::Action { self.mpa(state) }
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, state: S) -> Self::Action;
 
-    /// Return the "most probable action" according to the policy distribution,
+    /// Return the most probable action according to the policy distribution,
     /// if well-defined.
-    fn mpa(&self, _: &S) -> Self::Action { unimplemented!() }
+    fn mode(&self, state: S) -> Self::Action;
+}
 
-    /// Return the probability of selecting an action for a given `state`.
-    fn probability(&self, state: &S, a: &Self::Action) -> f64;
+impl<S, T: Policy<S>> Policy<S> for Shared<T> {
+    type Action = T::Action;
+
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, state: S) -> Self::Action {
+        self.borrow().sample(rng, state)
+    }
+
+    fn mode(&self, state: S) -> Self::Action { self.borrow().mode(state) }
 }
 
 /// Trait for policies that are defined on an enumerable action space.
-pub trait EnumerablePolicy<S>: Policy<S, Action = usize> {
-    /// Return the number of actions available to the policy.
-    fn n_actions(&self) -> usize;
+pub trait EnumerablePolicy<S>: Policy<S, Action = usize> + Enumerable<(S,)>
+where
+    OutputOf<Self, (S,)>: std::ops::Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <OutputOf<Self, (S,)> as IntoIterator>::IntoIter: ExactSizeIterator,
+{
+}
 
-    /// Return the probability of selecting each action for a given `state`.
-    fn probabilities(&self, state: &S) -> Vec<f64>;
+impl<S, P> EnumerablePolicy<S> for P
+where
+    P: Policy<S, Action = usize> + Enumerable<(S,)>,
+
+    OutputOf<Self, (S,)>: std::ops::Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <OutputOf<Self, (S,)> as IntoIterator>::IntoIter: ExactSizeIterator,
+{
 }
 
 /// Trait for policies with a representation that is differentiable wrt its
 /// parameters.
-pub trait DifferentiablePolicy<S>: Policy<S> + Parameterised {
-    /// Update the weights in the direction of an error for a given state and
-    /// action.
-    fn update(&mut self, state: &S, a: &Self::Action, error: f64);
+pub trait DifferentiablePolicy<S>:
+    Policy<S>
+    + Differentiable<(S, <Self as Policy<S>>::Action), Jacobian = Array2<f64>>
+    + for<'a> Differentiable<(S, &'a <Self as Policy<S>>::Action), Jacobian = Array2<f64>>
+{
+}
 
-    fn update_grad(&mut self, grad: &ArrayView2<f64>) { self.weights_view_mut().add_assign(grad); }
-
-    fn update_grad_scaled(&mut self, grad: &ArrayView2<f64>, factor: f64) {
-        self.weights_view_mut().scaled_add(factor, grad);
-    }
-
-    /// Compute the gradient of the log probability wrt the policy weights.
-    fn grad(&self, state: &S, a: &Self::Action) -> Array2<f64> {
-        let p = self.probability(state, a);
-
-        self.grad_log(state, a) / p
-    }
-
-    /// Compute the gradient of the log probability wrt the policy weights.
-    fn grad_log(&self, state: &S, a: &Self::Action) -> Array2<f64> {
-        let p = self.probability(state, a);
-
-        self.grad(state, a) * p
-    }
+impl<S, P> DifferentiablePolicy<S> for P where P: Policy<S>
+        + Differentiable<(S, <Self as Policy<S>>::Action), Jacobian = Array2<f64>>
+        + for<'a> Differentiable<(S, &'a <Self as Policy<S>>::Action), Jacobian = Array2<f64>>
+{
 }

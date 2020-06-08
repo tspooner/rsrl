@@ -1,6 +1,8 @@
 use crate::{
-    Domain, Observation, Transition,
-    spaces::{ProductSpace, real::Interval, discrete::Ordinal},
+    spaces::{discrete::Ordinal, real::Interval, ProductSpace},
+    Domain,
+    Observation,
+    Reward,
 };
 
 const X_MIN: f64 = -1.2;
@@ -79,19 +81,17 @@ impl Domain for MountainCar {
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
-        let from = self.emit();
-
-        self.update_state(action);
+    fn step(&mut self, action: &usize) -> (Observation<Vec<f64>>, Reward) {
+        self.update_state(*action);
 
         let to = self.emit();
+        let reward = if to.is_terminal() {
+            REWARD_GOAL
+        } else {
+            REWARD_STEP
+        };
 
-        Transition {
-            from,
-            action,
-            reward: if to.is_terminal() { REWARD_GOAL } else { REWARD_STEP },
-            to,
-        }
+        (to, reward)
     }
 
     fn state_space(&self) -> Self::StateSpace {
@@ -128,7 +128,11 @@ mod tests {
         assert!(MountainCar::new(X_MAX, 0.0).emit().is_terminal());
         assert!(MountainCar::new(X_MAX, 0.05).emit().is_terminal());
 
-        assert!(!MountainCar::new(X_MAX - 0.0001 * X_MAX, 0.0).emit().is_terminal());
-        assert!(MountainCar::new(X_MAX + 0.0001 * X_MAX, 0.0).emit().is_terminal());
+        assert!(!MountainCar::new(X_MAX - 0.0001 * X_MAX, 0.0)
+            .emit()
+            .is_terminal());
+        assert!(MountainCar::new(X_MAX + 0.0001 * X_MAX, 0.0)
+            .emit()
+            .is_terminal());
     }
 }

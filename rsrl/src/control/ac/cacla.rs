@@ -1,36 +1,30 @@
 use crate::{
-    OnlineLearner,
-    control::Controller,
+    Handler,
     domains::Transition,
-    policies::{Policy, DifferentiablePolicy},
-    prediction::{ValuePredictor, ActionValuePredictor},
+    fa::StateActionUpdate,
+    policies::Policy,
+    prediction::ValuePredictor,
 };
-use rand::Rng;
 
 /// Continuous Actor-Critic Learning Automaton
-pub struct CACLA<C, PT, PB> {
+pub struct CACLA<C, P> {
     pub critic: C,
-
-    pub target_policy: PT,
-    pub behaviour_policy: PB,
+    pub policy: P,
 
     pub alpha: f64,
     pub gamma: f64,
 }
 
-impl<C, PT, PB> CACLA<C, PT, PB> {
+impl<C, P> CACLA<C, P> {
     pub fn new(
         critic: C,
-        target_policy: PT,
-        behaviour_policy: PB,
+        policy: P,
         alpha: f64,
         gamma: f64,
     ) -> Self {
         CACLA {
             critic,
-
-            target_policy,
-            behaviour_policy,
+            policy,
 
             alpha,
             gamma,
@@ -38,12 +32,18 @@ impl<C, PT, PB> CACLA<C, PT, PB> {
     }
 }
 
-impl<S, C, PT, PB> OnlineLearner<S, PT::Action> for CACLA<C, PT, PB>
+impl<'m, S, C, P> Handler<&'m Transition<S, P::Action>> for CACLA<C, P>
 where
-    C: OnlineLearner<S, PT::Action> + ValuePredictor<S>,
-    PT: DifferentiablePolicy<S, Action = f64>,
+    C: ValuePredictor<&'m S>,
+    P: Policy<&'m S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<&'m S>>::Action, f64>>,
+
+    P::Action: std::ops::Mul<f64, Output = f64>,
+    &'m P::Action: std::ops::Sub<P::Action, Output = P::Action>,
 {
-    fn handle_transition(&mut self, t: &Transition<S, PT::Action>) {
+    type Response = Option<P::Response>;
+    type Error = P::Error;
+
+    fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
         let v = self.critic.predict_v(s);
         let target = if t.terminated() {
@@ -52,49 +52,16 @@ where
             t.reward + self.gamma * self.critic.predict_v(t.to.state())
         };
 
-        self.critic.handle_transition(t);
-
         if target > v {
-            let mpa = self.target_policy.mpa(s);
+            let mode = self.policy.mode(s);
 
-            self.target_policy.update(s, &t.action, self.alpha * (t.action - mpa));
+            self.policy.handle(StateActionUpdate {
+                state: s,
+                action: &t.action,
+                error: (&t.action - mode) * self.alpha,
+            }).map(|r| Some(r))
+        } else {
+            Ok(None)
         }
-    }
-
-    fn handle_terminal(&mut self) {
-        self.critic.handle_terminal();
-    }
-}
-
-impl<S, C, PT, PB> ValuePredictor<S> for CACLA<C, PT, PB>
-where
-    C: ValuePredictor<S>,
-{
-    fn predict_v(&self, s: &S) -> f64 {
-        self.critic.predict_v(s)
-    }
-}
-
-impl<S, C, PT, PB> ActionValuePredictor<S, PT::Action> for CACLA<C, PT, PB>
-where
-    C: ActionValuePredictor<S, PT::Action>,
-    PT: Policy<S>,
-{
-    fn predict_q(&self, s: &S, a: &PT::Action) -> f64 {
-        self.critic.predict_q(s, a)
-    }
-}
-
-impl<S, C, PT, PB> Controller<S, PT::Action> for CACLA<C, PT, PB>
-where
-    PT: DifferentiablePolicy<S>,
-    PB: Policy<S, Action = PT::Action>,
-{
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> PT::Action {
-        self.target_policy.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
-        self.behaviour_policy.sample(rng, s)
     }
 }

@@ -1,21 +1,16 @@
 use crate::{
-    OnlineLearner,
+    Handler, Function, Differentiable,
     domains::Transition,
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, DifferentiableStateFunction,
-    },
-    linalg::MatrixLike,
+    fa::{StateUpdate, GradientUpdate},
+    params::{BufferMut, Parameterised},
     prediction::ValuePredictor,
 };
 
-#[derive(Parameterised)]
+#[derive(Debug, Parameterised)]
 pub struct TDC<F> {
     #[weights] pub fa_theta: F,
     pub fa_w: F,
 
-    pub alpha: f64,
-    pub beta: f64,
     pub gamma: f64,
 }
 
@@ -23,55 +18,56 @@ impl<F: Parameterised> TDC<F> {
     pub fn new(
         fa_theta: F,
         fa_w: F,
-        alpha: f64,
-        beta: f64,
         gamma: f64,
     ) -> Self {
-        if fa_theta.weights_dim() != fa_w.weights_dim() {
-            panic!("fa_theta and fa_w must be equivalent function approximators.")
-        }
-
         TDC {
             fa_theta,
             fa_w,
 
-            alpha,
-            beta,
             gamma,
         }
     }
 }
 
-impl<S, A, F> OnlineLearner<S, A> for TDC<F>
+impl<'m, S, A, F> Handler<&'m Transition<S, A>> for TDC<F>
 where
-    F: DifferentiableStateFunction<S, Output = f64>,
+    F: Differentiable<(&'m S,), Output = f64>
+        + Handler<StateUpdate<&'m S, f64>>
+        + Handler<GradientUpdate<<F as Differentiable<(&'m S,)>>::Jacobian>>,
 {
-    fn handle_transition(&mut self, t: &Transition<S, A>) {
+    type Response = ();
+    type Error = ();
+
+    fn handle(&mut self, t: &'m Transition<S, A>) -> Result<(), ()> {
         let (s, ns) = t.states();
 
-        let w_s = self.fa_w.evaluate(s);
-        let theta_s = self.fa_theta.evaluate(s);
+        let w_s = self.fa_w.evaluate((s,));
+        let theta_s = self.fa_theta.evaluate((s,));
 
         let td_error = if t.terminated() {
             t.reward - theta_s
         } else {
-            t.reward + self.gamma * self.fa_theta.evaluate(ns) - theta_s
+            t.reward + self.gamma * self.fa_theta.evaluate((ns,)) - theta_s
         };
 
-        self.fa_w.update(s, self.beta * (td_error - w_s));
+        self.fa_w.handle(StateUpdate {
+            state: s,
+            error: td_error - w_s,
+        }).ok();
 
-        let grad = self.fa_theta
-            .grad(s).combine(&self.fa_theta.grad(ns), |x, y| td_error * x - w_s * y);
+        let grad_s = self.fa_theta.grad((s,));
+        let grad_ns = self.fa_theta.grad((ns,));
 
-        self.fa_theta.update_grad_scaled(&grad, self.alpha);
+        let grad = grad_s.merge(&grad_ns, |x, y| td_error * x - w_s * y);
+
+        self.fa_theta.handle(GradientUpdate(grad)).ok();
+
+        Ok(())
     }
 }
 
-impl<S, F> ValuePredictor<S> for TDC<F>
-where
-    F: StateFunction<S, Output = f64>,
-{
-    fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s)
+impl<S, F: Function<(S,), Output = f64>> ValuePredictor<S> for TDC<F> {
+    fn predict_v(&self, s: S) -> f64 {
+        self.fa_theta.evaluate((s,))
     }
 }

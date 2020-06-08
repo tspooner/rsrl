@@ -1,50 +1,63 @@
 use crate::{
-    OnlineLearner,
-    domains::Transition,
-    fa::{Weights, WeightsView, WeightsViewMut, Parameterised, StateFunction},
+    Handler, Function,
+    domains::{Transition, Observation},
+    fa::StateUpdate,
     prediction::ValuePredictor,
 };
+use super::Response;
 
-#[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct TD<V> {
     #[weights] pub v_func: V,
 
-    pub alpha: f64,
     pub gamma: f64,
 }
 
 impl<V> TD<V> {
-    pub fn new(v_func: V, alpha: f64, gamma: f64) -> Self {
+    pub fn new(v_func: V, gamma: f64) -> Self {
         TD {
             v_func,
 
-            alpha,
             gamma,
         }
     }
 }
 
-impl<S, A, V> OnlineLearner<S, A> for TD<V>
+impl<'m, S, A, V> Handler<&'m Transition<S, A>> for TD<V>
 where
-    V: StateFunction<S, Output = f64>
+    V: Function<(&'m S,), Output = f64> + Handler<StateUpdate<&'m S, f64>>,
 {
-    fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let s = t.from.state();
-        let v = self.v_func.evaluate(s);
+    type Response = Response<V::Response>;
+    type Error = V::Error;
 
-        let td_error = if t.terminated() {
-            t.reward - v
-        } else {
-            t.reward + self.gamma * self.v_func.evaluate(t.to.state()) - v
+    fn handle(&mut self, transition: &'m Transition<S, A>) -> Result<Self::Response, Self::Error> {
+        let from = transition.from.state();
+        let pred = self.v_func.evaluate((from,));
+
+        let td_error = match transition.to {
+            Observation::Terminal(_) => transition.reward - pred,
+            Observation::Full(ref to) | Observation::Partial(ref to) =>
+                transition.reward + self.gamma * self.v_func.evaluate((to,)) - pred,
         };
 
-        self.v_func.update(s, self.alpha * td_error);
+        self.v_func.handle(StateUpdate {
+            state: from,
+            error: td_error,
+        }).map(|r| Response {
+            td_error,
+            vfunc_response: r,
+        })
     }
 }
 
 impl<S, V> ValuePredictor<S> for TD<V>
 where
-    V: StateFunction<S, Output = f64>
+    V: Function<(S,), Output = f64>
 {
-    fn predict_v(&self, s: &S) -> f64 { self.v_func.evaluate(s) }
+    fn predict_v(&self, s: S) -> f64 { self.v_func.evaluate((s,)) }
 }

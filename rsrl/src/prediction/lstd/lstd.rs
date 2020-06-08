@@ -1,20 +1,17 @@
 use crate::{
-    BatchLearner,
-    domains::Transition,
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction,
-        linear::LinearStateFunction,
-    },
+    Handler, Parameterised,
+    domains::Batch,
+    fa::linear::{Features, basis::Basis},
     prediction::ValuePredictor,
     utils::pinv,
 };
 use ndarray::{Array1, Array2, Axis};
 use ndarray_linalg::Solve;
 
-#[derive(Parameterised)]
-pub struct LSTD<F> {
-    #[weights] pub fa_theta: F,
+#[derive(Debug, Parameterised)]
+pub struct LSTD<B> {
+    pub basis: B,
+    #[weights] pub theta: Array1<f64>,
 
     pub gamma: f64,
 
@@ -22,44 +19,46 @@ pub struct LSTD<F> {
     b: Array1<f64>,
 }
 
-impl<F: Parameterised> LSTD<F> {
-    pub fn new(fa_theta: F, gamma: f64) -> Self {
-        let dim = fa_theta.weights_dim();
+impl<B: spaces::Space> LSTD<B> {
+    pub fn new(basis: B, gamma: f64) -> Self {
+        let n_features: usize = basis.dim().into();
 
         LSTD {
-            fa_theta,
+            basis,
+            theta: Array1::zeros(n_features),
 
             gamma,
 
-            a: Array2::eye(dim[0]) * 1e-6,
-            b: Array1::zeros(dim[0]),
+            a: Array2::eye(n_features) * 1e-6,
+            b: Array1::zeros(n_features),
         }
     }
 }
 
-impl<F: Parameterised> LSTD<F> {
+impl<B> LSTD<B> {
     pub fn solve(&mut self) {
-        let mut w = self.fa_theta.weights_view_mut();
+        let theta = self.a.solve(&self.b).or_else(|_| {
+            pinv(&self.a).map(|ainv| ainv.dot(&self.b))
+        });
 
-        if let Ok(theta) = self.a.solve(&self.b) {
-            // First try the clean approach:
-            w.assign(&theta);
-        } else if let Ok(ainv) = pinv(&self.a) {
-            // Otherwise solve via SVD:
-            w.assign(&ainv.dot(&self.b));
+        if let Ok(theta) = theta {
+            self.theta.assign(&theta);
         }
     }
 }
 
-impl<S, A, F> BatchLearner<S, A> for LSTD<F>
+impl<'m, S, A, B> Handler<&'m Batch<S, A>> for LSTD<B>
 where
-    F: LinearStateFunction<S, Output = f64>,
+    B: Basis<&'m S, Value = Features>,
 {
-    fn handle_batch(&mut self, ts: &[Transition<S, A>]) {
-        ts.into_iter().for_each(|ref t| {
+    type Response = ();
+    type Error = crate::fa::linear::Error;
+
+    fn handle(&mut self, batch: &'m Batch<S, A>) -> Result<(), Self::Error> {
+        for t in batch {
             let (s, ns) = t.states();
 
-            let phi_s = self.fa_theta.features(s).expanded();
+            let phi_s = self.basis.project(s)?.into_dense();
 
             self.b.scaled_add(t.reward, &phi_s);
 
@@ -68,22 +67,21 @@ where
 
                 self.a += &phi_s.view().dot(&phi_s.t());
             } else {
-                let phi_ns = self.fa_theta.features(ns).expanded();
+                let phi_ns = self.basis.project(ns)?.into_dense();
                 let pd = (self.gamma * phi_ns - &phi_s).insert_axis(Axis(0));
 
                 self.a -= &phi_s.insert_axis(Axis(1)).dot(&pd);
             }
-        });
+        }
 
         self.solve();
+
+        Ok(())
     }
 }
 
-impl<S, F> ValuePredictor<S> for LSTD<F>
-where
-    F: StateFunction<S, Output = f64>,
-{
-    fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s)
+impl<S, B: Basis<S, Value = Features>> ValuePredictor<S> for LSTD<B> {
+    fn predict_v(&self, s: S) -> f64 {
+        self.basis.project(s).unwrap().dot(&self.theta)
     }
 }

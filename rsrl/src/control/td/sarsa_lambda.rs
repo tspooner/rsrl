@@ -1,18 +1,12 @@
 use crate::{
-    OnlineLearner,
-    control::Controller,
+    Handler, Function, Parameterised, Differentiable,
     domains::Transition,
-    fa::{
-        Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction,
-        EnumerableStateActionFunction,
-        DifferentiableStateActionFunction,
-    },
-    policies::{Policy, EnumerablePolicy},
-    prediction::{ValuePredictor, ActionValuePredictor},
+    fa::ScaledGradientUpdate,
+    policies::Policy,
+    prediction::ValuePredictor,
     traces::Trace,
 };
-use rand::{thread_rng, Rng};
+use rand::thread_rng;
 
 /// On-policy variant of Watkins' Q-learning with eligibility traces (aka
 /// "modified Q-learning").
@@ -22,21 +16,25 @@ use rand::{thread_rng, Rng};
 /// thesis, Cambridge University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
-#[derive(Parameterised, Serialize, Deserialize)]
-pub struct SARSALambda<F, P, T> {
-    #[weights] pub fa_theta: F,
+#[derive(Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct SARSALambda<Q, P, T> {
+    #[weights] pub fa_theta: Q,
     pub policy: P,
+    pub trace: T,
 
     pub alpha: f64,
     pub gamma: f64,
     pub lambda: f64,
-
-    trace: T,
 }
 
-impl<F, P, T> SARSALambda<F, P, T> {
+impl<Q, P, T> SARSALambda<Q, P, T> {
     pub fn new(
-        fa_theta: F,
+        fa_theta: Q,
         policy: P,
         trace: T,
         alpha: f64,
@@ -46,71 +44,78 @@ impl<F, P, T> SARSALambda<F, P, T> {
         SARSALambda {
             fa_theta,
             policy,
+            trace,
 
             alpha,
             gamma,
             lambda,
-
-            trace,
         }
     }
 }
 
-impl<S, Q, P, T> OnlineLearner<S, P::Action> for SARSALambda<Q, P, T>
+impl<'m, S, Q, P, T> Handler<&'m Transition<S, P::Action>> for SARSALambda<Q, P, T>
 where
-    Q: DifferentiableStateActionFunction<S, P::Action, Output = f64>,
-    P: Policy<S>,
-    T: Trace<Q::Gradient>,
+    Q: Function<(&'m S, P::Action), Output = f64> +
+        Differentiable<(&'m S, &'m P::Action), Output = f64>,
+    Q: for<'j> Handler<
+        ScaledGradientUpdate<&'j <Q as Differentiable<(&'m S, &'m P::Action)>>::Jacobian>
+    >,
+    P: Policy<&'m S>,
+    T: Trace<Buffer = <Q as Differentiable<(&'m S, &'m P::Action)>>::Jacobian>,
 {
-    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+    type Response = ();
+    type Error = ();
+
+    fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
-        let qsa = self.fa_theta.evaluate(s, &t.action);
+        let qsa = self.fa_theta.evaluate((s, &t.action));
+        let grad_s = self.fa_theta.grad((s, &t.action));
 
         // Update trace with latest feature vector:
         self.trace.scale(self.lambda * self.gamma);
-        self.trace.update(&self.fa_theta.grad(s, &t.action));
+        self.trace.update(&grad_s);
 
         // Update weight vectors:
         if t.terminated() {
-            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * (t.reward - qsa));
+            self.fa_theta.handle(ScaledGradientUpdate {
+                alpha: self.alpha * (t.reward - qsa),
+                jacobian: self.trace.deref(),
+            }).ok();
             self.trace.reset();
         } else {
             let ns = t.to.state();
             let na = self.policy.sample(&mut thread_rng(), ns);
-            let nqsna = self.fa_theta.evaluate(ns, &na);
-            let residual = t.reward + self.gamma * nqsna - qsa;
+            let nqsna = self.fa_theta.evaluate((ns, na));
 
-            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * residual);
+            self.fa_theta.handle(ScaledGradientUpdate {
+                alpha: self.alpha * (t.reward + self.gamma * nqsna - qsa),
+                jacobian: self.trace.deref(),
+            }).ok();
         };
+
+        Ok(())
     }
 }
 
-impl<S, F, P: Policy<S>, T> Controller<S, P::Action> for SARSALambda<F, P, T> {
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
-    }
-}
-
-impl<S, F, P, T> ValuePredictor<S> for SARSALambda<F, P, T>
+impl<S, Q, P, T> ValuePredictor<S> for SARSALambda<Q, P, T>
 where
-    F: StateActionFunction<S, P::Action, Output = f64>,
+    S: Clone,
+    Q: Function<(S, P::Action), Output = f64>,
     P: Policy<S>,
 {
-    fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s, &self.sample_behaviour(&mut thread_rng(), s))
+    fn predict_v(&self, s: S) -> f64 {
+        let a = self.policy.sample(&mut thread_rng(), s.clone());
+
+        self.fa_theta.evaluate((s, a))
     }
 }
 
-impl<S, F, P, T> ActionValuePredictor<S, P::Action> for SARSALambda<F, P, T>
-where
-    F: StateActionFunction<S, P::Action, Output = f64>,
-    P: Policy<S>,
-{
-    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
-        self.fa_theta.evaluate(s, a)
-    }
-}
+// impl<S, Q, P, T> ActionValuePredictor<S, P::Action> for SARSALambda<Q, P, T>
+// where
+    // Q: Function<S, P::Action, Output = f64>,
+    // P: Policy<S>,
+// {
+    // fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
+        // self.fa_theta.evaluate(s, a)
+    // }
+// }

@@ -1,5 +1,5 @@
-use crate::spaces::{ProductSpace, real::Interval, discrete::Ordinal};
-use super::{Domain, Observation, Transition, runge_kutta4};
+use super::{runge_kutta4, Domain, Observation, Reward};
+use crate::spaces::{discrete::Ordinal, real::Interval, ProductSpace};
 
 // Model parameters
 // (https://pdfs.semanticscholar.org/c030/127238b1dbad2263fba6b64b5dec7c3ffa20.pdf):
@@ -88,18 +88,21 @@ impl HIVTreatment {
         buffer[StateIndex::T2] = LAMBDA2 - D2 * t2 - tmp2;
         buffer[StateIndex::T2S] = tmp2 - DELTA * t2s - M2 * e * t2s;
 
-        buffer[StateIndex::V] = (1.0 - eps[1]) * NT * DELTA * sum_ts - C * v
+        buffer[StateIndex::V] = (1.0 - eps[1]) * NT * DELTA * sum_ts
+            - C * v
             - ((1.0 - eps[0]) * RHO1 * K1 * t1 + (1.0 - F * eps[0]) * RHO2 * K2 * t2) * v;
-        buffer[StateIndex::E] =
-            LAMBDA_E + BE * sum_ts / (sum_ts + KB) * e
-            - DE * sum_ts / (sum_ts + KD) * e - DELTA_E * e;
+        buffer[StateIndex::E] = LAMBDA_E + BE * sum_ts / (sum_ts + KB) * e
+            - DE * sum_ts / (sum_ts + KD) * e
+            - DELTA_E * e;
 
         buffer
     }
 }
 
 impl Default for HIVTreatment {
-    fn default() -> HIVTreatment { HIVTreatment::new(163_573.0, 11_945.0, 5.0, 46.0, 63_919.0, 24.0) }
+    fn default() -> HIVTreatment {
+        HIVTreatment::new(163_573.0, 11_945.0, 5.0, 46.0, 63_919.0, 24.0)
+    }
 }
 
 impl Domain for HIVTreatment {
@@ -107,34 +110,33 @@ impl Domain for HIVTreatment {
     type ActionSpace = Ordinal;
 
     fn emit(&self) -> Observation<Vec<f64>> {
-        let s = self.state.iter().map(|v| clip!(LIMITS[0], v.log10(), LIMITS[1]));
+        let s = self
+            .state
+            .iter()
+            .map(|v| clip!(LIMITS[0], v.log10(), LIMITS[1]));
 
         Observation::Full(s.collect())
     }
 
-    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
-        let from = self.emit();
-
-        self.update_state(action);
+    fn step(&mut self, action: &usize) -> (Observation<Vec<f64>>, Reward) {
+        self.update_state(*action);
 
         let to = self.emit();
+        let reward = to.map_into(|s| {
+            let r = 1e3 * s[StateIndex::E]
+                - 0.1 * s[StateIndex::V]
+                - 2e4 * self.eps[0].powi(2)
+                - 2e3 * self.eps[1].powi(2);
 
-        Transition {
-            from,
-            action,
-            reward: to.map_into(|s| {
-                let r = 1e3 * s[StateIndex::E] - 0.1 * s[StateIndex::V] - 2e4 * self.eps[0].powi(2)
-                    - 2e3 * self.eps[1].powi(2);
+            r / 1e5
+        });
 
-                r / 1e5
-            }),
-            to,
-        }
+        (to, reward)
     }
 
     fn state_space(&self) -> Self::StateSpace {
-        ProductSpace::empty() +
-            Interval::bounded(LIMITS[0], LIMITS[1])
+        ProductSpace::empty()
+            + Interval::bounded(LIMITS[0], LIMITS[1])
             + Interval::bounded(LIMITS[0], LIMITS[1])
             + Interval::bounded(LIMITS[0], LIMITS[1])
             + Interval::bounded(LIMITS[0], LIMITS[1])

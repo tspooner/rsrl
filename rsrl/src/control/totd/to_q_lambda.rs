@@ -1,21 +1,15 @@
 use crate::{
-    OnlineLearner, Shared, make_shared,
-    control::Controller,
+    Handler, OutputOf,
     domains::Transition,
-    fa::{
-        Parameterised, StateActionFunction, EnumerableStateActionFunction,
-        linear::{
-            LinearStateActionFunction,
-            Weights, WeightsView, WeightsViewMut,
-            dot_features,
-        },
-    },
-    linalg::MatrixLike,
-    policies::{Greedy, Policy, EnumerablePolicy},
+    fa::linear::basis::Basis,
+    params::*,
+    policies::{Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
     traces::Trace,
+    utils::argmax_first,
 };
-use rand::{thread_rng, Rng};
+use ndarray::{Array1, Ix1, linalg::Dot};
+use std::f64;
 
 /// True online variant of the Q(lambda) algorithm.
 ///
@@ -24,136 +18,170 @@ use rand::{thread_rng, Rng};
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
 #[derive(Parameterised)]
-pub struct TOQLambda<F, P, T> {
-    #[weights] pub fa_theta: F,
+pub struct TOQLambda<B, P, T> {
+    pub basis: B,
+    #[weights] pub theta: Array1<f64>,
+    pub trace: T,
 
     pub policy: P,
-    pub target: Greedy<F>,
 
     pub alpha: f64,
     pub gamma: f64,
     pub lambda: f64,
 
-    trace: T,
     q_old: f64,
 }
 
-impl<F, P, T> TOQLambda<Shared<F>, P, T> {
+impl<B, P, T> TOQLambda<B, P, T> {
     pub fn new(
-        fa_theta: F,
-        policy: P,
+        basis: B,
+        theta: Array1<f64>,
         trace: T,
+        policy: P,
         alpha: f64,
         gamma: f64,
         lambda: f64,
     ) -> Self {
-        let fa_theta = make_shared(fa_theta);
-
         TOQLambda {
-            fa_theta: fa_theta.clone(),
+            basis,
+            theta,
+            trace,
 
             policy,
-            target: Greedy::new(fa_theta),
 
             alpha: alpha.into(),
             gamma: gamma.into(),
             lambda: lambda.into(),
 
-            trace,
             q_old: 0.0,
         }
     }
+
+    pub fn zeros(
+        basis: B,
+        trace: T,
+        policy: P,
+        alpha: f64,
+        gamma: f64,
+        lambda: f64,
+    ) -> Self
+    where
+        B: spaces::Space,
+    {
+        let n: usize = basis.dim().into();
+
+        TOQLambda::new(
+            basis, Array1::zeros(n), trace,
+            policy, alpha, gamma, lambda,
+        )
+    }
 }
 
-impl<S, F, P, T> OnlineLearner<S, P::Action> for TOQLambda<F, P, T>
+impl<'m, S, B, P, T> Handler<&'m Transition<S, P::Action>> for TOQLambda<B, P, T>
 where
-    F: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
-    P: EnumerablePolicy<S>,
-    T: Trace<F::Gradient>,
+    B: Basis<(&'m S, &'m P::Action)> + Basis<(&'m S, P::Action)>,
+    P: EnumerablePolicy<&'m S>,
+    T: Trace<Buffer = B::Value>,
+
+    B::Value: BufferMut<Dim = Ix1> +
+        Dot<Array1<f64>, Output = f64> +
+        Dot<B::Value, Output = f64>,
+
+    OutputOf<P, (&'m S,)>: std::ops::Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <OutputOf<P, (&'m S,)> as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+    type Response = ();
+    type Error = ();
+
+    fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<(), ()> {
         let s = t.from.state();
-        let qsa = self.fa_theta.evaluate(s, &t.action);
 
-        // Update trace:
-        let grad_sa = self.fa_theta.grad(s, &t.action);
-        let phi_sa = grad_sa.features(&t.action).unwrap();
+        let phi_s: Vec<_> = (0..self.policy.len((s,)))
+            .into_iter()
+            .map(|a| self.basis.project((s, a)).unwrap())
+            .collect();
+        let phi_s_a = &phi_s[t.action];
 
-        if t.action == self.fa_theta.find_max(s).0 {
+        let qs: Vec<_> = phi_s.iter().map(|f| f.dot(&self.theta)).collect();
+        let qsa = qs[t.action];
+
+        let (amax, _) = argmax_first(qs);
+
+        if t.action == amax {
             let a = self.alpha;
             let c = self.lambda * self.gamma;
-            let dotted = if let Some(trace_f) = self.trace.deref().features(&t.action) {
-                dot_features(phi_sa, trace_f)
-            } else { 0.0 };
 
-            self.trace.combine_inplace(&grad_sa, move |x, y| {
+            let dotted = self.trace.deref().dot(phi_s_a);
+
+            self.trace.merge_inplace(&phi_s_a, move |x, y| {
                 c * x + (1.0 - a * c * dotted) * y
             });
         } else {
-            self.trace.combine_inplace(&grad_sa, |_, y| y);
+            self.trace.merge_inplace(&phi_s_a, |_, y| y);
         }
 
         // Update weight vectors:
         if t.terminated() {
-            self.fa_theta.update_grad_scaled(
-                self.trace.deref(),
-                self.alpha * (t.reward - self.q_old)
-            );
-            self.fa_theta.update_grad_scaled(&grad_sa, self.alpha * (self.q_old - qsa));
+            self.trace.deref().scaled_addto(self.alpha * (t.reward - self.q_old), &mut self.theta);
+            phi_s_a.scaled_addto(self.alpha * (self.q_old - qsa), &mut self.theta);
 
             self.q_old = 0.0;
             self.trace.reset();
         } else {
-            let mut rng = thread_rng();
-
             let ns = t.to.state();
-            let na = self.sample_target(&mut rng, ns);
-            let nqsna = self.fa_theta.evaluate(ns, &na);
-            let residual = t.reward + self.gamma * nqsna - self.q_old;
+            let phi_ns_na = self.basis.project((ns, 0)).unwrap();
+            let qnsna = phi_ns_na.dot(&self.theta);
 
-            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * residual);
-            self.fa_theta.update_grad_scaled(&grad_sa, self.alpha * (self.q_old - qsa));
+            let (phi_ns_na, qnsna) = (1..self.policy.len((ns,)))
+                .into_iter()
+                .fold((phi_ns_na, qnsna), |acc, a| {
+                    let phi = self.basis.project((s, a)).unwrap();
+                    let val = phi.dot(&self.theta);
 
-            self.q_old = nqsna;
-            if t.action != self.sample_target(&mut rng, s) {
+                    if val - acc.1 > 1e-7 { (phi, val) } else { acc }
+                });
+
+            let residual = t.reward + self.gamma * qnsna - self.q_old;
+
+            self.trace.deref().scaled_addto(self.alpha * residual, &mut self.theta);
+            phi_ns_na.scaled_addto(self.alpha * (self.q_old - qsa), &mut self.theta);
+
+            self.q_old = qnsna;
+            if t.action != amax {
                 self.trace.reset();
             }
         }
-    }
 
-    fn handle_terminal(&mut self) {
-        self.q_old = 0.0;
+        Ok(())
     }
 }
 
-impl<S, F, P, T> Controller<S, P::Action> for TOQLambda<F, P, T>
+impl<S, B, P, T> ValuePredictor<S> for TOQLambda<B, P, T>
 where
-    F: EnumerableStateActionFunction<S>,
-    P: EnumerablePolicy<S>,
+    B: for<'s> Basis<(&'s S, usize)>,
+    P: for<'s> EnumerablePolicy<&'s S>,
+
+    B::Value: Dot<Array1<f64>, Output = f64>,
+
+    for<'s> OutputOf<P, (&'s S,)>: std::ops::Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    for<'s> <OutputOf<P, (&'s S,)> as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.target.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
+    fn predict_v(&self, s: S) -> f64 {
+        (0..self.policy.len((&s,)))
+            .into_iter()
+            .map(|a| self.basis.project((&s, a)).unwrap().dot(&self.theta))
+            .fold(f64::MIN, |acc, x| if x - acc > 1e-7 { x } else { acc })
     }
 }
 
-impl<S, F, P, T> ValuePredictor<S> for TOQLambda<F, P, T>
+impl<S, B, P, T> ActionValuePredictor<S, P::Action> for TOQLambda<B, P, T>
 where
-    F: EnumerableStateActionFunction<S, Output = f64>,
-    P: EnumerablePolicy<S>,
-{
-    fn predict_v(&self, s: &S) -> f64 { self.predict_q(s, &self.target.mpa(s)) }
-}
-
-impl<S, F, P, T> ActionValuePredictor<S, P::Action> for TOQLambda<F, P, T>
-where
-    F: StateActionFunction<S, P::Action, Output = f64>,
+    B: Basis<(S, P::Action)>,
     P: Policy<S>,
+
+    B::Value: Dot<Array1<f64>, Output = f64>,
 {
-    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
-        self.fa_theta.evaluate(s, a)
+    fn predict_q(&self, s: S, a: P::Action) -> f64 {
+        self.basis.project((s, a)).unwrap().dot(&self.theta)
     }
 }

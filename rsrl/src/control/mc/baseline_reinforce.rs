@@ -1,12 +1,10 @@
 use crate::{
-    BatchLearner,
-    control::Controller,
-    domains::Transition,
-    fa::{Weights, WeightsView, WeightsViewMut, Parameterised},
-    policies::{Policy, DifferentiablePolicy},
+    Handler,
+    domains::Batch,
+    fa::StateActionUpdate,
+    policies::Policy,
     prediction::ActionValuePredictor,
 };
-use rand::Rng;
 
 #[derive(Parameterised)]
 pub struct BaselineREINFORCE<B, P> {
@@ -29,14 +27,15 @@ impl<B, P> BaselineREINFORCE<B, P> {
     }
 }
 
-impl<S, B, P> BatchLearner<S, P::Action> for BaselineREINFORCE<B, P>
+impl<'m, S, B, P> Handler<&'m Batch<S, P::Action>> for BaselineREINFORCE<B, P>
 where
-    S: Clone,
-    P: DifferentiablePolicy<S>,
-    P::Action: Clone,
-    B: ActionValuePredictor<S, P::Action>,
+    P: Policy<S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<S>>::Action>>,
+    B: ActionValuePredictor<&'m S, &'m P::Action>,
 {
-    fn handle_batch(&mut self, batch: &[Transition<S, P::Action>]) {
+    type Response = ();
+    type Error = ();
+
+    fn handle(&mut self, batch: &'m Batch<S, P::Action>) -> Result<(), ()> {
         let mut ret = 0.0;
 
         for t in batch.into_iter().rev() {
@@ -45,17 +44,13 @@ where
 
             ret = t.reward + self.gamma * ret;
 
-            self.policy.update(s, &t.action, self.alpha * (ret - baseline));
+            self.policy.handle(StateActionUpdate {
+                state: t.from.state(),
+                action: &t.action,
+                error: self.alpha * (ret - baseline)
+            }).ok();
         }
-    }
-}
 
-impl<S, B, P: Policy<S>> Controller<S, P::Action> for BaselineREINFORCE<B, P> {
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
+        Ok(())
     }
 }

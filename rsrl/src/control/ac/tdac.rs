@@ -1,14 +1,18 @@
 use crate::{
-    OnlineLearner,
-    control::Controller,
+    Handler,
     domains::Transition,
-    policies::{Policy, DifferentiablePolicy},
-    prediction::{ValuePredictor, ActionValuePredictor},
+    fa::StateActionUpdate,
+    policies::Policy,
+    prediction::ValuePredictor,
 };
-use rand::Rng;
 
 /// TD-error actor-critic.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct TDAC<C, P> {
     pub critic: C,
     pub policy: P,
@@ -29,58 +33,27 @@ impl<C, P> TDAC<C, P> {
     }
 }
 
-impl<S, C, P> OnlineLearner<S, P::Action> for TDAC<C, P>
+impl<'m, S, C, P> Handler<&'m Transition<S, P::Action>> for TDAC<C, P>
 where
-    C: OnlineLearner<S, P::Action> + ValuePredictor<S>,
-    P: DifferentiablePolicy<S>,
-    P::Action: Clone,
+    C: ValuePredictor<&'m S>,
+    P: Policy<&'m S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<&'m S>>::Action, f64>>,
 {
-    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+    type Response = P::Response;
+    type Error = P::Error;
+
+    fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
         let v = self.critic.predict_v(s);
         let td_error = if t.terminated() {
             t.reward - v
         } else {
-            t.reward + self.gamma * self.predict_v(t.to.state()) - v
+            t.reward + self.gamma * self.critic.predict_v(t.to.state()) - v
         };
 
-        self.critic.handle_transition(t);
-        self.policy.update(s, &t.action, self.alpha * td_error);
-    }
-
-    fn handle_terminal(&mut self) {
-        self.critic.handle_terminal();
-    }
-}
-
-impl<S, C, P> ValuePredictor<S> for TDAC<C, P>
-where
-    C: ValuePredictor<S>,
-{
-    fn predict_v(&self, s: &S) -> f64 {
-        self.critic.predict_v(s)
-    }
-}
-
-impl<S, C, P> ActionValuePredictor<S, P::Action> for TDAC<C, P>
-where
-    C: ActionValuePredictor<S, P::Action>,
-    P: Policy<S>,
-{
-    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
-        self.critic.predict_q(s, a)
-    }
-}
-
-impl<S, C, P> Controller<S, P::Action> for TDAC<C, P>
-where
-    P: Policy<S>,
-{
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
+        self.policy.handle(StateActionUpdate {
+            state: s,
+            action: &t.action,
+            error: self.alpha * td_error,
+        })
     }
 }

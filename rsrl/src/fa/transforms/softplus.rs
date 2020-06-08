@@ -2,8 +2,12 @@ use ndarray::Array1;
 use super::{Transform, Logistic};
 
 // f(x) ≜ log(1 + exp(x))
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct Softplus;
 
 impl Transform<f64> for Softplus {
@@ -33,8 +37,12 @@ impl Transform<f64> for Softplus {
 impl_variants!(Softplus);
 
 // f(x, y, ...) ≜ log(C + exp(x) + exp(y) + ...)
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct LogSumExp(f64);
 
 impl LogSumExp {

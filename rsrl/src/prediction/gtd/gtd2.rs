@@ -1,21 +1,33 @@
 use crate::{
-    OnlineLearner,
+    Handler, Function, Differentiable,
     domains::Transition,
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, DifferentiableStateFunction,
-    },
-    linalg::MatrixLike,
+    fa::ScaledGradientUpdate,
+    params::{BufferMut, Parameterised},
     prediction::ValuePredictor,
 };
 
-#[derive(Parameterised)]
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response<T, W> {
+    pub res_theta: T,
+    pub res_w: W,
+    pub td_error: f64,
+}
+
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct GTD2<F> {
     #[weights] pub fa_theta: F,
     pub fa_w: F,
 
-    pub alpha: f64,
-    pub beta: f64,
     pub gamma: f64,
 }
 
@@ -23,35 +35,41 @@ impl<F: Parameterised> GTD2<F> {
     pub fn new(
         fa_theta: F,
         fa_w: F,
-        alpha: f64,
-        beta: f64,
         gamma: f64,
     ) -> Self {
-        if fa_theta.weights_dim() != fa_w.weights_dim() {
-            panic!("fa_theta and fa_w must be equivalent function approximators.")
-        }
-
         GTD2 {
             fa_theta,
             fa_w,
 
-            alpha,
-            beta,
             gamma,
         }
     }
 }
 
-impl<S, A, F> OnlineLearner<S, A> for GTD2<F>
+type SGU<'m, S, F> = ScaledGradientUpdate<<F as Differentiable<(&'m S,)>>::Jacobian>;
+type SGURef<'m, 'j, S, F> = ScaledGradientUpdate<&'j <F as Differentiable<(&'m S,)>>::Jacobian>;
+
+impl<'m, S, A, F> Handler<&'m Transition<S, A>> for GTD2<F>
 where
-    F: DifferentiableStateFunction<S, Output = f64>
+    F: Differentiable<(&'m S,), Output = f64> + Handler<SGU<'m, S, F>>,
+    F: for<'j> Handler<
+        SGURef<'m, 'j, S, F>,
+        Response = <F as Handler<SGU<'m, S, F>>>::Response,
+        Error = <F as Handler<SGU<'m, S, F>>>::Error,
+    >,
 {
-    fn handle_transition(&mut self, t: &Transition<S, A>) {
+    type Response = Response<
+        <F as Handler<SGU<'m, S, F>>>::Response,
+        <F as Handler<SGU<'m, S, F>>>::Response
+    >;
+    type Error = <F as Handler<SGU<'m, S, F>>>::Error;
+
+    fn handle(&mut self, t: &'m Transition<S, A>) -> Result<Self::Response, Self::Error> {
         let (s, ns) = t.states();
 
-        let w_s = self.fa_w.evaluate(s);
-        let theta_s = self.fa_theta.evaluate(s);
-        let theta_ns = self.fa_theta.evaluate(ns);
+        let w_s = self.fa_w.evaluate((s,));
+        let theta_s = self.fa_theta.evaluate((s,));
+        let theta_ns = self.fa_theta.evaluate((ns,));
 
         let td_error = if t.terminated() {
             t.reward - theta_s
@@ -59,21 +77,32 @@ where
             t.reward + self.gamma * theta_ns - theta_s
         };
 
-        let grad = self.fa_theta.grad(s);
+        let mut grad_s = self.fa_theta.grad((s,));
 
-        self.fa_w.update_grad_scaled(&grad, self.beta * (td_error - w_s));
+        let res_w = self.fa_w.handle(ScaledGradientUpdate {
+            alpha: td_error - w_s,
+            jacobian: &grad_s,
+        })?;
 
-        let grad = grad.combine(&self.fa_theta.grad(ns), |x, y| x - self.gamma * y);
+        let grad_ns = self.fa_theta.grad((ns,));
 
-        self.fa_theta.update_grad_scaled(&grad, self.alpha * w_s);
+        grad_s.merge_inplace(&grad_ns, |x, y| x - self.gamma * y);
+
+        let res_theta = self.fa_theta.handle(ScaledGradientUpdate {
+            alpha: w_s,
+            jacobian: grad_s,
+        })?;
+
+        Ok(Response {
+            res_theta,
+            res_w,
+            td_error,
+        })
     }
 }
 
-impl<S, F> ValuePredictor<S> for GTD2<F>
-where
-    F: StateFunction<S, Output = f64>
-{
-    fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s)
+impl<S, F: Function<(S,), Output = f64>> ValuePredictor<S> for GTD2<F> {
+    fn predict_v(&self, s: S) -> f64 {
+        self.fa_theta.evaluate((s,))
     }
 }

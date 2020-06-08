@@ -2,8 +2,12 @@ use ndarray::Array1;
 use super::Transform;
 
 // f(x) ≜ x
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct Identity;
 
 macro_rules! impl_identity {
@@ -102,13 +106,13 @@ mod tests {
     #[test]
     fn test_vector() {
         fn prop_transform(val: Vec<f64>) -> bool {
-            let t = Identity.transform(Array1::from_vec(val.clone()));
+            let t = Identity.transform(Array1::from(val.clone()));
 
             t.into_iter().zip(val.into_iter()).all(|(v1, v2)| (v1 - v2).abs() < 1e-7)
         }
 
         fn prop_grad(val: Vec<f64>) -> bool {
-            let g = Identity.grad(Array1::from_vec(val));
+            let g = Identity.grad(Array1::from(val));
 
             g.into_iter().all(|v| (v - 1.0).abs() < 1e-7)
         }

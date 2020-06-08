@@ -1,29 +1,25 @@
 extern crate rsrl;
-#[macro_use]
-extern crate slog;
 
+use rand::thread_rng;
 use rsrl::{
     control::{ac::A2C, td::SARSA},
     domains::{Domain, MountainCar},
     fa::linear::{
-        basis::{Fourier, Projector},
+        basis::{Combinators, Fourier},
         optim::SGD,
         LFA,
     },
-    logging,
     make_shared,
-    policies::Gibbs,
-    run,
+    policies::{Gibbs, Policy},
     spaces::Space,
-    Evaluation,
-    SerialExperiment,
+    Handler,
 };
 
 fn main() {
     let domain = MountainCar::default();
-
     let n_actions = domain.action_space().card().into();
-    let bases = Fourier::from_space(3, domain.state_space()).with_constant();
+
+    let bases = Fourier::from_space(3, domain.state_space()).with_bias();
 
     let policy = make_shared({
         let fa = LFA::vector(bases.clone(), SGD(1.0), n_actions);
@@ -31,27 +27,39 @@ fn main() {
         Gibbs::standard(fa)
     });
     let critic = {
-        let q_func = LFA::vector(bases, SGD(1.0), n_actions);
+        let q_func = LFA::vector(bases, SGD(0.001), n_actions);
 
-        SARSA::new(q_func, policy.clone(), 0.001, 1.0)
+        SARSA::new(q_func, policy.clone(), 1.0)
     };
 
+    let mut rng = thread_rng();
     let mut agent = A2C::new(critic, policy, 0.001);
 
-    let logger = logging::root(logging::stdout());
-    let domain_builder = Box::new(MountainCar::default);
+    for e in 0..1000 {
+        // Episode loop:
+        let mut env = MountainCar::default();
+        let mut action = agent.policy.sample(&mut rng, env.emit().state());
+        let mut total_reward = 0.0;
 
-    // Training phase:
-    let _training_result = {
-        // Start a serial learning experiment up to 1000 steps per episode.
-        let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
+        for _ in 0..1000 {
+            // Trajectory loop:
+            let t = env.transition(action).replace_action(action);
 
-        // Realise 1000 episodes of the experiment generator.
-        run(e, 1000, Some(logger.clone()))
-    };
+            agent.critic.handle(&t).ok();
+            agent.handle(&t).ok();
 
-    // Testing phase:
-    let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
+            action = agent.policy.sample(&mut rng, t.to.state());
+            total_reward += t.reward;
 
-    info!(logger, "solution"; testing_result);
+            if t.terminated() {
+                break;
+            }
+        }
+
+        println!("Batch {}: {}", e + 1, total_reward);
+    }
+
+    let traj = MountainCar::default().rollout(|s| agent.policy.mode(s), Some(1000));
+
+    println!("OOS: {}...", traj.total_reward());
 }

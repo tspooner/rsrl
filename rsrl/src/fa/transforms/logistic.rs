@@ -2,8 +2,12 @@ use ndarray::Array1;
 use super::Transform;
 
 // f(x) ≜ L / (1 + exp(-k(x - x0))
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct Logistic {
     amplitude: f64,
     growth_rate: f64,
@@ -50,12 +54,12 @@ impl Transform<f64> for Logistic {
     fn transform(&self, x: f64) -> f64 {
         let x = self.rescale_x(x);
 
-        self.amplitude * Logistic::sigmoid(x)
+        self.amplitude * Logistic::sigmoid_stable(x)
     }
 
     fn grad(&self, x: f64) -> f64 {
         let x = self.rescale_x(x);
-        let s = Logistic::sigmoid(x);
+        let s = Logistic::sigmoid_stable(x);
 
         self.growth_rate * self.amplitude * (-x).exp() * s * s
     }

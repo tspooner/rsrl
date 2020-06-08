@@ -1,76 +1,94 @@
 use crate::{
-    OnlineLearner,
-    domains::Transition,
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, DifferentiableStateFunction,
-    },
+    Handler, Function, Differentiable,
+    domains::{Transition, Observation},
+    fa::ScaledGradientUpdate,
     prediction::ValuePredictor,
     traces::Trace,
 };
+use super::Response;
 
-#[derive(Parameterised)]
+#[derive(Debug, Parameterised)]
 pub struct TDLambda<F, T> {
     #[weights] pub fa_theta: F,
+    pub trace: T,
 
-    pub alpha: f64,
     pub gamma: f64,
     pub lambda: f64,
-
-    trace: T,
 }
 
 impl<F, T> TDLambda<F, T> {
     pub fn new(
         fa_theta: F,
         trace: T,
-        alpha: f64,
         gamma: f64,
         lambda: f64,
     ) -> Self {
         TDLambda {
             fa_theta,
+            trace,
 
-            alpha,
             gamma,
             lambda,
-
-            trace,
         }
     }
 }
 
-impl<S, A, F, T> OnlineLearner<S, A> for TDLambda<F, T>
+impl<'m, S, A, F, T> Handler<&'m Transition<S, A>> for TDLambda<F, T>
 where
-    F: DifferentiableStateFunction<S, Output = f64>,
-    T: Trace<F::Gradient>,
+    F: Differentiable<(&'m S,), Output = f64>,
+    F: for<'j> Handler<ScaledGradientUpdate<&'j <F as Differentiable<(&'m S,)>>::Jacobian>>,
+    T: Trace<Buffer = <F as Differentiable<(&'m S,)>>::Jacobian>,
 {
-    fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let s = t.from.state();
-        let v = self.fa_theta.evaluate(s);
+    type Response = Response<()>;
+    type Error = ();
 
-        self.trace.scaled_update(self.lambda * self.gamma, &self.fa_theta.grad(s));
+    fn handle(&mut self, transition: &'m Transition<S, A>) -> Result<Self::Response, Self::Error> {
+        let from = transition.from.state();
 
-        if t.terminated() {
-            self.fa_theta.update_grad_scaled(self.trace.deref(), t.reward - v);
-            self.trace.reset();
-        } else {
-            let td_error = t.reward + self.gamma * self.fa_theta.evaluate(t.to.state()) - v;
+        let pred = self.fa_theta.evaluate((from,));
+        let grad = self.fa_theta.grad((from,));
 
-            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * td_error);
+        self.trace.scaled_update(self.lambda * self.gamma, &grad);
+
+        let td_error = match transition.to {
+            Observation::Terminal(_) => {
+                let jacobian = self.trace.deref();
+                let td_error = transition.reward - pred;
+
+                self.fa_theta.handle(ScaledGradientUpdate {
+                    alpha: td_error,
+                    jacobian,
+                }).ok();
+                self.trace.reset();
+
+                td_error
+            },
+            Observation::Full(ref to) | Observation::Partial(ref to) => {
+                let jacobian = self.trace.deref();
+                let td_error =
+                    transition.reward + self.gamma * self.fa_theta.evaluate((to,)) - pred;
+
+                self.fa_theta.handle(ScaledGradientUpdate {
+                    alpha: td_error,
+                    jacobian,
+                }).ok();
+
+                td_error
+            }
         };
-    }
 
-    fn handle_terminal(&mut self) {
-        self.trace.reset();
+        Ok(Response {
+            td_error,
+            vfunc_response: (),
+        })
     }
 }
 
 impl<S, F, T> ValuePredictor<S> for TDLambda<F, T>
 where
-    F: StateFunction<S, Output = f64>,
+    F: Function<(S,), Output = f64>,
 {
-    fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s)
+    fn predict_v(&self, s: S) -> f64 {
+        self.fa_theta.evaluate((s,))
     }
 }

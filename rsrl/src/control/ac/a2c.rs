@@ -1,11 +1,10 @@
 use crate::{
-    OnlineLearner,
-    control::Controller,
+    Handler,
     domains::Transition,
-    policies::{Policy, DifferentiablePolicy},
+    fa::StateActionUpdate,
+    policies::Policy,
     prediction::{ValuePredictor, ActionValuePredictor},
 };
-use rand::Rng;
 
 /// Advantage actor-critic.
 pub struct A2C<C, P> {
@@ -26,55 +25,23 @@ impl<C, P> A2C<C, P> {
     }
 }
 
-impl<S, C, P> OnlineLearner<S, P::Action> for A2C<C, P>
+impl<'m, S, C, P> Handler<&'m Transition<S, P::Action>> for A2C<C, P>
 where
-    C: OnlineLearner<S, P::Action> + ValuePredictor<S> + ActionValuePredictor<S, P::Action>,
-    P: DifferentiablePolicy<S>,
-    P::Action: Clone,
+    C: ValuePredictor<&'m S> + ActionValuePredictor<&'m S, &'m P::Action>,
+    P: Policy<&'m S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<&'m S>>::Action, f64>>,
 {
-    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
-        self.critic.handle_transition(t);
+    type Response = P::Response;
+    type Error = P::Error;
 
+    fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
         let v = self.critic.predict_v(s);
         let qsa = self.critic.predict_q(s, &t.action);
 
-        self.policy.update(s, &t.action, self.alpha * (qsa - v));
-    }
-
-    fn handle_terminal(&mut self) {
-        self.critic.handle_terminal();
-    }
-}
-
-impl<S, C, P> ValuePredictor<S> for A2C<C, P>
-where
-    C: ValuePredictor<S>,
-{
-    fn predict_v(&self, s: &S) -> f64 {
-        self.critic.predict_v(s)
-    }
-}
-
-impl<S, C, P> ActionValuePredictor<S, P::Action> for A2C<C, P>
-where
-    C: ActionValuePredictor<S, P::Action>,
-    P: Policy<S>,
-{
-    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
-        self.critic.predict_q(s, a)
-    }
-}
-
-impl<S, C, P> Controller<S, P::Action> for A2C<C, P>
-where
-    P: Policy<S>,
-{
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
+        self.policy.handle(StateActionUpdate {
+            state: s,
+            action: &t.action,
+            error: self.alpha * (qsa - v),
+        })
     }
 }

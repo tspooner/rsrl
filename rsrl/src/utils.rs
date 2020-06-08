@@ -3,11 +3,11 @@ use ndarray::Array2;
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use std::f64;
 
-pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
+pub fn argmaxima<I: IntoIterator<Item = f64>>(vals: I) -> (Vec<usize>, f64) {
     let mut max = f64::MIN;
     let mut ixs = vec![];
 
-    for (i, &v) in vals.iter().enumerate() {
+    for (i, v) in vals.into_iter().enumerate() {
         if (v - max).abs() < 1e-7 {
             ixs.push(i);
         } else if v > max {
@@ -17,11 +17,37 @@ pub fn argmaxima(vals: &[f64]) -> (f64, Vec<usize>) {
         }
     }
 
-    (max, ixs)
+    (ixs, max)
 }
 
-pub fn argmax_choose(values: &[f64]) -> (f64, usize) {
-    let (value, maxima) = argmaxima(values);
+pub fn argmax_first<I: IntoIterator<Item = f64>>(vals: I) -> (usize, f64) {
+    vals.into_iter().enumerate().fold(
+        (0, f64::MIN),
+        |(i, x), (j, y)| {
+            if y - x > 1e-7 {
+                (j, y)
+            } else {
+                (i, x)
+            }
+        },
+    )
+}
+
+pub fn argmax_last<I: IntoIterator<Item = f64>>(vals: I) -> (usize, f64) {
+    vals.into_iter().enumerate().fold(
+        (0, f64::MIN),
+        |(i, x), (j, y)| {
+            if y - x > -1e-7 {
+                (j, y)
+            } else {
+                (i, x)
+            }
+        },
+    )
+}
+
+pub fn argmax_choose<I: IntoIterator<Item = f64>>(vals: I) -> (usize, f64) {
+    let (maxima, value) = argmaxima(vals);
 
     let maximum = if maxima.len() == 1 {
         maxima[0]
@@ -31,11 +57,15 @@ pub fn argmax_choose(values: &[f64]) -> (f64, usize) {
             .expect("No valid maxima to choose from in `argmax_choose`.")
     };
 
-    (value, maximum)
+    (maximum, value)
 }
 
-pub fn argmax_choose_rng(rng: &mut impl Rng, values: &[f64]) -> (f64, usize) {
-    let (value, maxima) = argmaxima(values);
+pub fn argmax_choose_rng<R, I>(rng: &mut R, vals: I) -> (usize, f64)
+where
+    R: Rng + ?Sized,
+    I: IntoIterator<Item = f64>,
+{
+    let (maxima, value) = argmaxima(vals);
 
     let maximum = if maxima.len() == 1 {
         maxima[0]
@@ -45,7 +75,7 @@ pub fn argmax_choose_rng(rng: &mut impl Rng, values: &[f64]) -> (f64, usize) {
             .expect("No valid maxima to choose from in `argmax_choose`.")
     };
 
-    (value, maximum)
+    (maximum, value)
 }
 
 pub fn sub2ind(dims: &[usize], inds: &[usize]) -> usize {

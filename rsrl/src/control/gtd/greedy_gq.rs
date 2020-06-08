@@ -1,16 +1,12 @@
 use crate::{
-    OnlineLearner, Shared, make_shared,
-    control::Controller,
+    Handler, Function, Enumerable,
     domains::Transition,
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, StateActionFunction, EnumerableStateActionFunction,
-        linear::{LinearStateFunction, LinearStateActionFunction},
-    },
-    policies::{Greedy, Policy, EnumerablePolicy},
+    fa::StateActionUpdate,
+    policies::{Policy, EnumerablePolicy},
     prediction::{ValuePredictor, ActionValuePredictor},
 };
-use rand::{thread_rng, Rng};
+use rand::thread_rng;
+use std::f64;
 
 // TODO: Extract prediction component GQ / GQ(lambda) into seperate implementations.
 
@@ -20,111 +16,118 @@ use rand::{thread_rng, Rng};
 /// approximation." Proceedings of the 27th International Conference on Machine
 /// Learning (ICML-10). 2010.
 #[derive(Parameterised)]
-pub struct GreedyGQ<Q, W, PB> {
+pub struct GreedyGQ<Q, T, P> {
     #[weights] pub fa_q: Q,
-    pub fa_w: W,
+    pub fa_td: T,
 
-    pub target_policy: Greedy<Q>,
-    pub behaviour_policy: PB,
+    pub behaviour_policy: P,
 
-    pub alpha: f64,
-    pub beta: f64,
     pub gamma: f64,
 }
 
-impl<Q, W, PB> GreedyGQ<Shared<Q>, W, PB> {
+impl<Q, T, P> GreedyGQ<Q, T, P> {
     pub fn new(
         fa_q: Q,
-        fa_w: W,
-        behaviour_policy: PB,
-        alpha: f64,
-        beta: f64,
+        fa_td: T,
+        behaviour_policy: P,
         gamma: f64,
     ) -> Self {
-        let fa_q = make_shared(fa_q);
-
         GreedyGQ {
-            fa_q: fa_q.clone(),
-            fa_w,
+            fa_q,
+            fa_td,
 
-            target_policy: Greedy::new(fa_q),
             behaviour_policy,
 
-            alpha,
-            beta,
             gamma,
         }
     }
 }
 
-impl<S, Q, W, PB> OnlineLearner<S, PB::Action> for GreedyGQ<Q, W, PB>
+impl<'m, S, Q, T, P> Handler<&'m Transition<S, P::Action>> for GreedyGQ<Q, T, P>
 where
-    Q: EnumerableStateActionFunction<S> + LinearStateActionFunction<S, usize>,
-    W: StateFunction<S, Output = f64> + LinearStateFunction<S>,
-    PB: EnumerablePolicy<S>,
+    Q: Handler<StateActionUpdate<&'m S, usize>> +
+        Function<(&'m S,)> + Enumerable<(&'m S,)>,
+
+    Q::Output: IntoIterator<Item = f64> + std::ops::Index<usize, Output = f64>,
+    <Q::Output as IntoIterator>::IntoIter: ExactSizeIterator,
+
+    T: Handler<StateActionUpdate<&'m S, usize>> + Function<(&'m S, usize), Output = f64>,
+
+    P: Policy<&'m S, Action = usize>,
 {
-    fn handle_transition(&mut self, t: &Transition<S, PB::Action>) {
+    type Response = ();
+    type Error = ();
+
+    fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<(), ()> {
         let s = t.from.state();
 
-        let phi_s_w = self.fa_w.features(s);
-        let phi_s_q = self.fa_q.features(s, &t.action);
-
-        let qsa = self.fa_q.evaluate_features(&phi_s_q, &t.action);
-        let estimate = self.fa_w.evaluate_features(&phi_s_w);
+        let qsa = self.fa_q.evaluate_index((s,), t.action);
+        let td_est = self.fa_td.evaluate((s, t.action));
 
         if t.terminated() {
             let residual = t.reward - qsa;
 
-            self.fa_w.update_features(&phi_s_w, self.alpha * self.beta * (residual - estimate));
-            self.fa_q.update_features(&phi_s_q, &t.action, self.alpha * residual);
+            self.fa_q.handle(StateActionUpdate {
+                state: s,
+                action: t.action,
+                error: residual,
+            }).ok();
+
+            self.fa_td.handle(StateActionUpdate {
+                state: s,
+                action: t.action,
+                error: residual - td_est,
+            }).ok();
         } else {
             let ns = t.to.state();
-            let na = self.sample_target(&mut thread_rng(), ns);
-            let phi_ns_q = self.fa_q.features(ns, &na);
+            let (na, qnsna) = self.fa_q.find_max((ns,));
 
-            let residual =
-                t.reward + self.gamma * self.fa_q.evaluate_features(&phi_ns_q, &na) - qsa;
+            let residual = t.reward + self.gamma * qnsna - qsa;
 
-            let update_q = phi_s_q.combine(&phi_ns_q, |x, y| {
-                residual * x - estimate * self.gamma * y
-            });
+            self.fa_q.handle(StateActionUpdate {
+                state: s,
+                action: t.action,
+                error: residual,
+            }).ok();
 
-            self.fa_w.update_features(&phi_s_w, self.alpha * self.beta * (residual - estimate));
-            self.fa_q.update_features(&update_q, &t.action, self.alpha);
+            self.fa_q.handle(StateActionUpdate {
+                state: ns,
+                action: na,
+                error: -self.gamma * td_est,
+            }).ok();
+
+            self.fa_td.handle(StateActionUpdate {
+                state: s,
+                action: t.action,
+                error: residual - td_est,
+            }).ok();
         }
+
+        Ok(())
     }
 }
 
-impl<S, Q, W, PB> ValuePredictor<S> for GreedyGQ<Q, W, PB>
+impl<S, Q, T, P> ValuePredictor<S> for GreedyGQ<Q, T, P>
 where
-    Q: StateActionFunction<S, <Greedy<Q> as Policy<S>>::Action, Output = f64>,
-    Greedy<Q>: Policy<S>,
+    P: for<'s> EnumerablePolicy<&'s S>,
+    Q: Enumerable<(S,)>,
+
+    Q::Output: IntoIterator<Item = f64> + std::ops::Index<usize, Output = f64>,
+    <Q::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn predict_v(&self, s: &S) -> f64 {
-        self.fa_q.evaluate(s, &self.target_policy.mpa(s))
+    fn predict_v(&self, s: S) -> f64 {
+        self.fa_q.evaluate((s,))
+            .into_iter()
+            .fold(f64::MIN, |acc, x| if x - acc > 1e-7 { x } else { acc })
     }
 }
 
-impl<S, Q, W, PB> ActionValuePredictor<S, <Greedy<Q> as Policy<S>>::Action> for GreedyGQ<Q, W, PB>
+impl<S, Q, T, P> ActionValuePredictor<S, P::Action> for GreedyGQ<Q, T, P>
 where
-    Q: StateActionFunction<S, <Greedy<Q> as Policy<S>>::Action, Output = f64>,
-    Greedy<Q>: Policy<S>,
+    P: Policy<S>,
+    Q: Function<(S, P::Action), Output = f64>,
 {
-    fn predict_q(&self, s: &S, a: &<Greedy<Q> as Policy<S>>::Action) -> f64 {
-        self.fa_q.evaluate(s, a)
-    }
-}
-
-impl<S, Q, W, PB> Controller<S, PB::Action> for GreedyGQ<Q, W, PB>
-where
-    Q: EnumerableStateActionFunction<S>,
-    PB: EnumerablePolicy<S>,
-{
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
-        self.target_policy.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> PB::Action {
-        self.behaviour_policy.sample(rng, s)
+    fn predict_q(&self, s: S, a: P::Action) -> f64 {
+        self.fa_q.evaluate((s, a))
     }
 }

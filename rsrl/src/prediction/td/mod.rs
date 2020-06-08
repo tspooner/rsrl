@@ -1,3 +1,9 @@
+#[derive(Clone, Copy, Debug)]
+pub struct Response<R> {
+    pub td_error: f64,
+    pub vfunc_response: R,
+}
+
 import_all!(td);
 import_all!(td_lambda);
 
