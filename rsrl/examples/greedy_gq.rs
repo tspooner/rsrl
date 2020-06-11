@@ -2,7 +2,7 @@ extern crate rsrl;
 
 use rand::{rngs::StdRng, SeedableRng};
 use rsrl::{
-    control::gtd::GreedyGQ,
+    control::td::GreedyGQ,
     domains::{Domain, MountainCar},
     fa::linear::{
         LFA,

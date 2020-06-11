@@ -4,12 +4,15 @@ pub mod q_learning;
 pub mod q_lambda;
 pub mod q_sigma;
 pub mod pal;
+pub mod greedy_gq;
 
 pub use self::{
     q_learning::QLearning,
     q_lambda::QLambda,
     q_sigma::QSigma,
     pal::PAL,
+
+    greedy_gq::GreedyGQ,
 };
 
 // On-policy:

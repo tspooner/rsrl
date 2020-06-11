@@ -425,8 +425,8 @@ impl_variants!(Exp);
 #[cfg(test)]
 mod tests {
     use quickcheck::quickcheck;
-    use std::f64::E;
-    use super::{Identity, Softplus, Logistic, Transform, Array1};
+    use std::f64::consts::E;
+    use super::*;
 
     #[test]
     fn test_identity_scalar() {
