@@ -1,9 +1,10 @@
 use crate::{
-    Handler, Parameterised,
     domains::Transition,
-    fa::linear::{Features, basis::Basis},
+    fa::linear::{basis::Basis, Features},
     prediction::ValuePredictor,
     utils::argmaxima,
+    Handler,
+    Parameterised,
 };
 use ndarray::{Array1, Array2, Axis};
 
@@ -11,7 +12,8 @@ use ndarray::{Array1, Array2, Axis};
 #[derive(Debug, Parameterised)]
 pub struct iLSTD<B> {
     pub basis: B,
-    #[weights] pub theta: Array1<f64>,
+    #[weights]
+    pub theta: Array1<f64>,
 
     pub alpha: f64,
     pub gamma: f64,
@@ -57,8 +59,7 @@ impl<B> iLSTD<B> {
 }
 
 impl<'m, S, A, B> Handler<&'m Transition<S, A>> for iLSTD<B>
-where
-    B: Basis<&'m S, Value = Features>,
+where B: Basis<&'m S, Value = Features>
 {
     type Response = ();
     type Error = crate::fa::linear::Error;
@@ -99,7 +100,5 @@ where
 }
 
 impl<S, B: Basis<S, Value = Features>> ValuePredictor<S> for iLSTD<B> {
-    fn predict_v(&self, s: S) -> f64 {
-        self.basis.project(s).unwrap().dot(&self.theta)
-    }
+    fn predict_v(&self, s: S) -> f64 { self.basis.project(s).unwrap().dot(&self.theta) }
 }

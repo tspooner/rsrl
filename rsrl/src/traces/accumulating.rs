@@ -1,7 +1,7 @@
+use super::Trace;
 use crate::params::{Buffer, BufferMut};
 use ndarray::Dimension;
 use std::ops::{Deref, DerefMut};
-use super::Trace;
 
 #[derive(Clone, Debug)]
 #[cfg_attr(
@@ -14,17 +14,13 @@ pub struct Accumulating<B: Buffer>(B);
 impl<B: BufferMut> Accumulating<B> {
     pub fn new(buffer: B) -> Self { Accumulating(buffer) }
 
-    pub fn zeros(dim: <B::Dim as Dimension>::Pattern) -> Self {
-        Accumulating::new(B::zeros(dim))
-    }
+    pub fn zeros(dim: <B::Dim as Dimension>::Pattern) -> Self { Accumulating::new(B::zeros(dim)) }
 }
 
 impl<B: BufferMut> Trace for Accumulating<B> {
     type Buffer = B;
 
-    fn update(&mut self, buffer: &B) {
-        self.0.merge_inplace(buffer, |x, y| x + y);
-    }
+    fn update(&mut self, buffer: &B) { self.0.merge_inplace(buffer, |x, y| x + y); }
 
     fn scaled_update(&mut self, alpha: f64, buffer: &B) {
         self.0.merge_inplace(buffer, |x, y| alpha * x + y);
@@ -43,8 +39,8 @@ impl<B: Buffer> DerefMut for Accumulating<B> {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::{arr1, Array2};
     use super::*;
+    use ndarray::{arr1, Array2};
 
     const LAMBDA: f64 = 0.95;
 

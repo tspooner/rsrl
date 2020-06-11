@@ -1,9 +1,12 @@
 use crate::{
-    Handler, Function, Enumerable, Parameterised,
     domains::Transition,
     fa::StateActionUpdate,
-    policies::{Policy, EnumerablePolicy},
-    prediction::{ValuePredictor, ActionValuePredictor},
+    policies::{EnumerablePolicy, Policy},
+    prediction::{ActionValuePredictor, ValuePredictor},
+    Enumerable,
+    Function,
+    Handler,
+    Parameterised,
 };
 use std::ops::Index;
 
@@ -18,7 +21,8 @@ use std::ops::Index;
 /// pp. 177–184.
 #[derive(Parameterised)]
 pub struct ExpectedSARSA<Q, P> {
-    #[weights] pub q_func: Q,
+    #[weights]
+    pub q_func: Q,
     pub policy: P,
 
     pub alpha: f64,
@@ -85,9 +89,11 @@ where
     <<P as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
     fn predict_v(&self, s: S) -> f64 {
-        self.q_func.evaluate((s.clone(),)).into_iter()
-                .zip(self.policy.evaluate((s,)).into_iter())
-                .fold(0.0, |acc, (q, p)| acc + q * p)
+        self.q_func
+            .evaluate((s.clone(),))
+            .into_iter()
+            .zip(self.policy.evaluate((s,)).into_iter())
+            .fold(0.0, |acc, (q, p)| acc + q * p)
     }
 }
 
@@ -96,7 +102,5 @@ where
     Q: Function<(S, P::Action), Output = f64>,
     P: Policy<S>,
 {
-    fn predict_q(&self, s: S, a: P::Action) -> f64 {
-        self.q_func.evaluate((s, a))
-    }
+    fn predict_q(&self, s: S, a: P::Action) -> f64 { self.q_func.evaluate((s, a)) }
 }

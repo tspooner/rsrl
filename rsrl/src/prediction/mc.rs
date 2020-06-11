@@ -1,30 +1,26 @@
 use crate::{
-    Handler, Function, Parameterised,
     domains::Trajectory,
     fa::StateUpdate,
     prediction::ValuePredictor,
+    Function,
+    Handler,
+    Parameterised,
 };
 
 #[derive(Debug, Parameterised)]
 pub struct GradientMC<V> {
-    #[weights] pub v_func: V,
+    #[weights]
+    pub v_func: V,
 
     pub gamma: f64,
 }
 
 impl<V> GradientMC<V> {
-    pub fn new(v_func: V, gamma: f64) -> Self {
-        GradientMC {
-            v_func,
-
-            gamma,
-        }
-    }
+    pub fn new(v_func: V, gamma: f64) -> Self { GradientMC { v_func, gamma } }
 }
 
 impl<'m, S, A, V> Handler<&'m Trajectory<S, A>> for GradientMC<V>
-where
-    V: Function<(&'m S,), Output = f64> + Handler<StateUpdate<&'m S, f64>>
+where V: Function<(&'m S,), Output = f64> + Handler<StateUpdate<&'m S, f64>>
 {
     type Response = ();
     type Error = ();
@@ -39,10 +35,12 @@ where
             let pred = self.v_func.evaluate((from,));
 
             // TODO: Use the result properly.
-            self.v_func.handle(StateUpdate {
-                state: from,
-                error: sum - pred,
-            }).ok();
+            self.v_func
+                .handle(StateUpdate {
+                    state: from,
+                    error: sum - pred,
+                })
+                .ok();
         });
 
         Ok(())
@@ -50,8 +48,7 @@ where
 }
 
 impl<S, V> ValuePredictor<S> for GradientMC<V>
-where
-    V: Function<(S,), Output = f64>
+where V: Function<(S,), Output = f64>
 {
     fn predict_v(&self, s: S) -> f64 { self.v_func.evaluate((s,)) }
 }

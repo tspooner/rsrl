@@ -1,8 +1,11 @@
 use crate::{
-    Handler, Function, Enumerable, Parameterised,
     domains::Transition,
     fa::StateActionUpdate,
-    prediction::{ValuePredictor, ActionValuePredictor},
+    prediction::{ActionValuePredictor, ValuePredictor},
+    Enumerable,
+    Function,
+    Handler,
+    Parameterised,
 };
 use std::ops::Index;
 
@@ -31,23 +34,16 @@ pub struct Response<R> {
     serde(crate = "serde_crate")
 )]
 pub struct QLearning<Q> {
-    #[weights] pub q_func: Q,
+    #[weights]
+    pub q_func: Q,
 
     pub gamma: f64,
 }
 
 impl<Q> QLearning<Q> {
-    pub fn new(q_func: Q, gamma: f64) -> Self {
-        QLearning {
-            q_func,
+    pub fn new(q_func: Q, gamma: f64) -> Self { QLearning { q_func, gamma } }
 
-            gamma,
-        }
-    }
-
-    pub fn undiscounted(q_func: Q) -> Self {
-        QLearning::new(q_func, 1.0)
-    }
+    pub fn undiscounted(q_func: Q) -> Self { QLearning::new(q_func, 1.0) }
 }
 
 impl<'m, S, Q> Handler<&'m Transition<S, usize>> for QLearning<Q>
@@ -72,14 +68,13 @@ where
             t.reward + self.gamma * nqsna - qsa
         };
 
-        self.q_func.handle(StateActionUpdate {
-            state,
-            action: t.action,
-            error,
-        }).map(|q_res| Response {
-            q_res,
-            error,
-        })
+        self.q_func
+            .handle(StateActionUpdate {
+                state,
+                action: t.action,
+                error,
+            })
+            .map(|q_res| Response { q_res, error })
     }
 }
 
@@ -93,10 +88,7 @@ where
 }
 
 impl<S, Q> ActionValuePredictor<S, usize> for QLearning<Q>
-where
-    Q: Function<(S, usize), Output = f64>,
+where Q: Function<(S, usize), Output = f64>
 {
-    fn predict_q(&self, s: S, a: usize) -> f64 {
-        self.q_func.evaluate((s, a))
-    }
+    fn predict_q(&self, s: S, a: usize) -> f64 { self.q_func.evaluate((s, a)) }
 }

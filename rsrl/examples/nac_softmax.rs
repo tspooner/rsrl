@@ -3,7 +3,7 @@ extern crate rsrl;
 use rand::thread_rng;
 use rsrl::{
     control::{ac::NAC, td::SARSA},
-    domains::{MountainCar, Domain},
+    domains::{Domain, MountainCar},
     fa::{
         linear::{
             basis::{Combinators, Fourier, SCB},
@@ -14,10 +14,11 @@ use rsrl::{
         Composition,
     },
     make_shared,
-    policies::{Softmax, Policy},
-    Handler, Differentiable,
+    policies::{Policy, Softmax},
+    Differentiable,
+    Handler,
 };
-use spaces::{Space, BoundedSpace};
+use spaces::{BoundedSpace, Space};
 
 fn main() {
     let domain = MountainCar::default();
@@ -74,8 +75,7 @@ fn main() {
         println!("Batch {}: {}", e + 1, total_reward);
     }
 
-    let traj =
-        MountainCar::default().rollout(|s| agent.policy.mode(s), Some(1000));
+    let traj = MountainCar::default().rollout(|s| agent.policy.mode(s), Some(1000));
 
     println!("OOS: {}...", traj.total_reward());
 }

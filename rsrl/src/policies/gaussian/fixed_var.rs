@@ -1,3 +1,4 @@
+use super::{BuilderSupport, Gaussian};
 use crate::{
     fa::{GradientUpdate, ScaledGradientUpdate, StateActionUpdate},
     params::*,
@@ -16,11 +17,9 @@ use rstat::{
     ContinuousDistribution,
     Distribution,
 };
-use super::{Gaussian, BuilderSupport};
 
 impl<M> Parameterised for Gaussian<M, f64>
-where
-    M: Parameterised,
+where M: Parameterised
 {
     fn weights(&self) -> Weights { self.mean.weights() }
 
@@ -109,9 +108,10 @@ where
         let dist = Builder::build_unchecked(self.compute_mean(msg.state), self.stddev);
         let normal::Grad { mu: gl_mean, .. } = dist.score(&[*msg.action.borrow()]);
 
-        self.mean
-            .grad((msg.state,))
-            .scaled_addto(msg.error * gl_mean, &mut self.mean.weights_view_mut().column_mut(0));
+        self.mean.grad((msg.state,)).scaled_addto(
+            msg.error * gl_mean,
+            &mut self.mean.weights_view_mut().column_mut(0),
+        );
 
         Ok(())
     }
@@ -170,7 +170,8 @@ where
     type Error = ();
 
     fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
-        msg.jacobian.scaled_addto(msg.alpha, &mut self.mean.weights_view_mut());
+        msg.jacobian
+            .scaled_addto(msg.alpha, &mut self.mean.weights_view_mut());
 
         Ok(())
     }

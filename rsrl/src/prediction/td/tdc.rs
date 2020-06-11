@@ -1,25 +1,24 @@
 use crate::{
-    Handler, Function, Differentiable,
     domains::Transition,
-    fa::{StateUpdate, GradientUpdate},
+    fa::{GradientUpdate, StateUpdate},
     params::{BufferMut, Parameterised},
     prediction::ValuePredictor,
+    Differentiable,
+    Function,
+    Handler,
 };
 
 #[derive(Debug, Parameterised)]
 pub struct TDC<F> {
-    #[weights] pub fa_theta: F,
+    #[weights]
+    pub fa_theta: F,
     pub fa_w: F,
 
     pub gamma: f64,
 }
 
 impl<F: Parameterised> TDC<F> {
-    pub fn new(
-        fa_theta: F,
-        fa_w: F,
-        gamma: f64,
-    ) -> Self {
+    pub fn new(fa_theta: F, fa_w: F, gamma: f64) -> Self {
         TDC {
             fa_theta,
             fa_w,
@@ -30,10 +29,9 @@ impl<F: Parameterised> TDC<F> {
 }
 
 impl<'m, S, A, F> Handler<&'m Transition<S, A>> for TDC<F>
-where
-    F: Differentiable<(&'m S,), Output = f64>
+where F: Differentiable<(&'m S,), Output = f64>
         + Handler<StateUpdate<&'m S, f64>>
-        + Handler<GradientUpdate<<F as Differentiable<(&'m S,)>>::Jacobian>>,
+        + Handler<GradientUpdate<<F as Differentiable<(&'m S,)>>::Jacobian>>
 {
     type Response = ();
     type Error = ();
@@ -50,10 +48,12 @@ where
             t.reward + self.gamma * self.fa_theta.evaluate((ns,)) - theta_s
         };
 
-        self.fa_w.handle(StateUpdate {
-            state: s,
-            error: td_error - w_s,
-        }).ok();
+        self.fa_w
+            .handle(StateUpdate {
+                state: s,
+                error: td_error - w_s,
+            })
+            .ok();
 
         let grad_s = self.fa_theta.grad((s,));
         let grad_ns = self.fa_theta.grad((ns,));
@@ -67,7 +67,5 @@ where
 }
 
 impl<S, F: Function<(S,), Output = f64>> ValuePredictor<S> for TDC<F> {
-    fn predict_v(&self, s: S) -> f64 {
-        self.fa_theta.evaluate((s,))
-    }
+    fn predict_v(&self, s: S) -> f64 { self.fa_theta.evaluate((s,)) }
 }

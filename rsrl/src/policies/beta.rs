@@ -1,5 +1,5 @@
 use crate::{
-    fa::{GradientUpdate, ScaledGradientUpdate, StateUpdate, StateActionUpdate},
+    fa::{GradientUpdate, ScaledGradientUpdate, StateActionUpdate, StateUpdate},
     params::*,
     policies::Policy,
     Differentiable,
@@ -142,7 +142,9 @@ where
         let beta::Grad {
             alpha: gl_alpha,
             beta: gl_beta,
-        } = self.dist(msg.state).score(std::slice::from_ref(msg.action.borrow()));
+        } = self
+            .dist(msg.state)
+            .score(std::slice::from_ref(msg.action.borrow()));
 
         self.alpha
             .handle(StateUpdate {

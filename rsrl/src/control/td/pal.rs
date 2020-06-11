@@ -1,9 +1,12 @@
 use crate::{
-    Handler, Function, Enumerable, Parameterised,
     domains::Transition,
     fa::StateActionUpdate,
-    prediction::{ValuePredictor, ActionValuePredictor},
+    prediction::{ActionValuePredictor, ValuePredictor},
     utils::argmax_first,
+    Enumerable,
+    Function,
+    Handler,
+    Parameterised,
 };
 use std::ops::Index;
 
@@ -14,7 +17,8 @@ use std::ops::Index;
 /// Reinforcement Learning." AAAI. 2016.
 #[derive(Parameterised)]
 pub struct PAL<Q> {
-    #[weights] pub q_func: Q,
+    #[weights]
+    pub q_func: Q,
 
     pub alpha: f64,
     pub gamma: f64,
@@ -73,16 +77,11 @@ where
     <Q as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator,
     <<Q as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn predict_v(&self, s: S) -> f64 {
-        argmax_first(self.q_func.evaluate((s,))).1
-    }
+    fn predict_v(&self, s: S) -> f64 { argmax_first(self.q_func.evaluate((s,))).1 }
 }
 
 impl<S, Q> ActionValuePredictor<S, usize> for PAL<Q>
-where
-    Q: Function<(S, usize), Output = f64>,
+where Q: Function<(S, usize), Output = f64>
 {
-    fn predict_q(&self, s: S, a: usize) -> f64 {
-        self.q_func.evaluate((s, a))
-    }
+    fn predict_q(&self, s: S, a: usize) -> f64 { self.q_func.evaluate((s, a)) }
 }

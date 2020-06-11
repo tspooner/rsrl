@@ -1,9 +1,4 @@
-use crate::{
-    Handler,
-    domains::Batch,
-    fa::StateActionUpdate,
-    policies::Policy,
-};
+use crate::{domains::Batch, fa::StateActionUpdate, policies::Policy, Handler};
 
 #[derive(Clone, Debug, Parameterised)]
 #[cfg_attr(
@@ -12,7 +7,8 @@ use crate::{
     serde(crate = "serde_crate")
 )]
 pub struct REINFORCE<P> {
-    #[weights] pub policy: P,
+    #[weights]
+    pub policy: P,
 
     pub alpha: f64,
     pub gamma: f64,
@@ -30,8 +26,7 @@ impl<P> REINFORCE<P> {
 }
 
 impl<'m, S, P> Handler<&'m Batch<S, P::Action>> for REINFORCE<P>
-where
-    P: Policy<S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<S>>::Action>>,
+where P: Policy<S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<S>>::Action>>
 {
     type Response = ();
     type Error = ();
@@ -42,11 +37,13 @@ where
         for t in batch.into_iter().rev() {
             ret = t.reward + self.gamma * ret;
 
-            self.policy.handle(StateActionUpdate {
-                state: t.from.state(),
-                action: &t.action,
-                error: self.alpha * ret
-            }).ok();
+            self.policy
+                .handle(StateActionUpdate {
+                    state: t.from.state(),
+                    action: &t.action,
+                    error: self.alpha * ret,
+                })
+                .ok();
         }
 
         Ok(())

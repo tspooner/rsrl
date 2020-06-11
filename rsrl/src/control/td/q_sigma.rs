@@ -1,10 +1,13 @@
 use crate::{
-    Handler, Function, Enumerable, Parameterised,
     domains::Transition,
     fa::StateActionUpdate,
     policies::EnumerablePolicy,
-    prediction::{ValuePredictor, ActionValuePredictor},
+    prediction::{ActionValuePredictor, ValuePredictor},
     utils::argmaxima,
+    Enumerable,
+    Function,
+    Handler,
+    Parameterised,
 };
 use rand::thread_rng;
 use std::{collections::VecDeque, ops::Index};
@@ -28,7 +31,10 @@ struct Backup<S> {
 
 impl<S> Backup<S> {
     pub fn new(n_steps: usize) -> Backup<S> {
-        Backup { n_steps, entries: VecDeque::new() }
+        Backup {
+            n_steps,
+            entries: VecDeque::new(),
+        }
     }
 
     pub fn len(&self) -> usize { self.entries.len() }
@@ -73,7 +79,8 @@ impl<S> Backup<S> {
 /// preprint arXiv:1703.01327.
 #[derive(Parameterised)]
 pub struct QSigma<S, Q, P> {
-    #[weights] pub q_func: Q,
+    #[weights]
+    pub q_func: Q,
     pub policy: P,
 
     pub alpha: f64,
@@ -84,14 +91,7 @@ pub struct QSigma<S, Q, P> {
 }
 
 impl<S, Q, P> QSigma<S, Q, P> {
-    pub fn new(
-        q_func: Q,
-        policy: P,
-        alpha: f64,
-        gamma: f64,
-        sigma: f64,
-        n_steps: usize,
-    ) -> Self {
+    pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64, sigma: f64, n_steps: usize) -> Self {
         QSigma {
             q_func,
             policy,
@@ -134,9 +134,9 @@ impl<'m, S, Q, P> Handler<&'m Transition<S, usize>> for QSigma<S, Q, P>
 where
     S: Clone,
 
-    Q: Enumerable<(&'m S,)> +
-        for<'s, 'a> Function<(&'s S, &'a usize), Output = f64> +
-        Handler<StateActionUpdate<S, usize, f64>>,
+    Q: Enumerable<(&'m S,)>
+        + for<'s, 'a> Function<(&'s S, &'a usize), Output = f64>
+        + Handler<StateActionUpdate<S, usize, f64>>,
     P: EnumerablePolicy<&'m S>,
 
     <Q as Function<(&'m S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
@@ -175,7 +175,11 @@ where
 
             let (na_max, exp_nqs) = argmaxima(nqs.into_iter());
 
-            let pi = if na_max.contains(&na) { 1.0 / na_max.len() as f64 } else { 0.0 };
+            let pi = if na_max.contains(&na) {
+                1.0 / na_max.len() as f64
+            } else {
+                0.0
+            };
             let mu = self.policy.evaluate((ns, na));
 
             let residual =
@@ -208,10 +212,7 @@ where
 }
 
 impl<S, Q, P> ActionValuePredictor<S, usize> for QSigma<S, Q, P>
-where
-    Q: Function<(S, usize), Output = f64>,
+where Q: Function<(S, usize), Output = f64>
 {
-    fn predict_q(&self, s: S, a: usize) -> f64 {
-        self.q_func.evaluate((s, a))
-    }
+    fn predict_q(&self, s: S, a: usize) -> f64 { self.q_func.evaluate((s, a)) }
 }

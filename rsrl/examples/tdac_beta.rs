@@ -13,9 +13,9 @@ use rsrl::{
         transforms::Softplus,
         Composition,
     },
+    make_shared,
     policies::{Beta, Policy},
     prediction::lstd::iLSTD,
-    make_shared,
     spaces::Space,
     Handler,
 };

@@ -1,14 +1,15 @@
 use crate::{
-    Handler,
     domains::Batch,
     fa::StateActionUpdate,
     policies::Policy,
     prediction::ActionValuePredictor,
+    Handler,
 };
 
 #[derive(Parameterised)]
 pub struct BaselineREINFORCE<B, P> {
-    #[weights] pub policy: P,
+    #[weights]
+    pub policy: P,
     pub baseline: B,
 
     pub alpha: f64,
@@ -44,11 +45,13 @@ where
 
             ret = t.reward + self.gamma * ret;
 
-            self.policy.handle(StateActionUpdate {
-                state: t.from.state(),
-                action: &t.action,
-                error: self.alpha * (ret - baseline)
-            }).ok();
+            self.policy
+                .handle(StateActionUpdate {
+                    state: t.from.state(),
+                    action: &t.action,
+                    error: self.alpha * (ret - baseline),
+                })
+                .ok();
         }
 
         Ok(())

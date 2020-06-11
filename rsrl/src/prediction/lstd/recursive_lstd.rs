@@ -1,8 +1,8 @@
 use crate::{
-    Handler,
     domains::Transition,
-    fa::linear::{Features, basis::Basis},
+    fa::linear::{basis::Basis, Features},
     prediction::ValuePredictor,
+    Handler,
 };
 use ndarray::{Array1, Array2, Axis};
 use spaces::Space;
@@ -10,7 +10,8 @@ use spaces::Space;
 #[derive(Debug, Parameterised)]
 pub struct RecursiveLSTD<B> {
     pub basis: B,
-    #[weights] pub theta: Array1<f64>,
+    #[weights]
+    pub theta: Array1<f64>,
 
     pub gamma: f64,
 
@@ -33,8 +34,7 @@ impl<B: Space> RecursiveLSTD<B> {
 }
 
 impl<'m, S, A, B> Handler<&'m Transition<S, A>> for RecursiveLSTD<B>
-where
-    B: Basis<&'m S, Value = Features>,
+where B: Basis<&'m S, Value = Features>
 {
     type Response = ();
     type Error = crate::fa::linear::Error;
@@ -94,7 +94,5 @@ where
 }
 
 impl<S, B: Basis<S, Value = Features>> ValuePredictor<S> for RecursiveLSTD<B> {
-    fn predict_v(&self, s: S) -> f64 {
-        self.basis.project(s).unwrap().dot(&self.theta)
-    }
+    fn predict_v(&self, s: S) -> f64 { self.basis.project(s).unwrap().dot(&self.theta) }
 }

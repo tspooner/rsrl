@@ -1,7 +1,7 @@
+use super::Trace;
 use crate::params::BufferMut;
 use ndarray::Dimension;
 use std::ops::{Deref, DerefMut};
-use super::Trace;
 
 #[derive(Clone, Debug)]
 pub struct Replacing<B: BufferMut>(B);
@@ -9,20 +9,20 @@ pub struct Replacing<B: BufferMut>(B);
 impl<B: BufferMut> Replacing<B> {
     pub fn new(buffer: B) -> Self { Replacing(buffer) }
 
-    pub fn zeros(dim: <B::Dim as Dimension>::Pattern) -> Self {
-        Replacing::new(B::zeros(dim))
-    }
+    pub fn zeros(dim: <B::Dim as Dimension>::Pattern) -> Self { Replacing::new(B::zeros(dim)) }
 }
 
 impl<B: BufferMut> Trace for Replacing<B> {
     type Buffer = B;
 
     fn update(&mut self, buffer: &B) {
-        self.0.merge_inplace(buffer, |x, y| f64::max(-1.0, f64::min(1.0, x + y)));
+        self.0
+            .merge_inplace(buffer, |x, y| f64::max(-1.0, f64::min(1.0, x + y)));
     }
 
     fn scaled_update(&mut self, factor: f64, buffer: &B) {
-        self.0.merge_inplace(buffer, |x, y| f64::max(-1.0, f64::min(1.0, factor * x + y)));
+        self.0
+            .merge_inplace(buffer, |x, y| f64::max(-1.0, f64::min(1.0, factor * x + y)));
     }
 }
 
@@ -38,8 +38,8 @@ impl<B: BufferMut> DerefMut for Replacing<B> {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::{arr1, Array2};
     use super::*;
+    use ndarray::{arr1, Array2};
 
     const LAMBDA: f64 = 0.95;
 

@@ -1,9 +1,9 @@
 use crate::{
-    Handler,
     domains::Transition,
     fa::StateActionUpdate,
     policies::Policy,
     prediction::ValuePredictor,
+    Handler,
 };
 
 /// TD-error actor-critic.

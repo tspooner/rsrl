@@ -1,10 +1,13 @@
 use crate::{
-    Handler, Function, Parameterised, Differentiable,
     domains::Transition,
     fa::ScaledGradientUpdate,
     policies::Policy,
     prediction::ValuePredictor,
     traces::Trace,
+    Differentiable,
+    Function,
+    Handler,
+    Parameterised,
 };
 use rand::thread_rng;
 
@@ -23,7 +26,8 @@ use rand::thread_rng;
     serde(crate = "serde_crate")
 )]
 pub struct SARSALambda<Q, P, T> {
-    #[weights] pub fa_theta: Q,
+    #[weights]
+    pub fa_theta: Q,
     pub policy: P,
     pub trace: T,
 
@@ -33,14 +37,7 @@ pub struct SARSALambda<Q, P, T> {
 }
 
 impl<Q, P, T> SARSALambda<Q, P, T> {
-    pub fn new(
-        fa_theta: Q,
-        policy: P,
-        trace: T,
-        alpha: f64,
-        gamma: f64,
-        lambda: f64,
-    ) -> Self {
+    pub fn new(fa_theta: Q, policy: P, trace: T, alpha: f64, gamma: f64, lambda: f64) -> Self {
         SARSALambda {
             fa_theta,
             policy,
@@ -55,10 +52,10 @@ impl<Q, P, T> SARSALambda<Q, P, T> {
 
 impl<'m, S, Q, P, T> Handler<&'m Transition<S, P::Action>> for SARSALambda<Q, P, T>
 where
-    Q: Function<(&'m S, P::Action), Output = f64> +
-        Differentiable<(&'m S, &'m P::Action), Output = f64>,
+    Q: Function<(&'m S, P::Action), Output = f64>
+        + Differentiable<(&'m S, &'m P::Action), Output = f64>,
     Q: for<'j> Handler<
-        ScaledGradientUpdate<&'j <Q as Differentiable<(&'m S, &'m P::Action)>>::Jacobian>
+        ScaledGradientUpdate<&'j <Q as Differentiable<(&'m S, &'m P::Action)>>::Jacobian>,
     >,
     P: Policy<&'m S>,
     T: Trace<Buffer = <Q as Differentiable<(&'m S, &'m P::Action)>>::Jacobian>,
@@ -77,20 +74,24 @@ where
 
         // Update weight vectors:
         if t.terminated() {
-            self.fa_theta.handle(ScaledGradientUpdate {
-                alpha: self.alpha * (t.reward - qsa),
-                jacobian: self.trace.deref(),
-            }).ok();
+            self.fa_theta
+                .handle(ScaledGradientUpdate {
+                    alpha: self.alpha * (t.reward - qsa),
+                    jacobian: self.trace.deref(),
+                })
+                .ok();
             self.trace.reset();
         } else {
             let ns = t.to.state();
             let na = self.policy.sample(&mut thread_rng(), ns);
             let nqsna = self.fa_theta.evaluate((ns, na));
 
-            self.fa_theta.handle(ScaledGradientUpdate {
-                alpha: self.alpha * (t.reward + self.gamma * nqsna - qsa),
-                jacobian: self.trace.deref(),
-            }).ok();
+            self.fa_theta
+                .handle(ScaledGradientUpdate {
+                    alpha: self.alpha * (t.reward + self.gamma * nqsna - qsa),
+                    jacobian: self.trace.deref(),
+                })
+                .ok();
         };
 
         Ok(())
@@ -112,10 +113,10 @@ where
 
 // impl<S, Q, P, T> ActionValuePredictor<S, P::Action> for SARSALambda<Q, P, T>
 // where
-    // Q: Function<S, P::Action, Output = f64>,
-    // P: Policy<S>,
+// Q: Function<S, P::Action, Output = f64>,
+// P: Policy<S>,
 // {
-    // fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
-        // self.fa_theta.evaluate(s, a)
-    // }
+// fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
+// self.fa_theta.evaluate(s, a)
+// }
 // }

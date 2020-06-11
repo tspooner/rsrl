@@ -1,9 +1,11 @@
 use crate::{
-    Handler, Function, Differentiable,
     domains::Transition,
     fa::ScaledGradientUpdate,
     params::{BufferMut, Parameterised},
     prediction::ValuePredictor,
+    Differentiable,
+    Function,
+    Handler,
 };
 
 #[derive(Clone, Debug)]
@@ -25,18 +27,15 @@ pub struct Response<T, W> {
     serde(crate = "serde_crate")
 )]
 pub struct GTD2<F> {
-    #[weights] pub fa_theta: F,
+    #[weights]
+    pub fa_theta: F,
     pub fa_w: F,
 
     pub gamma: f64,
 }
 
 impl<F: Parameterised> GTD2<F> {
-    pub fn new(
-        fa_theta: F,
-        fa_w: F,
-        gamma: f64,
-    ) -> Self {
+    pub fn new(fa_theta: F, fa_w: F, gamma: f64) -> Self {
         GTD2 {
             fa_theta,
             fa_w,
@@ -58,10 +57,8 @@ where
         Error = <F as Handler<SGU<'m, S, F>>>::Error,
     >,
 {
-    type Response = Response<
-        <F as Handler<SGU<'m, S, F>>>::Response,
-        <F as Handler<SGU<'m, S, F>>>::Response
-    >;
+    type Response =
+        Response<<F as Handler<SGU<'m, S, F>>>::Response, <F as Handler<SGU<'m, S, F>>>::Response>;
     type Error = <F as Handler<SGU<'m, S, F>>>::Error;
 
     fn handle(&mut self, t: &'m Transition<S, A>) -> Result<Self::Response, Self::Error> {
@@ -102,7 +99,5 @@ where
 }
 
 impl<S, F: Function<(S,), Output = f64>> ValuePredictor<S> for GTD2<F> {
-    fn predict_v(&self, s: S) -> f64 {
-        self.fa_theta.evaluate((s,))
-    }
+    fn predict_v(&self, s: S) -> f64 { self.fa_theta.evaluate((s,)) }
 }

@@ -1,9 +1,9 @@
 use crate::{
-    Handler,
     domains::Transition,
     fa::StateActionUpdate,
     policies::Policy,
     prediction::ValuePredictor,
+    Handler,
 };
 
 /// Off-policy TD-based actor-critic.
@@ -17,13 +17,7 @@ pub struct OffPAC<C, P, B> {
 }
 
 impl<C, P, B> OffPAC<C, P, B> {
-    pub fn new(
-        critic: C,
-        target: P,
-        behaviour: B,
-        alpha: f64,
-        gamma: f64,
-    ) -> Self {
+    pub fn new(critic: C, target: P, behaviour: B, alpha: f64, gamma: f64) -> Self {
         OffPAC {
             critic,
             target,
@@ -39,8 +33,8 @@ impl<'m, S, C, P, B> Handler<&'m Transition<S, P::Action>> for OffPAC<C, P, B>
 where
     C: ValuePredictor<&'m S>,
     B: Policy<&'m S>,
-    P: Policy<&'m S, Action = B::Action> +
-        Handler<StateActionUpdate<&'m S, &'m <P as Policy<&'m S>>::Action, f64>>,
+    P: Policy<&'m S, Action = B::Action>
+        + Handler<StateActionUpdate<&'m S, &'m <P as Policy<&'m S>>::Action, f64>>,
 {
     type Response = P::Response;
     type Error = P::Error;

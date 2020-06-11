@@ -9,9 +9,9 @@ use rsrl::{
         optim::SGD,
         LFA,
     },
+    make_shared,
     policies::{Gaussian, Policy},
     prediction::lstd::iLSTD,
-    make_shared,
     spaces::Space,
     Handler,
 };

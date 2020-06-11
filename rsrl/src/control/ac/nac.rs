@@ -1,8 +1,4 @@
-use crate::{
-    Handler,
-    fa::ScaledGradientUpdate,
-    params::*,
-};
+use crate::{fa::ScaledGradientUpdate, params::*, Handler};
 
 /// Natural actor-critic.
 #[derive(Clone, Debug)]
@@ -32,8 +28,10 @@ impl<C, P> NAC<C, P> {
 impl<M, C, P> Handler<M> for NAC<C, P>
 where
     C: Parameterised,
-    P: Parameterised + Handler<ScaledGradientUpdate<Weights>> +
-        for<'w> Handler<ScaledGradientUpdate<WeightsView<'w>>,
+    P: Parameterised
+        + Handler<ScaledGradientUpdate<Weights>>
+        + for<'w> Handler<
+            ScaledGradientUpdate<WeightsView<'w>>,
             Response = <P as Handler<ScaledGradientUpdate<Weights>>>::Response,
             Error = <P as Handler<ScaledGradientUpdate<Weights>>>::Error,
         >,

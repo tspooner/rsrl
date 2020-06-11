@@ -1,9 +1,11 @@
 use crate::{
-    Handler, Function, Parameterised,
     domains::Transition,
     fa::StateActionUpdate,
     policies::Policy,
-    prediction::{ValuePredictor, ActionValuePredictor},
+    prediction::{ActionValuePredictor, ValuePredictor},
+    Function,
+    Handler,
+    Parameterised,
 };
 use rand::thread_rng;
 
@@ -21,7 +23,8 @@ use rand::thread_rng;
     serde(crate = "serde_crate")
 )]
 pub struct SARSA<Q, P> {
-    #[weights] pub q_func: Q,
+    #[weights]
+    pub q_func: Q,
     pub policy: P,
 
     pub gamma: f64,
@@ -40,9 +43,9 @@ impl<Q, P> SARSA<Q, P> {
 
 impl<'m, S, Q, P> Handler<&'m Transition<S, P::Action>> for SARSA<Q, P>
 where
-    Q: Function<(&'m S, P::Action), Output = f64> +
-        for<'a> Function<(&'m S, &'a P::Action), Output = f64> +
-        Handler<StateActionUpdate<&'m S, &'m P::Action>>,
+    Q: Function<(&'m S, P::Action), Output = f64>
+        + for<'a> Function<(&'m S, &'a P::Action), Output = f64>
+        + Handler<StateActionUpdate<&'m S, &'m P::Action>>,
     P: Policy<&'m S>,
 {
     type Response = Q::Response;
@@ -89,7 +92,5 @@ where
     Q: Function<(S, A), Output = f64>,
     P: Policy<S>,
 {
-    fn predict_q(&self, s: S, a: A) -> f64 {
-        self.q_func.evaluate((s, a))
-    }
+    fn predict_q(&self, s: S, a: A) -> f64 { self.q_func.evaluate((s, a)) }
 }

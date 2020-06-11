@@ -14,27 +14,27 @@ use crate::{Differentiable, Enumerable, Function, OutputOf, Shared};
 use ndarray::Array2;
 use rand::{thread_rng, Rng};
 
-mod random;
-mod greedy;
 mod epsilon_greedy;
+mod greedy;
+mod random;
 
-pub use self::random::Random;
-pub use self::greedy::Greedy;
 pub use self::epsilon_greedy::EpsilonGreedy;
+pub use self::greedy::Greedy;
+pub use self::random::Random;
 
-mod softmax;
 mod beta;
 mod gaussian;
+mod softmax;
 
-pub use self::softmax::{Gibbs, Softmax};
 pub use self::beta::Beta;
 pub use self::gaussian::Gaussian;
+pub use self::softmax::{Gibbs, Softmax};
 
-mod point;
 mod ipp;
+mod point;
 
-pub use self::point::Point;
 pub use self::ipp::IPP;
+pub use self::point::Point;
 
 #[allow(dead_code)]
 #[inline]

@@ -1,14 +1,17 @@
 use crate::{
-    Handler, Function, Enumerable,
     domains::Transition,
     fa::StateActionUpdate,
-    policies::{Policy, EnumerablePolicy},
-    prediction::{ValuePredictor, ActionValuePredictor},
+    policies::{EnumerablePolicy, Policy},
+    prediction::{ActionValuePredictor, ValuePredictor},
+    Enumerable,
+    Function,
+    Handler,
 };
 use rand::thread_rng;
 use std::f64;
 
-// TODO: Extract prediction component GQ / GQ(lambda) into seperate implementations.
+// TODO: Extract prediction component GQ / GQ(lambda) into seperate
+// implementations.
 
 /// Greedy GQ control algorithm.
 ///
@@ -17,7 +20,8 @@ use std::f64;
 /// Learning (ICML-10). 2010.
 #[derive(Parameterised)]
 pub struct GreedyGQ<Q, T, P> {
-    #[weights] pub fa_q: Q,
+    #[weights]
+    pub fa_q: Q,
     pub fa_td: T,
 
     pub behaviour_policy: P,
@@ -26,12 +30,7 @@ pub struct GreedyGQ<Q, T, P> {
 }
 
 impl<Q, T, P> GreedyGQ<Q, T, P> {
-    pub fn new(
-        fa_q: Q,
-        fa_td: T,
-        behaviour_policy: P,
-        gamma: f64,
-    ) -> Self {
+    pub fn new(fa_q: Q, fa_td: T, behaviour_policy: P, gamma: f64) -> Self {
         GreedyGQ {
             fa_q,
             fa_td,
@@ -45,8 +44,7 @@ impl<Q, T, P> GreedyGQ<Q, T, P> {
 
 impl<'m, S, Q, T, P> Handler<&'m Transition<S, P::Action>> for GreedyGQ<Q, T, P>
 where
-    Q: Handler<StateActionUpdate<&'m S, usize>> +
-        Function<(&'m S,)> + Enumerable<(&'m S,)>,
+    Q: Handler<StateActionUpdate<&'m S, usize>> + Function<(&'m S,)> + Enumerable<(&'m S,)>,
 
     Q::Output: IntoIterator<Item = f64> + std::ops::Index<usize, Output = f64>,
     <Q::Output as IntoIterator>::IntoIter: ExactSizeIterator,
@@ -67,40 +65,50 @@ where
         if t.terminated() {
             let residual = t.reward - qsa;
 
-            self.fa_q.handle(StateActionUpdate {
-                state: s,
-                action: t.action,
-                error: residual,
-            }).ok();
+            self.fa_q
+                .handle(StateActionUpdate {
+                    state: s,
+                    action: t.action,
+                    error: residual,
+                })
+                .ok();
 
-            self.fa_td.handle(StateActionUpdate {
-                state: s,
-                action: t.action,
-                error: residual - td_est,
-            }).ok();
+            self.fa_td
+                .handle(StateActionUpdate {
+                    state: s,
+                    action: t.action,
+                    error: residual - td_est,
+                })
+                .ok();
         } else {
             let ns = t.to.state();
             let (na, qnsna) = self.fa_q.find_max((ns,));
 
             let residual = t.reward + self.gamma * qnsna - qsa;
 
-            self.fa_q.handle(StateActionUpdate {
-                state: s,
-                action: t.action,
-                error: residual,
-            }).ok();
+            self.fa_q
+                .handle(StateActionUpdate {
+                    state: s,
+                    action: t.action,
+                    error: residual,
+                })
+                .ok();
 
-            self.fa_q.handle(StateActionUpdate {
-                state: ns,
-                action: na,
-                error: -self.gamma * td_est,
-            }).ok();
+            self.fa_q
+                .handle(StateActionUpdate {
+                    state: ns,
+                    action: na,
+                    error: -self.gamma * td_est,
+                })
+                .ok();
 
-            self.fa_td.handle(StateActionUpdate {
-                state: s,
-                action: t.action,
-                error: residual - td_est,
-            }).ok();
+            self.fa_td
+                .handle(StateActionUpdate {
+                    state: s,
+                    action: t.action,
+                    error: residual - td_est,
+                })
+                .ok();
         }
 
         Ok(())
@@ -116,7 +124,8 @@ where
     <Q::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
     fn predict_v(&self, s: S) -> f64 {
-        self.fa_q.evaluate((s,))
+        self.fa_q
+            .evaluate((s,))
             .into_iter()
             .fold(f64::MIN, |acc, x| if x - acc > 1e-7 { x } else { acc })
     }
@@ -127,7 +136,5 @@ where
     P: Policy<S>,
     Q: Function<(S, P::Action), Output = f64>,
 {
-    fn predict_q(&self, s: S, a: P::Action) -> f64 {
-        self.fa_q.evaluate((s, a))
-    }
+    fn predict_q(&self, s: S, a: P::Action) -> f64 { self.fa_q.evaluate((s, a)) }
 }

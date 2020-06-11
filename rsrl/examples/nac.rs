@@ -74,8 +74,7 @@ fn main() {
         println!("Batch {}: {}", e + 1, total_reward);
     }
 
-    let traj =
-        ContinuousMountainCar::default().rollout(|s| agent.policy.mode(s), Some(1000));
+    let traj = ContinuousMountainCar::default().rollout(|s| agent.policy.mode(s), Some(1000));
 
     println!("OOS: {}...", traj.total_reward());
 }

@@ -1,10 +1,14 @@
 use crate::{
-    Handler, Function, Enumerable, Parameterised, Differentiable,
     domains::Transition,
     fa::ScaledGradientUpdate,
-    prediction::{ValuePredictor, ActionValuePredictor},
+    prediction::{ActionValuePredictor, ValuePredictor},
     traces::Trace,
     utils::argmax_first,
+    Differentiable,
+    Enumerable,
+    Function,
+    Handler,
+    Parameterised,
 };
 use std::ops::Index;
 
@@ -22,7 +26,8 @@ use std::ops::Index;
     serde(crate = "serde_crate")
 )]
 pub struct QLambda<F, T> {
-    #[weights] pub fa_theta: F,
+    #[weights]
+    pub fa_theta: F,
     pub trace: T,
 
     pub alpha: f64,
@@ -31,13 +36,7 @@ pub struct QLambda<F, T> {
 }
 
 impl<Q, T> QLambda<Q, T> {
-    pub fn new(
-        fa_theta: Q,
-        trace: T,
-        alpha: f64,
-        gamma: f64,
-        lambda: f64,
-    ) -> Self {
+    pub fn new(fa_theta: Q, trace: T, alpha: f64, gamma: f64, lambda: f64) -> Self {
         QLambda {
             fa_theta,
             trace,
@@ -48,12 +47,7 @@ impl<Q, T> QLambda<Q, T> {
         }
     }
 
-    pub fn undiscounted(
-        fa_theta: Q,
-        trace: T,
-        alpha: f64,
-        lambda: f64,
-    ) -> Self {
+    pub fn undiscounted(fa_theta: Q, trace: T, alpha: f64, lambda: f64) -> Self {
         QLambda::new(fa_theta, trace, alpha, 1.0, lambda)
     }
 }
@@ -61,9 +55,7 @@ impl<Q, T> QLambda<Q, T> {
 impl<'m, S, Q, T> Handler<&'m Transition<S, usize>> for QLambda<Q, T>
 where
     Q: Enumerable<(&'m S,)> + Differentiable<(&'m S, usize)>,
-    Q: for<'j> Handler<
-        ScaledGradientUpdate<&'j <Q as Differentiable<(&'m S, usize)>>::Jacobian>
-    >,
+    Q: for<'j> Handler<ScaledGradientUpdate<&'j <Q as Differentiable<(&'m S, usize)>>::Jacobian>>,
     T: Trace<Buffer = <Q as Differentiable<(&'m S, usize)>>::Jacobian>,
 
     <Q as Function<(&'m S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
@@ -88,20 +80,24 @@ where
         self.trace.update(&grad_s);
 
         if t.terminated() {
-            self.fa_theta.handle(ScaledGradientUpdate {
-                alpha: self.alpha * (t.reward - qsa),
-                jacobian: self.trace.deref(),
-            }).ok();
+            self.fa_theta
+                .handle(ScaledGradientUpdate {
+                    alpha: self.alpha * (t.reward - qsa),
+                    jacobian: self.trace.deref(),
+                })
+                .ok();
 
             self.trace.reset();
         } else {
             let ns = t.to.state();
             let (_, nqs_max) = self.fa_theta.find_max((ns,));
 
-            self.fa_theta.handle(ScaledGradientUpdate {
-                alpha: self.alpha * (t.reward + self.gamma * nqs_max - qsa),
-                jacobian: self.trace.deref(),
-            }).ok();
+            self.fa_theta
+                .handle(ScaledGradientUpdate {
+                    alpha: self.alpha * (t.reward + self.gamma * nqs_max - qsa),
+                    jacobian: self.trace.deref(),
+                })
+                .ok();
         };
 
         Ok(())
@@ -118,10 +114,7 @@ where
 }
 
 impl<S, Q, T> ActionValuePredictor<S, usize> for QLambda<Q, T>
-where
-    Q: Function<(S, usize), Output = f64>,
+where Q: Function<(S, usize), Output = f64>
 {
-    fn predict_q(&self, s: S, a: usize) -> f64 {
-        self.fa_theta.evaluate((s, a))
-    }
+    fn predict_q(&self, s: S, a: usize) -> f64 { self.fa_theta.evaluate((s, a)) }
 }

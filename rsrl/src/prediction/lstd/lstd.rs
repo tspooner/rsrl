@@ -1,9 +1,10 @@
 use crate::{
-    Handler, Parameterised,
     domains::Batch,
-    fa::linear::{Features, basis::Basis},
+    fa::linear::{basis::Basis, Features},
     prediction::ValuePredictor,
     utils::pinv,
+    Handler,
+    Parameterised,
 };
 use ndarray::{Array1, Array2, Axis};
 use ndarray_linalg::Solve;
@@ -11,7 +12,8 @@ use ndarray_linalg::Solve;
 #[derive(Debug, Parameterised)]
 pub struct LSTD<B> {
     pub basis: B,
-    #[weights] pub theta: Array1<f64>,
+    #[weights]
+    pub theta: Array1<f64>,
 
     pub gamma: f64,
 
@@ -37,9 +39,10 @@ impl<B: spaces::Space> LSTD<B> {
 
 impl<B> LSTD<B> {
     pub fn solve(&mut self) {
-        let theta = self.a.solve(&self.b).or_else(|_| {
-            pinv(&self.a).map(|ainv| ainv.dot(&self.b))
-        });
+        let theta = self
+            .a
+            .solve(&self.b)
+            .or_else(|_| pinv(&self.a).map(|ainv| ainv.dot(&self.b)));
 
         if let Ok(theta) = theta {
             self.theta.assign(&theta);
@@ -48,8 +51,7 @@ impl<B> LSTD<B> {
 }
 
 impl<'m, S, A, B> Handler<&'m Batch<S, A>> for LSTD<B>
-where
-    B: Basis<&'m S, Value = Features>,
+where B: Basis<&'m S, Value = Features>
 {
     type Response = ();
     type Error = crate::fa::linear::Error;
@@ -81,7 +83,5 @@ where
 }
 
 impl<S, B: Basis<S, Value = Features>> ValuePredictor<S> for LSTD<B> {
-    fn predict_v(&self, s: S) -> f64 {
-        self.basis.project(s).unwrap().dot(&self.theta)
-    }
+    fn predict_v(&self, s: S) -> f64 { self.basis.project(s).unwrap().dot(&self.theta) }
 }

@@ -1,7 +1,10 @@
 use crate::{
-    Function, Differentiable, Parameterised, Handler,
+    fa::{transforms, StateActionUpdate, StateUpdate},
     params::BufferMut,
-    fa::{transforms, StateUpdate, StateActionUpdate},
+    Differentiable,
+    Function,
+    Handler,
+    Parameterised,
 };
 
 /// Composition of an FA and a differentiable transform.
@@ -12,14 +15,13 @@ use crate::{
     serde(crate = "serde_crate")
 )]
 pub struct Composition<F, T> {
-    #[weights] pub fa: F,
+    #[weights]
+    pub fa: F,
     pub transform: T,
 }
 
 impl<F, T> Composition<F, T> {
-    pub fn new(fa: F, transform: T) -> Self {
-        Composition { fa, transform, }
-    }
+    pub fn new(fa: F, transform: T) -> Self { Composition { fa, transform } }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,7 +42,8 @@ where
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Implement V(s)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// TODO: implement for any fa/transform combination, not just those with output f64.
+// TODO: implement for any fa/transform combination, not just those with output
+// f64.
 impl<'s, S, F, T> Differentiable<(&'s S,)> for Composition<F, T>
 where
     F: Differentiable<(&'s S,), Output = f64>,
@@ -122,7 +125,11 @@ where
     type Response = F::Response;
     type Error = F::Error;
 
-    fn handle(&mut self, msg: StateActionUpdate<&'s S, A, f64>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: StateActionUpdate<&'s S, A, f64>,
+    ) -> Result<Self::Response, Self::Error>
+    {
         let gx = self.fa.evaluate((msg.state, *msg.action.borrow()));
         let f_gx = self.transform.grad(gx);
 

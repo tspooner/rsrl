@@ -21,8 +21,4 @@ mod accumulating;
 mod dutch;
 mod replacing;
 
-pub use self::{
-    accumulating::Accumulating,
-    dutch::Dutch,
-    replacing::Replacing,
-};
+pub use self::{accumulating::Accumulating, dutch::Dutch, replacing::Replacing};

@@ -1,9 +1,9 @@
 use crate::{
-    Handler,
     domains::Transition,
     fa::StateActionUpdate,
     policies::Policy,
     prediction::ActionValuePredictor,
+    Handler,
 };
 
 /// Action-value actor-critic.

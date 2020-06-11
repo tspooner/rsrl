@@ -1,3 +1,4 @@
+use super::{BuilderSupport, Gaussian};
 use crate::{
     fa::{GradientUpdate, ScaledGradientUpdate, StateActionUpdate},
     params::*,
@@ -16,7 +17,6 @@ use rstat::{
     ContinuousDistribution,
     Distribution,
 };
-use super::{Gaussian, BuilderSupport};
 
 impl<M, S> Parameterised for Gaussian<M, S>
 where
@@ -135,12 +135,14 @@ where
             Sigma: gl_stddev,
         } = self.dist(msg.state).score(&[*msg.action.borrow()]);
 
-        self.mean
-            .grad((msg.state,))
-            .scaled_addto(msg.error * gl_mean, &mut self.mean.weights_view_mut().column_mut(0));
-        self.stddev
-            .grad((msg.state,))
-            .scaled_addto(msg.error * gl_stddev, &mut self.stddev.weights_view_mut().column_mut(0));
+        self.mean.grad((msg.state,)).scaled_addto(
+            msg.error * gl_mean,
+            &mut self.mean.weights_view_mut().column_mut(0),
+        );
+        self.stddev.grad((msg.state,)).scaled_addto(
+            msg.error * gl_stddev,
+            &mut self.stddev.weights_view_mut().column_mut(0),
+        );
 
         Ok(())
     }

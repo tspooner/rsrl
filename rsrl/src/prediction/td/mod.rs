@@ -2,19 +2,13 @@
 pub mod td;
 pub mod td_lambda;
 
-pub use self::{
-    td::TD,
-    td_lambda::TDLambda,
-};
+pub use self::{td::TD, td_lambda::TDLambda};
 
 // Full-gradient methods:
-pub mod tdc;
 pub mod gtd2;
+pub mod tdc;
 
-pub use self::{
-    tdc::TDC,
-    gtd2::GTD2,
-};
+pub use self::{gtd2::GTD2, tdc::TDC};
 
 // TODO:
 // n-step TD - Sutton & Barto

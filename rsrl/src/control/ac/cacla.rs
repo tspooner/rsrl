@@ -1,9 +1,9 @@
 use crate::{
-    Handler,
     domains::Transition,
     fa::StateActionUpdate,
     policies::Policy,
     prediction::ValuePredictor,
+    Handler,
 };
 
 /// Continuous Actor-Critic Learning Automaton
@@ -16,12 +16,7 @@ pub struct CACLA<C, P> {
 }
 
 impl<C, P> CACLA<C, P> {
-    pub fn new(
-        critic: C,
-        policy: P,
-        alpha: f64,
-        gamma: f64,
-    ) -> Self {
+    pub fn new(critic: C, policy: P, alpha: f64, gamma: f64) -> Self {
         CACLA {
             critic,
             policy,
@@ -55,11 +50,13 @@ where
         if target > v {
             let mode = self.policy.mode(s);
 
-            self.policy.handle(StateActionUpdate {
-                state: s,
-                action: &t.action,
-                error: (&t.action - mode) * self.alpha,
-            }).map(|r| Some(r))
+            self.policy
+                .handle(StateActionUpdate {
+                    state: s,
+                    action: &t.action,
+                    error: (&t.action - mode) * self.alpha,
+                })
+                .map(|r| Some(r))
         } else {
             Ok(None)
         }

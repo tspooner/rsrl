@@ -131,7 +131,7 @@ macro_rules! impl_identity {
 
             fn grad_scaled(&self, _: $type, error: $type) -> $type { error }
         }
-    }
+    };
 }
 
 impl_identity!(f64; 1.0);
@@ -153,7 +153,10 @@ impl Transform<Array1<f64>> for Identity {
 
     fn transform(&self, x: Array1<f64>) -> Array1<f64> { x }
 
-    fn grad(&self, mut x: Array1<f64>) -> Array1<f64> { x.fill(1.0); x }
+    fn grad(&self, mut x: Array1<f64>) -> Array1<f64> {
+        x.fill(1.0);
+        x
+    }
 
     fn grad_scaled(&self, _: Array1<f64>, errors: Array1<f64>) -> Array1<f64> { errors }
 }
@@ -170,9 +173,7 @@ pub struct Tanh;
 impl Transform<f64> for Tanh {
     type Output = f64;
 
-    fn transform(&self, x: f64) -> f64 {
-        x.tanh()
-    }
+    fn transform(&self, x: f64) -> f64 { x.tanh() }
 
     fn grad(&self, x: f64) -> f64 {
         let cosh = x.cosh();
@@ -180,9 +181,7 @@ impl Transform<f64> for Tanh {
         1.0 / cosh / cosh
     }
 
-    fn grad_scaled(&self, x: f64, error: f64) -> f64 {
-        self.grad(x) * error
-    }
+    fn grad_scaled(&self, x: f64, error: f64) -> f64 { self.grad(x) * error }
 }
 
 impl_variants!(Tanh);
@@ -215,9 +214,7 @@ impl Transform<f64> for Softplus {
         }
     }
 
-    fn grad_scaled(&self, x: f64, error: f64) -> f64 {
-        self.grad(x) * error
-    }
+    fn grad_scaled(&self, x: f64, error: f64) -> f64 { self.grad(x) * error }
 }
 
 impl_variants!(Softplus);
@@ -242,9 +239,7 @@ impl Default for LogSumExp {
 impl Transform<f64> for LogSumExp {
     type Output = f64;
 
-    fn transform(&self, x: f64) -> f64 {
-        (self.0 + x.exp()).ln()
-    }
+    fn transform(&self, x: f64) -> f64 { (self.0 + x.exp()).ln() }
 
     fn grad(&self, x: f64) -> f64 {
         let exp_term = x.exp();
@@ -252,17 +247,13 @@ impl Transform<f64> for LogSumExp {
         exp_term / (self.0 + exp_term)
     }
 
-    fn grad_scaled(&self, x: f64, error: f64) -> f64 {
-        self.grad(x) * error
-    }
+    fn grad_scaled(&self, x: f64, error: f64) -> f64 { self.grad(x) * error }
 }
 
 impl Transform<[f64; 2]> for LogSumExp {
     type Output = f64;
 
-    fn transform(&self, x: [f64; 2]) -> f64 {
-        (self.0 + x[0].exp() + x[1].exp()).ln()
-    }
+    fn transform(&self, x: [f64; 2]) -> f64 { (self.0 + x[0].exp() + x[1].exp()).ln() }
 
     fn grad(&self, x: [f64; 2]) -> [f64; 2] {
         let e = [x[0].exp(), x[1].exp()];
@@ -338,20 +329,18 @@ pub struct Logistic {
 
 impl Logistic {
     pub fn new(amplitude: f64, growth_rate: f64, midpoint: f64) -> Logistic {
-        Logistic { amplitude, growth_rate, midpoint, }
+        Logistic {
+            amplitude,
+            growth_rate,
+            midpoint,
+        }
     }
 
-    pub fn standard() -> Logistic {
-        Logistic::new(1.0, 1.0, 0.0)
-    }
+    pub fn standard() -> Logistic { Logistic::new(1.0, 1.0, 0.0) }
 
-    pub fn standard_scaled(amplitude: f64) -> Logistic {
-        Logistic::new(amplitude, 1.0, 0.0)
-    }
+    pub fn standard_scaled(amplitude: f64) -> Logistic { Logistic::new(amplitude, 1.0, 0.0) }
 
-    pub fn sigmoid(x: f64) -> f64 {
-        1.0 / (1.0 + (-x).exp())
-    }
+    pub fn sigmoid(x: f64) -> f64 { 1.0 / (1.0 + (-x).exp()) }
 
     pub fn sigmoid_stable(x: f64) -> f64 {
         if x >= 0.0 {
@@ -386,9 +375,7 @@ impl Transform<f64> for Logistic {
         self.growth_rate * self.amplitude * (-x).exp() * s * s
     }
 
-    fn grad_scaled(&self, x: f64, error: f64) -> f64 {
-        self.grad(x) * error
-    }
+    fn grad_scaled(&self, x: f64, error: f64) -> f64 { self.grad(x) * error }
 }
 
 impl_variants!(Logistic);
@@ -405,17 +392,11 @@ pub struct Exp;
 impl Transform<f64> for Exp {
     type Output = f64;
 
-    fn transform(&self, x: f64) -> f64 {
-        x.exp()
-    }
+    fn transform(&self, x: f64) -> f64 { x.exp() }
 
-    fn grad(&self, x: f64) -> f64 {
-        self.transform(x)
-    }
+    fn grad(&self, x: f64) -> f64 { self.transform(x) }
 
-    fn grad_scaled(&self, x: f64, error: f64) -> f64 {
-        self.grad(x) * error
-    }
+    fn grad_scaled(&self, x: f64, error: f64) -> f64 { self.grad(x) * error }
 }
 
 impl_variants!(Exp);
@@ -424,19 +405,15 @@ impl_variants!(Exp);
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use quickcheck::quickcheck;
     use std::f64::consts::E;
-    use super::*;
 
     #[test]
     fn test_identity_scalar() {
-        fn prop_transform(val: f64) -> bool {
-            (Identity.transform(val) - val).abs() < 1e-7
-        }
+        fn prop_transform(val: f64) -> bool { (Identity.transform(val) - val).abs() < 1e-7 }
 
-        fn prop_grad(val: f64) -> bool {
-            (Identity.grad(val) - 1.0).abs() < 1e-7
-        }
+        fn prop_grad(val: f64) -> bool { (Identity.grad(val) - 1.0).abs() < 1e-7 }
 
         quickcheck(prop_transform as fn(f64) -> bool);
         quickcheck(prop_grad as fn(f64) -> bool);
@@ -465,7 +442,9 @@ mod tests {
         fn prop_transform(val: (f64, f64, f64)) -> bool {
             let t = Identity.transform([val.0, val.1, val.2]);
 
-            (t[0] - val.0).abs() < 1e-7 && (t[1] - val.1).abs() < 1e-7 && (t[2] - val.2).abs() < 1e-7
+            (t[0] - val.0).abs() < 1e-7
+                && (t[1] - val.1).abs() < 1e-7
+                && (t[2] - val.2).abs() < 1e-7
         }
 
         fn prop_grad(val: (f64, f64, f64)) -> bool {
@@ -483,7 +462,9 @@ mod tests {
         fn prop_transform(val: Vec<f64>) -> bool {
             let t = Identity.transform(Array1::from(val.clone()));
 
-            t.into_iter().zip(val.into_iter()).all(|(v1, v2)| (v1 - v2).abs() < 1e-7)
+            t.into_iter()
+                .zip(val.into_iter())
+                .all(|(v1, v2)| (v1 - v2).abs() < 1e-7)
         }
 
         fn prop_grad(val: Vec<f64>) -> bool {
@@ -509,9 +490,7 @@ mod tests {
 
     #[test]
     fn test_softplus_f64_positive() {
-        fn prop_positive(x: f64) -> bool {
-            Softplus.transform(x).is_sign_positive()
-        }
+        fn prop_positive(x: f64) -> bool { Softplus.transform(x).is_sign_positive() }
 
         quickcheck(prop_positive as fn(f64) -> bool);
     }
@@ -531,9 +510,7 @@ mod tests {
 
     #[test]
     fn test_logistic_f64_positive() {
-        fn prop_positive(x: f64) -> bool {
-            Logistic::default().transform(x).is_sign_positive()
-        }
+        fn prop_positive(x: f64) -> bool { Logistic::default().transform(x).is_sign_positive() }
 
         quickcheck(prop_positive as fn(f64) -> bool);
     }
@@ -551,9 +528,7 @@ mod tests {
 
     #[test]
     fn test_exponential_f64_positive() {
-        fn prop_positive(x: f64) -> bool {
-            Exp.transform(x).is_sign_positive()
-        }
+        fn prop_positive(x: f64) -> bool { Exp.transform(x).is_sign_positive() }
 
         quickcheck(prop_positive as fn(f64) -> bool);
     }

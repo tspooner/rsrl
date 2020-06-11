@@ -22,8 +22,8 @@ pub use self::rsrl_derive::*;
 extern crate lfa;
 pub extern crate rsrl_domains as domains;
 
-mod utils;
 mod core;
+mod utils;
 pub use self::core::*;
 
 pub extern crate spaces;

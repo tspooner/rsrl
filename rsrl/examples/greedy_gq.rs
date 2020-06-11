@@ -5,14 +5,15 @@ use rsrl::{
     control::td::GreedyGQ,
     domains::{Domain, MountainCar},
     fa::linear::{
-        LFA,
         basis::{Combinators, Fourier},
         optim::SGD,
+        LFA,
     },
     make_shared,
-    policies::{EpsilonGreedy, Greedy, Random, Policy},
+    policies::{EpsilonGreedy, Greedy, Policy, Random},
     spaces::Space,
-    Enumerable, Handler,
+    Enumerable,
+    Handler,
 };
 
 fn main() {

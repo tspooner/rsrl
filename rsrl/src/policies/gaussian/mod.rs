@@ -1,5 +1,8 @@
 use crate::{spaces::Space, Function};
-use rstat::{builder::{BuildNormal, Builder}, Distribution};
+use rstat::{
+    builder::{BuildNormal, Builder},
+    Distribution,
+};
 use std::fmt::Debug;
 
 type BuilderDist<M, S> = <Builder as BuildNormal<M, S>>::Normal;
@@ -54,5 +57,5 @@ impl<M, S> Gaussian<M, S> {
     }
 }
 
-mod general;
 mod fixed_var;
+mod general;

@@ -1,9 +1,10 @@
 use crate::{
-    Handler, Parameterised,
     domains::Batch,
-    fa::linear::{Features, basis::Basis},
+    fa::linear::{basis::Basis, Features},
     prediction::ValuePredictor,
     utils::pinv,
+    Handler,
+    Parameterised,
 };
 use ndarray::{Array1, Array2, Axis};
 use ndarray_linalg::Solve;
@@ -11,7 +12,8 @@ use ndarray_linalg::Solve;
 #[derive(Debug, Parameterised)]
 pub struct LSTDLambda<B> {
     pub basis: B,
-    #[weights] pub theta: Array1<f64>,
+    #[weights]
+    pub theta: Array1<f64>,
 
     pub gamma: f64,
     pub lambda: f64,
@@ -41,9 +43,10 @@ impl<B: spaces::Space> LSTDLambda<B> {
 
 impl<B> LSTDLambda<B> {
     pub fn solve(&mut self) {
-        let theta = self.a.solve(&self.b).or_else(|_| {
-            pinv(&self.a).map(|ainv| ainv.dot(&self.b))
-        });
+        let theta = self
+            .a
+            .solve(&self.b)
+            .or_else(|_| pinv(&self.a).map(|ainv| ainv.dot(&self.b)));
 
         if let Ok(theta) = theta {
             self.theta.assign(&theta)
@@ -52,8 +55,7 @@ impl<B> LSTDLambda<B> {
 }
 
 impl<'m, S, A, B> Handler<&'m Batch<S, A>> for LSTDLambda<B>
-where
-    B: Basis<&'m S, Value = Features>,
+where B: Basis<&'m S, Value = Features>
 {
     type Response = ();
     type Error = crate::fa::linear::Error;
@@ -73,14 +75,22 @@ where
             self.b.scaled_add(t.reward, &self.z);
 
             if t.terminated() {
-                self.a += &self.z.view().insert_axis(Axis(1)).dot(&phi_s.insert_axis(Axis(0)));
+                self.a += &self
+                    .z
+                    .view()
+                    .insert_axis(Axis(1))
+                    .dot(&phi_s.insert_axis(Axis(0)));
                 self.z.fill(0.0);
             } else {
                 let mut pd = self.basis.project(ns)?.into_dense();
 
                 pd.zip_mut_with(&phi_s, |x, &y| *x = y - self.gamma * *x);
 
-                self.a += &self.z.view().insert_axis(Axis(1)).dot(&pd.insert_axis(Axis(0)));
+                self.a += &self
+                    .z
+                    .view()
+                    .insert_axis(Axis(1))
+                    .dot(&pd.insert_axis(Axis(0)));
             }
         }
 
@@ -91,7 +101,5 @@ where
 }
 
 impl<S, B: Basis<S, Value = Features>> ValuePredictor<S> for LSTDLambda<B> {
-    fn predict_v(&self, s: S) -> f64 {
-        self.basis.project(s).unwrap().dot(&self.theta)
-    }
+    fn predict_v(&self, s: S) -> f64 { self.basis.project(s).unwrap().dot(&self.theta) }
 }

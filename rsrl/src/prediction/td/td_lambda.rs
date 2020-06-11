@@ -1,9 +1,11 @@
 use crate::{
-    Handler, Function, Differentiable,
-    domains::{Transition, Observation},
+    domains::{Observation, Transition},
     fa::ScaledGradientUpdate,
     prediction::ValuePredictor,
     traces::Trace,
+    Differentiable,
+    Function,
+    Handler,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -24,7 +26,8 @@ pub struct Response<R> {
     serde(crate = "serde_crate")
 )]
 pub struct TDLambda<F, T> {
-    #[weights] pub fa_theta: F,
+    #[weights]
+    pub fa_theta: F,
     pub trace: T,
 
     pub gamma: f64,
@@ -32,12 +35,7 @@ pub struct TDLambda<F, T> {
 }
 
 impl<F, T> TDLambda<F, T> {
-    pub fn new(
-        fa_theta: F,
-        trace: T,
-        gamma: f64,
-        lambda: f64,
-    ) -> Self {
+    pub fn new(fa_theta: F, trace: T, gamma: f64, lambda: f64) -> Self {
         TDLambda {
             fa_theta,
             trace,
@@ -70,10 +68,12 @@ where
                 let jacobian = self.trace.deref();
                 let td_error = transition.reward - pred;
 
-                self.fa_theta.handle(ScaledGradientUpdate {
-                    alpha: td_error,
-                    jacobian,
-                }).ok();
+                self.fa_theta
+                    .handle(ScaledGradientUpdate {
+                        alpha: td_error,
+                        jacobian,
+                    })
+                    .ok();
                 self.trace.reset();
 
                 td_error
@@ -83,13 +83,15 @@ where
                 let td_error =
                     transition.reward + self.gamma * self.fa_theta.evaluate((to,)) - pred;
 
-                self.fa_theta.handle(ScaledGradientUpdate {
-                    alpha: td_error,
-                    jacobian,
-                }).ok();
+                self.fa_theta
+                    .handle(ScaledGradientUpdate {
+                        alpha: td_error,
+                        jacobian,
+                    })
+                    .ok();
 
                 td_error
-            }
+            },
         };
 
         Ok(Response {
@@ -100,10 +102,7 @@ where
 }
 
 impl<S, F, T> ValuePredictor<S> for TDLambda<F, T>
-where
-    F: Function<(S,), Output = f64>,
+where F: Function<(S,), Output = f64>
 {
-    fn predict_v(&self, s: S) -> f64 {
-        self.fa_theta.evaluate((s,))
-    }
+    fn predict_v(&self, s: S) -> f64 { self.fa_theta.evaluate((s,)) }
 }

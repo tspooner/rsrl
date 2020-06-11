@@ -1,9 +1,10 @@
 use crate::{
-    Handler, Parameterised,
     domains::Batch,
-    fa::linear::{Features, basis::Basis},
+    fa::linear::{basis::Basis, Features},
     prediction::ValuePredictor,
     utils::pinv,
+    Handler,
+    Parameterised,
 };
 use ndarray::{Array1, Array2, Axis};
 use ndarray_linalg::Solve;
@@ -12,7 +13,8 @@ use std::ops::MulAssign;
 #[derive(Debug, Parameterised)]
 pub struct LambdaLSPE<B> {
     pub basis: B,
-    #[weights] pub theta: Array1<f64>,
+    #[weights]
+    pub theta: Array1<f64>,
 
     pub alpha: f64,
     pub gamma: f64,
@@ -45,9 +47,10 @@ impl<B: spaces::Space> LambdaLSPE<B> {
 impl<B> LambdaLSPE<B> {
     fn solve(&mut self) {
         // First try the clean approach otherwise solve via SVD:
-        let theta = self.a.solve(&self.b).or_else(|_| {
-            pinv(&self.a).map(|ainv| ainv.dot(&self.b))
-        });
+        let theta = self
+            .a
+            .solve(&self.b)
+            .or_else(|_| pinv(&self.a).map(|ainv| ainv.dot(&self.b)));
 
         if let Ok(theta) = theta {
             self.theta.mul_assign(1.0 - self.alpha);
@@ -61,8 +64,7 @@ impl<B> LambdaLSPE<B> {
 }
 
 impl<'m, S, A, B> Handler<&'m Batch<S, A>> for LambdaLSPE<B>
-where
-    B: Basis<&'m S, Value = Features>,
+where B: Basis<&'m S, Value = Features>
 {
     type Response = ();
     type Error = crate::fa::linear::Error;
@@ -78,8 +80,9 @@ where
                 let phi_s = phi_s.into_dense();
 
                 self.b.scaled_add(self.delta + t.reward, &phi_s);
-                self.a +=
-                    &phi_s.view().insert_axis(Axis(1))
+                self.a += &phi_s
+                    .view()
+                    .insert_axis(Axis(1))
                     .dot(&(phi_s.view().insert_axis(Axis(0))));
                 self.delta = 0.0;
             } else {
@@ -91,8 +94,9 @@ where
 
                 self.delta += residual;
                 self.b.scaled_add(theta_s + self.delta, &phi_s);
-                self.a +=
-                    &phi_s.view().insert_axis(Axis(1))
+                self.a += &phi_s
+                    .view()
+                    .insert_axis(Axis(1))
                     .dot(&(phi_s.view().insert_axis(Axis(0))));
             };
         }
@@ -104,7 +108,5 @@ where
 }
 
 impl<S, B: Basis<S, Value = Features>> ValuePredictor<S> for LambdaLSPE<B> {
-    fn predict_v(&self, s: S) -> f64 {
-        self.basis.project(s).unwrap().dot(&self.theta)
-    }
+    fn predict_v(&self, s: S) -> f64 { self.basis.project(s).unwrap().dot(&self.theta) }
 }
