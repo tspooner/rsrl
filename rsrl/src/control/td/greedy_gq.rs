@@ -2,12 +2,10 @@ use crate::{
     domains::Transition,
     fa::StateActionUpdate,
     policies::{EnumerablePolicy, Policy},
-    prediction::{ActionValuePredictor, ValuePredictor},
     Enumerable,
     Function,
     Handler,
 };
-use rand::thread_rng;
 use std::f64;
 
 // TODO: Extract prediction component GQ / GQ(lambda) into seperate
@@ -113,28 +111,4 @@ where
 
         Ok(())
     }
-}
-
-impl<S, Q, T, P> ValuePredictor<S> for GreedyGQ<Q, T, P>
-where
-    P: for<'s> EnumerablePolicy<&'s S>,
-    Q: Enumerable<(S,)>,
-
-    Q::Output: IntoIterator<Item = f64> + std::ops::Index<usize, Output = f64>,
-    <Q::Output as IntoIterator>::IntoIter: ExactSizeIterator,
-{
-    fn predict_v(&self, s: S) -> f64 {
-        self.fa_q
-            .evaluate((s,))
-            .into_iter()
-            .fold(f64::MIN, |acc, x| if x - acc > 1e-7 { x } else { acc })
-    }
-}
-
-impl<S, Q, T, P> ActionValuePredictor<S, P::Action> for GreedyGQ<Q, T, P>
-where
-    P: Policy<S>,
-    Q: Function<(S, P::Action), Output = f64>,
-{
-    fn predict_q(&self, s: S, a: P::Action) -> f64 { self.fa_q.evaluate((s, a)) }
 }

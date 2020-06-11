@@ -2,7 +2,6 @@ use crate::{
     domains::Transition,
     fa::StateActionUpdate,
     policies::EnumerablePolicy,
-    prediction::{ActionValuePredictor, ValuePredictor},
     utils::argmaxima,
     Enumerable,
     Function,
@@ -200,19 +199,4 @@ where
 
         res.transpose()
     }
-}
-
-impl<S, Q, P> ValuePredictor<S> for QSigma<S, Q, P>
-where
-    Q: Enumerable<(S,)>,
-    <Q as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
-    <<Q as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
-{
-    fn predict_v(&self, s: S) -> f64 { self.q_func.find_max((s,)).1 }
-}
-
-impl<S, Q, P> ActionValuePredictor<S, usize> for QSigma<S, Q, P>
-where Q: Function<(S, usize), Output = f64>
-{
-    fn predict_q(&self, s: S, a: usize) -> f64 { self.q_func.evaluate((s, a)) }
 }

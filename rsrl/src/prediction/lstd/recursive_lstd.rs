@@ -1,7 +1,6 @@
 use crate::{
     domains::Transition,
     fa::linear::{basis::Basis, Features},
-    prediction::ValuePredictor,
     Handler,
 };
 use ndarray::{Array1, Array2, Axis};
@@ -91,8 +90,4 @@ where B: Basis<&'m S, Value = Features>
 
         Ok(())
     }
-}
-
-impl<S, B: Basis<S, Value = Features>> ValuePredictor<S> for RecursiveLSTD<B> {
-    fn predict_v(&self, s: S) -> f64 { self.basis.project(s).unwrap().dot(&self.theta) }
 }

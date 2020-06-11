@@ -1,7 +1,6 @@
 use crate::{
     domains::Transition,
     fa::StateActionUpdate,
-    prediction::{ActionValuePredictor, ValuePredictor},
     utils::argmax_first,
     Enumerable,
     Function,
@@ -69,19 +68,4 @@ where
             error: self.alpha * residual,
         })
     }
-}
-
-impl<S, Q> ValuePredictor<S> for PAL<Q>
-where
-    Q: Enumerable<(S,), Output = Vec<f64>>,
-    <Q as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator,
-    <<Q as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
-{
-    fn predict_v(&self, s: S) -> f64 { argmax_first(self.q_func.evaluate((s,))).1 }
-}
-
-impl<S, Q> ActionValuePredictor<S, usize> for PAL<Q>
-where Q: Function<(S, usize), Output = f64>
-{
-    fn predict_q(&self, s: S, a: usize) -> f64 { self.q_func.evaluate((s, a)) }
 }

@@ -2,7 +2,6 @@ use crate::{
     domains::Transition,
     fa::ScaledGradientUpdate,
     policies::Policy,
-    prediction::ValuePredictor,
     traces::Trace,
     Differentiable,
     Function,
@@ -97,26 +96,3 @@ where
         Ok(())
     }
 }
-
-impl<S, Q, P, T> ValuePredictor<S> for SARSALambda<Q, P, T>
-where
-    S: Clone,
-    Q: Function<(S, P::Action), Output = f64>,
-    P: Policy<S>,
-{
-    fn predict_v(&self, s: S) -> f64 {
-        let a = self.policy.sample(&mut thread_rng(), s.clone());
-
-        self.fa_theta.evaluate((s, a))
-    }
-}
-
-// impl<S, Q, P, T> ActionValuePredictor<S, P::Action> for SARSALambda<Q, P, T>
-// where
-// Q: Function<S, P::Action, Output = f64>,
-// P: Policy<S>,
-// {
-// fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
-// self.fa_theta.evaluate(s, a)
-// }
-// }

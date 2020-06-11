@@ -1,8 +1,9 @@
+//! Continuous actor-critic learning automata
 use crate::{
     domains::Transition,
     fa::StateActionUpdate,
     policies::Policy,
-    prediction::ValuePredictor,
+    Function,
     Handler,
 };
 
@@ -29,7 +30,7 @@ impl<C, P> CACLA<C, P> {
 
 impl<'m, S, C, P> Handler<&'m Transition<S, P::Action>> for CACLA<C, P>
 where
-    C: ValuePredictor<&'m S>,
+    C: Function<(&'m S,), Output = f64>,
     P: Policy<&'m S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<&'m S>>::Action, f64>>,
 
     P::Action: std::ops::Mul<f64, Output = f64>,
@@ -40,11 +41,11 @@ where
 
     fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
-        let v = self.critic.predict_v(s);
+        let v = self.critic.evaluate((s,));
         let target = if t.terminated() {
             t.reward
         } else {
-            t.reward + self.gamma * self.critic.predict_v(t.to.state())
+            t.reward + self.gamma * self.critic.evaluate((t.to.state(),))
         };
 
         if target > v {

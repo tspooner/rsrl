@@ -1,10 +1,8 @@
 use crate::{
     domains::{Observation, Transition},
     fa::ScaledGradientUpdate,
-    prediction::ValuePredictor,
     traces::Trace,
     Differentiable,
-    Function,
     Handler,
 };
 
@@ -99,10 +97,4 @@ where
             vfunc_response: (),
         })
     }
-}
-
-impl<S, F, T> ValuePredictor<S> for TDLambda<F, T>
-where F: Function<(S,), Output = f64>
-{
-    fn predict_v(&self, s: S) -> f64 { self.fa_theta.evaluate((s,)) }
 }

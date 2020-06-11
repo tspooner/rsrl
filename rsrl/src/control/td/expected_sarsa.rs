@@ -1,8 +1,7 @@
 use crate::{
     domains::Transition,
     fa::StateActionUpdate,
-    policies::{EnumerablePolicy, Policy},
-    prediction::{ActionValuePredictor, ValuePredictor},
+    policies::EnumerablePolicy,
     Enumerable,
     Function,
     Handler,
@@ -62,7 +61,11 @@ where
             t.reward - qsa
         } else {
             let ns = t.to.state();
-            let exp_nv = self.predict_v(ns);
+            let exp_nv = self.q_func
+                .evaluate((ns,))
+                .into_iter()
+                .zip(self.policy.evaluate((ns,)).into_iter())
+                .fold(0.0, |acc, (q, p)| acc + q * p);
 
             t.reward + self.gamma * exp_nv - qsa
         };
@@ -73,34 +76,4 @@ where
             error: self.alpha * residual,
         })
     }
-}
-
-impl<S, Q, P> ValuePredictor<S> for ExpectedSARSA<Q, P>
-where
-    S: Clone,
-
-    Q: Enumerable<(S,)>,
-    P: EnumerablePolicy<S>,
-
-    <Q as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
-    <<Q as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
-
-    <P as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
-    <<P as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
-{
-    fn predict_v(&self, s: S) -> f64 {
-        self.q_func
-            .evaluate((s.clone(),))
-            .into_iter()
-            .zip(self.policy.evaluate((s,)).into_iter())
-            .fold(0.0, |acc, (q, p)| acc + q * p)
-    }
-}
-
-impl<S, Q, P> ActionValuePredictor<S, P::Action> for ExpectedSARSA<Q, P>
-where
-    Q: Function<(S, P::Action), Output = f64>,
-    P: Policy<S>,
-{
-    fn predict_q(&self, s: S, a: P::Action) -> f64 { self.q_func.evaluate((s, a)) }
 }

@@ -1,7 +1,6 @@
 use crate::{
     domains::Batch,
     fa::linear::{basis::Basis, Features},
-    prediction::ValuePredictor,
     utils::pinv,
     Handler,
     Parameterised,
@@ -80,8 +79,4 @@ where B: Basis<&'m S, Value = Features>
 
         Ok(())
     }
-}
-
-impl<S, B: Basis<S, Value = Features>> ValuePredictor<S> for LSTD<B> {
-    fn predict_v(&self, s: S) -> f64 { self.basis.project(s).unwrap().dot(&self.theta) }
 }

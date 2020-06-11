@@ -2,7 +2,6 @@ use crate::{
     domains::Transition,
     fa::ScaledGradientUpdate,
     params::{BufferMut, Parameterised},
-    prediction::ValuePredictor,
     Differentiable,
     Function,
     Handler,
@@ -96,8 +95,4 @@ where
             td_error,
         })
     }
-}
-
-impl<S, F: Function<(S,), Output = f64>> ValuePredictor<S> for GTD2<F> {
-    fn predict_v(&self, s: S) -> f64 { self.fa_theta.evaluate((s,)) }
 }

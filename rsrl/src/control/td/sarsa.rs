@@ -2,7 +2,6 @@ use crate::{
     domains::Transition,
     fa::StateActionUpdate,
     policies::Policy,
-    prediction::{ActionValuePredictor, ValuePredictor},
     Function,
     Handler,
     Parameterised,
@@ -71,26 +70,4 @@ where
             error: residual,
         })
     }
-}
-
-impl<S, Q, P> ValuePredictor<S> for SARSA<Q, P>
-where
-    S: Clone,
-    Q: Function<(S, P::Action), Output = f64>,
-    P: Policy<S>,
-{
-    fn predict_v(&self, s: S) -> f64 {
-        let a = self.policy.sample(&mut thread_rng(), s.clone());
-
-        self.q_func.evaluate((s, a))
-    }
-}
-
-impl<S, A, Q, P> ActionValuePredictor<S, A> for SARSA<Q, P>
-where
-    A: std::borrow::Borrow<P::Action>,
-    Q: Function<(S, A), Output = f64>,
-    P: Policy<S>,
-{
-    fn predict_q(&self, s: S, a: A) -> f64 { self.q_func.evaluate((s, a)) }
 }

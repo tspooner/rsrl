@@ -2,7 +2,7 @@ use crate::{
     domains::Batch,
     fa::StateActionUpdate,
     policies::Policy,
-    prediction::ActionValuePredictor,
+    Function,
     Handler,
 };
 
@@ -31,7 +31,7 @@ impl<B, P> BaselineREINFORCE<B, P> {
 impl<'m, S, B, P> Handler<&'m Batch<S, P::Action>> for BaselineREINFORCE<B, P>
 where
     P: Policy<S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<S>>::Action>>,
-    B: ActionValuePredictor<&'m S, &'m P::Action>,
+    B: Function<(&'m S, &'m P::Action), Output = f64>,
 {
     type Response = ();
     type Error = ();
@@ -41,7 +41,7 @@ where
 
         for t in batch.into_iter().rev() {
             let s = t.from.state();
-            let baseline = self.baseline.predict_q(s, &t.action);
+            let baseline = self.baseline.evaluate((s, &t.action));
 
             ret = t.reward + self.gamma * ret;
 

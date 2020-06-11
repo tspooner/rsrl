@@ -1,7 +1,6 @@
 use crate::{
     domains::Transition,
     fa::StateActionUpdate,
-    prediction::{ActionValuePredictor, ValuePredictor},
     Enumerable,
     Function,
     Handler,
@@ -76,19 +75,4 @@ where
             })
             .map(|q_res| Response { q_res, error })
     }
-}
-
-impl<S, Q> ValuePredictor<S> for QLearning<Q>
-where
-    Q: Enumerable<(S,)>,
-    <Q as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
-    <<Q as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
-{
-    fn predict_v(&self, s: S) -> f64 { self.q_func.find_max((s,)).1 }
-}
-
-impl<S, Q> ActionValuePredictor<S, usize> for QLearning<Q>
-where Q: Function<(S, usize), Output = f64>
-{
-    fn predict_q(&self, s: S, a: usize) -> f64 { self.q_func.evaluate((s, a)) }
 }

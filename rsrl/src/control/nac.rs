@@ -1,3 +1,4 @@
+//! Natural actor-critic algorithms.
 use crate::{fa::ScaledGradientUpdate, params::*, Handler};
 
 /// Natural actor-critic.

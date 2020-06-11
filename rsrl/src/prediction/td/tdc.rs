@@ -2,9 +2,7 @@ use crate::{
     domains::Transition,
     fa::{GradientUpdate, StateUpdate},
     params::{BufferMut, Parameterised},
-    prediction::ValuePredictor,
     Differentiable,
-    Function,
     Handler,
 };
 
@@ -64,8 +62,4 @@ where F: Differentiable<(&'m S,), Output = f64>
 
         Ok(())
     }
-}
-
-impl<S, F: Function<(S,), Output = f64>> ValuePredictor<S> for TDC<F> {
-    fn predict_v(&self, s: S) -> f64 { self.fa_theta.evaluate((s,)) }
 }

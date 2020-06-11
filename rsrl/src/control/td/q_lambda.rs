@@ -1,7 +1,6 @@
 use crate::{
     domains::Transition,
     fa::ScaledGradientUpdate,
-    prediction::{ActionValuePredictor, ValuePredictor},
     traces::Trace,
     utils::argmax_first,
     Differentiable,
@@ -102,19 +101,4 @@ where
 
         Ok(())
     }
-}
-
-impl<S, Q, T> ValuePredictor<S> for QLambda<Q, T>
-where
-    Q: Enumerable<(S,)>,
-    <Q as Function<(S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
-    <<Q as Function<(S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
-{
-    fn predict_v(&self, s: S) -> f64 { self.fa_theta.find_max((s,)).1 }
-}
-
-impl<S, Q, T> ActionValuePredictor<S, usize> for QLambda<Q, T>
-where Q: Function<(S, usize), Output = f64>
-{
-    fn predict_q(&self, s: S, a: usize) -> f64 { self.fa_theta.evaluate((s, a)) }
 }

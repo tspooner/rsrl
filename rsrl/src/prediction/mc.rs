@@ -1,7 +1,6 @@
 use crate::{
     domains::Trajectory,
     fa::StateUpdate,
-    prediction::ValuePredictor,
     Function,
     Handler,
     Parameterised,
@@ -45,10 +44,4 @@ where V: Function<(&'m S,), Output = f64> + Handler<StateUpdate<&'m S, f64>>
 
         Ok(())
     }
-}
-
-impl<S, V> ValuePredictor<S> for GradientMC<V>
-where V: Function<(S,), Output = f64>
-{
-    fn predict_v(&self, s: S) -> f64 { self.v_func.evaluate((s,)) }
 }

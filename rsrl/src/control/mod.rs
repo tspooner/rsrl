@@ -1,7 +1,14 @@
 //! Control agents module.
-pub mod ac;
-pub mod mc;
+// Critic-only:
 pub mod td;
+
+// Actor-only:
+pub mod mc;
+
+// Actor-Critic:
+pub mod ac;
+pub mod nac;
+pub mod cacla;
 
 // TODO
 // Proximal gradient-descent methods:
