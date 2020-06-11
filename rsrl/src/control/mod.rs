@@ -1,9 +1,7 @@
 //! Control agents module.
 pub mod ac;
-pub mod gtd;
 pub mod mc;
 pub mod td;
-pub mod totd;
 
 // TODO
 // Proximal gradient-descent methods:

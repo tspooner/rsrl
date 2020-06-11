@@ -19,7 +19,6 @@ impl<S, A, T: ActionValuePredictor<S, A>> ActionValuePredictor<S, A> for Shared<
     fn predict_q(&self, s: S, a: A) -> f64 { self.borrow().predict_q(s, a) }
 }
 
-pub mod gtd;
 pub mod lstd;
 pub mod mc;
 pub mod td;

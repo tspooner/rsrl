@@ -1,11 +1,20 @@
-#[derive(Clone, Copy, Debug)]
-pub struct Response<R> {
-    pub td_error: f64,
-    pub vfunc_response: R,
-}
+// Semi-gradient methods:
+pub mod td;
+pub mod td_lambda;
 
-import_all!(td);
-import_all!(td_lambda);
+pub use self::{
+    td::TD,
+    td_lambda::TDLambda,
+};
+
+// Full-gradient methods:
+pub mod tdc;
+pub mod gtd2;
+
+pub use self::{
+    tdc::TDC,
+    gtd2::GTD2,
+};
 
 // TODO:
 // n-step TD - Sutton & Barto

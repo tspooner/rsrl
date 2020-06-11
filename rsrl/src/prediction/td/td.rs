@@ -4,7 +4,17 @@ use crate::{
     fa::StateUpdate,
     prediction::ValuePredictor,
 };
-use super::Response;
+
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response<R> {
+    pub td_error: f64,
+    pub vfunc_response: R,
+}
 
 #[derive(Clone, Debug, Parameterised)]
 #[cfg_attr(

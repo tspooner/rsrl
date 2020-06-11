@@ -17,6 +17,12 @@ pub trait Trace: Deref<Target = <Self as Trace>::Buffer> + DerefMut {
     fn reset(&mut self) { self.scale(0.0) }
 }
 
-import_all!(accumulating);
-import_all!(dutch);
-import_all!(replacing);
+mod accumulating;
+mod dutch;
+mod replacing;
+
+pub use self::{
+    accumulating::Accumulating,
+    dutch::Dutch,
+    replacing::Replacing,
+};

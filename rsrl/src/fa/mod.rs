@@ -50,4 +50,6 @@ pub mod linear;
 pub mod tabular;
 
 pub mod transforms;
-import_all!(composition);
+
+mod composition;
+pub use self::composition::Composition;

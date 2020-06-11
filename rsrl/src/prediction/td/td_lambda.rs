@@ -5,9 +5,24 @@ use crate::{
     prediction::ValuePredictor,
     traces::Trace,
 };
-use super::Response;
 
-#[derive(Debug, Parameterised)]
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response<R> {
+    pub td_error: f64,
+    pub vfunc_response: R,
+}
+
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct TDLambda<F, T> {
     #[weights] pub fa_theta: F,
     pub trace: T,
