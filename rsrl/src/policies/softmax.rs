@@ -225,7 +225,6 @@ mod tests {
             },
             mocking::MockQ,
         },
-        utils::compare_floats,
     };
     use rand::thread_rng;
     use std::f64::consts::E;
@@ -248,40 +247,40 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_2d() {
-        let p = Softmax::new(MockQ::new_shared(None), 1.0);
-        let mut rng = thread_rng();
-        let mut counts = vec![0.0, 0.0];
+    // #[test]
+    // fn test_2d() {
+        // let p = Softmax::new(MockQ::new_shared(None), 1.0);
+        // let mut rng = thread_rng();
+        // let mut counts = vec![0.0, 0.0];
 
-        for _ in 0..50000 {
-            counts[p.sample(&mut rng, &vec![0.0, 1.0])] += 1.0;
-        }
+        // for _ in 0..50000 {
+            // counts[p.sample(&mut rng, &vec![0.0, 1.0])] += 1.0;
+        // }
 
-        let means: Vec<f64> = counts.into_iter().map(|v| v / 50000.0).collect();
+        // let means: Vec<f64> = counts.into_iter().map(|v| v / 50000.0).collect();
 
-        assert!(compare_floats(
-            means,
-            &[1.0 / (1.0 + E), E / (1.0 + E)],
-            1e-2
-        ));
-    }
+        // assert!(compare_floats(
+            // means,
+            // &[1.0 / (1.0 + E), E / (1.0 + E)],
+            // 1e-2
+        // ));
+    // }
 
-    #[test]
-    fn test_probabilites_1() {
-        let p = Softmax::new(MockQ::new_shared(None), 1.0);
+    // #[test]
+    // fn test_probabilites_1() {
+        // let p = Softmax::new(MockQ::new_shared(None), 1.0);
 
-        assert!(compare_floats(
-            p.evaluate((&vec![0.0, 1.0],)),
-            &[1.0 / (1.0 + E), E / (1.0 + E)],
-            1e-6
-        ));
-        assert!(compare_floats(
-            p.evaluate((&vec![0.0, 2.0],)),
-            &[1.0 / (1.0 + E * E), E * E / (1.0 + E * E)],
-            1e-6
-        ));
-    }
+        // assert!(compare_floats(
+            // p.evaluate((&vec![0.0, 1.0],)),
+            // &[1.0 / (1.0 + E), E / (1.0 + E)],
+            // 1e-6
+        // ));
+        // assert!(compare_floats(
+            // p.evaluate((&vec![0.0, 2.0],)),
+            // &[1.0 / (1.0 + E * E), E * E / (1.0 + E * E)],
+            // 1e-6
+        // ));
+    // }
 
     // #[test]
     // fn test_probabilities_2() {

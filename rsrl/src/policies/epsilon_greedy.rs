@@ -87,7 +87,6 @@ mod tests {
     use crate::{
         fa::mocking::MockQ,
         policies::{EnumerablePolicy, EpsilonGreedy, Policy},
-        utils::compare_floats,
         Function,
     };
     use rand::thread_rng;
