@@ -42,10 +42,10 @@ impl<M, S> Gaussian<M, S> {
     }
 
     #[inline]
-    fn dist<'i, X>(&self, x: &'i X) -> <Builder as BuildNormal<M::Output, S::Output>>::Normal
+    fn dist<'x, X>(&self, x: &'x X) -> <Builder as BuildNormal<M::Output, S::Output>>::Normal
     where
-        M: Function<(&'i X,)>,
-        S: Function<(&'i X,)>,
+        M: Function<(&'x X,)>,
+        S: Function<(&'x X,)>,
 
         M::Output: Clone,
         S::Output: std::ops::Add<f64, Output = S::Output>,

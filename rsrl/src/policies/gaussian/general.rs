@@ -1,4 +1,4 @@
-use super::{BuilderSupport, Gaussian};
+use super::{BuilderDist, BuilderSupport, Gaussian};
 use crate::{
     fa::{GradientUpdate, ScaledGradientUpdate, StateActionUpdate},
     params::*,
@@ -8,7 +8,7 @@ use crate::{
     Function,
     Handler,
 };
-use ndarray::{Array2, ArrayBase, Axis, Data, Ix1, Ix2};
+use ndarray::{Array1, Array2, ArrayBase, Axis, Data, Ix1, Ix2, Dimension};
 use rand::Rng;
 use rstat::{
     builder::{BuildNormal, Builder},
@@ -49,6 +49,7 @@ where
 impl<'x, X, A, M, S> Function<(&'x X, A)> for Gaussian<M, S>
 where
     A: std::borrow::Borrow<M::Output>,
+
     M: Function<(&'x X,)>,
     S: Function<(&'x X,)>,
 
@@ -63,17 +64,75 @@ where
     fn evaluate(&self, (x, a): (&'x X, A)) -> f64 { self.dist(x).pdf(a.borrow()) }
 }
 
+// impl<'x, X, A, M, S> Differentiable<(&'x X, A)> for Gaussian<M, S>
+// where
+    // A: std::borrow::Borrow<M::Output>,
+
+    // M: Parameterised + Differentiable<(&'x X,)>,
+    // S: Parameterised + Differentiable<(&'x X,)>,
+
+    // M::Output: Clone,
+    // S::Output: std::ops::Add<f64, Output = S::Output>,
+
+    // Builder: BuildNormal<M::Output, S::Output>,
+    // BuilderDist<M::Output, S::Output>: Score<Grad = normal::Grad<M::Output, S::Output>>,
+    // BuilderSupport<M::Output, S::Output>: Space<Value = M::Output>,
+// {
+    // type Jacobian = Array2<f64>;
+
+    // fn grad(&self, _: (&'x X, A)) -> Array2<f64> { todo!() }
+
+    // fn grad_log(&self, (x, a): (&'x X, A)) -> Array2<f64> {
+        // let grad_mean = self.mean.grad((x,)).into_dense();
+        // let ndim_mean = grad_mean.ndim();
+
+        // let grad_stddev = self.stddev.grad((x,)).into_dense();
+        // let ndim_stddev = grad_stddev.ndim();
+
+        // let normal::Grad {
+            // mu: gl_mean,
+            // Sigma: gl_stddev,
+        // } = self.dist(x).score(std::slice::from_ref(a.borrow()));
+
+        // match (ndim_mean, ndim_stddev) {
+            // (2, 2) => {
+                // let grad_mean: Array2<f64> = grad_mean.into_dimensionality().unwrap();
+                // let grad_stddev: Array2<f64> = grad_stddev.into_dimensionality().unwrap();
+
+                // stack![Axis(0), grad_mean * gl_mean, grad_stddev * gl_stddev]
+            // },
+            // (2, 1) => {
+                // let dim = (grad_stddev.shape()[0], grad_mean.shape()[1]);
+                // let grad_mean: Array2<f64> = grad_mean.into_dimensionality().unwrap();
+
+                // stack![
+                    // Axis(0),
+                    // grad_mean,
+                    // grad_stddev.insert_axis(Axis(1)).broadcast(dim).unwrap()
+                // ]
+            // },
+            // (1, 1) => {
+                // let mut jac = grad_mean.into_raw_vec();
+                // let mut grad_stddev = grad_stddev.into_raw_vec();
+
+                // jac.append(&mut grad_stddev);
+
+                // Array1::from(jac).insert_axis(Axis(1))
+            // },
+            // _ => unimplemented!(),
+        // }
+    // }
+// }
+
 impl<'x, X, A, M, S> Differentiable<(&'x X, A)> for Gaussian<M, S>
 where
-    A: std::borrow::Borrow<f64>,
+    A: std::borrow::Borrow<M::Output>,
 
     M: Parameterised + Differentiable<(&'x X,), Output = f64>,
     S: Parameterised + Differentiable<(&'x X,), Output = f64>,
 
-    M::Jacobian: Buffer<Dim = Ix1>,
-    S::Jacobian: Buffer<Dim = Ix1>,
-
     Builder: BuildNormal<M::Output, S::Output>,
+    BuilderDist<M::Output, S::Output>: Score<Grad = normal::Grad<M::Output, S::Output>>,
     BuilderSupport<M::Output, S::Output>: Space<Value = M::Output>,
 {
     type Jacobian = Array2<f64>;
@@ -81,15 +140,20 @@ where
     fn grad(&self, _: (&'x X, A)) -> Array2<f64> { todo!() }
 
     fn grad_log(&self, (x, a): (&'x X, A)) -> Array2<f64> {
-        let grad_mean = self.mean.grad((x,)).into_dense().insert_axis(Axis(1));
-        let grad_stddev = self.stddev.grad((x,)).into_dense().insert_axis(Axis(1));
+        let grad_mean = self.mean.grad((x,)).into_dense();
+        let grad_stddev = self.stddev.grad((x,)).into_dense();
 
         let normal::Grad {
             mu: gl_mean,
             Sigma: gl_stddev,
-        } = self.dist(x).score(&[*a.borrow()]);
+        } = self.dist(x).score(std::slice::from_ref(a.borrow()));
 
-        stack![Axis(0), gl_mean * grad_mean, gl_stddev * grad_stddev]
+        grad_mean
+            .iter()
+            .map(|x| x * gl_mean)
+            .chain(grad_stddev.iter().map(|x| x * gl_stddev))
+            .collect::<Array1<f64>>()
+            .insert_axis(Axis(1))
     }
 }
 
