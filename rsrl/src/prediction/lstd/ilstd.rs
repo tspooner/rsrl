@@ -38,6 +38,24 @@ impl<B: spaces::Space> iLSTD<B> {
             mu: Array1::zeros(n_features),
         }
     }
+
+    pub fn to_lfa<O>(&self, optimiser: O) -> crate::fa::linear::ScalarLFA<B, O>
+    where B: Clone,
+    {
+        crate::fa::linear::LFA {
+            basis: self.basis.clone(),
+            weights: self.theta.clone(),
+            optimiser,
+        }
+    }
+
+    pub fn into_lfa<O>(self, optimiser: O) -> crate::fa::linear::ScalarLFA<B, O> {
+        crate::fa::linear::LFA {
+            basis: self.basis,
+            weights: self.theta,
+            optimiser,
+        }
+    }
 }
 
 impl<B> iLSTD<B> {

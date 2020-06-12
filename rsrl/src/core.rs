@@ -5,6 +5,11 @@ use std::{
     rc::Rc,
 };
 
+#[macro_export]
+macro_rules! shared {
+    ($id:expr) => { make_shared($id) }
+}
+
 pub fn make_shared<T>(t: T) -> Shared<T> { Shared(Rc::new(RefCell::new(t))) }
 
 pub struct Shared<T>(pub Rc<RefCell<T>>);
@@ -40,8 +45,7 @@ impl<T> Clone for Shared<T> {
 
 pub type OutputOf<F, S> = <F as Function<S>>::Output;
 
-// TODO: When variadic generics drop, replace Args tuple with sequence of
-// inputs...
+// TODO: When the ABI drops we can basically implement this like the (curently unstable) Fn traits.
 pub trait Function<Args> {
     type Output;
 
@@ -98,6 +102,17 @@ where
         let first = iter.next().unwrap();
 
         iter.fold(first, |acc, (i, x)| if acc.1 > x { acc } else { (i, x) })
+    }
+
+    fn expected_value<I: IntoIterator<Item = f64>>(&self, args: Args, ps: I) -> f64
+    where
+        Self::Output: IntoIterator<Item = <Self::Output as Index<usize>>::Output>,
+        <Self::Output as Index<usize>>::Output: std::ops::Mul<f64, Output = f64>,
+    {
+        self.evaluate(args)
+            .into_iter()
+            .zip(ps.into_iter())
+            .fold(0.0, |acc, (x, p)| acc + x * p)
     }
 }
 

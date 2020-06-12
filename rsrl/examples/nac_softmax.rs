@@ -2,7 +2,7 @@ extern crate rsrl;
 
 use rand::thread_rng;
 use rsrl::{
-    control::{ac::NAC, td::SARSA},
+    control::{nac::NAC, td::SARSA},
     domains::{Domain, MountainCar},
     fa::{
         linear::{

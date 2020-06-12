@@ -1,12 +1,13 @@
+#[macro_use]
 extern crate rsrl;
 
 use rand::thread_rng;
 use rsrl::{
-    control::{ac::TDAC, td::SARSA},
+    control::{ac::ActorCritic, td::SARSA},
     domains::{ContinuousMountainCar, Domain},
     fa::{
         linear::{
-            basis::{Combinators, Fourier},
+            basis::{Combinators, Fourier, Basis},
             optim::SGD,
             LFA,
         },
@@ -26,11 +27,17 @@ fn main() {
 
     let lfa = Composition::new(LFA::scalar(basis.clone(), SGD(1.0)), Softplus);
 
-    let critic = iLSTD::new(basis, 0.00001, 0.999, 2);
     let policy = Beta::new(lfa.clone(), lfa);
+    let mut eval = shared!(iLSTD::new(basis, 0.00001, 0.999, 2));
+
+    let critic = {
+        let e = eval.clone();
+
+        move |(s,): (&_,)| { e.basis.project(s).unwrap().dot(&e.theta) }
+    };
 
     let mut rng = thread_rng();
-    let mut agent = TDAC::new(critic, policy, 0.001, 0.999);
+    let mut agent = ActorCritic::tdac(critic, policy, 0.001, 0.999);
 
     for e in 0..1000 {
         // Episode loop:
@@ -42,7 +49,7 @@ fn main() {
             // Trajectory loop:
             let t = env.transition(action).replace_action(action);
 
-            agent.critic.handle(&t).ok();
+            eval.handle(&t).ok();
             agent.handle(&t).ok();
 
             action = agent.policy.sample(&mut rng, t.to.state());

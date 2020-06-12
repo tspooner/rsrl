@@ -23,8 +23,8 @@ fn main() {
     let mut rng = StdRng::seed_from_u64(0);
     let mut agent = {
         let basis = Fourier::from_space(3, env.state_space()).with_bias();
-        let q_func = make_shared(LFA::vector(basis.clone(), SGD(0.05), n_actions));
-        let w_func = LFA::vector(basis, SGD(0.002), n_actions);
+        let q_func = make_shared(LFA::vector(basis.clone(), SGD(0.01), n_actions));
+        let w_func = LFA::vector(basis, SGD(0.001), n_actions);
 
         let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.1);
 

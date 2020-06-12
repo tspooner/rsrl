@@ -7,33 +7,43 @@ use crate::{
     Handler,
 };
 
-pub trait Critic<S, A> {
-    fn target(&self, t: &Transition<S, A>) -> f64;
+pub trait Critic<'t, S: 't, A: 't> {
+    fn target(&self, t: &'t Transition<S, A>) -> f64;
 }
 
-impl<Q, S, A> Critic<S, A> for Q
-where Q: for<'s> Function<(&'s S, &'s A), Output = f64>,
+impl<'t, F, S: 't, A: 't> Critic<'t, S, A> for F
+where F: Fn(&'t Transition<S, A>) -> f64,
 {
-    fn target(&self, t: &Transition<S, A>) -> f64 {
-        self.evaluate((t.from.state(), &t.action))
+    fn target(&self, t: &'t Transition<S, A>) -> f64 {
+        (self)(t)
+    }
+}
+
+pub struct QCritic<Q>(pub Q);
+
+impl<'t, Q, S: 't, A: 't> Critic<'t, S, A> for QCritic<Q>
+where Q: Function<(&'t S, &'t A), Output = f64>,
+{
+    fn target(&self, t: &'t Transition<S, A>) -> f64 {
+        self.0.evaluate((t.from.state(), &t.action))
     }
 }
 
 pub struct TDCritic<V> {
     pub gamma: f64,
-    pub value_function: V,
+    pub v_func: V,
 }
 
-impl<V, S, A> Critic<S, A> for TDCritic<V>
-where V: for<'s> Function<(&'s S,), Output = f64>,
+impl<'t, V, S: 't, A: 't> Critic<'t, S, A> for TDCritic<V>
+where V: Function<(&'t S,), Output = f64>,
 {
-    fn target(&self, t: &Transition<S, A>) -> f64 {
-        let nv = self.value_function.evaluate((t.to.state(),));
+    fn target(&self, t: &'t Transition<S, A>) -> f64 {
+        let nv = self.v_func.evaluate((t.to.state(),));
 
         if t.terminated() {
             t.reward - nv
         } else {
-            let v = self.value_function.evaluate((t.from.state(),));
+            let v = self.v_func.evaluate((t.from.state(),));
 
             t.reward + self.gamma * nv - v
         }
@@ -64,9 +74,32 @@ impl<C, P> ActorCritic<C, P> {
     }
 }
 
+impl<Q, P> ActorCritic<QCritic<Q>, P> {
+    pub fn qac(q_func: Q, policy: P, alpha: f64) -> Self {
+        ActorCritic {
+            critic: QCritic(q_func),
+            policy,
+            alpha,
+        }
+    }
+}
+
+impl<V, P> ActorCritic<TDCritic<V>, P> {
+    pub fn tdac(v_func: V, policy: P, alpha: f64, gamma: f64) -> Self {
+        ActorCritic {
+            critic: TDCritic {
+                gamma,
+                v_func,
+            },
+            policy,
+            alpha,
+        }
+    }
+}
+
 impl<'m, S, C, P> Handler<&'m Transition<S, P::Action>> for ActorCritic<C, P>
 where
-    C: Critic<S, P::Action>,
+    C: Critic<'m, S, P::Action>,
     P: Policy<&'m S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<&'m S>>::Action, f64>>,
 {
     type Response = P::Response;
