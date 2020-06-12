@@ -14,13 +14,13 @@ use crate::{Differentiable, Enumerable, Function, OutputOf, Shared};
 use ndarray::Array2;
 use rand::{thread_rng, Rng};
 
-mod epsilon_greedy;
 mod greedy;
 mod random;
+mod epsilon_greedy;
 
-pub use self::epsilon_greedy::EpsilonGreedy;
 pub use self::greedy::Greedy;
 pub use self::random::Random;
+pub use self::epsilon_greedy::EpsilonGreedy;
 
 mod beta;
 mod gaussian;

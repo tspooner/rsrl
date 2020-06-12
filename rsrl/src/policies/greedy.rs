@@ -158,12 +158,12 @@ mod tests {
 
         p.evaluate((&vec![1e-7, 1e-7, 1e-7, 1e-7],))
             .into_iter()
-            .zip([0.25, 0.25, 0.25, 0.25].into_iter())
+            .zip([0.25, 0.25, 0.25, 0.25].iter())
             .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
 
         p.evaluate((&vec![1e-7, 2e-7, 3e-7, 4e-7],))
             .into_iter()
-            .zip([0.0, 0.0, 0.0, 1.0].into_iter())
+            .zip([0.0, 0.0, 0.0, 1.0].iter())
             .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
     }
 }

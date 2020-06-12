@@ -84,69 +84,63 @@ where Q: Enumerable<(S,), Output = Vec<f64>>
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_abs_diff_eq;
     use crate::{
         fa::mocking::MockQ,
-        policies::{EnumerablePolicy, EpsilonGreedy, Policy},
+        policies::{EnumerablePolicy, EpsilonGreedy, Policy, Greedy, Random},
         Function,
     };
     use rand::thread_rng;
 
-    // #[test]
-    // fn test_sampling() {
-    // let q = MockQ::new_shared(Some(vec![1.0, 0.0].into()));
-    // let p = EpsilonGreedy::from_Q::<Vec<f64>>(q.clone(), 0.5);
-    // let mut rng = thread_rng();
+    #[test]
+    fn test_sampling() {
+        let mut rng = thread_rng();
 
-    // let mut n0: f64 = 0.0;
-    // let mut n1: f64 = 0.0;
-    // for _ in 0..10000 {
-    // match p.sample(&mut rng, &vec![].into()) {
-    // 0 => n0 += 1.0,
-    // _ => n1 += 1.0,
-    // }
-    // }
+        let q = MockQ::new_shared(Some(vec![1.0, 0.0].into()));
+        let p = EpsilonGreedy::new(Greedy::new(q), Random::new(2), 0.5);
 
-    // assert!((0.75 - n0 / 10000.0).abs() < 0.05);
-    // assert!((0.25 - n1 / 10000.0).abs() < 0.05);
-    // }
+        let mut n0: f64 = 0.0;
+        let mut n1: f64 = 0.0;
+        for _ in 0..10000 {
+            match p.sample(&mut rng, &vec![].into()) {
+                0 => n0 += 1.0,
+                _ => n1 += 1.0,
+            }
+        }
 
-    // #[test]
-    // fn test_probabilites() {
-    // let q = MockQ::new_shared(Some(vec![0.0, 0.0, 0.0, 0.0, 0.0].into()));
-    // let p = EpsilonGreedy::from_Q::<Vec<f64>>(q.clone(), 0.5);
+        assert!((0.75 - n0 / 10000.0).abs() < 0.05);
+        assert!((0.25 - n1 / 10000.0).abs() < 0.05);
+    }
 
-    // q.borrow_mut().clear_output();
+    #[test]
+    fn test_probabilites() {
+        let q = MockQ::new_shared(None);
+        let p = EpsilonGreedy::new(Greedy::new(q), Random::new(5), 0.5);
 
-    // assert!(compare_floats(
-    // p.evaluate((vec![1.0, 0.0, 0.0, 0.0, 0.0],)),
-    // &[0.6, 0.1, 0.1, 0.1, 0.1],
-    // 1e-6
-    // ));
+        p.evaluate((vec![1.0, 0.0, 0.0, 0.0, 0.0],))
+            .into_iter()
+            .zip([0.6, 0.1, 0.1, 0.1, 0.1].iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
 
-    // assert!(compare_floats(
-    // p.evaluate((vec![0.0, 0.0, 0.0, 0.0, 1.0],)),
-    // &[0.1, 0.1, 0.1, 0.1, 0.6],
-    // 1e-6
-    // ));
+        p.evaluate((vec![0.0, 0.0, 0.0, 0.0, 1.0],))
+            .into_iter()
+            .zip([0.1, 0.1, 0.1, 0.1, 0.6].iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
 
-    // assert!(compare_floats(
-    // p.evaluate((vec![1.0, 0.0, 0.0, 0.0, 1.0],)),
-    // &[0.35, 0.1, 0.1, 0.1, 0.35],
-    // 1e-6
-    // ));
-    // }
+        p.evaluate((vec![1.0, 0.0, 0.0, 0.0, 1.0],))
+            .into_iter()
+            .zip([0.35, 0.1, 0.1, 0.1, 0.35].iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
+    }
 
-    // #[test]
-    // fn test_probabilites_uniform() {
-    // let q = MockQ::new_shared(Some(vec![-1.0, 0.0, 0.0, 0.0].into()));
-    // let p = EpsilonGreedy::from_Q::<Vec<f64>>(q.clone(), 1.0);
+    #[test]
+    fn test_probabilites_uniform() {
+        let q = MockQ::new_shared(Some(vec![-1.0, 0.0, 0.0, 0.0].into()));
+        let p = EpsilonGreedy::new(Greedy::new(q), Random::new(4), 1.0);
 
-    // q.borrow_mut().clear_output();
-
-    // assert!(compare_floats(
-    // p.evaluate((vec![-1.0, 0.0, 0.0, 0.0],)),
-    // &[0.25, 0.25, 0.25, 0.25],
-    // 1e-6
-    // ));
-    // }
+        p.evaluate((vec![-1.0, 0.0, 0.0, 0.0],))
+            .into_iter()
+            .zip([0.25, 0.25, 0.25, 0.25].iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
+    }
 }
