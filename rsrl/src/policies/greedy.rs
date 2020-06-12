@@ -5,6 +5,7 @@ use crate::{
     Function,
 };
 use rand::Rng;
+use std::ops::Index;
 
 #[derive(Clone, Debug, Parameterised)]
 #[cfg_attr(
@@ -19,13 +20,18 @@ impl<Q> Greedy<Q> {
 }
 
 impl<S, Q> Function<(S,)> for Greedy<Q>
-where Q: Enumerable<(S,), Output = Vec<f64>>
+where
+    Q: Enumerable<(S,)>,
+    Q::Output: IntoIterator<Item = f64> + Index<usize, Output = f64>,
+    <Q::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
     type Output = Vec<f64>;
 
     fn evaluate(&self, (s,): (S,)) -> Vec<f64> {
-        let qs = self.0.evaluate((s,));
-        let mut ps = vec![0.0; qs.len()];
+        let qs = self.0.evaluate((s,)).into_iter();
+        let n = qs.len();
+
+        let mut ps = vec![0.0; n];
 
         let (maxima, _) = argmaxima(qs);
 
@@ -41,7 +47,9 @@ where Q: Enumerable<(S,), Output = Vec<f64>>
 impl<S, A, Q> Function<(S, A)> for Greedy<Q>
 where
     A: std::borrow::Borrow<usize>,
-    Q: Enumerable<(S,), Output = Vec<f64>>,
+    Q: Enumerable<(S,)>,
+    Q::Output: IntoIterator<Item = f64> + Index<usize, Output = f64>,
+    <Q::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
     type Output = f64;
 
@@ -77,6 +85,7 @@ impl<S, Q: Enumerable<(S,), Output = Vec<f64>>> Policy<S> for Greedy<Q> {
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_abs_diff_eq;
     use crate::{
         fa::mocking::MockQ,
         policies::{EnumerablePolicy, Greedy, Policy},
@@ -143,20 +152,18 @@ mod tests {
         assert!(p.sample(&mut rng, &vec![1e-7, 2e-7].into()) == 1);
     }
 
-    // #[test]
-    // fn test_probabilites() {
-        // let p = Greedy::new(MockQ::new_shared(None));
+    #[test]
+    fn test_probabilites() {
+        let p = Greedy::new(MockQ::new_shared(None));
 
-        // assert!(compare_floats(
-            // p.evaluate((&vec![1e-7, 2e-7, 3e-7, 4e-7],)),
-            // &[0.0, 0.0, 0.0, 1.0],
-            // 1e-6
-        // ));
+        p.evaluate((&vec![1e-7, 1e-7, 1e-7, 1e-7],))
+            .into_iter()
+            .zip([0.25, 0.25, 0.25, 0.25].into_iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
 
-        // assert!(compare_floats(
-            // p.evaluate((&vec![1e-7, 1e-7, 1e-7, 1e-7],)),
-            // &[0.25, 0.25, 0.25, 0.25],
-            // 1e-6
-        // ));
-    // }
+        p.evaluate((&vec![1e-7, 2e-7, 3e-7, 4e-7],))
+            .into_iter()
+            .zip([0.0, 0.0, 0.0, 1.0].into_iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
+    }
 }

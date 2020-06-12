@@ -49,6 +49,7 @@ default-features = false
 features = ["std", "derive"]
 
 [dev-dependencies]
+approx = "0.3"
 quickcheck = "0.9"
 serde_test = "1.0"
 
