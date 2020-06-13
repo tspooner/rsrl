@@ -1,17 +1,32 @@
 use crate::Shared;
-use ndarray::{Array, Array2, ArrayBase, DataMut, Dimension};
+use ndarray::{Array, Array2, ArrayBase, DataMut, Dimension, IntoDimension};
 
+/// Gradient buffer with arbitrary dimension.
 pub trait Buffer: Sized {
+    /// Dimensionality od the the buffer.
     type Dim: Dimension;
 
-    fn dim(&self) -> <Self::Dim as Dimension>::Pattern;
+    /// Return the dimensionality of the `Buffer` in pattern matching-friendly form.
+    fn dim(&self) -> <Self::Dim as Dimension>::Pattern { self.raw_dim().into_pattern() }
 
+    /// Return the number of dimensions of the `Buffer`.
+    fn n_dim(&self) -> usize { self.raw_dim().ndim() }
+
+    /// Return the dimensionality of the `Buffer`.
+    fn raw_dim(&self) -> Self::Dim;
+
+    /// Add the buffer's state to a mutable tensor of equal dimensionality.
     fn addto<E: DataMut<Elem = f64>>(&self, arr: &mut ArrayBase<E, Self::Dim>) {
         self.scaled_addto(1.0, arr)
     }
 
+    /// Add the buffer's state (scaled) to a mutable tensor of equal dimensionality.
+    ///
+    /// This is a common operation in SGD-type methods and can typically be implemented in a highly
+    /// optimised form compared to a pair of addition/scale mutations.
     fn scaled_addto<E: DataMut<Elem = f64>>(&self, alpha: f64, arr: &mut ArrayBase<E, Self::Dim>);
 
+    /// Construct a dense tensor representation from the `Buffer` state.
     fn to_dense(&self) -> Array<f64, Self::Dim> {
         let mut arr = Array::zeros(self.dim());
 
@@ -20,6 +35,7 @@ pub trait Buffer: Sized {
         arr
     }
 
+    /// Convert the `Buffer` into a dense tensor.
     fn into_dense(self) -> Array<f64, Self::Dim> { self.to_dense() }
 }
 
@@ -27,6 +43,10 @@ impl<T: Buffer> Buffer for &T {
     type Dim = T::Dim;
 
     fn dim(&self) -> <Self::Dim as Dimension>::Pattern { (*self).dim() }
+
+    fn n_dim(&self) -> usize { (*self).n_dim() }
+
+    fn raw_dim(&self) -> Self::Dim { (*self).raw_dim() }
 
     fn addto<E: DataMut<Elem = f64>>(&self, arr: &mut ArrayBase<E, Self::Dim>) {
         (*self).addto(arr)
@@ -42,7 +62,9 @@ impl<T: Buffer> Buffer for &T {
 }
 
 pub trait BufferMut: Buffer + Clone {
-    fn zeros(dim: <Self::Dim as Dimension>::Pattern) -> Self;
+    fn zeros<D: IntoDimension<Dim = Self::Dim>>(dim: D) -> Self;
+
+    fn reset(&mut self) { self.map_inplace(|x| 0.0) }
 
     fn map(&self, f: impl Fn(f64) -> f64) -> Self;
 

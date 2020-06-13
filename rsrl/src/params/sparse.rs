@@ -1,5 +1,5 @@
 use super::*;
-use ndarray::Ix2;
+use ndarray::{Ix2, IntoDimension};
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 type GradMap = ::std::collections::HashMap<[usize; 2], f64>;
@@ -11,30 +11,38 @@ type GradMap = ::std::collections::HashMap<[usize; 2], f64>;
     serde(crate = "serde_crate")
 )]
 pub struct Sparse {
-    dim: (usize, usize),
+    dim: Ix2,
     grads: GradMap,
 }
 
 impl Sparse {
-    pub fn new(dim: (usize, usize), grads: GradMap) -> Result<Sparse, String> {
+    pub fn new<D: IntoDimension<Dim = Ix2>>(dim: D, grads: GradMap) -> Result<Sparse, String> {
         if grads.len() == 0 {
             Err("No gradient information passed into Sparse::new().".to_owned())
         } else {
-            if grads.keys().all(|&[r, c]| r < dim.0 && c < dim.1) {
-                Ok(Sparse { dim, grads })
+            let dim = dim.into_dimension();
+            let (nr, nc) = dim.into_pattern();
+
+            if grads.keys().all(|&[r, c]| r < nr && c < nc) {
+                Ok(Sparse { dim, grads, })
             } else {
                 Err("Inconsistent dimensions in Sparse::new().".to_owned())
             }
         }
     }
 
-    pub fn new_unchecked(dim: (usize, usize), grads: GradMap) -> Sparse { Sparse { dim, grads } }
+    pub fn new_unchecked<D: IntoDimension<Dim = Ix2>>(dim: D, grads: GradMap) -> Sparse {
+        Sparse {
+            dim: dim.into_dimension(),
+            grads,
+        }
+    }
 }
 
 impl Buffer for Sparse {
     type Dim = Ix2;
 
-    fn dim(&self) -> (usize, usize) { self.dim }
+    fn raw_dim(&self) -> Ix2 { self.dim }
 
     fn addto<D: DataMut<Elem = f64>>(&self, weights: &mut ArrayBase<D, Ix2>) {
         for (&idx, pd) in self.grads.iter() {
@@ -64,7 +72,9 @@ impl Buffer for Sparse {
 }
 
 impl BufferMut for Sparse {
-    fn zeros(dim: (usize, usize)) -> Self { Self::new_unchecked(dim, GradMap::new()) }
+    fn zeros<D: IntoDimension<Dim = Ix2>>(dim: D) -> Self {
+        Self::new_unchecked(dim, GradMap::new())
+    }
 
     fn map(&self, f: impl Fn(f64) -> f64) -> Self { unimplemented!() }
 

@@ -18,10 +18,10 @@ use std::f64;
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
 #[derive(Parameterised)]
-pub struct TOSARSALambda<B, P, T> {
+pub struct TOSARSALambda<B: Space, P, T> {
     pub basis: B,
     #[weights] pub theta: Array1<f64>,
-    pub trace: T,
+    pub trace: B::Value,
 
     pub policy: P,
 
@@ -32,16 +32,20 @@ pub struct TOSARSALambda<B, P, T> {
     q_old: f64,
 }
 
-impl<B, P, T> TOSARSALambda<B, P, T> {
+impl<B: Space, P, T> TOSARSALambda<B, P, T>
+where
+    B::Value: Buffer<Dim = Ix1>,
+{
     pub fn new(
         basis: B,
         theta: Array1<f64>,
-        trace: T,
         policy: P,
         alpha: f64,
         gamma: f64,
         lambda: f64,
     ) -> Self {
+        let trace = B::Value::zeros(theta.len());
+
         TOSARSALambda {
             basis,
             theta,
@@ -59,7 +63,6 @@ impl<B, P, T> TOSARSALambda<B, P, T> {
 
     pub fn zeros(
         basis: B,
-        trace: T,
         policy: P,
         alpha: f64,
         gamma: f64,
@@ -71,7 +74,7 @@ impl<B, P, T> TOSARSALambda<B, P, T> {
         let n: usize = basis.dim().into();
 
         TOSARSALambda::new(
-            basis, Array1::zeros(n), trace,
+            basis, Array1::zeros(n),
             policy, alpha, gamma, lambda,
         )
     }
@@ -83,9 +86,7 @@ where
     P: EnumerablePolicy<&'m S>,
     T: Trace<Buffer = B::Value>,
 
-    B::Value: BufferMut<Dim = Ix1> +
-        Dot<Array1<f64>, Output = f64> +
-        Dot<B::Value, Output = f64>,
+    B::Value: BufferMut<Dim = Ix1> + Dot<Array1<f64>, Output = f64> + Dot<B::Value, Output = f64>,
 
     OutputOf<P, (&'m S,)>: std::ops::Index<usize, Output = f64> + IntoIterator<Item = f64>,
     <OutputOf<P, (&'m S,)> as IntoIterator>::IntoIter: ExactSizeIterator,

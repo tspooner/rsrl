@@ -18,10 +18,10 @@ use std::f64;
 /// Sutton, R. S. (2016). True online temporal-difference learning. Journal of
 /// Machine Learning Research, 17(145), 1-40.](https://arxiv.org/pdf/1512.04087.pdf)
 #[derive(Parameterised)]
-pub struct TOQLambda<B, P, T> {
+pub struct TOQLambda<B: Space, P, T> {
     pub basis: B,
     #[weights] pub theta: Array1<f64>,
-    pub trace: T,
+    pub trace: B::Value,
 
     pub policy: P,
 
@@ -32,16 +32,20 @@ pub struct TOQLambda<B, P, T> {
     q_old: f64,
 }
 
-impl<B, P, T> TOQLambda<B, P, T> {
+impl<B: Space, P, T> TOQLambda<B, P, T>
+where
+    B::Value: Buffer<Dim = Ix1>,
+{
     pub fn new(
         basis: B,
         theta: Array1<f64>,
-        trace: T,
         policy: P,
         alpha: f64,
         gamma: f64,
         lambda: f64,
     ) -> Self {
+        let trace = B::Value::zeros(theta.len());
+
         TOQLambda {
             basis,
             theta,
@@ -59,19 +63,15 @@ impl<B, P, T> TOQLambda<B, P, T> {
 
     pub fn zeros(
         basis: B,
-        trace: T,
         policy: P,
         alpha: f64,
         gamma: f64,
         lambda: f64,
-    ) -> Self
-    where
-        B: spaces::Space,
-    {
+    ) -> Self {
         let n: usize = basis.dim().into();
 
         TOQLambda::new(
-            basis, Array1::zeros(n), trace,
+            basis, Array1::zeros(n),
             policy, alpha, gamma, lambda,
         )
     }
@@ -83,9 +83,7 @@ where
     P: EnumerablePolicy<&'m S>,
     T: Trace<Buffer = B::Value>,
 
-    B::Value: BufferMut<Dim = Ix1> +
-        Dot<Array1<f64>, Output = f64> +
-        Dot<B::Value, Output = f64>,
+    B::Value: BufferMut<Dim = Ix1> + Dot<Array1<f64>, Output = f64> + Dot<B::Value, Output = f64>,
 
     OutputOf<P, (&'m S,)>: std::ops::Index<usize, Output = f64> + IntoIterator<Item = f64>,
     <OutputOf<P, (&'m S,)> as IntoIterator>::IntoIter: ExactSizeIterator,
@@ -111,7 +109,7 @@ where
             let a = self.alpha;
             let c = self.lambda * self.gamma;
 
-            let dotted = self.trace.deref().dot(phi_s_a);
+            let dotted = self.trace.dot(phi_s_a);
 
             self.trace.merge_inplace(&phi_s_a, move |x, y| {
                 c * x + (1.0 - a * c * dotted) * y
@@ -122,7 +120,7 @@ where
 
         // Update weight vectors:
         if t.terminated() {
-            self.trace.deref().scaled_addto(self.alpha * (t.reward - self.q_old), &mut self.theta);
+            self.trace.scaled_addto(self.alpha * (t.reward - self.q_old), &mut self.theta);
             phi_s_a.scaled_addto(self.alpha * (self.q_old - qsa), &mut self.theta);
 
             self.q_old = 0.0;
@@ -143,7 +141,7 @@ where
 
             let residual = t.reward + self.gamma * qnsna - self.q_old;
 
-            self.trace.deref().scaled_addto(self.alpha * residual, &mut self.theta);
+            self.trace.scaled_addto(self.alpha * residual, &mut self.theta);
             phi_ns_na.scaled_addto(self.alpha * (self.q_old - qsa), &mut self.theta);
 
             self.q_old = qnsna;

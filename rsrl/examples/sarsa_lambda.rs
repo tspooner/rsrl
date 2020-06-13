@@ -13,9 +13,13 @@ use rsrl::{
     params::Parameterised,
     policies::{EpsilonGreedy, Greedy, Policy, Random},
     spaces::Space,
-    traces::Replacing,
+    traces::Trace,
     Handler,
 };
+
+const ALPHA: f64 = 0.01;
+const GAMMA: f64 = 0.99;
+const LAMBDA: f64 = 0.7;
 
 fn main() {
     let env = MountainCar::default();
@@ -27,10 +31,12 @@ fn main() {
         let basis = Fourier::from_space(5, env.state_space()).with_bias();
         let q_func = make_shared(LFA::vector(basis, SGD(1.0), n_actions));
 
-        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.5);
+        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.2);
         let wdim = q_func.weights_dim();
 
-        SARSALambda::new(q_func, policy, Replacing::zeros(wdim), 0.001, 1.0, 0.9)
+        let trace = Trace::replacing(wdim, GAMMA, LAMBDA);
+
+        SARSALambda::new(q_func, policy, trace, ALPHA, GAMMA)
     };
 
     for e in 0..1000 {

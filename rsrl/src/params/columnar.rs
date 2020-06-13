@@ -1,5 +1,5 @@
 use super::*;
-use ndarray::{Array1, Ix1, Ix2};
+use ndarray::{Array1, Ix1, Ix2, IntoDimension};
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 type GradMap<C> = ::std::collections::HashMap<usize, C>;
@@ -11,12 +11,17 @@ type GradMap<C> = ::std::collections::HashMap<usize, C>;
     serde(crate = "serde_crate")
 )]
 pub struct Columnar<C: Buffer<Dim = Ix1> = Array1<f64>> {
-    dim: (usize, usize),
+    dim: Ix2,
     grads: GradMap<C>,
 }
 
 impl<C: Buffer<Dim = Ix1>> Columnar<C> {
-    pub fn new(dim: (usize, usize), grads: GradMap<C>) -> Self { Columnar { dim, grads } }
+    pub fn new<D: IntoDimension<Dim = Ix2>>(dim: D, grads: GradMap<C>) -> Self {
+        Columnar {
+            dim: dim.into_dimension(),
+            grads,
+        }
+    }
 
     pub fn from_column(n_cols: usize, index: usize, grad: C) -> Self {
         let dim = (grad.dim(), n_cols);
@@ -31,7 +36,9 @@ impl<C: Buffer<Dim = Ix1>> Columnar<C> {
 impl<C: Buffer<Dim = Ix1>> Buffer for Columnar<C> {
     type Dim = Ix2;
 
-    fn dim(&self) -> (usize, usize) { self.dim }
+    fn dim(&self) -> (usize, usize) { self.dim.into_pattern() }
+
+    fn raw_dim(&self) -> Ix2 { self.dim }
 
     fn addto<D: DataMut<Elem = f64>>(&self, weights: &mut ArrayBase<D, Ix2>) {
         for (&c, pds) in self.grads.iter() {
@@ -55,7 +62,7 @@ impl<C: Buffer<Dim = Ix1>> Buffer for Columnar<C> {
 }
 
 impl<C: BufferMut<Dim = Ix1>> BufferMut for Columnar<C> {
-    fn zeros(dim: (usize, usize)) -> Self { Self::new(dim, GradMap::new()) }
+    fn zeros<D: IntoDimension<Dim = Ix2>>(dim: D) -> Self { Self::new(dim, GradMap::new()) }
 
     fn map(&self, f: impl Fn(f64) -> f64) -> Self {
         Columnar {

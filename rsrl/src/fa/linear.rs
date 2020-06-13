@@ -6,7 +6,7 @@ use crate::{
     Function,
     Handler,
 };
-use ndarray::{Array1, ArrayBase, Axis, DataMut, Dimension, Ix1};
+use ndarray::{Array1, ArrayBase, Axis, DataMut, Dimension, Ix1, IntoDimension};
 
 pub use lfa::*;
 
@@ -112,6 +112,10 @@ impl Buffer for Features {
 
     fn dim(&self) -> usize { self.n_features() }
 
+    fn n_dim(&self) -> usize { 1 }
+
+    fn raw_dim(&self) -> Ix1 { ndarray::Ix1(self.n_features()) }
+
     fn addto<D: DataMut<Elem = f64>>(&self, arr: &mut ArrayBase<D, Ix1>) {
         Features::addto(self, arr)
     }
@@ -122,9 +126,9 @@ impl Buffer for Features {
 }
 
 impl BufferMut for Features {
-    fn zeros(dim: usize) -> Features {
+    fn zeros<D: IntoDimension<Dim = Ix1>>(dim: D) -> Features {
         Features::Sparse(lfa::SparseActivations {
-            dim,
+            dim: dim.into_dimension().into_pattern(),
             activations: ::std::collections::HashMap::new(),
         })
     }

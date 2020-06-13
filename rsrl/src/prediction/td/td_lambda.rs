@@ -1,7 +1,7 @@
 use crate::{
     domains::{Observation, Transition},
     fa::ScaledGradientUpdate,
-    traces::Trace,
+    traces,
     Differentiable,
     Handler,
 };
@@ -29,26 +29,26 @@ pub struct TDLambda<F, T> {
     pub trace: T,
 
     pub gamma: f64,
-    pub lambda: f64,
 }
 
 impl<F, T> TDLambda<F, T> {
-    pub fn new(fa_theta: F, trace: T, gamma: f64, lambda: f64) -> Self {
+    pub fn new(fa_theta: F, trace: T, gamma: f64) -> Self {
         TDLambda {
             fa_theta,
             trace,
 
             gamma,
-            lambda,
         }
     }
 }
 
-impl<'m, S, A, F, T> Handler<&'m Transition<S, A>> for TDLambda<F, T>
+type Tr<S, F, R> = traces::Trace<<F as Differentiable<(S,)>>::Jacobian, R>;
+
+impl<'m, S, A, F, R> Handler<&'m Transition<S, A>> for TDLambda<F, Tr<&'m S, F, R>>
 where
     F: Differentiable<(&'m S,), Output = f64>,
-    F: for<'j> Handler<ScaledGradientUpdate<&'j <F as Differentiable<(&'m S,)>>::Jacobian>>,
-    T: Trace<Buffer = <F as Differentiable<(&'m S,)>>::Jacobian>,
+    F: for<'j> Handler<ScaledGradientUpdate<&'j Tr<&'m S, F, R>>>,
+    R: traces::UpdateRule<<F as Differentiable<(&'m S,)>>::Jacobian>,
 {
     type Response = Response<()>;
     type Error = ();
@@ -59,17 +59,16 @@ where
         let pred = self.fa_theta.evaluate((from,));
         let grad = self.fa_theta.grad((from,));
 
-        self.trace.scaled_update(self.lambda * self.gamma, &grad);
+        self.trace.update(&grad);
 
         let td_error = match transition.to {
             Observation::Terminal(_) => {
-                let jacobian = self.trace.deref();
                 let td_error = transition.reward - pred;
 
                 self.fa_theta
                     .handle(ScaledGradientUpdate {
                         alpha: td_error,
-                        jacobian,
+                        jacobian: &self.trace,
                     })
                     .ok();
                 self.trace.reset();
@@ -77,14 +76,13 @@ where
                 td_error
             },
             Observation::Full(ref to) | Observation::Partial(ref to) => {
-                let jacobian = self.trace.deref();
                 let td_error =
                     transition.reward + self.gamma * self.fa_theta.evaluate((to,)) - pred;
 
                 self.fa_theta
                     .handle(ScaledGradientUpdate {
                         alpha: td_error,
-                        jacobian,
+                        jacobian: &self.trace,
                     })
                     .ok();
 

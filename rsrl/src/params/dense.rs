@@ -1,11 +1,11 @@
 use super::*;
-use ndarray::{Array1, Array2, ArrayBase, Data, DataMut, Ix1, Ix2};
+use ndarray::{Array1, Array2, ArrayBase, Data, DataMut, Ix1, Ix2, IntoDimension};
 use std::ops::AddAssign;
 
 impl<D: Data<Elem = f64>> Buffer for ArrayBase<D, Ix1> {
     type Dim = Ix1;
 
-    fn dim(&self) -> usize { self.len() }
+    fn raw_dim(&self) -> Ix1 { self.raw_dim() }
 
     fn addto<DM: DataMut<Elem = f64>>(&self, weights: &mut ArrayBase<DM, Ix1>) {
         weights.add_assign(self);
@@ -19,7 +19,7 @@ impl<D: Data<Elem = f64>> Buffer for ArrayBase<D, Ix1> {
 }
 
 impl BufferMut for Array1<f64> {
-    fn zeros(dim: usize) -> Self { Self::zeros(dim) }
+    fn zeros<D: IntoDimension<Dim = Ix1>>(dim: D) -> Self { Self::zeros(dim) }
 
     fn map(&self, f: impl Fn(f64) -> f64) -> Self { self.mapv(f) }
 
@@ -45,7 +45,7 @@ impl BufferMut for Array1<f64> {
 impl<D: Data<Elem = f64>> Buffer for ArrayBase<D, Ix2> {
     type Dim = Ix2;
 
-    fn dim(&self) -> (usize, usize) { self.dim() }
+    fn raw_dim(&self) -> Ix2 { self.raw_dim() }
 
     fn addto<DM: DataMut<Elem = f64>>(&self, weights: &mut ArrayBase<DM, Ix2>) {
         weights.add_assign(self);
@@ -59,7 +59,7 @@ impl<D: Data<Elem = f64>> Buffer for ArrayBase<D, Ix2> {
 }
 
 impl BufferMut for Array2<f64> {
-    fn zeros(dim: (usize, usize)) -> Self { Self::zeros(dim) }
+    fn zeros<D: IntoDimension<Dim = Ix2>>(dim: D) -> Self { Self::zeros(dim) }
 
     fn map(&self, f: impl Fn(f64) -> f64) -> Self { self.mapv(f) }
 

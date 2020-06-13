@@ -1,8 +1,8 @@
 use crate::{
     domains::Transition,
     fa::ScaledGradientUpdate,
-    traces::Trace,
     utils::argmax_first,
+    traces,
     Differentiable,
     Enumerable,
     Function,
@@ -31,31 +31,32 @@ pub struct QLambda<F, T> {
 
     pub alpha: f64,
     pub gamma: f64,
-    pub lambda: f64,
 }
 
 impl<Q, T> QLambda<Q, T> {
-    pub fn new(fa_theta: Q, trace: T, alpha: f64, gamma: f64, lambda: f64) -> Self {
+    pub fn new(fa_theta: Q, trace: T, alpha: f64, gamma: f64) -> Self {
         QLambda {
             fa_theta,
             trace,
 
             alpha,
             gamma,
-            lambda,
         }
     }
 
-    pub fn undiscounted(fa_theta: Q, trace: T, alpha: f64, lambda: f64) -> Self {
-        QLambda::new(fa_theta, trace, alpha, 1.0, lambda)
+    pub fn undiscounted(fa_theta: Q, trace: T, alpha: f64) -> Self {
+        QLambda::new(fa_theta, trace, alpha, 1.0)
     }
 }
 
-impl<'m, S, Q, T> Handler<&'m Transition<S, usize>> for QLambda<Q, T>
+type Tr<S, A, Q, R> = traces::Trace<<Q as Differentiable<(S, A)>>::Jacobian, R>;
+
+impl<'m, S, Q, R> Handler<&'m Transition<S, usize>> for QLambda<Q, Tr<&'m S, usize, Q, R>>
 where
     Q: Enumerable<(&'m S,)> + Differentiable<(&'m S, usize)>,
-    Q: for<'j> Handler<ScaledGradientUpdate<&'j <Q as Differentiable<(&'m S, usize)>>::Jacobian>>,
-    T: Trace<Buffer = <Q as Differentiable<(&'m S, usize)>>::Jacobian>,
+    Q: for<'j> Handler<ScaledGradientUpdate<&'j Tr<&'m S, usize, Q, R>>>,
+
+    R: traces::UpdateRule<<Q as Differentiable<(&'m S, usize)>>::Jacobian>,
 
     <Q as Function<(&'m S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
     <<Q as Function<(&'m S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
@@ -71,18 +72,15 @@ where
         let grad_s = self.fa_theta.grad((s, t.action));
 
         // Update trace:
-        self.trace.scale(if t.action == argmax_first(qs).0 {
-            self.lambda * self.gamma
-        } else {
-            0.0
-        });
+        if t.action != argmax_first(qs).0 { self.trace.reset(); }
+
         self.trace.update(&grad_s);
 
         if t.terminated() {
             self.fa_theta
                 .handle(ScaledGradientUpdate {
                     alpha: self.alpha * (t.reward - qsa),
-                    jacobian: self.trace.deref(),
+                    jacobian: &self.trace,
                 })
                 .ok();
 
@@ -94,7 +92,7 @@ where
             self.fa_theta
                 .handle(ScaledGradientUpdate {
                     alpha: self.alpha * (t.reward + self.gamma * nqs_max - qsa),
-                    jacobian: self.trace.deref(),
+                    jacobian: &self.trace,
                 })
                 .ok();
         };

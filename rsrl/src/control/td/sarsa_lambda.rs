@@ -2,7 +2,7 @@ use crate::{
     domains::Transition,
     fa::ScaledGradientUpdate,
     policies::Policy,
-    traces::Trace,
+    traces,
     Differentiable,
     Function,
     Handler,
@@ -32,11 +32,10 @@ pub struct SARSALambda<Q, P, T> {
 
     pub alpha: f64,
     pub gamma: f64,
-    pub lambda: f64,
 }
 
 impl<Q, P, T> SARSALambda<Q, P, T> {
-    pub fn new(fa_theta: Q, policy: P, trace: T, alpha: f64, gamma: f64, lambda: f64) -> Self {
+    pub fn new(fa_theta: Q, policy: P, trace: T, alpha: f64, gamma: f64) -> Self {
         SARSALambda {
             fa_theta,
             policy,
@@ -44,20 +43,24 @@ impl<Q, P, T> SARSALambda<Q, P, T> {
 
             alpha,
             gamma,
-            lambda,
         }
     }
 }
 
-impl<'m, S, Q, P, T> Handler<&'m Transition<S, P::Action>> for SARSALambda<Q, P, T>
+type Tr<S, A, Q, R> = traces::Trace<<Q as Differentiable<(S, A)>>::Jacobian, R>;
+
+impl<'m, S, Q, P, R> Handler<&'m Transition<S, P::Action>> for SARSALambda<
+    Q, P,
+    Tr<&'m S, &'m P::Action, Q, R>
+>
 where
     Q: Function<(&'m S, P::Action), Output = f64>
         + Differentiable<(&'m S, &'m P::Action), Output = f64>,
     Q: for<'j> Handler<
-        ScaledGradientUpdate<&'j <Q as Differentiable<(&'m S, &'m P::Action)>>::Jacobian>,
+        ScaledGradientUpdate<&'j Tr<&'m S, &'m P::Action, Q, R>>,
     >,
     P: Policy<&'m S>,
-    T: Trace<Buffer = <Q as Differentiable<(&'m S, &'m P::Action)>>::Jacobian>,
+    R: traces::UpdateRule<<Q as Differentiable<(&'m S, &'m P::Action)>>::Jacobian>,
 {
     type Response = ();
     type Error = ();
@@ -65,18 +68,16 @@ where
     fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
         let qsa = self.fa_theta.evaluate((s, &t.action));
-        let grad_s = self.fa_theta.grad((s, &t.action));
 
         // Update trace with latest feature vector:
-        self.trace.scale(self.lambda * self.gamma);
-        self.trace.update(&grad_s);
+        self.trace.update(&self.fa_theta.grad((s, &t.action)));
 
         // Update weight vectors:
         if t.terminated() {
             self.fa_theta
                 .handle(ScaledGradientUpdate {
                     alpha: self.alpha * (t.reward - qsa),
-                    jacobian: self.trace.deref(),
+                    jacobian: &self.trace,
                 })
                 .ok();
             self.trace.reset();
@@ -88,7 +89,7 @@ where
             self.fa_theta
                 .handle(ScaledGradientUpdate {
                     alpha: self.alpha * (t.reward + self.gamma * nqsna - qsa),
-                    jacobian: self.trace.deref(),
+                    jacobian: &self.trace,
                 })
                 .ok();
         };
