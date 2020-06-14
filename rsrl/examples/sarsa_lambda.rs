@@ -29,14 +29,20 @@ fn main() {
         let n_actions = env.action_space().card().into();
 
         let basis = Fourier::from_space(5, env.state_space()).with_bias();
-        let q_func = make_shared(LFA::vector(basis, SGD(1.0), n_actions));
+        let fa_theta = make_shared(LFA::vector(basis, SGD(1.0), n_actions));
 
-        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.2);
-        let wdim = q_func.weights_dim();
+        let policy = EpsilonGreedy::new(Greedy::new(fa_theta.clone()), Random::new(n_actions), 0.2);
+        let wdim = fa_theta.weights_dim();
 
         let trace = Trace::replacing(wdim, GAMMA, LAMBDA);
 
-        SARSALambda::new(q_func, policy, trace, ALPHA, GAMMA)
+        SARSALambda {
+            fa_theta,
+            policy,
+            trace,
+            alpha: ALPHA,
+            gamma: GAMMA,
+        }
     };
 
     for e in 0..1000 {
