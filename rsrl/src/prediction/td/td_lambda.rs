@@ -1,76 +1,78 @@
 use crate::{
-    OnlineLearner,
-    domains::Transition,
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction, DifferentiableStateFunction,
-    },
-    prediction::ValuePredictor,
-    traces::Trace,
+    domains::{Observation, Transition},
+    fa::ScaledGradientUpdate,
+    traces,
+    Differentiable,
+    Handler,
 };
 
-#[derive(Parameterised)]
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response {
+    pub td_error: f64,
+}
+
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct TDLambda<F, T> {
-    #[weights] pub fa_theta: F,
+    #[weights]
+    pub fa_theta: F,
+    pub trace: T,
 
-    pub alpha: f64,
     pub gamma: f64,
-    pub lambda: f64,
-
-    trace: T,
 }
 
-impl<F, T> TDLambda<F, T> {
-    pub fn new(
-        fa_theta: F,
-        trace: T,
-        alpha: f64,
-        gamma: f64,
-        lambda: f64,
-    ) -> Self {
-        TDLambda {
-            fa_theta,
+type Tr<S, F, R> = traces::Trace<<F as Differentiable<(S,)>>::Jacobian, R>;
 
-            alpha,
-            gamma,
-            lambda,
+impl<'m, S, A, F, R> Handler<&'m Transition<S, A>> for TDLambda<F, Tr<&'m S, F, R>>
+where
+    F: Differentiable<(&'m S,), Output = f64> +
+        for<'j> Handler<ScaledGradientUpdate<&'j Tr<&'m S, F, R>>>,
+    R: traces::UpdateRule<<F as Differentiable<(&'m S,)>>::Jacobian>,
+{
+    type Response = Response;
+    type Error = ();
 
-            trace,
+    fn handle(&mut self, transition: &'m Transition<S, A>) -> Result<Self::Response, Self::Error> {
+        let from = transition.from.state();
+
+        let pred = self.fa_theta.evaluate((from,));
+        let grad = self.fa_theta.grad((from,));
+
+        self.trace.update(&grad);
+
+        match transition.to {
+            Observation::Terminal(_) => {
+                let td_error = transition.reward - pred;
+
+                self.fa_theta.handle(ScaledGradientUpdate {
+                    alpha: td_error,
+                    jacobian: &self.trace,
+                }).map_err(|_| ())?;
+
+                self.trace.reset();
+
+                Ok(Response { td_error, })
+            },
+            Observation::Full(ref to) | Observation::Partial(ref to) => {
+                let td_error =
+                    transition.reward + self.gamma * self.fa_theta.evaluate((to,)) - pred;
+
+                self.fa_theta.handle(ScaledGradientUpdate {
+                    alpha: td_error,
+                    jacobian: &self.trace,
+                }).map_err(|_| ())?;
+
+                Ok(Response { td_error, })
+            },
         }
-    }
-}
-
-impl<S, A, F, T> OnlineLearner<S, A> for TDLambda<F, T>
-where
-    F: DifferentiableStateFunction<S, Output = f64>,
-    T: Trace<F::Gradient>,
-{
-    fn handle_transition(&mut self, t: &Transition<S, A>) {
-        let s = t.from.state();
-        let v = self.fa_theta.evaluate(s);
-
-        self.trace.scaled_update(self.lambda * self.gamma, &self.fa_theta.grad(s));
-
-        if t.terminated() {
-            self.fa_theta.update_grad_scaled(self.trace.deref(), t.reward - v);
-            self.trace.reset();
-        } else {
-            let td_error = t.reward + self.gamma * self.fa_theta.evaluate(t.to.state()) - v;
-
-            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * td_error);
-        };
-    }
-
-    fn handle_terminal(&mut self) {
-        self.trace.reset();
-    }
-}
-
-impl<S, F, T> ValuePredictor<S> for TDLambda<F, T>
-where
-    F: StateFunction<S, Output = f64>,
-{
-    fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s)
     }
 }

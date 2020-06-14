@@ -3,66 +3,38 @@
 //! `rsrl` provides generic constructs for reinforcement learning (RL)
 //! experiments in an extensible framework with efficient implementations of
 //! existing methods for rapid prototyping.
+// #![warn(missing_docs)]
+
 #[macro_use]
 extern crate ndarray;
 extern crate ndarray_linalg;
 extern crate rand;
 extern crate rand_distr;
 
-#[macro_use]
-extern crate slog;
-extern crate slog_async;
-extern crate slog_term;
+#[cfg_attr(feature = "serde", macro_use)]
+#[cfg(feature = "serde")]
+extern crate serde_crate;
 
+#[allow(unused_imports)]
 #[macro_use]
-extern crate serde;
+extern crate rsrl_derive;
+#[doc(hidden)]
+pub use self::rsrl_derive::*;
 
 extern crate lfa;
-
-mod macros;
-mod utils;
-
-import_all!(memory);
-import_all!(experiment);
-import_all!(deref_slice);
-
 pub extern crate rsrl_domains as domains;
 
-pub mod logging;
+mod core;
+pub use self::core::*;
 
-pub mod linalg;
+mod utils;
+
 pub extern crate spaces;
 
+pub mod params;
 #[macro_use]
 pub mod fa;
+pub mod traces;
+pub mod prediction;
 pub mod control;
 pub mod policies;
-pub mod prediction;
-pub mod traces;
-
-pub trait OnlineLearner<S, A> {
-    /// Handle a single transition collected from the problem environment.
-    fn handle_transition(&mut self, transition: &domains::Transition<S, A>);
-
-    /// Perform housekeeping after terminal state observation.
-    fn handle_terminal(&mut self) {}
-}
-
-impl<S, A, T: OnlineLearner<S, A>> OnlineLearner<S, A> for Shared<T> {
-    fn handle_transition(&mut self, transition: &domains::Transition<S, A>) {
-        self.borrow_mut().handle_transition(transition)
-    }
-
-    fn handle_terminal(&mut self) { self.borrow_mut().handle_terminal() }
-}
-
-pub trait BatchLearner<S, A> {
-    /// Handle a batch of samples collected from the problem environment.
-    fn handle_batch(&mut self, batch: &[domains::Transition<S, A>]);
-}
-
-impl<S, A, T: BatchLearner<S, A>> BatchLearner<S, A> for Shared<T> {
-    fn handle_batch(&mut self, batch: &[domains::Transition<S, A>]) {
-        self.borrow_mut().handle_batch(batch)
-    }
-}

@@ -22,32 +22,36 @@ coveralls = { repository = "tspooner/rsrl", branch = "master", service = "github
 [features]
 default = []
 
-serialize = ["lfa/serialize", "spaces/serialize", "ndarray/serde-1"]
+blas = ["ndarray/blas", "lfa/blas"]
+serde = ["serde_crate", "lfa/serde", "spaces/serialize", "ndarray/serde", "rstat/serde"]
 
 [dependencies]
-lfa = "0.13"
-rstat = "0.3"
-spaces = "5.0"
-
+rsrl_derive = { path = "../rsrl_derive", version = "0.1" }
 rsrl_domains = { path = "../rsrl_domains", version = "0.1" }
+
+lfa = "0.15"
+rstat = "0.6"
+spaces = "5.0"
 
 rand = "0.7"
 rand_distr = "0.2"
 
-ndarray = { version = "0.12", features = ["blas", "serde-1"] }
-ndarray-linalg = "0.11"
+ndarray = "0.13"
+ndarray-linalg = "0.12"
+
 special-fun = "0.2"
 
-serde = { version = "1.0", features = ["derive"] }
-
-slog = "2.5"
-slog-term = "2.4"
-slog-async = "2.3"
+[dependencies.serde_crate]
+package = "serde"
+optional = true
+version = "1.0"
+default-features = false
+features = ["std", "derive"]
 
 [dev-dependencies]
+approx = "0.3"
 quickcheck = "0.9"
-
 serde_test = "1.0"
 
-blas-src = { version = "0.3", default-features = false, features = ["openblas"] }
-openblas-src = { version = "0.6", default-features = false, features = ["cblas", "system"] }
+blas-src = { version = "0.4", default-features = false, features = ["openblas"] }
+openblas-src = { version = "0.7", default-features = false, features = ["cblas", "system"] }

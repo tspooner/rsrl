@@ -1,17 +1,25 @@
 use crate::{
-    OnlineLearner, Shared, make_shared,
-    control::Controller,
     domains::Transition,
-    fa::{
-        Parameterised, Weights, WeightsView, WeightsViewMut,
-        StateActionFunction, EnumerableStateActionFunction,
-        DifferentiableStateActionFunction,
-    },
-    policies::{Policy, EnumerablePolicy},
-    prediction::{ValuePredictor, ActionValuePredictor},
-    traces::Trace,
+    fa::ScaledGradientUpdate,
+    utils::argmax_first,
+    traces,
+    Differentiable,
+    Enumerable,
+    Function,
+    Handler,
+    Parameterised,
 };
-use rand::Rng;
+use std::ops::Index;
+
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response {
+    td_error: f64,
+}
 
 /// Watkins' Q-learning with eligibility traces.
 ///
@@ -20,104 +28,72 @@ use rand::Rng;
 /// Cambridge University.
 /// - Watkins, C. J. C. H., Dayan, P. (1992). Q-learning. Machine Learning,
 /// 8:279–292.
-#[derive(Parameterised, Serialize, Deserialize)]
-pub struct QLambda<F, P, T> {
-    #[weights] pub fa_theta: F,
-
-    pub policy: P,
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct QLambda<F, T> {
+    #[weights]
+    pub fa_theta: F,
+    pub trace: T,
 
     pub alpha: f64,
     pub gamma: f64,
-    pub lambda: f64,
-
-    trace: T,
 }
 
-impl<F, P, T> QLambda<Shared<F>, P, T> {
-    pub fn new(
-        fa_theta: F,
-        policy: P,
-        trace: T,
-        alpha: f64,
-        gamma: f64,
-        lambda: f64,
-    ) -> Self {
-        let fa_theta = make_shared(fa_theta);
+type Tr<S, A, Q, R> = traces::Trace<<Q as Differentiable<(S, A)>>::Jacobian, R>;
 
-        QLambda {
-            fa_theta: fa_theta.clone(),
-
-            policy,
-
-            alpha,
-            gamma,
-            lambda,
-
-            trace,
-        }
-    }
-}
-
-impl<S, F, P, T> OnlineLearner<S, P::Action> for QLambda<F, P, T>
+impl<'m, S, Q, R> Handler<&'m Transition<S, usize>> for QLambda<Q, Tr<&'m S, usize, Q, R>>
 where
-    F: EnumerableStateActionFunction<S> + DifferentiableStateActionFunction<S, usize>,
-    P: EnumerablePolicy<S>,
-    T: Trace<F::Gradient>,
+    Q: Enumerable<(&'m S,)> + Differentiable<(&'m S, usize)> +
+        for<'j> Handler<ScaledGradientUpdate<&'j Tr<&'m S, usize, Q, R>>>,
+    R: traces::UpdateRule<<Q as Differentiable<(&'m S, usize)>>::Jacobian>,
+
+    <Q as Function<(&'m S,)>>::Output: Index<usize, Output = f64> + IntoIterator<Item = f64>,
+    <<Q as Function<(&'m S,)>>::Output as IntoIterator>::IntoIter: ExactSizeIterator,
 {
-    fn handle_transition(&mut self, t: &Transition<S, P::Action>) {
+    type Response = Response;
+    type Error = ();
+
+    fn handle(&mut self, t: &'m Transition<S, usize>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
-        let qsa = self.fa_theta.evaluate(s, &t.action);
+
+        let qs = self.fa_theta.evaluate((s,));
+        let qsa = qs[t.action];
+        let grad_s = self.fa_theta.grad((s, t.action));
 
         // Update trace:
-        self.trace.scale(if t.action == self.fa_theta.find_max(s).0 {
-            self.lambda * self.gamma
-        } else {
-            0.0
-        });
-        self.trace.update(&self.fa_theta.grad(s, &t.action));
+        if t.action != argmax_first(qs).0 { self.trace.reset(); }
 
-        // Update weight vectors:
-        if t.terminated() {
-            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * (t.reward - qsa));
+        self.trace.update(&grad_s);
+
+        let td_error = if t.terminated() {
+            let residual = t.reward - qsa;
+
+            self.fa_theta.handle(ScaledGradientUpdate {
+                alpha: self.alpha * residual,
+                jacobian: &self.trace,
+            }).map_err(|_| ())?;
+
             self.trace.reset();
+
+            residual
         } else {
             let ns = t.to.state();
-            let (_, nqs_max) = self.fa_theta.find_max(ns);
+            let (_, nqs_max) = self.fa_theta.find_max((ns,));
+
             let residual = t.reward + self.gamma * nqs_max - qsa;
 
-            self.fa_theta.update_grad_scaled(self.trace.deref(), self.alpha * residual);
-        }
-    }
-}
+            self.fa_theta.handle(ScaledGradientUpdate {
+                alpha: self.alpha * residual,
+                jacobian: &self.trace,
+            }).map_err(|_| ())?;
 
-impl<S, F, P, T> Controller<S, P::Action> for QLambda<F, P, T>
-where
-    F: EnumerableStateActionFunction<S, Output = f64>,
-    P: EnumerablePolicy<S>,
-{
-    fn sample_target(&self, _: &mut impl Rng, s: &S) -> P::Action {
-        self.fa_theta.find_max(s).0
-    }
+            residual
+        };
 
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
-    }
-}
-
-impl<S, F, P, T> ValuePredictor<S> for QLambda<F, P, T>
-where
-    F: EnumerableStateActionFunction<S, Output = f64>,
-    P: Policy<S>,
-{
-    fn predict_v(&self, s: &S) -> f64 { self.fa_theta.find_max(s).1 }
-}
-
-impl<S, F, P, T> ActionValuePredictor<S, P::Action> for QLambda<F, P, T>
-where
-    F: StateActionFunction<S, P::Action, Output = f64>,
-    P: Policy<S>,
-{
-    fn predict_q(&self, s: &S, a: &P::Action) -> f64 {
-        self.fa_theta.evaluate(s, a)
+        Ok(Response { td_error, })
     }
 }

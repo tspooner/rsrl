@@ -1,15 +1,14 @@
-use crate::{
-    BatchLearner,
-    control::Controller,
-    domains::Transition,
-    fa::{Weights, WeightsView, WeightsViewMut, Parameterised},
-    policies::{Policy, DifferentiablePolicy},
-};
-use rand::Rng;
+use crate::{domains::Batch, fa::StateActionUpdate, policies::Policy, Handler};
 
-#[derive(Clone, Debug, Serialize, Deserialize, Parameterised)]
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct REINFORCE<P> {
-    #[weights] pub policy: P,
+    #[weights]
+    pub policy: P,
 
     pub alpha: f64,
     pub gamma: f64,
@@ -26,33 +25,23 @@ impl<P> REINFORCE<P> {
     }
 }
 
-impl<S, P> BatchLearner<S, P::Action> for REINFORCE<P>
-where
-    P: DifferentiablePolicy<S>,
-    P::Action: Clone,
+impl<'m, S, P> Handler<&'m Batch<S, P::Action>> for REINFORCE<P>
+where P: Policy<S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<S>>::Action>>
 {
-    fn handle_batch(&mut self, batch: &[Transition<S, P::Action>]) {
-        let z = batch.len() as f64;
+    type Response = Vec<P::Response>;
+    type Error = P::Error;
+
+    fn handle(&mut self, batch: &'m Batch<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let mut ret = 0.0;
 
-        for t in batch.into_iter().rev() {
+        batch.iter().map(|t| {
             ret = t.reward + self.gamma * ret;
 
-            self.policy.update(
-                t.from.state(),
-                &t.action,
-                self.alpha * ret / z
-            );
-        }
-    }
-}
-
-impl<S, P: Policy<S>> Controller<S, P::Action> for REINFORCE<P> {
-    fn sample_target(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
-    }
-
-    fn sample_behaviour(&self, rng: &mut impl Rng, s: &S) -> P::Action {
-        self.policy.sample(rng, s)
+            self.policy.handle(StateActionUpdate {
+                state: t.from.state(),
+                action: &t.action,
+                error: self.alpha * ret,
+            })
+        }).collect()
     }
 }

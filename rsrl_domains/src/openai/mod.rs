@@ -1,9 +1,9 @@
 extern crate cpython;
 
-use crate::spaces::{ProductSpace, discrete::Ordinal, real::Interval};
 use self::cpython::{NoArgs, ObjectProtocol, PyObject, PyResult, Python};
-use std::f64;
 use super::{Domain, Observation, Transition};
+use crate::spaces::{discrete::Ordinal, real::Interval, ProductSpace};
+use std::f64;
 
 mod client;
 use self::client::GymClient;
@@ -46,7 +46,8 @@ impl OpenAIGym {
 
     pub fn upload<T: Into<String>>(&self, api_key: T) -> Result<(), &'static str> {
         if let Some(ref path) = self.monitor_path {
-            match self.env
+            match self
+                .env
                 .call_method(self.client.py(), "close", NoArgs, None)
                 .and_then(|_| self.client.upload(path, &api_key.into()))
             {
@@ -109,30 +110,34 @@ impl Domain for OpenAIGym {
 
         let lbs = ss.getattr(py, "low").unwrap();
         let ubs = ss.getattr(py, "high").unwrap();
-        let len = ss.getattr(py, "shape")
+        let len = ss
+            .getattr(py, "shape")
             .unwrap()
             .get_item(py, 0)
             .unwrap()
             .extract::<usize>(py)
             .unwrap();
 
-        (0..len).map(|i| {
-            let lb = lbs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
-            let ub = ubs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
+        (0..len)
+            .map(|i| {
+                let lb = lbs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
+                let ub = ubs.get_item(py, i).unwrap().extract::<f64>(py).unwrap();
 
-            if lb.abs() <= 340282346638528860000000000000000000000.0
-                || ub.abs() >= 340282346638528860000000000000000000000.0
-            {
-                Interval::unbounded()
-            } else {
-                Interval::bounded(lb, ub)
-            }
-        }).collect()
+                if lb.abs() <= 340282346638528860000000000000000000000.0
+                    || ub.abs() >= 340282346638528860000000000000000000000.0
+                {
+                    Interval::unbounded()
+                } else {
+                    Interval::bounded(lb, ub)
+                }
+            })
+            .collect()
     }
 
     fn action_space(&self) -> Ordinal {
         let py = self.client.py();
-        let n = self.env
+        let n = self
+            .env
             .getattr(py, "action_space")
             .unwrap()
             .getattr(py, "n")

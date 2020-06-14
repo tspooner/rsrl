@@ -1,10 +1,18 @@
 use crate::{
-    fa::EnumerableStateActionFunction,
-    policies::{EnumerablePolicy, Greedy, Policy, Random}
+    policies::{Greedy, Policy, Random},
+    Enumerable,
+    Function,
 };
 use rand::Rng;
 
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct EpsilonGreedy<Q> {
+    #[weights]
     greedy: Greedy<Q>,
     random: Random,
 
@@ -20,20 +28,50 @@ impl<Q> EpsilonGreedy<Q> {
             epsilon,
         }
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn from_Q<S>(q_func: Q, epsilon: f64) -> Self where Q: EnumerableStateActionFunction<S> {
-        let greedy = Greedy::new(q_func);
-        let random = Random::new(greedy.n_actions());
+impl<S, Q> Function<(S,)> for EpsilonGreedy<Q>
+where Q: Enumerable<(S,), Output = Vec<f64>>
+{
+    type Output = Vec<f64>;
 
-        EpsilonGreedy::new(greedy, random, epsilon)
+    fn evaluate(&self, (s,): (S,)) -> Vec<f64> {
+        let prs = self.greedy.evaluate((s,));
+        let pr = self.epsilon / prs.len() as f64;
+
+        prs.into_iter()
+            .map(|p| pr + p * (1.0 - self.epsilon))
+            .collect()
     }
 }
 
-impl<S, Q: EnumerableStateActionFunction<S>> Policy<S> for EpsilonGreedy<Q> {
+impl<S, A, Q> Function<(S, A)> for EpsilonGreedy<Q>
+where
+    A: std::borrow::Borrow<usize>,
+    Q: Enumerable<(S,), Output = Vec<f64>>,
+{
+    type Output = f64;
+
+    fn evaluate(&self, (s, a): (S, A)) -> f64 {
+        let prs = self.greedy.evaluate((s,));
+        let pr = self.epsilon / prs.len() as f64;
+
+        pr + (1.0 - self.epsilon) * prs[*a.borrow()]
+    }
+}
+
+impl<S, Q> Enumerable<(S,)> for EpsilonGreedy<Q>
+where Q: Enumerable<(S,), Output = Vec<f64>>
+{
+    fn evaluate_index(&self, (s,): (S,), index: usize) -> f64 { self.evaluate((s, index)) }
+}
+
+impl<S, Q> Policy<S> for EpsilonGreedy<Q>
+where Q: Enumerable<(S,), Output = Vec<f64>>
+{
     type Action = usize;
 
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, s: &S) -> usize {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, s: S) -> usize {
         if rng.gen_bool(self.epsilon) {
             self.random.sample(rng, s)
         } else {
@@ -41,37 +79,25 @@ impl<S, Q: EnumerableStateActionFunction<S>> Policy<S> for EpsilonGreedy<Q> {
         }
     }
 
-    fn mpa(&self, s: &S) -> usize { self.greedy.mpa(s) }
-
-    fn probability(&self, s: &S, a: &usize) -> f64 { self.probabilities(s)[*a] }
-}
-
-impl<S, Q: EnumerableStateActionFunction<S>> EnumerablePolicy<S> for EpsilonGreedy<Q> {
-    fn n_actions(&self) -> usize { self.greedy.n_actions() }
-
-    fn probabilities(&self, s: &S) -> Vec<f64> {
-        let prs = self.greedy.probabilities(s);
-        let pr = self.epsilon / prs.len() as f64;
-
-        prs.into_iter().map(|p| pr + p * (1.0 - self.epsilon)).collect()
-    }
+    fn mode(&self, s: S) -> usize { self.greedy.mode(s) }
 }
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_abs_diff_eq;
     use crate::{
-        domains::{Domain, MountainCar},
         fa::mocking::MockQ,
-        utils::compare_floats,
+        policies::{EnumerablePolicy, EpsilonGreedy, Policy, Greedy, Random},
+        Function,
     };
     use rand::thread_rng;
-    use super::{EpsilonGreedy, EnumerablePolicy, Policy};
 
     #[test]
     fn test_sampling() {
-        let q = MockQ::new_shared(Some(vec![1.0, 0.0].into()));
-        let p = EpsilonGreedy::from_Q(q.clone(), 0.5);
         let mut rng = thread_rng();
+
+        let q = MockQ::new_shared(Some(vec![1.0, 0.0].into()));
+        let p = EpsilonGreedy::new(Greedy::new(q), Random::new(2), 0.5);
 
         let mut n0: f64 = 0.0;
         let mut n1: f64 = 0.0;
@@ -88,41 +114,33 @@ mod tests {
 
     #[test]
     fn test_probabilites() {
-        let q = MockQ::new_shared(Some(vec![0.0, 0.0, 0.0, 0.0, 0.0].into()));
-        let p = EpsilonGreedy::from_Q(q.clone(), 0.5);
+        let q = MockQ::new_shared(None);
+        let p = EpsilonGreedy::new(Greedy::new(q), Random::new(5), 0.5);
 
-        q.borrow_mut().clear_output();
+        p.evaluate((vec![1.0, 0.0, 0.0, 0.0, 0.0],))
+            .into_iter()
+            .zip([0.6, 0.1, 0.1, 0.1, 0.1].iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
 
-        assert!(compare_floats(
-            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 0.0]),
-            &[0.6, 0.1, 0.1, 0.1, 0.1],
-            1e-6
-        ));
+        p.evaluate((vec![0.0, 0.0, 0.0, 0.0, 1.0],))
+            .into_iter()
+            .zip([0.1, 0.1, 0.1, 0.1, 0.6].iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
 
-        assert!(compare_floats(
-            p.probabilities(&vec![0.0, 0.0, 0.0, 0.0, 1.0]),
-            &[0.1, 0.1, 0.1, 0.1, 0.6],
-            1e-6
-        ));
-
-        assert!(compare_floats(
-            p.probabilities(&vec![1.0, 0.0, 0.0, 0.0, 1.0]),
-            &[0.35, 0.1, 0.1, 0.1, 0.35],
-            1e-6
-        ));
+        p.evaluate((vec![1.0, 0.0, 0.0, 0.0, 1.0],))
+            .into_iter()
+            .zip([0.35, 0.1, 0.1, 0.1, 0.35].iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
     }
 
     #[test]
     fn test_probabilites_uniform() {
         let q = MockQ::new_shared(Some(vec![-1.0, 0.0, 0.0, 0.0].into()));
-        let p = EpsilonGreedy::from_Q(q.clone(), 1.0);
+        let p = EpsilonGreedy::new(Greedy::new(q), Random::new(4), 1.0);
 
-        q.borrow_mut().clear_output();
-
-        assert!(compare_floats(
-            p.probabilities(&vec![-1.0, 0.0, 0.0, 0.0]),
-            &[0.25, 0.25, 0.25, 0.25],
-            1e-6
-        ));
+        p.evaluate((vec![-1.0, 0.0, 0.0, 0.0],))
+            .into_iter()
+            .zip([0.25, 0.25, 0.25, 0.25].iter())
+            .for_each(|(x, y)| assert_abs_diff_eq!(x, y, epsilon = 1e-6));
     }
 }

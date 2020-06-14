@@ -1,5 +1,10 @@
-use rand::{thread_rng, Rng, rngs::ThreadRng};
-use crate::{Domain, Observation, Transition, spaces::{real::Reals, discrete::Ordinal}};
+use crate::{
+    spaces::{discrete::Ordinal, real::Reals},
+    Domain,
+    Observation,
+    Reward,
+};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 
 #[derive(Debug)]
 pub struct Roulette {
@@ -23,7 +28,7 @@ impl Roulette {
         }
     }
 
-    pub fn update_state(&mut self, action: usize) {
+    fn update_state(&mut self, action: usize) {
         if action == 156 {
             self.active = false;
 
@@ -33,7 +38,7 @@ impl Roulette {
         let landing = self.rng.gen_range(0, 37);
         let payoff = match action {
             // Straight up:
-            a @ 0 ..= 36 if a == landing => Some(35.0 * self.bet_size),
+            a @ 0..=36 if a == landing => Some(35.0 * self.bet_size),
 
             // Splits:
             37 if landing == 0 || landing == 1 => Some(17.0 * self.bet_size),
@@ -111,7 +116,7 @@ impl Roulette {
             // Streets:
             97 if landing == 0 || landing == 1 || landing == 2 => Some(11.0 * self.bet_size),
             98 if landing == 0 || landing == 2 || landing == 3 => Some(11.0 * self.bet_size),
-            99 if landing >= 1 && landing <= 3  => Some(11.0 * self.bet_size),
+            99 if landing >= 1 && landing <= 3 => Some(11.0 * self.bet_size),
             100 if landing >= 4 && landing <= 6 => Some(11.0 * self.bet_size),
             101 if landing >= 7 && landing <= 9 => Some(11.0 * self.bet_size),
             102 if landing >= 10 && landing <= 12 => Some(11.0 * self.bet_size),
@@ -125,40 +130,84 @@ impl Roulette {
             110 if landing >= 34 && landing <= 36 => Some(11.0 * self.bet_size),
 
             // Top line:
-            111 if landing == 0 || landing == 1 || landing == 2 || landing == 3 => Some(8.0 * self.bet_size),
+            111 if landing == 0 || landing == 1 || landing == 2 || landing == 3 => {
+                Some(8.0 * self.bet_size)
+            },
 
             // Corners:
-            112 if landing == 1 || landing == 2 || landing == 4 || landing == 5 => Some(8.0 * self.bet_size),
+            112 if landing == 1 || landing == 2 || landing == 4 || landing == 5 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            113 if landing == 2 || landing == 3 || landing == 5 || landing == 6 => Some(8.0 * self.bet_size),
-            114 if landing == 5 || landing == 6 || landing == 8 || landing == 9 => Some(8.0 * self.bet_size),
+            113 if landing == 2 || landing == 3 || landing == 5 || landing == 6 => {
+                Some(8.0 * self.bet_size)
+            },
+            114 if landing == 5 || landing == 6 || landing == 8 || landing == 9 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            115 if landing == 7 || landing == 8 || landing == 10 || landing == 11 => Some(8.0 * self.bet_size),
-            116 if landing == 8 || landing == 9 || landing == 11 || landing == 12 => Some(8.0 * self.bet_size),
+            115 if landing == 7 || landing == 8 || landing == 10 || landing == 11 => {
+                Some(8.0 * self.bet_size)
+            },
+            116 if landing == 8 || landing == 9 || landing == 11 || landing == 12 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            117 if landing == 10 || landing == 11 || landing == 13 || landing == 14 => Some(8.0 * self.bet_size),
-            118 if landing == 11 || landing == 12 || landing == 14 || landing == 15 => Some(8.0 * self.bet_size),
+            117 if landing == 10 || landing == 11 || landing == 13 || landing == 14 => {
+                Some(8.0 * self.bet_size)
+            },
+            118 if landing == 11 || landing == 12 || landing == 14 || landing == 15 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            119 if landing == 13 || landing == 14 || landing == 16 || landing == 17 => Some(8.0 * self.bet_size),
-            120 if landing == 14 || landing == 15 || landing == 17 || landing == 18 => Some(8.0 * self.bet_size),
+            119 if landing == 13 || landing == 14 || landing == 16 || landing == 17 => {
+                Some(8.0 * self.bet_size)
+            },
+            120 if landing == 14 || landing == 15 || landing == 17 || landing == 18 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            121 if landing == 16 || landing == 17 || landing == 19 || landing == 20 => Some(8.0 * self.bet_size),
-            122 if landing == 17 || landing == 18 || landing == 20 || landing == 21 => Some(8.0 * self.bet_size),
+            121 if landing == 16 || landing == 17 || landing == 19 || landing == 20 => {
+                Some(8.0 * self.bet_size)
+            },
+            122 if landing == 17 || landing == 18 || landing == 20 || landing == 21 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            123 if landing == 19 || landing == 20 || landing == 22 || landing == 23 => Some(8.0 * self.bet_size),
-            124 if landing == 20 || landing == 21 || landing == 23 || landing == 24 => Some(8.0 * self.bet_size),
+            123 if landing == 19 || landing == 20 || landing == 22 || landing == 23 => {
+                Some(8.0 * self.bet_size)
+            },
+            124 if landing == 20 || landing == 21 || landing == 23 || landing == 24 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            125 if landing == 22 || landing == 23 || landing == 25 || landing == 26 => Some(8.0 * self.bet_size),
-            126 if landing == 23 || landing == 24 || landing == 27 || landing == 27 => Some(8.0 * self.bet_size),
+            125 if landing == 22 || landing == 23 || landing == 25 || landing == 26 => {
+                Some(8.0 * self.bet_size)
+            },
+            126 if landing == 23 || landing == 24 || landing == 27 || landing == 27 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            127 if landing == 25 || landing == 26 || landing == 28 || landing == 29 => Some(8.0 * self.bet_size),
-            128 if landing == 26 || landing == 27 || landing == 29 || landing == 30 => Some(8.0 * self.bet_size),
+            127 if landing == 25 || landing == 26 || landing == 28 || landing == 29 => {
+                Some(8.0 * self.bet_size)
+            },
+            128 if landing == 26 || landing == 27 || landing == 29 || landing == 30 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            129 if landing == 28 || landing == 29 || landing == 31 || landing == 32 => Some(8.0 * self.bet_size),
-            130 if landing == 29 || landing == 30 || landing == 32 || landing == 33 => Some(8.0 * self.bet_size),
+            129 if landing == 28 || landing == 29 || landing == 31 || landing == 32 => {
+                Some(8.0 * self.bet_size)
+            },
+            130 if landing == 29 || landing == 30 || landing == 32 || landing == 33 => {
+                Some(8.0 * self.bet_size)
+            },
 
-            131 if landing == 31 || landing == 32 || landing == 34 || landing == 35 => Some(8.0 * self.bet_size),
-            132 if landing == 32 || landing == 33 || landing == 35 || landing == 36 => Some(8.0 * self.bet_size),
+            131 if landing == 31 || landing == 32 || landing == 34 || landing == 35 => {
+                Some(8.0 * self.bet_size)
+            },
+            132 if landing == 32 || landing == 33 || landing == 35 || landing == 36 => {
+                Some(8.0 * self.bet_size)
+            },
 
             // Lines:
             133 if landing >= 1 && landing <= 6 => Some(5.0 * self.bet_size),
@@ -185,11 +234,24 @@ impl Roulette {
 
             // Colours:
             150 | 151 => {
-                let is_red = landing == 1 || landing == 3 || landing == 5 || landing == 7 ||
-                    landing == 9 || landing == 12 || landing == 14 || landing == 16 ||
-                    landing == 18 || landing == 19 || landing == 21 || landing == 23 ||
-                    landing == 25 || landing == 27 || landing == 30 || landing == 32 ||
-                    landing == 35 || landing == 36;
+                let is_red = landing == 1
+                    || landing == 3
+                    || landing == 5
+                    || landing == 7
+                    || landing == 9
+                    || landing == 12
+                    || landing == 14
+                    || landing == 16
+                    || landing == 18
+                    || landing == 19
+                    || landing == 21
+                    || landing == 23
+                    || landing == 25
+                    || landing == 27
+                    || landing == 30
+                    || landing == 32
+                    || landing == 35
+                    || landing == 36;
 
                 if (action == 148 && is_red) || (action == 149 && !is_red) {
                     Some(2.0 * self.bet_size)
@@ -239,24 +301,13 @@ impl Domain for Roulette {
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<f64, usize> {
-        let from = self.emit();
+    fn step(&mut self, action: &usize) -> (Observation<f64>, Reward) {
+        self.update_state(*action);
 
-        self.update_state(action);
-
-        Transition {
-            from,
-            action,
-            reward: self.reward,
-            to: self.emit(),
-        }
+        (self.emit(), self.reward)
     }
 
-    fn state_space(&self) -> Self::StateSpace {
-        Reals
-    }
+    fn state_space(&self) -> Self::StateSpace { Reals }
 
-    fn action_space(&self) -> Self::ActionSpace {
-        Ordinal::new(157)
-    }
+    fn action_space(&self) -> Self::ActionSpace { Ordinal::new(157) }
 }

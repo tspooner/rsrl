@@ -1,5 +1,14 @@
-import_all!(td);
-import_all!(td_lambda);
+// Semi-gradient methods:
+pub mod td;
+pub mod td_lambda;
+
+pub use self::{td::TD, td_lambda::TDLambda};
+
+// Full-gradient methods:
+pub mod gtd2;
+pub mod tdc;
+
+pub use self::{gtd2::GTD2, tdc::TDC};
 
 // TODO:
 // n-step TD - Sutton & Barto

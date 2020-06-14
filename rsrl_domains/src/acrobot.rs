@@ -1,13 +1,9 @@
+use super::{runge_kutta4, Domain, Observation, Reward};
 use crate::{
-    consts::{PI_OVER_2, G},
-    spaces::{
-        ProductSpace,
-        real::Interval,
-        discrete::Ordinal,
-    },
+    consts::{G, PI_OVER_2},
+    spaces::{discrete::Ordinal, real::Interval, ProductSpace},
 };
 use std::f64::consts::PI;
-use super::{runge_kutta4, Domain, Observation, Transition};
 
 // Link masses:
 const M1: f64 = 1.0;
@@ -70,10 +66,16 @@ impl Acrobot {
         self.0[StateIndex::THETA2] =
             wrap!(LIMITS_THETA2[0], ns[StateIndex::THETA2], LIMITS_THETA2[1]);
 
-        self.0[StateIndex::DTHETA1] =
-            clip!(LIMITS_DTHETA1[0], ns[StateIndex::DTHETA1], LIMITS_DTHETA1[1]);
-        self.0[StateIndex::DTHETA2] =
-            clip!(LIMITS_DTHETA2[0], ns[StateIndex::DTHETA2], LIMITS_DTHETA2[1]);
+        self.0[StateIndex::DTHETA1] = clip!(
+            LIMITS_DTHETA1[0],
+            ns[StateIndex::DTHETA1],
+            LIMITS_DTHETA1[1]
+        );
+        self.0[StateIndex::DTHETA2] = clip!(
+            LIMITS_DTHETA2[0],
+            ns[StateIndex::DTHETA2],
+            LIMITS_DTHETA2[1]
+        );
     }
 
     fn grad(torque: f64, mut buffer: Vec<f64>) -> Vec<f64> {
@@ -94,13 +96,13 @@ impl Acrobot {
         let phi2 = M2 * LC2 * G * (theta1 + theta2 - PI_OVER_2).cos();
         let phi1 = -1.0 * L1 * LC2 * dtheta2 * dtheta2 * sin_t2
             - 2.0 * M2 * L1 * LC2 * dtheta2 * dtheta1 * sin_t2
-            + (M1 * LC1 + M2 * L1) * G * (theta1 - PI_OVER_2).cos() + phi2;
+            + (M1 * LC1 + M2 * L1) * G * (theta1 - PI_OVER_2).cos()
+            + phi2;
 
         buffer[StateIndex::DTHETA1] =
             (torque + d2 / d1 * phi1 - M2 * L1 * LC2 * dtheta1 * dtheta1 * sin_t2 - phi2)
-            / (M2 * LC2 * LC2 + I2 - d2 * d2 / d1);
-        buffer[StateIndex::DTHETA2] =
-            -(d2 * buffer[StateIndex::DTHETA1] + phi1) / d1;
+                / (M2 * LC2 * LC2 + I2 - d2 * d2 / d1);
+        buffer[StateIndex::DTHETA2] = -(d2 * buffer[StateIndex::DTHETA1] + phi1) / d1;
 
         buffer
     }
@@ -125,19 +127,17 @@ impl Domain for Acrobot {
         }
     }
 
-    fn step(&mut self, action: usize) -> Transition<Vec<f64>, usize> {
-        let from = self.emit();
-
-        self.update_state(action);
+    fn step(&mut self, action: &usize) -> (Observation<Vec<f64>>, Reward) {
+        self.update_state(*action);
 
         let to = self.emit();
+        let reward = if to.is_terminal() {
+            REWARD_TERMINAL
+        } else {
+            REWARD_STEP
+        };
 
-        Transition {
-            from,
-            action,
-            reward: if to.is_terminal() { REWARD_TERMINAL } else { REWARD_STEP },
-            to,
-        }
+        (to, reward)
     }
 
     fn state_space(&self) -> Self::StateSpace {

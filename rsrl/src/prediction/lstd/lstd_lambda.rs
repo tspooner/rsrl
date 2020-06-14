@@ -1,71 +1,69 @@
 use crate::{
-    BatchLearner,
-    domains::Transition,
-    fa::{
-        Weights, WeightsView, WeightsViewMut, Parameterised,
-        StateFunction,
-        linear::LinearStateFunction,
-    },
-    prediction::ValuePredictor,
+    domains::Batch,
+    fa::linear::{basis::Basis, Features},
     utils::pinv,
+    Handler,
+    Parameterised,
 };
 use ndarray::{Array1, Array2, Axis};
 use ndarray_linalg::Solve;
 
-#[derive(Parameterised)]
-pub struct LSTDLambda<F> {
-    #[weights] pub fa_theta: F,
+#[derive(Debug, Parameterised)]
+pub struct LSTDLambda<B> {
+    pub basis: B,
+    #[weights]
+    pub theta: Array1<f64>,
 
     pub gamma: f64,
     pub lambda: f64,
 
-    z: Array1<f64>,
-
     a: Array2<f64>,
     b: Array1<f64>,
+    z: Array1<f64>,
 }
 
-impl<F: Parameterised> LSTDLambda<F> {
-    pub fn new(fa_theta: F, gamma: f64, lambda: f64) -> Self {
-        let dim = fa_theta.weights_dim();
+impl<B: spaces::Space> LSTDLambda<B> {
+    pub fn new(basis: B, gamma: f64, lambda: f64) -> Self {
+        let n_features: usize = basis.dim().into();
 
         LSTDLambda {
-            fa_theta,
+            basis,
+            theta: Array1::zeros(n_features),
 
             gamma,
             lambda,
 
-            z: Array1::zeros(dim[0]),
-
-            a: Array2::eye(dim[0]) * 1e-6,
-            b: Array1::zeros(dim[0]),
+            a: Array2::eye(n_features) * 1e-6,
+            b: Array1::zeros(n_features),
+            z: Array1::zeros(n_features),
         }
     }
 }
 
-impl<F: Parameterised> LSTDLambda<F> {
+impl<B> LSTDLambda<B> {
     pub fn solve(&mut self) {
-        let mut w = self.fa_theta.weights_view_mut();
+        let theta = self
+            .a
+            .solve(&self.b)
+            .or_else(|_| pinv(&self.a).map(|ainv| ainv.dot(&self.b)));
 
-        if let Ok(theta) = self.a.solve(&self.b) {
-            // First try the clean approach:
-            w.assign(&theta);
-        } else if let Ok(ainv) = pinv(&self.a) {
-            // Otherwise solve via SVD:
-            w.assign(&ainv.dot(&self.b));
+        if let Ok(theta) = theta {
+            self.theta.assign(&theta)
         }
     }
 }
 
-impl<S, A, F> BatchLearner<S, A> for LSTDLambda<F>
-where
-    F: LinearStateFunction<S, Output = f64>,
+impl<'m, S, A, B> Handler<&'m Batch<S, A>> for LSTDLambda<B>
+where B: Basis<&'m S, Value = Features>
 {
-    fn handle_batch(&mut self, ts: &[Transition<S, A>]) {
-        ts.into_iter().for_each(|t| {
+    type Response = ();
+    type Error = crate::fa::linear::Error;
+
+    fn handle(&mut self, batch: &'m Batch<S, A>) -> Result<(), Self::Error> {
+        for t in batch.iter().rev() {
             let (s, ns) = t.states();
 
-            let phi_s = self.fa_theta.features(s).expanded();
+            let phi_s = self.basis.project(s)?.into_dense();
 
             // Update trace:
             let c = self.lambda * self.gamma;
@@ -76,26 +74,27 @@ where
             self.b.scaled_add(t.reward, &self.z);
 
             if t.terminated() {
-                self.a += &self.z.view().insert_axis(Axis(1)).dot(&phi_s.insert_axis(Axis(0)));
+                self.a += &self
+                    .z
+                    .view()
+                    .insert_axis(Axis(1))
+                    .dot(&phi_s.insert_axis(Axis(0)));
                 self.z.fill(0.0);
             } else {
-                let mut pd = self.fa_theta.features(ns).expanded();
+                let mut pd = self.basis.project(ns)?.into_dense();
 
                 pd.zip_mut_with(&phi_s, |x, &y| *x = y - self.gamma * *x);
 
-                self.a += &self.z.view().insert_axis(Axis(1)).dot(&pd.insert_axis(Axis(0)));
+                self.a += &self
+                    .z
+                    .view()
+                    .insert_axis(Axis(1))
+                    .dot(&pd.insert_axis(Axis(0)));
             }
-        });
+        }
 
         self.solve();
-    }
-}
 
-impl<S, F> ValuePredictor<S> for LSTDLambda<F>
-where
-    F: StateFunction<S, Output = f64>
-{
-    fn predict_v(&self, s: &S) -> f64 {
-        self.fa_theta.evaluate(s)
+        Ok(())
     }
 }

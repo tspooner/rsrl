@@ -1,53 +1,69 @@
-extern crate rsrl;
 #[macro_use]
-extern crate slog;
+extern crate rsrl;
 
+use rand::thread_rng;
 use rsrl::{
-    control::ac::TDAC,
+    control::{ac::ActorCritic, td::SARSA},
     domains::{ContinuousMountainCar, Domain},
     fa::{
         linear::{
-            basis::{Fourier, Projector},
+            basis::{Combinators, Fourier, Basis},
             optim::SGD,
             LFA,
         },
         transforms::Softplus,
-        TransformedLFA,
+        Composition,
     },
-    logging,
-    policies::Beta,
-    prediction::td::TD,
-    run,
-    Evaluation,
-    SerialExperiment,
+    make_shared,
+    policies::{Beta, Policy},
+    prediction::lstd::iLSTD,
+    spaces::Space,
+    Handler,
 };
 
 fn main() {
     let domain = ContinuousMountainCar::default();
-    let bases = Fourier::from_space(3, domain.state_space()).with_constant();
+    let basis = Fourier::from_space(3, domain.state_space()).with_bias();
 
-    let critic = TD::new(LFA::scalar(bases.clone(), SGD(1.0)), 0.01, 0.99);
-    let policy = Beta::new(
-        TransformedLFA::scalar(bases.clone(), Softplus),
-        TransformedLFA::scalar(bases, Softplus),
-    );
+    let lfa = Composition::new(LFA::scalar(basis.clone(), SGD(1.0)), Softplus);
 
-    let mut agent = TDAC::new(critic, policy, 0.001, 0.99);
+    let policy = Beta::new(lfa.clone(), lfa);
+    let mut eval = shared!(iLSTD::new(basis, 0.00001, 0.999, 2));
 
-    let logger = logging::root(logging::stdout());
-    let domain_builder = Box::new(ContinuousMountainCar::default);
+    let critic = {
+        let e = eval.clone();
 
-    // Training phase:
-    let _training_result = {
-        // Start a serial learning experiment up to 1000 steps per episode.
-        let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
-
-        // Realise 1000 episodes of the experiment generator.
-        run(e, 10000, Some(logger.clone()))
+        move |(s,): (&_,)| { e.basis.project(s).unwrap().dot(&e.theta) }
     };
 
-    // Testing phase:
-    let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
+    let mut rng = thread_rng();
+    let mut agent = ActorCritic::tdac(critic, policy, 0.001, 0.999);
 
-    info!(logger, "solution"; testing_result);
+    for e in 0..1000 {
+        // Episode loop:
+        let mut env = ContinuousMountainCar::default();
+        let mut action = agent.policy.sample(&mut rng, env.emit().state());
+        let mut total_reward = 0.0;
+
+        for _ in 0..1000 {
+            // Trajectory loop:
+            let t = env.transition(action).replace_action(action);
+
+            eval.handle(&t).ok();
+            agent.handle(&t).ok();
+
+            action = agent.policy.sample(&mut rng, t.to.state());
+            total_reward += t.reward;
+
+            if t.terminated() {
+                break;
+            }
+        }
+
+        println!("Batch {}: {}", e + 1, total_reward);
+    }
+
+    let traj = ContinuousMountainCar::default().rollout(|s| agent.policy.mode(s), Some(1000));
+
+    println!("OOS: {}...", traj.total_reward());
 }

@@ -1,58 +1,84 @@
 extern crate rsrl;
-#[macro_use]
-extern crate slog;
 
+use rand::thread_rng;
 use rsrl::{
-    control::{ac::NAC, td::SARSA},
+    control::{nac::NAC, td::SARSA},
     domains::{ContinuousMountainCar, Domain},
     fa::{
         linear::{
-            basis::{Fourier, Projector},
+            basis::{Combinators, Fourier, SCB},
             optim::SGD,
-            StableCFA,
             LFA,
         },
-        Parameterised,
+        transforms::Softplus,
+        Composition,
     },
-    logging,
     make_shared,
-    policies::gaussian::{self, Gaussian},
-    run,
-    spaces::Space,
-    Evaluation,
-    SerialExperiment,
+    policies::{Gaussian, Policy},
+    Handler,
 };
+use spaces::BoundedSpace;
 
 fn main() {
     let domain = ContinuousMountainCar::default();
 
-    let basis = Fourier::from_space(3, domain.state_space()).with_constant();
-    let policy = make_shared(Gaussian::new(
-        gaussian::mean::Scalar(LFA::scalar(basis.clone(), SGD(1.0))),
-        gaussian::stddev::Constant(0.5),
-    ));
+    let limits = domain
+        .state_space()
+        .into_iter()
+        .map(|d| (d.inf().unwrap(), d.sup().unwrap()))
+        .collect();
+
+    let basis = Fourier::new(3, limits).with_bias();
+    let lfa = LFA::scalar(basis.clone(), SGD(1.0));
+    let clfa = Composition::new(LFA::scalar(basis.clone(), SGD(1.0)), Softplus);
+
+    let policy = make_shared(Gaussian::new(lfa, clfa));
     let critic = {
-        let q_func = StableCFA::new(policy.clone(), basis, SGD(1.0));
+        let optimiser = SGD(0.01);
 
-        SARSA::new(q_func, policy.clone(), 0.01, 1.0)
+        let basis_c = SCB {
+            policy: policy.clone(),
+            basis,
+        };
+        let cfa = LFA::scalar(basis_c, optimiser);
+
+        SARSA {
+            q_func: cfa,
+            policy: policy.clone(),
+            gamma: 0.999,
+        }
     };
 
-    let mut agent = NAC::new(critic, policy, 0.01, 100);
+    let mut rng = thread_rng();
+    let mut agent = NAC::new(critic, policy, 0.01);
 
-    let logger = logging::root(logging::stdout());
-    let domain_builder = Box::new(ContinuousMountainCar::default);
+    for e in 0..1000 {
+        // Episode loop:
+        let mut env = ContinuousMountainCar::default();
+        let mut action = agent.policy.sample(&mut rng, env.emit().state());
+        let mut total_reward = 0.0;
 
-    // Training phase:
-    let _training_result = {
-        // Start a serial learning experiment up to 1000 steps per episode.
-        let e = SerialExperiment::new(&mut agent, domain_builder.clone(), 1000);
+        for i in 0..1000 {
+            // Trajectory loop:
+            let t = env.transition(action);
 
-        // Realise 1000 episodes of the experiment generator.
-        run(e, 1000, Some(logger.clone()))
-    };
+            agent.critic.handle(&t).ok();
+            action = agent.policy.sample(&mut rng, t.to.state());
+            total_reward += t.reward;
 
-    // Testing phase:
-    let testing_result = Evaluation::new(&mut agent, domain_builder).next().unwrap();
+            if i % 100 == 0 {
+                agent.handle(()).ok();
+            }
 
-    info!(logger, "solution"; testing_result);
+            if t.terminated() {
+                break;
+            }
+        }
+
+        println!("Batch {}: {}", e + 1, total_reward);
+    }
+
+    let traj = ContinuousMountainCar::default().rollout(|s| agent.policy.mode(s), Some(1000));
+
+    println!("OOS: {}...", traj.total_reward());
 }

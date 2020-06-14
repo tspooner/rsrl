@@ -1,6 +1,8 @@
 use crate::{
-    Domain, Observation, Transition,
-    spaces::{Surjection, ProductSpace, real::Interval},
+    spaces::{real::Interval, ProductSpace, Surjection},
+    Domain,
+    Observation,
+    Reward,
 };
 
 const X_MIN: f64 = -1.2;
@@ -30,7 +32,8 @@ pub struct ContinuousMountainCar {
 impl ContinuousMountainCar {
     pub fn new(x: f64, v: f64) -> ContinuousMountainCar {
         ContinuousMountainCar {
-            x, v,
+            x,
+            v,
             action_space: Interval::bounded(MIN_ACTION, MAX_ACTION),
         }
     }
@@ -61,19 +64,17 @@ impl Domain for ContinuousMountainCar {
         }
     }
 
-    fn step(&mut self, action: f64) -> Transition<Vec<f64>, f64> {
-        let from = self.emit();
-
-        self.update_state(action);
+    fn step(&mut self, action: &f64) -> (Observation<Vec<f64>>, Reward) {
+        self.update_state(*action);
 
         let to = self.emit();
+        let reward = if to.is_terminal() {
+            REWARD_GOAL
+        } else {
+            REWARD_STEP
+        };
 
-        Transition {
-            from,
-            action,
-            reward: if to.is_terminal() { REWARD_GOAL } else { REWARD_STEP },
-            to,
-        }
+        (to, reward)
     }
 
     fn state_space(&self) -> Self::StateSpace {
@@ -106,11 +107,17 @@ mod tests {
         assert!(!ContinuousMountainCar::default().emit().is_terminal());
         assert!(!ContinuousMountainCar::new(-0.5, 0.0).emit().is_terminal());
 
-        assert!(ContinuousMountainCar::new(X_MAX, -0.05).emit().is_terminal());
+        assert!(ContinuousMountainCar::new(X_MAX, -0.05)
+            .emit()
+            .is_terminal());
         assert!(ContinuousMountainCar::new(X_MAX, 0.0).emit().is_terminal());
         assert!(ContinuousMountainCar::new(X_MAX, 0.05).emit().is_terminal());
 
-        assert!(!ContinuousMountainCar::new(X_MAX - 0.0001 * X_MAX, 0.0).emit().is_terminal());
-        assert!(ContinuousMountainCar::new(X_MAX + 0.0001 * X_MAX, 0.0).emit().is_terminal());
+        assert!(!ContinuousMountainCar::new(X_MAX - 0.0001 * X_MAX, 0.0)
+            .emit()
+            .is_terminal());
+        assert!(ContinuousMountainCar::new(X_MAX + 0.0001 * X_MAX, 0.0)
+            .emit()
+            .is_terminal());
     }
 }

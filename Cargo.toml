@@ -2,4 +2,5 @@
 members = [
     "rsrl",
     "rsrl_domains",
+    "rsrl_derive"
 ]
