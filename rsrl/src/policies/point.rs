@@ -71,22 +71,18 @@ where
     A: std::borrow::Borrow<f64>,
     F: for<'s> Function<(&'s S,), Output = f64> + Handler<StateActionUpdate<S, A>>,
 {
-    type Response = ();
-    type Error = ();
+    type Response = F::Response;
+    type Error = F::Error;
 
-    fn handle(&mut self, msg: StateActionUpdate<S, A>) -> Result<(), ()> {
+    fn handle(&mut self, msg: StateActionUpdate<S, A>) -> Result<Self::Response, Self::Error> {
         let mode = self.0.evaluate((&msg.state,));
         let error = (msg.action.borrow() - mode) * msg.error;
 
-        self.0
-            .handle(StateActionUpdate {
-                state: msg.state,
-                action: msg.action,
-                error,
-            })
-            .ok();
-
-        Ok(())
+        self.0.handle(StateActionUpdate {
+            state: msg.state,
+            action: msg.action,
+            error,
+        })
     }
 }
 
@@ -105,8 +101,7 @@ where
     {
         let dim = self.0.weights_dim();
 
-        self.0
-            .handle(GradientUpdate(msg.0.slice(s![0..dim.0, 0..dim.1])))
+        self.0.handle(GradientUpdate(msg.0.slice(s![0..dim.0, 0..dim.1])))
     }
 }
 

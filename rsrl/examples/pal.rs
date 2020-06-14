@@ -26,7 +26,11 @@ fn main() {
 
         let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.1);
 
-        (PAL::new(q_func, 0.001, 0.9), policy)
+        (PAL {
+            q_func: q_func,
+            alpha: 0.001,
+            gamma: 0.9,
+        }, policy)
     };
 
     for e in 0..200 {

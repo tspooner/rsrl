@@ -6,7 +6,12 @@ use crate::{
     Handler,
 };
 
-#[derive(Parameterised)]
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct BaselineREINFORCE<B, P> {
     #[weights]
     pub policy: P,
@@ -33,27 +38,23 @@ where
     P: Policy<S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<S>>::Action>>,
     B: Function<(&'m S, &'m P::Action), Output = f64>,
 {
-    type Response = ();
-    type Error = ();
+    type Response = Vec<P::Response>;
+    type Error = P::Error;
 
-    fn handle(&mut self, batch: &'m Batch<S, P::Action>) -> Result<(), ()> {
+    fn handle(&mut self, batch: &'m Batch<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let mut ret = 0.0;
 
-        for t in batch.into_iter().rev() {
+        batch.iter().map(|t| {
             let s = t.from.state();
             let baseline = self.baseline.evaluate((s, &t.action));
 
             ret = t.reward + self.gamma * ret;
 
-            self.policy
-                .handle(StateActionUpdate {
-                    state: t.from.state(),
-                    action: &t.action,
-                    error: self.alpha * (ret - baseline),
-                })
-                .ok();
-        }
-
-        Ok(())
+            self.policy.handle(StateActionUpdate {
+                state: t.from.state(),
+                action: &t.action,
+                error: self.alpha * (ret - baseline),
+            })
+        }).collect()
     }
 }

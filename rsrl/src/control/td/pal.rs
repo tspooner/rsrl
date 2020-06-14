@@ -23,17 +23,6 @@ pub struct PAL<Q> {
     pub gamma: f64,
 }
 
-impl<Q> PAL<Q> {
-    pub fn new(q_func: Q, alpha: f64, gamma: f64) -> Self {
-        PAL {
-            q_func,
-
-            alpha,
-            gamma,
-        }
-    }
-}
-
 impl<'m, S, Q> Handler<&'m Transition<S, usize>> for PAL<Q>
 where
     Q: Enumerable<(&'m S,), Output = Vec<f64>> + Handler<StateActionUpdate<&'m S, usize, f64>>,

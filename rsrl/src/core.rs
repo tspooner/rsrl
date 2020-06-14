@@ -151,7 +151,11 @@ impl<Args, F: Differentiable<Args>> Differentiable<Args> for Shared<F> {
     fn grad_log(&self, args: Args) -> Self::Jacobian { self.borrow().grad_log(args) }
 }
 
-pub trait Handler<M> {
+pub trait Message {}
+
+impl<M> Message for M {}
+
+pub trait Handler<M: Message> {
     type Response;
     type Error;
 
@@ -160,7 +164,7 @@ pub trait Handler<M> {
     fn handle_unchecked(&mut self, msg: M) -> Self::Response { self.handle(msg).ok().unwrap() }
 }
 
-impl<M, T: Handler<M>> Handler<M> for Shared<T> {
+impl<M: Message, T: Handler<M>> Handler<M> for Shared<T> {
     type Response = T::Response;
     type Error = T::Error;
 

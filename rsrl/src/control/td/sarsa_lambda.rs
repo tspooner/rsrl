@@ -10,6 +10,16 @@ use crate::{
 };
 use rand::thread_rng;
 
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response {
+    td_error: f64,
+}
+
 /// On-policy variant of Watkins' Q-learning with eligibility traces (aka
 /// "modified Q-learning").
 ///
@@ -18,7 +28,7 @@ use rand::thread_rng;
 /// thesis, Cambridge University.
 /// - Singh, S. P., Sutton, R. S. (1996). Reinforcement learning with replacing
 /// eligibility traces. Machine Learning 22:123–158.
-#[derive(Parameterised)]
+#[derive(Clone, Debug, Parameterised)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -34,35 +44,20 @@ pub struct SARSALambda<Q, P, T> {
     pub gamma: f64,
 }
 
-impl<Q, P, T> SARSALambda<Q, P, T> {
-    pub fn new(fa_theta: Q, policy: P, trace: T, alpha: f64, gamma: f64) -> Self {
-        SARSALambda {
-            fa_theta,
-            policy,
-            trace,
-
-            alpha,
-            gamma,
-        }
-    }
-}
-
 type Tr<S, A, Q, R> = traces::Trace<<Q as Differentiable<(S, A)>>::Jacobian, R>;
 
+
 impl<'m, S, Q, P, R> Handler<&'m Transition<S, P::Action>> for SARSALambda<
-    Q, P,
-    Tr<&'m S, &'m P::Action, Q, R>
+    Q, P, Tr<&'m S, &'m P::Action, Q, R>
 >
 where
-    Q: Function<(&'m S, P::Action), Output = f64>
-        + Differentiable<(&'m S, &'m P::Action), Output = f64>,
-    Q: for<'j> Handler<
-        ScaledGradientUpdate<&'j Tr<&'m S, &'m P::Action, Q, R>>,
-    >,
+    Q: Function<(&'m S, P::Action), Output = f64> +
+        Differentiable<(&'m S, &'m P::Action), Output = f64> +
+        for<'j> Handler<ScaledGradientUpdate<&'j Tr<&'m S, &'m P::Action, Q, R>>>,
     P: Policy<&'m S>,
     R: traces::UpdateRule<<Q as Differentiable<(&'m S, &'m P::Action)>>::Jacobian>,
 {
-    type Response = ();
+    type Response = Response;
     type Error = ();
 
     fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<Self::Response, Self::Error> {
@@ -73,27 +68,31 @@ where
         self.trace.update(&self.fa_theta.grad((s, &t.action)));
 
         // Update weight vectors:
-        if t.terminated() {
-            self.fa_theta
-                .handle(ScaledGradientUpdate {
-                    alpha: self.alpha * (t.reward - qsa),
-                    jacobian: &self.trace,
-                })
-                .ok();
+        let td_error = if t.terminated() {
+            let residual = t.reward - qsa;
+
+            self.fa_theta.handle(ScaledGradientUpdate {
+                alpha: self.alpha * residual,
+                jacobian: &self.trace,
+            }).map_err(|_| ())?;
             self.trace.reset();
+
+            residual
         } else {
             let ns = t.to.state();
             let na = self.policy.sample(&mut thread_rng(), ns);
             let nqsna = self.fa_theta.evaluate((ns, na));
 
-            self.fa_theta
-                .handle(ScaledGradientUpdate {
-                    alpha: self.alpha * (t.reward + self.gamma * nqsna - qsa),
-                    jacobian: &self.trace,
-                })
-                .ok();
+            let residual = t.reward + self.gamma * nqsna - qsa;
+
+            self.fa_theta.handle(ScaledGradientUpdate {
+                alpha: self.alpha * residual,
+                jacobian: &self.trace,
+            }).map_err(|_| ())?;
+
+            residual
         };
 
-        Ok(())
+        Ok(Response { td_error, })
     }
 }

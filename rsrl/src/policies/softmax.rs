@@ -38,6 +38,14 @@ fn softmax_stable<C: FromIterator<f64>>(values: &[f64], tau: f64) -> C {
 
 pub type Gibbs<F> = Softmax<F>;
 
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Error;
+
 #[derive(Clone, Debug, Parameterised)]
 #[cfg_attr(
     feature = "serde",
@@ -159,9 +167,9 @@ where
     D: Data<Elem = f64>,
 {
     type Response = ();
-    type Error = ();
+    type Error = Error;
 
-    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         self.handle(GradientUpdate(&msg.0))
     }
 }
@@ -172,9 +180,9 @@ where
     D: Data<Elem = f64>,
 {
     type Response = ();
-    type Error = ();
+    type Error = Error;
 
-    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         msg.0.addto(&mut self.fa.weights_view_mut());
 
         Ok(())
@@ -187,9 +195,9 @@ where
     D: Data<Elem = f64>,
 {
     type Response = ();
-    type Error = ();
+    type Error = Error;
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         self.handle(ScaledGradientUpdate {
             alpha: msg.alpha,
             jacobian: &msg.jacobian,
@@ -203,9 +211,9 @@ where
     D: Data<Elem = f64>,
 {
     type Response = ();
-    type Error = ();
+    type Error = Error;
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         msg.jacobian
             .scaled_addto(msg.alpha, &mut self.fa.weights_view_mut());
 

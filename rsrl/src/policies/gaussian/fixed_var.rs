@@ -104,7 +104,7 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: StateActionUpdate<&'x X, A>) -> Result<(), ()> {
+    fn handle(&mut self, msg: StateActionUpdate<&'x X, A>) -> Result<Self::Response, Self::Error> {
         let dist = Builder::build_unchecked(self.compute_mean(msg.state), self.stddev);
         let normal::Grad { mu: gl_mean, .. } = dist.score(&[*msg.action.borrow()]);
 
@@ -117,7 +117,7 @@ where
     }
 }
 
-impl<M, D> Handler<GradientUpdate<ArrayBase<D, Ix2>>> for Gaussian<M, f64>
+impl<'m, M, D> Handler<GradientUpdate<ArrayBase<D, Ix2>>> for Gaussian<M, f64>
 where
     M: Parameterised,
     D: Data<Elem = f64>,
@@ -125,7 +125,7 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         self.handle(GradientUpdate(&msg.0))
     }
 }
@@ -138,14 +138,14 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         msg.0.addto(&mut self.mean.weights_view_mut());
 
         Ok(())
     }
 }
 
-impl<M, D> Handler<ScaledGradientUpdate<ArrayBase<D, Ix2>>> for Gaussian<M, f64>
+impl<'m, M, D> Handler<ScaledGradientUpdate<ArrayBase<D, Ix2>>> for Gaussian<M, f64>
 where
     M: Parameterised,
     D: Data<Elem = f64>,
@@ -153,7 +153,7 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         self.handle(ScaledGradientUpdate {
             alpha: msg.alpha,
             jacobian: &msg.jacobian,
@@ -169,7 +169,7 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         msg.jacobian
             .scaled_addto(msg.alpha, &mut self.mean.weights_view_mut());
 

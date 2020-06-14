@@ -2,6 +2,9 @@ use super::*;
 use ndarray::{Array1, Array2, ArrayBase, Data, DataMut, Ix1, Ix2, IntoDimension};
 use std::ops::AddAssign;
 
+pub type Vector = Array1<f64>;
+pub type Matrix = Array2<f64>;
+
 impl<D: Data<Elem = f64>> Buffer for ArrayBase<D, Ix1> {
     type Dim = Ix1;
 

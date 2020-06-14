@@ -29,10 +29,6 @@ pub struct TD<V> {
     pub gamma: f64,
 }
 
-impl<V> TD<V> {
-    pub fn new(v_func: V, gamma: f64) -> Self { TD { v_func, gamma } }
-}
-
 impl<'m, S, A, V> Handler<&'m Transition<S, A>> for TD<V>
 where V: Function<(&'m S,), Output = f64> + Handler<StateUpdate<&'m S, f64>>
 {

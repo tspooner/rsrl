@@ -64,38 +64,47 @@ impl<T: Buffer> Buffer for &T {
 pub trait BufferMut: Buffer + Clone {
     fn zeros<D: IntoDimension<Dim = Self::Dim>>(dim: D) -> Self;
 
-    fn reset(&mut self) { self.map_inplace(|x| 0.0) }
+    fn reset(&mut self) { self.map_inplace(|_| 0.0) }
 
-    fn map(&self, f: impl Fn(f64) -> f64) -> Self;
+    fn map(&self, f: impl Fn(f64) -> f64) -> Self {
+        self.clone().map_into(f)
+    }
 
-    fn map_into(self, f: impl Fn(f64) -> f64) -> Self {
-        self.map(f);
+    fn map_into(mut self, f: impl Fn(f64) -> f64) -> Self {
+        self.map_inplace(f);
         self
     }
 
     fn map_inplace(&mut self, f: impl Fn(f64) -> f64);
 
-    fn merge(&self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self;
+    fn merge(&self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self {
+        self.clone().merge_into(other, f)
+    }
 
-    fn merge_into(self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self {
-        self.merge(other, f);
+    fn merge_into(mut self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self {
+        self.merge_inplace(other, f);
         self
     }
 
     fn merge_inplace(&mut self, other: &Self, f: impl Fn(f64, f64) -> f64);
 }
 
-mod columnar;
 mod dense;
 mod sparse;
+
+mod columnar;
 mod tile;
 
-pub use self::columnar::Columnar;
-pub use self::sparse::Sparse;
-pub use self::tile::Tile;
+pub use self::{
+    dense::{Vector, Matrix},
+    sparse::Sparse,
+
+    columnar::Columnar,
+    tile::Tile,
+};
 
 /// Matrix populated with _owned_ weights.
-pub type Weights = ndarray::Array2<f64>;
+pub type Weights = Matrix;
 
 /// Matrix populated with _referenced_ weights.
 pub type WeightsView<'a> = ndarray::ArrayView2<'a, f64>;

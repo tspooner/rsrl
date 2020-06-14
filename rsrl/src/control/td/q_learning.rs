@@ -39,12 +39,6 @@ pub struct QLearning<Q> {
     pub gamma: f64,
 }
 
-impl<Q> QLearning<Q> {
-    pub fn new(q_func: Q, gamma: f64) -> Self { QLearning { q_func, gamma } }
-
-    pub fn undiscounted(q_func: Q) -> Self { QLearning::new(q_func, 1.0) }
-}
-
 impl<'m, S, Q> Handler<&'m Transition<S, usize>> for QLearning<Q>
 where
     Q: Enumerable<(&'m S,)> + Handler<StateActionUpdate<&'m S, usize, f64>>,

@@ -1,6 +1,6 @@
 use crate::{
-    fa::{transforms, StateActionUpdate, StateUpdate},
-    params::BufferMut,
+    fa::{transforms, StateActionUpdate, StateUpdate, GradientUpdate, ScaledGradientUpdate},
+    params::{Buffer, BufferMut},
     Differentiable,
     Function,
     Handler,
@@ -36,6 +36,32 @@ where
 
     fn evaluate(&self, args: Args) -> T::Output {
         self.transform.transform(self.fa.evaluate(args))
+    }
+}
+
+impl<F, T, J> Handler<GradientUpdate<J>> for Composition<F, T>
+where
+    F: Handler<GradientUpdate<J>>,
+    J: Buffer,
+{
+    type Response = F::Response;
+    type Error = F::Error;
+
+    fn handle(&mut self, msg: GradientUpdate<J>) -> Result<Self::Response, Self::Error> {
+        self.fa.handle(msg)
+    }
+}
+
+impl<F, T, J> Handler<ScaledGradientUpdate<J>> for Composition<F, T>
+where
+    F: Handler<ScaledGradientUpdate<J>>,
+    J: Buffer,
+{
+    type Response = F::Response;
+    type Error = F::Error;
+
+    fn handle(&mut self, msg: ScaledGradientUpdate<J>) -> Result<Self::Response, Self::Error> {
+        self.fa.handle(msg)
     }
 }
 

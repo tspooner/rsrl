@@ -41,7 +41,12 @@ fn main() {
         };
         let cfa = LFA::scalar(basis_c, optimiser);
 
-        SARSA::new(cfa, policy.clone(), 0.999)
+        SARSA {
+            q_func: cfa,
+            policy: policy.clone(),
+
+            gamma: 0.999,
+        }
     };
 
     let mut rng = thread_rng();

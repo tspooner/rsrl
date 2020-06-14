@@ -45,7 +45,9 @@ where
 {
     fn zeros<T: IntoDimension<Dim = D>>(dim: T) -> Self { Tile::new(dim, None) }
 
-    fn map(&self, f: impl Fn(f64) -> f64) -> Self { unimplemented!() }
+    fn map(&self, f: impl Fn(f64) -> f64) -> Self {
+        self.clone().map_into(f)
+    }
 
     fn map_into(self, f: impl Fn(f64) -> f64) -> Self {
         Tile {
@@ -60,7 +62,9 @@ where
         }
     }
 
-    fn merge(&self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self { unimplemented!() }
+    fn merge(&self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self {
+        self.clone().merge_into(other, f)
+    }
 
     fn merge_into(mut self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self {
         self.merge_inplace(other, f);

@@ -8,6 +8,17 @@ use crate::{
 };
 use rand::thread_rng;
 
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response<R> {
+    td_error: f64,
+    qfunc_response: R,
+}
+
 /// On-policy variant of Watkins' Q-learning (aka "modified Q-learning").
 ///
 /// # References
@@ -29,17 +40,6 @@ pub struct SARSA<Q, P> {
     pub gamma: f64,
 }
 
-impl<Q, P> SARSA<Q, P> {
-    pub fn new(q_func: Q, policy: P, gamma: f64) -> Self {
-        SARSA {
-            q_func,
-            policy,
-
-            gamma,
-        }
-    }
-}
-
 impl<'m, S, Q, P> Handler<&'m Transition<S, P::Action>> for SARSA<Q, P>
 where
     Q: Function<(&'m S, P::Action), Output = f64>
@@ -47,7 +47,7 @@ where
         + Handler<StateActionUpdate<&'m S, &'m P::Action>>,
     P: Policy<&'m S>,
 {
-    type Response = Q::Response;
+    type Response = Response<Q::Response>;
     type Error = Q::Error;
 
     fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<Self::Response, Self::Error> {
@@ -68,6 +68,9 @@ where
             state: s,
             action: &t.action,
             error: residual,
+        }).map(|r| Response {
+            td_error: residual,
+            qfunc_response: r,
         })
     }
 }

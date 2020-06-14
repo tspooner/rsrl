@@ -53,9 +53,9 @@ where
 
             policy,
 
-            alpha: alpha.into(),
-            gamma: gamma.into(),
-            lambda: lambda.into(),
+            alpha,
+            gamma,
+            lambda,
 
             q_old: 0.0,
         }

@@ -1,7 +1,7 @@
 use crate::{
     domains::Transition,
     fa::StateActionUpdate,
-    policies::{EnumerablePolicy, Policy},
+    policies::Policy,
     Enumerable,
     Function,
     Handler,
@@ -11,12 +11,41 @@ use std::f64;
 // TODO: Extract prediction component GQ / GQ(lambda) into seperate
 // implementations.
 
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response<RQ, RT> {
+    pub td_error: f64,
+
+    pub q_response: RQ,
+    pub td_response: RT,
+}
+
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub enum Error<EQ, ET> {
+    QFuncError(EQ),
+    TDEstError(ET),
+}
+
 /// Greedy GQ control algorithm.
 ///
 /// Maei, Hamid R., et al. "Toward off-policy learning control with function
 /// approximation." Proceedings of the 27th International Conference on Machine
 /// Learning (ICML-10). 2010.
-#[derive(Parameterised)]
+#[derive(Clone, Debug, Parameterised)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
 pub struct GreedyGQ<Q, T, P> {
     #[weights]
     pub fa_q: Q,
@@ -25,19 +54,6 @@ pub struct GreedyGQ<Q, T, P> {
     pub behaviour_policy: P,
 
     pub gamma: f64,
-}
-
-impl<Q, T, P> GreedyGQ<Q, T, P> {
-    pub fn new(fa_q: Q, fa_td: T, behaviour_policy: P, gamma: f64) -> Self {
-        GreedyGQ {
-            fa_q,
-            fa_td,
-
-            behaviour_policy,
-
-            gamma,
-        }
-    }
 }
 
 impl<'m, S, Q, T, P> Handler<&'m Transition<S, P::Action>> for GreedyGQ<Q, T, P>
@@ -51,64 +67,76 @@ where
 
     P: Policy<&'m S, Action = usize>,
 {
-    type Response = ();
-    type Error = ();
+    type Response = Response<Q::Response, T::Response>;
+    type Error = Error<Q::Error, T::Error>;
 
-    fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<(), ()> {
+    fn handle(&mut self, t: &'m Transition<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let s = t.from.state();
 
         let qsa = self.fa_q.evaluate_index((s,), t.action);
         let td_est = self.fa_td.evaluate((s, t.action));
 
         if t.terminated() {
-            let residual = t.reward - qsa;
+            let td_error = t.reward - qsa;
 
-            self.fa_q
+            let q_response = self.fa_q
                 .handle(StateActionUpdate {
                     state: s,
                     action: t.action,
-                    error: residual,
+                    error: td_error,
                 })
-                .ok();
+                .map_err(|e| Error::QFuncError(e))?;
 
-            self.fa_td
+            let td_response = self.fa_td
                 .handle(StateActionUpdate {
                     state: s,
                     action: t.action,
-                    error: residual - td_est,
+                    error: td_error - td_est,
                 })
-                .ok();
+                .map_err(|e| Error::TDEstError(e))?;
+
+            Ok(Response {
+                td_error,
+
+                q_response,
+                td_response,
+            })
         } else {
             let ns = t.to.state();
             let (na, qnsna) = self.fa_q.find_max((ns,));
 
-            let residual = t.reward + self.gamma * qnsna - qsa;
+            let td_error = t.reward + self.gamma * qnsna - qsa;
 
-            self.fa_q
+            let q_response = self.fa_q
                 .handle(StateActionUpdate {
                     state: s,
                     action: t.action,
-                    error: residual,
+                    error: td_error,
                 })
-                .ok();
-
-            self.fa_q
-                .handle(StateActionUpdate {
-                    state: ns,
-                    action: na,
-                    error: -self.gamma * td_est,
+                .and_then(|_| {
+                    self.fa_q
+                        .handle(StateActionUpdate {
+                            state: ns,
+                            action: na,
+                            error: -self.gamma * td_est,
+                        })
                 })
-                .ok();
+                .map_err(|e| Error::QFuncError(e))?;
 
-            self.fa_td
+            let td_response = self.fa_td
                 .handle(StateActionUpdate {
                     state: s,
                     action: t.action,
-                    error: residual - td_est,
+                    error: td_error - td_est,
                 })
-                .ok();
+                .map_err(|e| Error::TDEstError(e))?;
+
+            Ok(Response {
+                td_error,
+
+                q_response,
+                td_response,
+            })
         }
-
-        Ok(())
     }
 }

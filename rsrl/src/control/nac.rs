@@ -1,6 +1,16 @@
 //! Natural actor-critic algorithms.
 use crate::{fa::ScaledGradientUpdate, params::*, Handler};
 
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response {
+    norm: f64,
+}
+
 /// Natural actor-critic.
 #[derive(Clone, Debug)]
 #[cfg_attr(
@@ -29,16 +39,10 @@ impl<C, P> NAC<C, P> {
 impl<M, C, P> Handler<M> for NAC<C, P>
 where
     C: Parameterised,
-    P: Parameterised
-        + Handler<ScaledGradientUpdate<Weights>>
-        + for<'w> Handler<
-            ScaledGradientUpdate<WeightsView<'w>>,
-            Response = <P as Handler<ScaledGradientUpdate<Weights>>>::Response,
-            Error = <P as Handler<ScaledGradientUpdate<Weights>>>::Error,
-        >,
+    P: Parameterised + for<'m> Handler<ScaledGradientUpdate<WeightsView<'m>>>,
 {
-    type Response = <P as Handler<ScaledGradientUpdate<Weights>>>::Response;
-    type Error = <P as Handler<ScaledGradientUpdate<Weights>>>::Error;
+    type Response = Response;
+    type Error = ();
 
     fn handle(&mut self, _: M) -> Result<Self::Response, Self::Error> {
         let pw_dim = self.policy.weights_dim();
@@ -51,6 +55,6 @@ where
         self.policy.handle(ScaledGradientUpdate {
             alpha: self.alpha / norm,
             jacobian: grad,
-        })
+        }).map(|_| Response { norm, }).map_err(|_| ())
     }
 }

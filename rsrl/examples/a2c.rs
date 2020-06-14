@@ -30,7 +30,11 @@ fn main() {
         Gibbs::standard(fa)
     });
 
-    let mut eval = SARSA::new(q_func.clone(), policy.clone(), 1.0);
+    let mut eval = SARSA {
+        q_func: q_func.clone(),
+        policy: policy.clone(),
+        gamma: 1.0,
+    };
     let critic = {
         let q = q_func.clone();
         let p = policy.clone();

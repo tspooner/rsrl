@@ -3,6 +3,8 @@
 //! `rsrl` provides generic constructs for reinforcement learning (RL)
 //! experiments in an extensible framework with efficient implementations of
 //! existing methods for rapid prototyping.
+// #![warn(missing_docs)]
+
 #[macro_use]
 extern crate ndarray;
 extern crate ndarray_linalg;
@@ -23,15 +25,16 @@ extern crate lfa;
 pub extern crate rsrl_domains as domains;
 
 mod core;
-mod utils;
 pub use self::core::*;
+
+mod utils;
 
 pub extern crate spaces;
 
 pub mod params;
 #[macro_use]
 pub mod fa;
+pub mod traces;
+pub mod prediction;
 pub mod control;
 pub mod policies;
-pub mod prediction;
-pub mod traces;

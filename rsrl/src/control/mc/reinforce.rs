@@ -28,24 +28,20 @@ impl<P> REINFORCE<P> {
 impl<'m, S, P> Handler<&'m Batch<S, P::Action>> for REINFORCE<P>
 where P: Policy<S> + Handler<StateActionUpdate<&'m S, &'m <P as Policy<S>>::Action>>
 {
-    type Response = ();
-    type Error = ();
+    type Response = Vec<P::Response>;
+    type Error = P::Error;
 
-    fn handle(&mut self, batch: &'m Batch<S, P::Action>) -> Result<(), ()> {
+    fn handle(&mut self, batch: &'m Batch<S, P::Action>) -> Result<Self::Response, Self::Error> {
         let mut ret = 0.0;
 
-        for t in batch.into_iter().rev() {
+        batch.iter().map(|t| {
             ret = t.reward + self.gamma * ret;
 
-            self.policy
-                .handle(StateActionUpdate {
-                    state: t.from.state(),
-                    action: &t.action,
-                    error: self.alpha * ret,
-                })
-                .ok();
-        }
-
-        Ok(())
+            self.policy.handle(StateActionUpdate {
+                state: t.from.state(),
+                action: &t.action,
+                error: self.alpha * ret,
+            })
+        }).collect()
     }
 }

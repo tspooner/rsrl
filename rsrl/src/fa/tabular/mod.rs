@@ -33,7 +33,7 @@ pub struct Response;
     derive(Serialize, Deserialize),
     serde(crate = "serde_crate")
 )]
-pub enum Error {}
+pub struct Error;
 
 mod dense;
 pub use self::dense::*;

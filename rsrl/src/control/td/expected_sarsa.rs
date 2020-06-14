@@ -28,18 +28,6 @@ pub struct ExpectedSARSA<Q, P> {
     pub gamma: f64,
 }
 
-impl<Q, P> ExpectedSARSA<Q, P> {
-    pub fn new(q_func: Q, policy: P, alpha: f64, gamma: f64) -> Self {
-        ExpectedSARSA {
-            q_func,
-            policy,
-
-            alpha,
-            gamma,
-        }
-    }
-}
-
 impl<'m, S, Q, P> Handler<&'m Transition<S, usize>> for ExpectedSARSA<Q, P>
 where
     Q: Enumerable<(&'m S,)> + Handler<StateActionUpdate<&'m S, usize, f64>>,

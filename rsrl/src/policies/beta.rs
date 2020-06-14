@@ -6,7 +6,7 @@ use crate::{
     Function,
     Handler,
 };
-use ndarray::{Array2, ArrayBase, ArrayView2, Axis, Data, Ix1, Ix2};
+use ndarray::{Array2, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2};
 use rand::Rng;
 use rstat::{
     fitting::Score,
@@ -17,6 +17,28 @@ use rstat::{
 };
 
 const MIN_TOL: f64 = 1.0;
+
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response<RA, RB> {
+    pub alpha_response: RA,
+    pub beta_response: RB,
+}
+
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub enum Error<EA, EB> {
+    AlphaError(EA),
+    BetaError(EB),
+}
 
 #[derive(Clone, Debug)]
 #[cfg_attr(
@@ -135,10 +157,10 @@ where
     A: Function<(&'s S,), Output = f64> + Handler<StateUpdate<&'s S, f64>>,
     B: Function<(&'s S,), Output = f64> + Handler<StateUpdate<&'s S, f64>>,
 {
-    type Response = ();
-    type Error = ();
+    type Response = Response<A::Response, B::Response>;
+    type Error = Error<A::Error, B::Error>;
 
-    fn handle(&mut self, msg: StateActionUpdate<&'s S, U>) -> Result<(), ()> {
+    fn handle(&mut self, msg: StateActionUpdate<&'s S, U>) -> Result<Self::Response, Self::Error> {
         let beta::Grad {
             alpha: gl_alpha,
             beta: gl_beta,
@@ -146,116 +168,109 @@ where
             .dist(msg.state)
             .score(std::slice::from_ref(msg.action.borrow()));
 
-        self.alpha
-            .handle(StateUpdate {
-                state: msg.state,
-                error: msg.error * gl_alpha,
-            })
-            .ok();
-        self.beta
-            .handle(StateUpdate {
-                state: msg.state,
-                error: msg.error * gl_beta,
-            })
-            .ok();
+        Ok(Response {
+            alpha_response: self.alpha
+                .handle(StateUpdate {
+                    state: msg.state,
+                    error: msg.error * gl_alpha,
+                })
+                .map_err(|e| Error::AlphaError(e))?,
 
-        Ok(())
-    }
-}
-
-impl<A, B, D> Handler<GradientUpdate<ArrayBase<D, Ix2>>> for Beta<A, B>
-where
-    A: Parameterised + for<'m> Handler<GradientUpdate<ArrayView2<'m, f64>>>,
-    B: Parameterised + for<'m> Handler<GradientUpdate<ArrayView2<'m, f64>>>,
-    D: Data<Elem = f64>,
-{
-    type Response = ();
-    type Error = ();
-
-    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<(), ()> {
-        self.handle(GradientUpdate(&msg.0))
-    }
-}
-
-impl<'m, A, B, D> Handler<GradientUpdate<&'m ArrayBase<D, Ix2>>> for Beta<A, B>
-where
-    A: Parameterised + Handler<GradientUpdate<ArrayView2<'m, f64>>>,
-    B: Parameterised + Handler<GradientUpdate<ArrayView2<'m, f64>>>,
-    D: Data<Elem = f64>,
-{
-    type Response = ();
-    type Error = ();
-
-    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
-        let n_alpha = self.alpha.n_weights();
-
-        self.alpha
-            .handle(GradientUpdate(msg.0.slice(s![0..n_alpha, ..])))
-            .ok();
-        self.beta
-            .handle(GradientUpdate(msg.0.slice(s![n_alpha.., ..])))
-            .ok();
-
-        Ok(())
-    }
-}
-
-impl<A, B, D> Handler<ScaledGradientUpdate<ArrayBase<D, Ix2>>> for Beta<A, B>
-where
-    A: Parameterised, // + for<'m> Handler<ScaledGradientUpdate<ArrayView2<'m, f64>>>
-    B: Parameterised, // + for<'m> Handler<ScaledGradientUpdate<ArrayView2<'m, f64>>>
-    D: Data<Elem = f64>,
-{
-    type Response = ();
-    type Error = ();
-
-    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<(), ()> {
-        self.handle(ScaledGradientUpdate {
-            alpha: msg.alpha,
-            jacobian: &msg.jacobian,
+            beta_response: self.beta
+                .handle(StateUpdate {
+                    state: msg.state,
+                    error: msg.error * gl_beta,
+                })
+                .map_err(|e| Error::BetaError(e))?,
         })
     }
 }
 
-impl<'m, A, B, D> Handler<ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>> for Beta<A, B>
+impl<D, A, B> Handler<GradientUpdate<ArrayBase<D, Ix2>>> for Beta<A, B>
 where
-    A: Parameterised, // + Handler<ScaledGradientUpdate<ArrayView2<'m, f64>>>
-    B: Parameterised, // + Handler<ScaledGradientUpdate<ArrayView2<'m, f64>>>
     D: Data<Elem = f64>,
+
+    A: Parameterised + for<'m> Handler<GradientUpdate<ArrayView1<'m, f64>>>,
+    B: Parameterised + for<'m> Handler<GradientUpdate<ArrayView1<'m, f64>>>,
 {
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+        self.handle(GradientUpdate(&msg.0)).map(|_| ()).map_err(|_| ())
+    }
+}
+
+impl<'m, D, A, B> Handler<GradientUpdate<&'m ArrayBase<D, Ix2>>> for Beta<A, B>
+where
+    D: Data<Elem = f64>,
+
+    A: Parameterised + Handler<GradientUpdate<ArrayView1<'m, f64>>>,
+    B: Parameterised + Handler<GradientUpdate<ArrayView1<'m, f64>>>,
+{
+    type Response = Response<A::Response, B::Response>;
+    type Error = Error<A::Error, B::Error>;
+
+    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         let n_alpha = self.alpha.n_weights();
 
-        msg.jacobian
-            .slice(s![0..n_alpha, ..])
-            .scaled_addto(msg.alpha, &mut self.alpha.weights_view_mut());
-        msg.jacobian
-            .slice(s![n_alpha.., ..])
-            .scaled_addto(msg.alpha, &mut self.beta.weights_view_mut());
+        Ok(Response {
+            alpha_response: self.alpha
+                .handle(GradientUpdate(msg.0.slice(s![0..n_alpha, 0])))
+                .map_err(|e| Error::AlphaError(e))?,
 
-        // let (jac_alpha, jac_beta) = if msg.jacobian.nrows() > 1 {
-        // (msg.jacobian.column(0).insert_axis(Axis(1)),
-        // msg.jacobian.column(1).insert_axis(Axis(1)))
-        // } else {
-        // let n_alpha = self.alpha.n_weights();
-        // let n_beta = self.beta.n_weights();
+            beta_response: self.beta
+                .handle(GradientUpdate(msg.0.slice(s![n_alpha.., 0])))
+                .map_err(|e| Error::BetaError(e))?,
+        })
+    }
+}
 
-        // (msg.jacobian.slice(s![0..n_alpha, ..]),
-        // msg.jacobian.slice(s![n_alpha..(n_beta + n_alpha), ..]))
-        // };
+impl<D, A, B> Handler<ScaledGradientUpdate<ArrayBase<D, Ix2>>> for Beta<A, B>
+where
+    D: Data<Elem = f64>,
 
-        // self.alpha.handle(ScaledGradientUpdate {
-        // alpha: msg.alpha,
-        // jacobian: jac_alpha,
-        // }).ok();
-        // self.beta.handle(ScaledGradientUpdate {
-        // alpha: msg.alpha,
-        // jacobian: jac_beta,
-        // }).ok();
+    A: Parameterised + for<'m> Handler<ScaledGradientUpdate<ArrayView1<'m, f64>>>,
+    B: Parameterised + for<'m> Handler<ScaledGradientUpdate<ArrayView1<'m, f64>>>,
+{
+    type Response = ();
+    type Error = ();
 
-        Ok(())
+    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+        self.handle(ScaledGradientUpdate {
+            alpha: msg.alpha,
+            jacobian: &msg.jacobian,
+        }).map(|_| ()).map_err(|_| ())
+    }
+}
+
+impl<'m, D, A, B> Handler<ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>> for Beta<A, B>
+where
+    D: Data<Elem = f64>,
+
+    A: Parameterised + Handler<ScaledGradientUpdate<ArrayView1<'m, f64>>>,
+    B: Parameterised + Handler<ScaledGradientUpdate<ArrayView1<'m, f64>>>,
+{
+    type Response = Response<A::Response, B::Response>;
+    type Error = Error<A::Error, B::Error>;
+
+    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+        let n_alpha = self.alpha.n_weights();
+
+        Ok(Response {
+            alpha_response: self.alpha
+                .handle(ScaledGradientUpdate {
+                    alpha: msg.alpha,
+                    jacobian: msg.jacobian.slice(s![0..n_alpha, 0]),
+                })
+                .map_err(|e| Error::AlphaError(e))?,
+
+            beta_response: self.beta
+                .handle(ScaledGradientUpdate {
+                    alpha: msg.alpha,
+                    jacobian: msg.jacobian.slice(s![n_alpha.., 0]),
+                })
+                .map_err(|e| Error::BetaError(e))?,
+        })
     }
 }

@@ -76,7 +76,12 @@ impl BufferMut for Sparse {
         Self::new_unchecked(dim, GradMap::new())
     }
 
-    fn map(&self, f: impl Fn(f64) -> f64) -> Self { unimplemented!() }
+    fn map(&self, f: impl Fn(f64) -> f64) -> Self {
+        Sparse {
+            dim: self.dim.clone(),
+            grads: self.grads.iter().map(|(&k, &pd)| (k, f(pd))).collect(),
+        }
+    }
 
     fn map_into(self, f: impl Fn(f64) -> f64) -> Self {
         Sparse {
@@ -89,14 +94,11 @@ impl BufferMut for Sparse {
         self.grads.values_mut().for_each(|pd| *pd = f(*pd));
     }
 
-    fn merge(&self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self { unimplemented!() }
-
-    fn merge_into(mut self, other: &Self, f: impl Fn(f64, f64) -> f64) -> Self {
-        self.merge_inplace(other, f);
-        self
-    }
-
     fn merge_inplace(&mut self, other: &Self, f: impl Fn(f64, f64) -> f64) {
+        if self.dim != other.dim {
+            panic!("Incompatible dimensionality.")
+        }
+
         for (k, x) in self.grads.iter_mut() {
             *x = f(*x, other.grads.get(k).copied().unwrap_or(0.0));
         }

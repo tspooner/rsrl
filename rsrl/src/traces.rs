@@ -2,8 +2,12 @@
 use crate::params::{Buffer, BufferMut};
 use ndarray::{ArrayBase, Array, Dimension, IntoDimension, DataMut};
 
+/// Eligibility trace buffer.
 pub struct Trace<B: BufferMut, R: UpdateRule<B>> {
+    /// Internal gradient buffer.
     pub buffer: B,
+
+    /// Eligibility update rule.
     pub update_rule: R,
 }
 
@@ -12,10 +16,33 @@ where
     B: BufferMut,
     R: UpdateRule<B>,
 {
+    /// Construct a new eligibility trace.
+    ///
+    /// # Arguments
+    ///
+    /// * `buffer` - A gradient buffer instance.
+    /// * `update_rule` - The eligibility update rule.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use rsrl::{params::Vector, traces::{Trace, Accumulate}};
+    ///
+    /// let mut trace = Trace::new(Vector::zeros(10), Accumulate {
+    ///     gamma: 0.95,
+    ///     lambda: 0.7,
+    /// });
+    /// ```
     pub fn new(buffer: B, update_rule: R) -> Self {
         Trace { buffer, update_rule, }
     }
 
+    /// Construct a new eligibility trace with empty gradient buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `dim` - Dimensionality of the buffer.
+    /// * `update_rule` - The eligibility update rule.
     pub fn zeros<D>(dim: D, update_rule: R) -> Self
     where D: IntoDimension<Dim = B::Dim>,
     {
@@ -24,6 +51,13 @@ where
 }
 
 impl<B: BufferMut> Trace<B, Accumulate> {
+    /// Construct a new eligibility trace with empty buffer and accumulation rule.
+    ///
+    /// # Arguments
+    ///
+    /// * `dim` - Dimensionality of the buffer.
+    /// * `gamma` - Discount factor.
+    /// * `lambda` - Forgetting rate.
     pub fn accumulating<D>(dim: D, gamma: f64, lambda: f64) -> Self
     where D: IntoDimension<Dim = B::Dim>,
     {
@@ -32,6 +66,13 @@ impl<B: BufferMut> Trace<B, Accumulate> {
 }
 
 impl<B: BufferMut> Trace<B, Saturate> {
+    /// Construct a new eligibility trace with empty buffer and replacement rule.
+    ///
+    /// # Arguments
+    ///
+    /// * `dim` - Dimensionality of the buffer.
+    /// * `gamma` - Discount factor.
+    /// * `lambda` - Forgetting rate.
     pub fn replacing<D>(dim: D, gamma: f64, lambda: f64) -> Self
     where D: IntoDimension<Dim = B::Dim>,
     {
@@ -40,6 +81,14 @@ impl<B: BufferMut> Trace<B, Saturate> {
 }
 
 impl<B: BufferMut> Trace<B, Dutch> {
+    /// Construct a new eligibility trace with empty buffer and dutch rule.
+    ///
+    /// # Arguments
+    ///
+    /// * `dim` - Dimensionality of the buffer.
+    /// * `alpha` - Learning rate.
+    /// * `gamma` - Discount factor.
+    /// * `lambda` - Forgetting rate.
     pub fn dutch<D>(dim: D, alpha: f64, gamma: f64, lambda: f64) -> Self
     where D: IntoDimension<Dim = B::Dim>,
     {
@@ -52,10 +101,51 @@ where
     B: BufferMut,
     R: UpdateRule<B>,
 {
+    /// Update the trace with a new `buffer` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `buffer` - New gradient buffer instance.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use approx::assert_abs_diff_eq;
+    /// use rsrl::{params::Vector, traces::{Trace, Accumulate}};
+    ///
+    /// let mut trace = Trace::new(Vector::zeros(1), Accumulate {
+    ///     gamma: 0.95,
+    ///     lambda: 0.7,
+    /// });
+    ///
+    /// trace.update(&Vector::ones(1));
+    /// assert_abs_diff_eq!(trace.buffer[0], 1.0);
+    ///
+    /// trace.update(&Vector::zeros(1));
+    /// assert_abs_diff_eq!(trace.buffer[0], 0.665);
+    /// ```
     pub fn update(&mut self, buffer: &B) {
         self.update_rule.update_trace(&mut self.buffer, buffer)
     }
 
+    /// Reset the trace to zeros.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use approx::assert_abs_diff_eq;
+    /// use rsrl::{params::Vector, traces::{Trace, Accumulate}};
+    ///
+    /// let mut trace = Trace::new(Vector::ones(1), Accumulate {
+    ///     gamma: 0.95,
+    ///     lambda: 0.7,
+    /// });
+    ///
+    /// assert_abs_diff_eq!(trace.buffer[0], 1.0);
+    ///
+    /// trace.reset();
+    /// assert_abs_diff_eq!(trace.buffer[0], 0.0);
+    /// ```
     pub fn reset(&mut self) { self.buffer.reset() }
 }
 
@@ -83,12 +173,23 @@ impl<B: BufferMut, R: UpdateRule<B>> Buffer for Trace<B, R> {
     fn into_dense(self) -> Array<f64, B::Dim> { self.buffer.into_dense() }
 }
 
+/// Trait for eligibility trace update rules.
 pub trait UpdateRule<B: BufferMut> {
+    /// Mutate the `trace` given a new `buffer` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `trace` - Mutable reference to the internal trace buffer.
+    /// * `buffer` - New gradient buffer instance.
     fn update_trace(&self, trace: &mut B, buffer: &B);
 }
 
+/// Accumulating eligibility trace rule.
 pub struct Accumulate {
+    /// Discount factor.
     pub gamma: f64,
+
+    /// Forgetting rate.
     pub lambda: f64,
 }
 
@@ -100,8 +201,12 @@ impl<B: BufferMut> UpdateRule<B> for Accumulate {
     }
 }
 
+/// Replacing (saturating) eligibility trace rule.
 pub struct Saturate {
+    /// Discount factor.
     pub gamma: f64,
+
+    /// Forgetting rate.
     pub lambda: f64,
 }
 
@@ -114,9 +219,15 @@ impl<B: BufferMut> UpdateRule<B> for Saturate {
     }
 }
 
+/// Dutch eligibility trace rule.
 pub struct Dutch {
+    /// Learning rate.
     pub alpha: f64,
+
+    /// Discount factor.
     pub gamma: f64,
+
+    /// Forgetting rate.
     pub lambda: f64,
 }
 

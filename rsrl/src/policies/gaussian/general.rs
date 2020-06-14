@@ -8,7 +8,7 @@ use crate::{
     Function,
     Handler,
 };
-use ndarray::{Array1, Array2, ArrayBase, Axis, Data, Ix1, Ix2, Dimension};
+use ndarray::{Array1, Array2, ArrayBase, Axis, Data, Ix1, Ix2};
 use rand::Rng;
 use rstat::{
     builder::{BuildNormal, Builder},
@@ -193,7 +193,7 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: StateActionUpdate<&'x X, A>) -> Result<(), ()> {
+    fn handle(&mut self, msg: StateActionUpdate<&'x X, A>) -> Result<Self::Response, Self::Error> {
         let normal::Grad {
             mu: gl_mean,
             Sigma: gl_stddev,
@@ -212,7 +212,7 @@ where
     }
 }
 
-impl<M, S, D> Handler<GradientUpdate<ArrayBase<D, Ix2>>> for Gaussian<M, S>
+impl<'m, M, S, D> Handler<GradientUpdate<ArrayBase<D, Ix2>>> for Gaussian<M, S>
 where
     M: Parameterised,
     S: Parameterised,
@@ -221,7 +221,7 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         self.handle(GradientUpdate(&msg.0))
     }
 }
@@ -235,7 +235,7 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         let n_mean = self.mean.n_weights();
         let n_stddev = self.stddev.n_weights();
 
@@ -250,7 +250,7 @@ where
     }
 }
 
-impl<M, S, D> Handler<ScaledGradientUpdate<ArrayBase<D, Ix2>>> for Gaussian<M, S>
+impl<'m, M, S, D> Handler<ScaledGradientUpdate<ArrayBase<D, Ix2>>> for Gaussian<M, S>
 where
     M: Parameterised,
     S: Parameterised,
@@ -259,7 +259,7 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         self.handle(ScaledGradientUpdate {
             alpha: msg.alpha,
             jacobian: &msg.jacobian,
@@ -276,7 +276,7 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         let c = msg.jacobian.column(0);
         let n_mean = self.mean.n_weights();
         let n_stddev = self.stddev.n_weights();

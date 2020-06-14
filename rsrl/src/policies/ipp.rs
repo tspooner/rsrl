@@ -9,6 +9,28 @@ use crate::{
 use ndarray::{Array2, ArrayBase, ArrayView2, Axis, Data, Ix2};
 use rand::Rng;
 
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub struct Response<R1, R2> {
+    pub policy1_response: R1,
+    pub policy2_response: R2,
+}
+
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(crate = "serde_crate")
+)]
+pub enum Error<E1, E2> {
+    Policy1Error(E1),
+    Policy2Error(E2),
+}
+
 /// Independent Policy Pair (IPP).
 #[derive(Clone, Debug)]
 #[cfg_attr(
@@ -113,36 +135,33 @@ where
     fn mode(&self, s: &'s S) -> Self::Action { (self.0.mode(s), self.1.mode(s)) }
 }
 
-impl<'s, S, A, P1, P2> Handler<StateActionUpdate<&'s S, A>> for IPP<P1, P2>
+type Relay<'s, 'a, S, P> = StateActionUpdate<&'s S, &'a <P as Policy<(&'s S,)>>::Action>;
+type Message<'s, 'a, S, P1, P2> = StateActionUpdate<
+    &'s S, &'a (<P1 as Policy<(&'s S,)>>::Action, <P2 as Policy<(&'s S,)>>::Action)
+>;
+
+impl<'s, 'a, S, P1, P2> Handler<Message<'s, 'a, S, P1, P2>> for IPP<P1, P2>
 where
-    A: std::borrow::Borrow<(P1::Action, P2::Action)>,
-    P1: Policy<(&'s S,)>
-        + for<'a> Handler<StateActionUpdate<&'s S, &'a <P1 as Policy<(&'s S,)>>::Action>>,
-    P2: Policy<(&'s S,)>
-        + for<'a> Handler<StateActionUpdate<&'s S, &'a <P2 as Policy<(&'s S,)>>::Action>>,
+    P1: Policy<(&'s S,)> + Handler<Relay<'s, 'a, S, P1>>,
+    P2: Policy<(&'s S,)> + Handler<Relay<'s, 'a, S, P2>>,
 {
-    type Response = ();
-    type Error = ();
+    type Response = Response<P1::Response, P2::Response>;
+    type Error = Error<P1::Error, P2::Error>;
 
-    fn handle(&mut self, msg: StateActionUpdate<&'s S, A>) -> Result<(), ()> {
-        let a = msg.action.borrow();
-
-        self.0
-            .handle(StateActionUpdate {
+    fn handle(&mut self, msg: Message<'s, 'a, S, P1, P2>) -> Result<Self::Response, Self::Error> {
+        Ok(Response {
+            policy1_response: self.0.handle(StateActionUpdate {
                 state: msg.state,
-                action: &a.0,
+                action: &msg.action.0,
                 error: msg.error,
-            })
-            .ok();
-        self.1
-            .handle(StateActionUpdate {
-                state: msg.state,
-                action: &a.1,
-                error: msg.error,
-            })
-            .ok();
+            }).map_err(|e| Error::Policy1Error(e))?,
 
-        Ok(())
+            policy2_response: self.1.handle(StateActionUpdate {
+                state: msg.state,
+                action: &msg.action.1,
+                error: msg.error,
+            }).map_err(|e| Error::Policy2Error(e))?,
+        })
     }
 }
 
@@ -152,21 +171,22 @@ where
     P1: Parameterised + Handler<GradientUpdate<ArrayView2<'m, f64>>>,
     P2: Parameterised + Handler<GradientUpdate<ArrayView2<'m, f64>>>,
 {
-    type Response = ();
-    type Error = ();
+    type Response = Response<P1::Response, P2::Response>;
+    type Error = Error<P1::Error, P2::Error>;
 
-    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         let d0 = self.0.weights_dim();
         let d1 = self.1.weights_dim();
 
-        self.0
-            .handle(GradientUpdate(msg.0.slice(s![0..d0.0, 0..d0.1])))
-            .ok();
-        self.1
-            .handle(GradientUpdate(msg.0.slice(s![0..d1.0, d0.1..])))
-            .ok();
+        Ok(Response {
+            policy1_response: self.0
+                .handle(GradientUpdate(msg.0.slice(s![0..d0.0, 0..d0.1])))
+                .map_err(|e| Error::Policy1Error(e))?,
 
-        Ok(())
+            policy2_response: self.1
+                .handle(GradientUpdate(msg.0.slice(s![0..d1.0, d0.1..])))
+                .map_err(|e| Error::Policy2Error(e))?,
+        })
     }
 }
 
@@ -176,26 +196,27 @@ where
     P1: Parameterised + Handler<ScaledGradientUpdate<ArrayView2<'m, f64>>>,
     P2: Parameterised + Handler<ScaledGradientUpdate<ArrayView2<'m, f64>>>,
 {
-    type Response = ();
-    type Error = ();
+    type Response = Response<P1::Response, P2::Response>;
+    type Error = Error<P1::Error, P2::Error>;
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<(), ()> {
+    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
         let d0 = self.0.weights_dim();
         let d1 = self.1.weights_dim();
 
-        self.0
-            .handle(ScaledGradientUpdate {
-                alpha: msg.alpha,
-                jacobian: msg.jacobian.slice(s![0..d0.0, 0..d0.1]),
-            })
-            .ok();
-        self.1
-            .handle(ScaledGradientUpdate {
-                alpha: msg.alpha,
-                jacobian: msg.jacobian.slice(s![0..d1.0, d0.1..]),
-            })
-            .ok();
+        Ok(Response {
+            policy1_response: self.0
+                .handle(ScaledGradientUpdate {
+                    alpha: msg.alpha,
+                    jacobian: msg.jacobian.slice(s![0..d0.0, 0..d0.1]),
+                })
+                .map_err(|e| Error::Policy1Error(e))?,
 
-        Ok(())
+            policy2_response: self.1
+                .handle(ScaledGradientUpdate {
+                    alpha: msg.alpha,
+                    jacobian: msg.jacobian.slice(s![0..d1.0, d0.1..]),
+                })
+                .map_err(|e| Error::Policy2Error(e))?,
+        })
     }
 }

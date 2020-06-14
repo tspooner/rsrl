@@ -1,9 +1,8 @@
 use crate::{
     domains::Transition,
     fa::ScaledGradientUpdate,
-    params::{BufferMut, Parameterised},
+    params::BufferMut,
     Differentiable,
-    Function,
     Handler,
 };
 
@@ -31,17 +30,6 @@ pub struct GTD2<F> {
     pub fa_w: F,
 
     pub gamma: f64,
-}
-
-impl<F: Parameterised> GTD2<F> {
-    pub fn new(fa_theta: F, fa_w: F, gamma: f64) -> Self {
-        GTD2 {
-            fa_theta,
-            fa_w,
-
-            gamma,
-        }
-    }
 }
 
 type SGU<'m, S, F> = ScaledGradientUpdate<<F as Differentiable<(&'m S,)>>::Jacobian>;

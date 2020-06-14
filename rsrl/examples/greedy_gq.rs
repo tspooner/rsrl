@@ -23,12 +23,18 @@ fn main() {
     let mut rng = StdRng::seed_from_u64(0);
     let mut agent = {
         let basis = Fourier::from_space(3, env.state_space()).with_bias();
-        let q_func = make_shared(LFA::vector(basis.clone(), SGD(0.01), n_actions));
-        let w_func = LFA::vector(basis, SGD(0.001), n_actions);
+        let fa_q = make_shared(LFA::vector(basis.clone(), SGD(0.1), n_actions));
+        let fa_td = LFA::vector(basis, SGD(0.001), n_actions);
 
-        let policy = EpsilonGreedy::new(Greedy::new(q_func.clone()), Random::new(n_actions), 0.1);
+        let policy = EpsilonGreedy::new(Greedy::new(fa_q.clone()), Random::new(n_actions), 0.1);
 
-        GreedyGQ::new(q_func, w_func, policy, 0.99)
+        GreedyGQ {
+            fa_q,
+            fa_td,
+
+            behaviour_policy: policy,
+            gamma: 0.99,
+        }
     };
 
     for e in 0..200 {

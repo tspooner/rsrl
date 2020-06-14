@@ -34,7 +34,7 @@ fn main() {
 
     let policy = make_shared(Gaussian::new(lfa, clfa));
     let critic = {
-        let optimiser = SGD(0.001);
+        let optimiser = SGD(0.01);
 
         let basis_c = SCB {
             policy: policy.clone(),
@@ -42,11 +42,15 @@ fn main() {
         };
         let cfa = LFA::scalar(basis_c, optimiser);
 
-        SARSA::new(cfa, policy.clone(), 0.999)
+        SARSA {
+            q_func: cfa,
+            policy: policy.clone(),
+            gamma: 0.999,
+        }
     };
 
     let mut rng = thread_rng();
-    let mut agent = NAC::new(critic, policy, 0.001);
+    let mut agent = NAC::new(critic, policy, 0.01);
 
     for e in 0..1000 {
         // Episode loop:
