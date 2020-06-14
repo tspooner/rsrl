@@ -2,7 +2,7 @@
 name = "rsrl"
 description = "A fast, extensible reinforcement learning framework in Rust"
 
-version = "0.7.1"
+version = "0.8.0"
 authors = ["Tom Spooner <t.spooner@liverpool.ac.uk>"]
 
 license = "MIT"
@@ -27,7 +27,7 @@ serde = ["serde_crate", "lfa/serde", "spaces/serialize", "ndarray/serde", "rstat
 
 [dependencies]
 rsrl_derive = { path = "../rsrl_derive", version = "0.1" }
-rsrl_domains = { path = "../rsrl_domains", version = "0.1" }
+rsrl_domains = { path = "../rsrl_domains", version = "0.2" }
 
 lfa = "0.15"
 rstat = "0.6"
