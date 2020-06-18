@@ -54,7 +54,7 @@ where
     S: Function<(&'x X,)>,
 
     M::Output: Clone,
-    S::Output: std::ops::Add<f64, Output = S::Output>,
+    S::Output: std::ops::Add<f64, Output = S::Output> + super::IntoCov,
 
     Builder: BuildNormal<M::Output, S::Output>,
     BuilderSupport<M::Output, S::Output>: Space<Value = M::Output>,
@@ -163,7 +163,7 @@ where
     S: Function<(&'x X,)>,
 
     M::Output: Clone,
-    S::Output: std::ops::Add<f64, Output = S::Output>,
+    S::Output: std::ops::Add<f64, Output = S::Output> + super::IntoCov,
 
     Builder: BuildNormal<M::Output, S::Output>,
     BuilderSupport<M::Output, S::Output>: Space<Value = M::Output>,

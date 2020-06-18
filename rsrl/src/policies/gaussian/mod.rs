@@ -8,6 +8,32 @@ use std::fmt::Debug;
 type BuilderDist<M, S> = <Builder as BuildNormal<M, S>>::Normal;
 type BuilderSupport<M, S> = <BuilderDist<M, S> as Distribution>::Support;
 
+pub trait IntoCov {
+    fn into_cov(self) -> Self;
+}
+
+impl IntoCov for f64 {
+    fn into_cov(self) -> f64 { self * self }
+}
+
+impl IntoCov for [f64; 2] {
+    fn into_cov(self) -> [f64; 2] {
+        [self[0] * self[0], self[1] * self[1]]
+    }
+}
+
+impl IntoCov for Vec<f64> {
+    fn into_cov(self) -> Vec<f64> {
+        self.into_iter().map(|x| x * x).collect()
+    }
+}
+
+impl IntoCov for ndarray::Array1<f64> {
+    fn into_cov(self) -> ndarray::Array1<f64> {
+        self.into_iter().map(|x| x * x).collect()
+    }
+}
+
 const MIN_TOL: f64 = 0.01;
 
 #[derive(Clone, Debug)]
@@ -48,12 +74,12 @@ impl<M, S> Gaussian<M, S> {
         S: Function<(&'x X,)>,
 
         M::Output: Clone,
-        S::Output: std::ops::Add<f64, Output = S::Output>,
+        S::Output: std::ops::Add<f64, Output = S::Output> + IntoCov,
 
         Builder: BuildNormal<M::Output, S::Output>,
         BuilderSupport<M::Output, S::Output>: Space<Value = M::Output>,
     {
-        Builder::build_unchecked(self.compute_mean(x), self.compute_stddev(x))
+        Builder::build_unchecked(self.compute_mean(x), self.compute_stddev(x).into_cov())
     }
 }
 
