@@ -14,13 +14,13 @@ use crate::{Differentiable, Enumerable, Function, OutputOf, Shared};
 use ndarray::Array2;
 use rand::{thread_rng, Rng};
 
+mod epsilon_greedy;
 mod greedy;
 mod random;
-mod epsilon_greedy;
 
+pub use self::epsilon_greedy::EpsilonGreedy;
 pub use self::greedy::Greedy;
 pub use self::random::Random;
-pub use self::epsilon_greedy::EpsilonGreedy;
 
 mod beta;
 mod gaussian;
@@ -47,9 +47,9 @@ pub(self) fn sample_probs_with_rng<R: Rng + ?Sized>(rng: &mut R, probabilities: 
     let r = rng.gen::<f64>();
 
     match probabilities
-        .into_iter()
+        .iter()
         .scan(0.0, |state, &p| {
-            *state = *state + p;
+            *state += p;
 
             Some(*state)
         })
@@ -84,7 +84,9 @@ impl<S, T: Policy<S>> Policy<S> for Shared<T> {
         self.borrow().sample(rng, state)
     }
 
-    fn mode(&self, state: S) -> Self::Action { self.borrow().mode(state) }
+    fn mode(&self, state: S) -> Self::Action {
+        self.borrow().mode(state)
+    }
 }
 
 /// Trait for policies that are defined on an enumerable action space.
@@ -113,7 +115,8 @@ pub trait DifferentiablePolicy<S>:
 {
 }
 
-impl<S, P> DifferentiablePolicy<S> for P where P: Policy<S>
+impl<S, P> DifferentiablePolicy<S> for P where
+    P: Policy<S>
         + Differentiable<(S, <Self as Policy<S>>::Action), Jacobian = Array2<f64>>
         + for<'a> Differentiable<(S, &'a <Self as Policy<S>>::Action), Jacobian = Array2<f64>>
 {

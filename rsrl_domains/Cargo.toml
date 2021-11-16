@@ -21,8 +21,8 @@ default = []
 openai = ["cpython"]
 
 [dependencies]
-rand = "0.7"
+rand = "0.8"
 spaces = "5.0"
 
-cpython = { version = "0.3", optional = true }
-ndarray = { version = "0.12" }
+cpython = { version = "0.7", optional = true }
+ndarray = { version = "0.15" }

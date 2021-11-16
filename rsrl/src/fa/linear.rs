@@ -1,12 +1,9 @@
 use crate::{
     fa::{GradientUpdate, ScaledGradientUpdate, StateActionUpdate, StateUpdate},
     params::*,
-    Differentiable,
-    Enumerable,
-    Function,
-    Handler,
+    Differentiable, Enumerable, Function, Handler,
 };
-use ndarray::{Array1, ArrayBase, Axis, DataMut, Dimension, Ix1, IntoDimension};
+use ndarray::{Array1, ArrayBase, Axis, DataMut, Dimension, IntoDimension, Ix1};
 
 pub use lfa::*;
 
@@ -25,19 +22,27 @@ pub mod basis {
     pub struct CompatibleBasis<P>(pub P);
 
     impl<P> spaces::Space for CompatibleBasis<P>
-    where P: Parameterised
+    where
+        P: Parameterised,
     {
         type Value = super::Features;
 
-        fn dim(&self) -> spaces::Dim { spaces::Dim::Finite(self.0.n_weights()) }
+        fn dim(&self) -> spaces::Dim {
+            spaces::Dim::Finite(self.0.n_weights())
+        }
 
-        fn card(&self) -> spaces::Card { spaces::Card::Infinite }
+        fn card(&self) -> spaces::Card {
+            spaces::Card::Infinite
+        }
     }
 
     impl<S, P> Basis<(S, P::Action)> for CompatibleBasis<P>
-    where P: crate::policies::DifferentiablePolicy<S>
+    where
+        P: crate::policies::DifferentiablePolicy<S>,
     {
-        fn n_features(&self) -> usize { self.0.n_weights() }
+        fn n_features(&self) -> usize {
+            self.0.n_weights()
+        }
 
         fn project(&self, args: (S, P::Action)) -> Result<super::Features, super::Error> {
             let gl = self.0.grad_log(args).into_shape(self.n_features()).unwrap();
@@ -73,7 +78,9 @@ pub mod basis {
             spaces::Dim::Finite(self.policy.n_weights() + bdim)
         }
 
-        fn card(&self) -> spaces::Card { spaces::Card::Infinite }
+        fn card(&self) -> spaces::Card {
+            spaces::Card::Infinite
+        }
     }
 
     impl<'s, S, A, P, B> Basis<(&'s S, A)> for SCB<P, B>
@@ -110,11 +117,17 @@ type Jacobian = Columnar<Features>;
 impl Buffer for Features {
     type Dim = Ix1;
 
-    fn dim(&self) -> usize { self.n_features() }
+    fn dim(&self) -> usize {
+        self.n_features()
+    }
 
-    fn n_dim(&self) -> usize { 1 }
+    fn n_dim(&self) -> usize {
+        1
+    }
 
-    fn raw_dim(&self) -> Ix1 { ndarray::Ix1(self.n_features()) }
+    fn raw_dim(&self) -> Ix1 {
+        ndarray::Ix1(self.n_features())
+    }
 
     fn addto<D: DataMut<Elem = f64>>(&self, arr: &mut ArrayBase<D, Ix1>) {
         Features::addto(self, arr)
@@ -144,12 +157,14 @@ impl BufferMut for Features {
                         activations: sa.iter().map(|(&k, &v)| (k, f(v))).collect(),
                     })
                 }
-            },
+            }
             Features::Dense(acts) => Features::Dense(acts.mapv(f)),
         }
     }
 
-    fn map_inplace(&mut self, f: impl Fn(f64) -> f64) { Features::map_inplace(self, f) }
+    fn map_inplace(&mut self, f: impl Fn(f64) -> f64) {
+        Features::map_inplace(self, f)
+    }
 
     fn merge(&self, other: &Features, f: impl Fn(f64, f64) -> f64) -> Self {
         Features::merge(self, other, f)
@@ -177,7 +192,8 @@ where
     type Error = Error;
 
     fn handle(&mut self, msg: GradientUpdate<J>) -> Result<()> {
-        Ok(msg.0.addto(&mut self.weights))
+        msg.0.addto(&mut self.weights);
+        Ok(())
     }
 }
 
@@ -191,7 +207,8 @@ where
     type Error = Error;
 
     fn handle(&mut self, msg: ScaledGradientUpdate<J>) -> Result<()> {
-        Ok(msg.jacobian.scaled_addto(msg.alpha, &mut self.weights))
+        msg.jacobian.scaled_addto(msg.alpha, &mut self.weights);
+        Ok(())
     }
 }
 
@@ -199,11 +216,17 @@ where
 // Implement V(s)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 impl<B, O> Parameterised for ScalarLFA<B, O> {
-    fn weights_dim(&self) -> (usize, usize) { (self.weights.len(), 1) }
+    fn weights_dim(&self) -> (usize, usize) {
+        (self.weights.len(), 1)
+    }
 
-    fn weights(&self) -> Weights { self.weights.clone().insert_axis(Axis(1)) }
+    fn weights(&self) -> Weights {
+        self.weights.clone().insert_axis(Axis(1))
+    }
 
-    fn weights_view(&self) -> WeightsView { self.weights.view().insert_axis(Axis(1)) }
+    fn weights_view(&self) -> WeightsView {
+        self.weights.view().insert_axis(Axis(1))
+    }
 
     fn weights_view_mut(&mut self) -> WeightsViewMut {
         self.weights.view_mut().insert_axis(Axis(1))
@@ -217,7 +240,9 @@ where
 {
     type Output = f64;
 
-    fn evaluate(&self, (s,): (S,)) -> f64 { self.evaluate(s).unwrap() }
+    fn evaluate(&self, (s,): (S,)) -> f64 {
+        self.evaluate(s).unwrap()
+    }
 }
 
 impl<S, B, O> Differentiable<(S,)> for ScalarLFA<B, O>
@@ -227,7 +252,9 @@ where
 {
     type Jacobian = Features;
 
-    fn grad(&self, (s,): (S,)) -> Features { self.basis.project(s).unwrap() }
+    fn grad(&self, (s,): (S,)) -> Features {
+        self.basis.project(s).unwrap()
+    }
 
     fn grad_log(&self, (s,): (S,)) -> Features {
         self.basis.project(s).unwrap().map_into(|x| 1.0 / x)
@@ -257,7 +284,9 @@ where
 {
     type Output = f64;
 
-    fn evaluate(&self, args: (S, A)) -> Self::Output { self.evaluate(args).unwrap() }
+    fn evaluate(&self, args: (S, A)) -> Self::Output {
+        self.evaluate(args).unwrap()
+    }
 }
 
 impl<S, A, B, O> Differentiable<(S, A)> for ScalarLFA<B, O>
@@ -267,7 +296,9 @@ where
 {
     type Jacobian = Features;
 
-    fn grad(&self, args: (S, A)) -> Features { self.basis.project(args).unwrap() }
+    fn grad(&self, args: (S, A)) -> Features {
+        self.basis.project(args).unwrap()
+    }
 
     fn grad_log(&self, args: (S, A)) -> Features {
         self.basis.project(args).unwrap().map_into(|x| 1.0 / x)
@@ -291,13 +322,21 @@ where
 // Implement Q(s, a) with discrete a
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 impl<B, O> Parameterised for VectorLFA<B, O> {
-    fn weights_dim(&self) -> (usize, usize) { self.weights.dim() }
+    fn weights_dim(&self) -> (usize, usize) {
+        self.weights.dim()
+    }
 
-    fn weights(&self) -> Weights { self.weights.clone() }
+    fn weights(&self) -> Weights {
+        self.weights.clone()
+    }
 
-    fn weights_view(&self) -> WeightsView { self.weights.view() }
+    fn weights_view(&self) -> WeightsView {
+        self.weights.view()
+    }
 
-    fn weights_view_mut(&mut self) -> WeightsViewMut { self.weights.view_mut() }
+    fn weights_view_mut(&mut self) -> WeightsViewMut {
+        self.weights.view_mut()
+    }
 }
 
 impl<S, B, O> Function<(S,)> for VectorLFA<B, O>
@@ -307,7 +346,9 @@ where
 {
     type Output = Vec<f64>;
 
-    fn evaluate(&self, (s,): (S,)) -> Self::Output { self.evaluate(s).unwrap().into_raw_vec() }
+    fn evaluate(&self, (s,): (S,)) -> Self::Output {
+        self.evaluate(s).unwrap().into_raw_vec()
+    }
 }
 
 impl<S, T, B, O> Function<(S, T)> for VectorLFA<B, O>
@@ -355,7 +396,9 @@ where
     B: basis::Basis<S, Value = Features>,
     O: optim::Optimiser,
 {
-    fn len(&self, _: (S,)) -> usize { self.weights.ncols() }
+    fn len(&self, _: (S,)) -> usize {
+        self.weights.ncols()
+    }
 
     fn evaluate_index(&self, (s,): (S,), index: usize) -> f64 {
         self.evaluate_index(s, index).unwrap()

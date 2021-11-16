@@ -1,12 +1,6 @@
 use crate::{
-    domains::Transition,
-    fa::StateActionUpdate,
-    policies::EnumerablePolicy,
-    utils::argmaxima,
-    Enumerable,
-    Function,
-    Handler,
-    Parameterised,
+    domains::Transition, fa::StateActionUpdate, policies::EnumerablePolicy, utils::argmaxima,
+    Enumerable, Function, Handler, Parameterised,
 };
 use rand::thread_rng;
 use std::{collections::VecDeque, ops::Index};
@@ -36,13 +30,21 @@ impl<S> Backup<S> {
         }
     }
 
-    pub fn len(&self) -> usize { self.entries.len() }
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
 
-    pub fn pop(&mut self) -> Option<BackupEntry<S>> { self.entries.pop_front() }
+    pub fn pop(&mut self) -> Option<BackupEntry<S>> {
+        self.entries.pop_front()
+    }
 
-    pub fn push(&mut self, entry: BackupEntry<S>) { self.entries.push_back(entry); }
+    pub fn push(&mut self, entry: BackupEntry<S>) {
+        self.entries.push_back(entry);
+    }
 
-    pub fn clear(&mut self) { self.entries.clear(); }
+    pub fn clear(&mut self) {
+        self.entries.clear();
+    }
 
     pub fn propagate(&self, gamma: f64) -> (f64, f64) {
         let mut g = self.entries[0].q;
@@ -189,11 +191,11 @@ where
                 a: t.action,
 
                 q: qa,
-                residual: residual,
+                residual,
 
                 sigma: self.sigma,
-                pi: pi,
-                mu: mu,
+                pi,
+                mu,
             })
         };
 

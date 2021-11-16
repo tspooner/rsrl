@@ -13,28 +13,40 @@ use rand::{
 pub struct Random(usize);
 
 impl Random {
-    pub fn new(n_actions: usize) -> Self { Random(n_actions) }
+    pub fn new(n_actions: usize) -> Self {
+        Random(n_actions)
+    }
 
     #[inline(always)]
-    fn prob(&self) -> f64 { 1.0 / self.0 as f64 }
+    fn prob(&self) -> f64 {
+        1.0 / self.0 as f64
+    }
 }
 
 impl<S> Function<(S,)> for Random {
     type Output = Vec<f64>;
 
-    fn evaluate(&self, _: (S,)) -> Vec<f64> { vec![self.prob(); self.0] }
+    fn evaluate(&self, _: (S,)) -> Vec<f64> {
+        vec![self.prob(); self.0]
+    }
 }
 
 impl<S, A: std::borrow::Borrow<usize>> Function<(S, A)> for Random {
     type Output = f64;
 
-    fn evaluate(&self, _: (S, A)) -> f64 { self.prob() }
+    fn evaluate(&self, _: (S, A)) -> f64 {
+        self.prob()
+    }
 }
 
 impl<S> Enumerable<(S,)> for Random {
-    fn len(&self, _: (S,)) -> usize { self.0 }
+    fn len(&self, _: (S,)) -> usize {
+        self.0
+    }
 
-    fn evaluate_index(&self, _: (S,), _: usize) -> f64 { self.prob() }
+    fn evaluate_index(&self, _: (S,), _: usize) -> f64 {
+        self.prob()
+    }
 }
 
 impl<S> Policy<S> for Random {
@@ -44,15 +56,14 @@ impl<S> Policy<S> for Random {
         Uniform::new(0, self.0).sample(rng)
     }
 
-    fn mode(&self, _: S) -> usize { panic!("Random policy has no mode.") }
+    fn mode(&self, _: S) -> usize {
+        panic!("Random policy has no mode.")
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        policies::{EnumerablePolicy, Policy, Random},
-        Function,
-    };
+    use crate::policies::{Policy, Random};
     use rand::thread_rng;
 
     #[test]
@@ -77,26 +88,26 @@ mod tests {
 
     // #[test]
     // fn test_probabilites() {
-        // let p = Random::new(4);
+    // let p = Random::new(4);
 
-        // assert!(compare_floats(
-            // p.evaluate((&vec![1.0, 0.0, 0.0, 1.0],)),
-            // &[0.25; 4],
-            // 1e-6
-        // ));
+    // assert!(compare_floats(
+    // p.evaluate((&vec![1.0, 0.0, 0.0, 1.0],)),
+    // &[0.25; 4],
+    // 1e-6
+    // ));
 
-        // let p = Random::new(5);
+    // let p = Random::new(5);
 
-        // assert!(compare_floats(
-            // p.evaluate((&vec![1.0, 0.0, 0.0, 0.0, 0.0],)),
-            // &[0.2; 5],
-            // 1e-6
-        // ));
+    // assert!(compare_floats(
+    // p.evaluate((&vec![1.0, 0.0, 0.0, 0.0, 0.0],)),
+    // &[0.2; 5],
+    // 1e-6
+    // ));
 
-        // assert!(compare_floats(
-            // p.evaluate((&vec![0.0, 0.0, 0.0, 0.0, 1.0],)),
-            // &[0.2; 5],
-            // 1e-6
-        // ));
+    // assert!(compare_floats(
+    // p.evaluate((&vec![0.0, 0.0, 0.0, 0.0, 1.0],)),
+    // &[0.2; 5],
+    // 1e-6
+    // ));
     // }
 }

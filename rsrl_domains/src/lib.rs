@@ -10,7 +10,9 @@ use std::iter;
 macro_rules! impl_into {
     (Transition < S, $type:ty > => Transition < S,() >) => {
         impl<S> Into<Transition<S, ()>> for Transition<S, $type> {
-            fn into(self) -> Transition<S, ()> { self.drop_action() }
+            fn into(self) -> Transition<S, ()> {
+                self.drop_action()
+            }
         }
     };
 }
@@ -102,26 +104,17 @@ impl<S> Observation<S> {
 
     /// Returns true if the state was fully observed, otherwise false.
     pub fn is_full(&self) -> bool {
-        match self {
-            Observation::Full(_) => true,
-            _ => false,
-        }
+        matches!(self, Observation::Full(_))
     }
 
     /// Returns true if the state was only partially observed, otherwise false.
     pub fn is_partial(&self) -> bool {
-        match self {
-            Observation::Partial(_) => true,
-            _ => false,
-        }
+        matches!(self, Observation::Partial(_))
     }
 
     /// Returns true if the observation is the terminal state, otherwise false.
     pub fn is_terminal(&self) -> bool {
-        match self {
-            Observation::Terminal(_) => true,
-            _ => false,
-        }
+        matches!(self, Observation::Terminal(_))
     }
 }
 
@@ -144,7 +137,9 @@ pub struct Transition<S, A> {
 impl<S, A> Transition<S, A> {
     /// Return references to the `from` and `to` states associated with this
     /// transition.
-    pub fn states(&self) -> (&S, &S) { (self.from.state(), self.to.state()) }
+    pub fn states(&self) -> (&S, &S) {
+        (self.from.state(), self.to.state())
+    }
 
     pub fn borrowed(&self) -> Transition<&S, &A> {
         Transition {
@@ -167,14 +162,16 @@ impl<S, A> Transition<S, A> {
     }
 
     /// Returns true if the transition ends in a terminal state.
-    pub fn terminated(&self) -> bool { self.to.is_terminal() }
+    pub fn terminated(&self) -> bool {
+        self.to.is_terminal()
+    }
 
     /// Replace the action associated with this transition and return a new
     /// instance.
     pub fn replace_action<T>(self, action: T) -> Transition<S, T> {
         Transition {
             from: self.from,
-            action: action,
+            action,
             reward: self.reward,
             to: self.to,
         }
@@ -182,7 +179,9 @@ impl<S, A> Transition<S, A> {
 
     /// Drop the action associated with this transition and return a new
     /// instance.
-    pub fn drop_action(self) -> Transition<S, ()> { self.replace_action(()) }
+    pub fn drop_action(self) -> Transition<S, ()> {
+        self.replace_action(())
+    }
 
     pub fn negate_reward(self) -> Transition<S, A> {
         Transition {
@@ -251,7 +250,9 @@ impl<'a, S, A> Iterator for TrajectoryIter<'a, S, A> {
     }
 
     #[inline]
-    fn count(self) -> usize { self.tail.len() }
+    fn count(self) -> usize {
+        self.tail.len()
+    }
 
     #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
@@ -322,10 +323,10 @@ impl<'s, 'a, S, A> std::iter::FromIterator<Transition<&'s S, &'a A>> for Vec<Tra
     fn from_iter<I: IntoIterator<Item = Transition<&'s S, &'a A>>>(iter: I) -> Self {
         iter.into_iter()
             .map(|t| Transition {
-                from: t.from.clone(),
-                action: t.action.clone(),
+                from: t.from,
+                action: t.action,
                 reward: t.reward,
-                to: t.to.clone(),
+                to: t.to,
             })
             .collect()
     }
@@ -337,9 +338,13 @@ pub struct Trajectory<S, A> {
 }
 
 impl<S, A> Trajectory<S, A> {
-    pub fn n_states(&self) -> usize { self.steps.len() + 1 }
+    pub fn n_states(&self) -> usize {
+        self.steps.len() + 1
+    }
 
-    pub fn n_transitions(&self) -> usize { self.steps.len() }
+    pub fn n_transitions(&self) -> usize {
+        self.steps.len()
+    }
 
     pub fn first(&self) -> Transition<&S, &A> {
         Transition {
@@ -370,9 +375,13 @@ impl<S, A> Trajectory<S, A> {
         }
     }
 
-    pub fn total_reward(&self) -> Reward { self.steps.iter().map(|oar| oar.2).sum() }
+    pub fn total_reward(&self) -> Reward {
+        self.steps.iter().map(|oar| oar.2).sum()
+    }
 
-    pub fn to_batch(&self) -> Batch<S, A> { self.iter().collect() }
+    pub fn to_batch(&self) -> Batch<S, A> {
+        self.iter().collect()
+    }
 
     pub fn into_batch(mut self) -> Batch<S, A>
     where
@@ -465,7 +474,7 @@ pub trait Domain {
                 let (ns, r) = self.step(&a);
 
                 Some((ns, a, r))
-            },
+            }
         });
 
         Trajectory {

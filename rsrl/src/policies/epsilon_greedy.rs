@@ -1,7 +1,6 @@
 use crate::{
     policies::{Greedy, Policy, Random},
-    Enumerable,
-    Function,
+    Enumerable, Function,
 };
 use rand::Rng;
 
@@ -31,7 +30,8 @@ impl<Q> EpsilonGreedy<Q> {
 }
 
 impl<S, Q> Function<(S,)> for EpsilonGreedy<Q>
-where Q: Enumerable<(S,), Output = Vec<f64>>
+where
+    Q: Enumerable<(S,), Output = Vec<f64>>,
 {
     type Output = Vec<f64>;
 
@@ -61,13 +61,17 @@ where
 }
 
 impl<S, Q> Enumerable<(S,)> for EpsilonGreedy<Q>
-where Q: Enumerable<(S,), Output = Vec<f64>>
+where
+    Q: Enumerable<(S,), Output = Vec<f64>>,
 {
-    fn evaluate_index(&self, (s,): (S,), index: usize) -> f64 { self.evaluate((s, index)) }
+    fn evaluate_index(&self, (s,): (S,), index: usize) -> f64 {
+        self.evaluate((s, index))
+    }
 }
 
 impl<S, Q> Policy<S> for EpsilonGreedy<Q>
-where Q: Enumerable<(S,), Output = Vec<f64>>
+where
+    Q: Enumerable<(S,), Output = Vec<f64>>,
 {
     type Action = usize;
 
@@ -79,17 +83,19 @@ where Q: Enumerable<(S,), Output = Vec<f64>>
         }
     }
 
-    fn mode(&self, s: S) -> usize { self.greedy.mode(s) }
+    fn mode(&self, s: S) -> usize {
+        self.greedy.mode(s)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use approx::assert_abs_diff_eq;
     use crate::{
         fa::mocking::MockQ,
-        policies::{EnumerablePolicy, EpsilonGreedy, Policy, Greedy, Random},
+        policies::{EpsilonGreedy, Greedy, Policy, Random},
         Function,
     };
+    use approx::assert_abs_diff_eq;
     use rand::thread_rng;
 
     #[test]

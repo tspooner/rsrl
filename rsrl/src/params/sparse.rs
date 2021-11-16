@@ -1,5 +1,5 @@
 use super::*;
-use ndarray::{Ix2, IntoDimension};
+use ndarray::{IntoDimension, Ix2};
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 type GradMap = ::std::collections::HashMap<[usize; 2], f64>;
@@ -17,14 +17,14 @@ pub struct Sparse {
 
 impl Sparse {
     pub fn new<D: IntoDimension<Dim = Ix2>>(dim: D, grads: GradMap) -> Result<Sparse, String> {
-        if grads.len() == 0 {
+        if grads.is_empty() {
             Err("No gradient information passed into Sparse::new().".to_owned())
         } else {
             let dim = dim.into_dimension();
             let (nr, nc) = dim.into_pattern();
 
             if grads.keys().all(|&[r, c]| r < nr && c < nc) {
-                Ok(Sparse { dim, grads, })
+                Ok(Sparse { dim, grads })
             } else {
                 Err("Inconsistent dimensions in Sparse::new().".to_owned())
             }
@@ -42,7 +42,9 @@ impl Sparse {
 impl Buffer for Sparse {
     type Dim = Ix2;
 
-    fn raw_dim(&self) -> Ix2 { self.dim }
+    fn raw_dim(&self) -> Ix2 {
+        self.dim
+    }
 
     fn addto<D: DataMut<Elem = f64>>(&self, weights: &mut ArrayBase<D, Ix2>) {
         for (&idx, pd) in self.grads.iter() {
@@ -78,7 +80,7 @@ impl BufferMut for Sparse {
 
     fn map(&self, f: impl Fn(f64) -> f64) -> Self {
         Sparse {
-            dim: self.dim.clone(),
+            dim: self.dim,
             grads: self.grads.iter().map(|(&k, &pd)| (k, f(pd))).collect(),
         }
     }
@@ -110,7 +112,9 @@ impl BufferMut for Sparse {
 }
 
 impl Into<Array2<f64>> for Sparse {
-    fn into(self) -> Array2<f64> { self.to_dense() }
+    fn into(self) -> Array2<f64> {
+        self.to_dense()
+    }
 }
 
 impl Add<Sparse> for Sparse {
@@ -141,7 +145,7 @@ impl AddAssign<&Sparse> for Sparse {
             if let Some(pd) = self.grads.get_mut(&idx) {
                 pd.add_assign(pd_other);
             } else {
-                self.grads.insert(idx, pd_other.clone());
+                self.grads.insert(idx, *pd_other);
             }
         }
     }

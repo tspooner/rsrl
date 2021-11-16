@@ -3,8 +3,8 @@ extern crate rsrl;
 
 use rand::thread_rng;
 use rsrl::{
-    control::{ac::ActorCritic, td::SARSA},
-    domains::{ContinuousMountainCar, Domain, State},
+    control::ac::ActorCritic,
+    domains::{ContinuousMountainCar, Domain},
     fa::linear::{
         basis::{Basis, Combinators, Fourier},
         optim::SGD,
@@ -13,7 +13,6 @@ use rsrl::{
     make_shared,
     policies::{Gaussian, Policy},
     prediction::lstd::iLSTD,
-    spaces::Space,
     Handler,
 };
 
@@ -29,7 +28,7 @@ fn main() {
     let critic = {
         let e = eval.clone();
 
-        move |(s,): (&_,)| { e.basis.project(s).unwrap().dot(&e.theta) }
+        move |(s,): (&_,)| e.basis.project(s).unwrap().dot(&e.theta)
     };
 
     let mut rng = thread_rng();

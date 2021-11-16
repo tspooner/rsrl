@@ -4,18 +4,13 @@ use rand::thread_rng;
 use rsrl::{
     control::{nac::NAC, td::SARSA},
     domains::{Domain, MountainCar},
-    fa::{
-        linear::{
-            basis::{Combinators, Fourier, SCB},
-            optim::SGD,
-            LFA,
-        },
-        transforms::Softplus,
-        Composition,
+    fa::linear::{
+        basis::{Combinators, Fourier, SCB},
+        optim::SGD,
+        LFA,
     },
     make_shared,
     policies::{Policy, Softmax},
-    Differentiable,
     Handler,
 };
 use spaces::{BoundedSpace, Space};

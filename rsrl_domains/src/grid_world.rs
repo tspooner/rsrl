@@ -38,7 +38,9 @@ pub struct GridWorld<T> {
 }
 
 impl<T> GridWorld<T> {
-    pub fn new(layout: Array2<T>) -> GridWorld<T> { GridWorld { layout } }
+    pub fn new(layout: Array2<T>) -> GridWorld<T> {
+        GridWorld { layout }
+    }
 
     pub fn from_str(layout: &str) -> GridWorld<T>
     where
@@ -55,7 +57,7 @@ impl<T> GridWorld<T> {
             .collect();
 
         let shape = (m.len(), m[0].len());
-        let mvals = m.into_iter().flat_map(|v| v).collect();
+        let mvals = m.into_iter().flatten().collect();
 
         GridWorld {
             layout: Array2::from_shape_vec(shape, mvals).unwrap(),
@@ -76,20 +78,28 @@ impl<T> GridWorld<T> {
         }
     }
 
-    pub fn height(&self) -> usize { self.layout.rows() }
+    pub fn height(&self) -> usize {
+        self.layout.nrows()
+    }
 
-    pub fn width(&self) -> usize { self.layout.cols() }
+    pub fn width(&self) -> usize {
+        self.layout.ncols()
+    }
 
-    pub fn get(&self, loc: [usize; 2]) -> Option<&T> { self.layout.get(loc) }
+    pub fn get(&self, loc: [usize; 2]) -> Option<&T> {
+        self.layout.get(loc)
+    }
 
-    pub fn get_mut(&mut self, loc: [usize; 2]) -> Option<&mut T> { self.layout.get_mut(loc) }
+    pub fn get_mut(&mut self, loc: [usize; 2]) -> Option<&mut T> {
+        self.layout.get_mut(loc)
+    }
 
     pub fn move_north(&self, loc: [usize; 2], n: usize) -> [usize; 2] {
         [
             loc[0],
             cmp::max(
                 0,
-                cmp::min(loc[1].saturating_add(n), self.layout.rows() - 1),
+                cmp::min(loc[1].saturating_add(n), self.layout.nrows() - 1),
             ),
         ]
     }
@@ -99,7 +109,7 @@ impl<T> GridWorld<T> {
             loc[0],
             cmp::max(
                 0,
-                cmp::min(loc[1].saturating_sub(n), self.layout.rows() - 1),
+                cmp::min(loc[1].saturating_sub(n), self.layout.nrows() - 1),
             ),
         ]
     }
@@ -108,7 +118,7 @@ impl<T> GridWorld<T> {
         [
             cmp::max(
                 0,
-                cmp::min(loc[0].saturating_add(n), self.layout.cols() - 1),
+                cmp::min(loc[0].saturating_add(n), self.layout.ncols() - 1),
             ),
             loc[1],
         ]
@@ -118,7 +128,7 @@ impl<T> GridWorld<T> {
         [
             cmp::max(
                 0,
-                cmp::min(loc[0].saturating_sub(n), self.layout.cols() - 1),
+                cmp::min(loc[0].saturating_sub(n), self.layout.ncols() - 1),
             ),
             loc[1],
         ]
@@ -149,23 +159,23 @@ impl<T> GridWorld<T> {
 
     pub fn valid_motion(&self, loc: [usize; 2], motion: Motion) -> bool {
         match motion {
-            Motion::North(n) => loc[1] <= self.layout.rows() - 1 - n,
+            Motion::North(n) => loc[1] <= self.layout.nrows() - 1 - n,
             Motion::South(n) => loc[1] >= n,
-            Motion::East(n) => loc[0] <= self.layout.cols() - 1 - n,
+            Motion::East(n) => loc[0] <= self.layout.ncols() - 1 - n,
             Motion::West(n) => loc[0] >= n,
 
             Motion::NorthEast(n) => {
                 self.valid_motion(loc, Motion::North(n)) && self.valid_motion(loc, Motion::East(n))
-            },
+            }
             Motion::NorthWest(n) => {
                 self.valid_motion(loc, Motion::North(n)) && self.valid_motion(loc, Motion::West(n))
-            },
+            }
             Motion::SouthEast(n) => {
                 self.valid_motion(loc, Motion::South(n)) && self.valid_motion(loc, Motion::East(n))
-            },
+            }
             Motion::SouthWest(n) => {
                 self.valid_motion(loc, Motion::South(n)) && self.valid_motion(loc, Motion::West(n))
-            },
+            }
         }
     }
 }

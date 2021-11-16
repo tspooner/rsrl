@@ -2,9 +2,7 @@ use crate::{
     fa::{GradientUpdate, ScaledGradientUpdate, StateActionUpdate},
     params::{Parameterised, Weights, WeightsView, WeightsViewMut},
     policies::{DifferentiablePolicy, Policy},
-    Differentiable,
-    Function,
-    Handler,
+    Differentiable, Function, Handler,
 };
 use ndarray::{Array2, ArrayBase, ArrayView2, Axis, Data, Ix2};
 use rand::Rng;
@@ -41,11 +39,17 @@ pub enum Error<E1, E2> {
 pub struct IPP<P1, P2>(pub P1, pub P2);
 
 impl<P1: Parameterised, P2: Parameterised> Parameterised for IPP<P1, P2> {
-    fn weights(&self) -> Weights { stack![Axis(1), self.0.weights(), self.1.weights()] }
+    fn weights(&self) -> Weights {
+        stack![Axis(1), self.0.weights(), self.1.weights()]
+    }
 
-    fn weights_view(&self) -> WeightsView { unimplemented!() }
+    fn weights_view(&self) -> WeightsView {
+        unimplemented!()
+    }
 
-    fn weights_view_mut(&mut self) -> WeightsViewMut { unimplemented!() }
+    fn weights_view_mut(&mut self) -> WeightsViewMut {
+        unimplemented!()
+    }
 
     fn weights_dim(&self) -> (usize, usize) {
         let d0 = self.0.weights_dim();
@@ -132,12 +136,18 @@ where
         (self.0.sample(rng, s), self.1.sample(rng, s))
     }
 
-    fn mode(&self, s: &'s S) -> Self::Action { (self.0.mode(s), self.1.mode(s)) }
+    fn mode(&self, s: &'s S) -> Self::Action {
+        (self.0.mode(s), self.1.mode(s))
+    }
 }
 
 type Relay<'s, 'a, S, P> = StateActionUpdate<&'s S, &'a <P as Policy<(&'s S,)>>::Action>;
 type Message<'s, 'a, S, P1, P2> = StateActionUpdate<
-    &'s S, &'a (<P1 as Policy<(&'s S,)>>::Action, <P2 as Policy<(&'s S,)>>::Action)
+    &'s S,
+    &'a (
+        <P1 as Policy<(&'s S,)>>::Action,
+        <P2 as Policy<(&'s S,)>>::Action,
+    ),
 >;
 
 impl<'s, 'a, S, P1, P2> Handler<Message<'s, 'a, S, P1, P2>> for IPP<P1, P2>
@@ -150,17 +160,23 @@ where
 
     fn handle(&mut self, msg: Message<'s, 'a, S, P1, P2>) -> Result<Self::Response, Self::Error> {
         Ok(Response {
-            policy1_response: self.0.handle(StateActionUpdate {
-                state: msg.state,
-                action: &msg.action.0,
-                error: msg.error,
-            }).map_err(|e| Error::Policy1Error(e))?,
+            policy1_response: self
+                .0
+                .handle(StateActionUpdate {
+                    state: msg.state,
+                    action: &msg.action.0,
+                    error: msg.error,
+                })
+                .map_err(Error::Policy1Error)?,
 
-            policy2_response: self.1.handle(StateActionUpdate {
-                state: msg.state,
-                action: &msg.action.1,
-                error: msg.error,
-            }).map_err(|e| Error::Policy2Error(e))?,
+            policy2_response: self
+                .1
+                .handle(StateActionUpdate {
+                    state: msg.state,
+                    action: &msg.action.1,
+                    error: msg.error,
+                })
+                .map_err(Error::Policy2Error)?,
         })
     }
 }
@@ -174,18 +190,23 @@ where
     type Response = Response<P1::Response, P2::Response>;
     type Error = Error<P1::Error, P2::Error>;
 
-    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: GradientUpdate<&'m ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
         let d0 = self.0.weights_dim();
         let d1 = self.1.weights_dim();
 
         Ok(Response {
-            policy1_response: self.0
+            policy1_response: self
+                .0
                 .handle(GradientUpdate(msg.0.slice(s![0..d0.0, 0..d0.1])))
-                .map_err(|e| Error::Policy1Error(e))?,
+                .map_err(Error::Policy1Error)?,
 
-            policy2_response: self.1
+            policy2_response: self
+                .1
                 .handle(GradientUpdate(msg.0.slice(s![0..d1.0, d0.1..])))
-                .map_err(|e| Error::Policy2Error(e))?,
+                .map_err(Error::Policy2Error)?,
         })
     }
 }
@@ -199,24 +220,29 @@ where
     type Response = Response<P1::Response, P2::Response>;
     type Error = Error<P1::Error, P2::Error>;
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
         let d0 = self.0.weights_dim();
         let d1 = self.1.weights_dim();
 
         Ok(Response {
-            policy1_response: self.0
+            policy1_response: self
+                .0
                 .handle(ScaledGradientUpdate {
                     alpha: msg.alpha,
                     jacobian: msg.jacobian.slice(s![0..d0.0, 0..d0.1]),
                 })
-                .map_err(|e| Error::Policy1Error(e))?,
+                .map_err(Error::Policy1Error)?,
 
-            policy2_response: self.1
+            policy2_response: self
+                .1
                 .handle(ScaledGradientUpdate {
                     alpha: msg.alpha,
                     jacobian: msg.jacobian.slice(s![0..d1.0, d0.1..]),
                 })
-                .map_err(|e| Error::Policy2Error(e))?,
+                .map_err(Error::Policy2Error)?,
         })
     }
 }

@@ -1,10 +1,5 @@
 use crate::{
-    domains::Transition,
-    fa::StateActionUpdate,
-    policies::Policy,
-    Enumerable,
-    Function,
-    Handler,
+    domains::Transition, fa::StateActionUpdate, policies::Policy, Enumerable, Function, Handler,
 };
 use std::f64;
 
@@ -79,21 +74,23 @@ where
         if t.terminated() {
             let td_error = t.reward - qsa;
 
-            let q_response = self.fa_q
+            let q_response = self
+                .fa_q
                 .handle(StateActionUpdate {
                     state: s,
                     action: t.action,
                     error: td_error,
                 })
-                .map_err(|e| Error::QFuncError(e))?;
+                .map_err(Error::QFuncError)?;
 
-            let td_response = self.fa_td
+            let td_response = self
+                .fa_td
                 .handle(StateActionUpdate {
                     state: s,
                     action: t.action,
                     error: td_error - td_est,
                 })
-                .map_err(|e| Error::TDEstError(e))?;
+                .map_err(Error::TDEstError)?;
 
             Ok(Response {
                 td_error,
@@ -107,29 +104,30 @@ where
 
             let td_error = t.reward + self.gamma * qnsna - qsa;
 
-            let q_response = self.fa_q
+            let q_response = self
+                .fa_q
                 .handle(StateActionUpdate {
                     state: s,
                     action: t.action,
                     error: td_error,
                 })
                 .and_then(|_| {
-                    self.fa_q
-                        .handle(StateActionUpdate {
-                            state: ns,
-                            action: na,
-                            error: -self.gamma * td_est,
-                        })
+                    self.fa_q.handle(StateActionUpdate {
+                        state: ns,
+                        action: na,
+                        error: -self.gamma * td_est,
+                    })
                 })
-                .map_err(|e| Error::QFuncError(e))?;
+                .map_err(Error::QFuncError)?;
 
-            let td_response = self.fa_td
+            let td_response = self
+                .fa_td
                 .handle(StateActionUpdate {
                     state: s,
                     action: t.action,
                     error: td_error - td_est,
                 })
-                .map_err(|e| Error::TDEstError(e))?;
+                .map_err(Error::TDEstError)?;
 
             Ok(Response {
                 td_error,

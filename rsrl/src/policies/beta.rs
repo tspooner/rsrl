@@ -2,9 +2,7 @@ use crate::{
     fa::{GradientUpdate, ScaledGradientUpdate, StateActionUpdate, StateUpdate},
     params::*,
     policies::Policy,
-    Differentiable,
-    Function,
-    Handler,
+    Differentiable, Function, Handler,
 };
 use ndarray::{Array2, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2};
 use rand::Rng;
@@ -12,8 +10,7 @@ use rstat::{
     fitting::Score,
     statistics::{Modes, UnivariateMoments},
     univariate::beta,
-    ContinuousDistribution,
-    Distribution,
+    ContinuousDistribution, Distribution,
 };
 
 const MIN_TOL: f64 = 1.0;
@@ -52,17 +49,23 @@ pub struct Beta<A, B = A> {
 }
 
 impl<A, B> Beta<A, B> {
-    pub fn new(alpha: A, beta: B) -> Self { Beta { alpha, beta } }
+    pub fn new(alpha: A, beta: B) -> Self {
+        Beta { alpha, beta }
+    }
 
     #[inline]
     pub fn compute_alpha<S>(&self, s: S) -> f64
-    where A: Function<(S,), Output = f64> {
+    where
+        A: Function<(S,), Output = f64>,
+    {
         self.alpha.evaluate((s,)) + MIN_TOL
     }
 
     #[inline]
     pub fn compute_beta<S>(&self, s: S) -> f64
-    where B: Function<(S,), Output = f64> {
+    where
+        B: Function<(S,), Output = f64>,
+    {
         self.beta.evaluate((s,)) + MIN_TOL
     }
 
@@ -77,11 +80,17 @@ impl<A, B> Beta<A, B> {
 }
 
 impl<A: Parameterised, B: Parameterised> Parameterised for Beta<A, B> {
-    fn weights(&self) -> Weights { stack![Axis(0), self.alpha.weights(), self.beta.weights()] }
+    fn weights(&self) -> Weights {
+        stack![Axis(0), self.alpha.weights(), self.beta.weights()]
+    }
 
-    fn weights_view(&self) -> WeightsView { unimplemented!() }
+    fn weights_view(&self) -> WeightsView {
+        unimplemented!()
+    }
 
-    fn weights_view_mut(&mut self) -> WeightsViewMut { unimplemented!() }
+    fn weights_view_mut(&mut self) -> WeightsViewMut {
+        unimplemented!()
+    }
 
     fn weights_dim(&self) -> (usize, usize) {
         let (ra, _) = self.alpha.weights_dim();
@@ -99,7 +108,9 @@ where
 {
     type Output = f64;
 
-    fn evaluate(&self, (s, a): (&'s S, U)) -> f64 { self.dist(s).pdf(a.borrow()) }
+    fn evaluate(&self, (s, a): (&'s S, U)) -> f64 {
+        self.dist(s).pdf(a.borrow())
+    }
 }
 
 impl<'s, S, U, A, B> Differentiable<(&'s S, U)> for Beta<A, B>
@@ -114,7 +125,9 @@ where
 {
     type Jacobian = Array2<f64>;
 
-    fn grad(&self, _: (&'s S, U)) -> Array2<f64> { todo!() }
+    fn grad(&self, _: (&'s S, U)) -> Array2<f64> {
+        todo!()
+    }
 
     fn grad_log(&self, (s, a): (&'s S, U)) -> Array2<f64> {
         let grad_alpha = self.alpha.grad((s,)).into_dense().insert_axis(Axis(1));
@@ -136,13 +149,15 @@ where
 {
     type Action = f64;
 
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, s: &'s S) -> f64 { self.dist(s).sample(rng) }
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R, s: &'s S) -> f64 {
+        self.dist(s).sample(rng)
+    }
 
     fn mode(&self, s: &'s S) -> f64 {
         let d = self.dist(s);
         let modes = d.modes();
 
-        if modes.len() == 0 {
+        if modes.is_empty() {
             d.mean()
         } else {
             modes[0]
@@ -169,19 +184,21 @@ where
             .score(std::slice::from_ref(msg.action.borrow()));
 
         Ok(Response {
-            alpha_response: self.alpha
+            alpha_response: self
+                .alpha
                 .handle(StateUpdate {
                     state: msg.state,
                     error: msg.error * gl_alpha,
                 })
-                .map_err(|e| Error::AlphaError(e))?,
+                .map_err(Error::AlphaError)?,
 
-            beta_response: self.beta
+            beta_response: self
+                .beta
                 .handle(StateUpdate {
                     state: msg.state,
                     error: msg.error * gl_beta,
                 })
-                .map_err(|e| Error::BetaError(e))?,
+                .map_err(Error::BetaError)?,
         })
     }
 }
@@ -196,8 +213,13 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
-        self.handle(GradientUpdate(&msg.0)).map(|_| ()).map_err(|_| ())
+    fn handle(
+        &mut self,
+        msg: GradientUpdate<ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
+        self.handle(GradientUpdate(&msg.0))
+            .map(|_| ())
+            .map_err(|_| ())
     }
 }
 
@@ -211,17 +233,22 @@ where
     type Response = Response<A::Response, B::Response>;
     type Error = Error<A::Error, B::Error>;
 
-    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: GradientUpdate<&'m ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
         let n_alpha = self.alpha.n_weights();
 
         Ok(Response {
-            alpha_response: self.alpha
+            alpha_response: self
+                .alpha
                 .handle(GradientUpdate(msg.0.slice(s![0..n_alpha, 0])))
-                .map_err(|e| Error::AlphaError(e))?,
+                .map_err(Error::AlphaError)?,
 
-            beta_response: self.beta
+            beta_response: self
+                .beta
                 .handle(GradientUpdate(msg.0.slice(s![n_alpha.., 0])))
-                .map_err(|e| Error::BetaError(e))?,
+                .map_err(Error::BetaError)?,
         })
     }
 }
@@ -236,11 +263,16 @@ where
     type Response = ();
     type Error = ();
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
         self.handle(ScaledGradientUpdate {
             alpha: msg.alpha,
             jacobian: &msg.jacobian,
-        }).map(|_| ()).map_err(|_| ())
+        })
+        .map(|_| ())
+        .map_err(|_| ())
     }
 }
 
@@ -254,23 +286,28 @@ where
     type Response = Response<A::Response, B::Response>;
     type Error = Error<A::Error, B::Error>;
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
         let n_alpha = self.alpha.n_weights();
 
         Ok(Response {
-            alpha_response: self.alpha
+            alpha_response: self
+                .alpha
                 .handle(ScaledGradientUpdate {
                     alpha: msg.alpha,
                     jacobian: msg.jacobian.slice(s![0..n_alpha, 0]),
                 })
-                .map_err(|e| Error::AlphaError(e))?,
+                .map_err(Error::AlphaError)?,
 
-            beta_response: self.beta
+            beta_response: self
+                .beta
                 .handle(ScaledGradientUpdate {
                     alpha: msg.alpha,
                     jacobian: msg.jacobian.slice(s![n_alpha.., 0]),
                 })
-                .map_err(|e| Error::BetaError(e))?,
+                .map_err(Error::BetaError)?,
         })
     }
 }

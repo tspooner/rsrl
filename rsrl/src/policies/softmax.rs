@@ -3,10 +3,7 @@ use crate::{
     params::*,
     policies::{sample_probs_with_rng, Policy},
     utils::argmax_first,
-    Differentiable,
-    Enumerable,
-    Function,
-    Handler,
+    Differentiable, Enumerable, Function, Handler,
 };
 use ndarray::{Array2, ArrayBase, Data, Ix2};
 use rand::Rng;
@@ -16,7 +13,7 @@ fn softmax<C: FromIterator<f64>>(values: &[f64], tau: f64, c: f64) -> C {
     let mut z = 0.0;
 
     let ps: Vec<f64> = values
-        .into_iter()
+        .iter()
         .map(|v| {
             let v = ((v - c) / tau).exp();
             z += v;
@@ -29,9 +26,7 @@ fn softmax<C: FromIterator<f64>>(values: &[f64], tau: f64, c: f64) -> C {
 }
 
 fn softmax_stable<C: FromIterator<f64>>(values: &[f64], tau: f64) -> C {
-    let max_v = values
-        .into_iter()
-        .fold(f64::NAN, |acc, &v| f64::max(acc, v));
+    let max_v = values.iter().fold(f64::NAN, |acc, &v| f64::max(acc, v));
 
     softmax(values, tau, max_v)
 }
@@ -68,7 +63,9 @@ impl<F> Softmax<F> {
         Softmax { fa, tau }
     }
 
-    pub fn standard(fa: F) -> Self { Self::new(fa, 1.0) }
+    pub fn standard(fa: F) -> Self {
+        Self::new(fa, 1.0)
+    }
 }
 
 impl<'s, S, F: Function<(&'s S,), Output = Vec<f64>>> Function<(&'s S,)> for Softmax<F> {
@@ -88,11 +85,14 @@ where
 {
     type Output = f64;
 
-    fn evaluate(&self, (s, a): (&'s S, A)) -> f64 { self.fa.evaluate((s, *a.borrow())) }
+    fn evaluate(&self, (s, a): (&'s S, A)) -> f64 {
+        self.fa.evaluate((s, *a.borrow()))
+    }
 }
 
 impl<'s, S, F> Enumerable<(&'s S,)> for Softmax<F>
-where F: Enumerable<(&'s S,), Output = Vec<f64>>
+where
+    F: Enumerable<(&'s S,), Output = Vec<f64>>,
 {
     fn evaluate_index(&self, (s,): (&'s S,), index: usize) -> f64 {
         self.fa.evaluate_index((s,), index)
@@ -108,20 +108,22 @@ where
 {
     type Jacobian = Array2<f64>;
 
-    fn grad(&self, _: (&'s S, A)) -> Array2<f64> { unimplemented!() }
+    fn grad(&self, _: (&'s S, A)) -> Array2<f64> {
+        unimplemented!()
+    }
 
     fn grad_log(&self, (s, a): (&'s S, A)) -> Array2<f64> {
         let a = *a.borrow();
 
         // (A x 1)
         let mut scale_factors = self.evaluate((s,));
-        scale_factors[a] = scale_factors[a] - 1.0;
+        scale_factors[a] -= 1.0;
 
         // (N x A)
         let mut jac = Array2::zeros(self.weights_dim());
 
         for (col, sf) in scale_factors.into_iter().enumerate() {
-            jac.scaled_add(-sf, &self.fa.grad((&s, col)).into_dense());
+            jac.scaled_add(-sf, &self.fa.grad((s, col)).into_dense());
         }
 
         jac
@@ -139,7 +141,9 @@ where
         sample_probs_with_rng(rng, &self.evaluate((s,)))
     }
 
-    fn mode(&self, s: &'s S) -> usize { argmax_first(self.evaluate((s,))).0 }
+    fn mode(&self, s: &'s S) -> usize {
+        argmax_first(self.evaluate((s,))).0
+    }
 }
 
 impl<'s, S, A, F> Handler<StateActionUpdate<&'s S, A>> for Softmax<F>
@@ -169,7 +173,10 @@ where
     type Response = ();
     type Error = Error;
 
-    fn handle(&mut self, msg: GradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: GradientUpdate<ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
         self.handle(GradientUpdate(&msg.0))
     }
 }
@@ -182,7 +189,10 @@ where
     type Response = ();
     type Error = Error;
 
-    fn handle(&mut self, msg: GradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: GradientUpdate<&'m ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
         msg.0.addto(&mut self.fa.weights_view_mut());
 
         Ok(())
@@ -197,7 +207,10 @@ where
     type Response = ();
     type Error = Error;
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: ScaledGradientUpdate<ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
         self.handle(ScaledGradientUpdate {
             alpha: msg.alpha,
             jacobian: &msg.jacobian,
@@ -213,7 +226,10 @@ where
     type Response = ();
     type Error = Error;
 
-    fn handle(&mut self, msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>) -> Result<Self::Response, Self::Error> {
+    fn handle(
+        &mut self,
+        msg: ScaledGradientUpdate<&'m ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Response, Self::Error> {
         msg.jacobian
             .scaled_addto(msg.alpha, &mut self.fa.weights_view_mut());
 
@@ -224,18 +240,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        fa::{
-            linear::{
-                basis::{Basis, Polynomial},
-                optim::SGD,
-                LFA,
-            },
-            mocking::MockQ,
-        },
-    };
+    use crate::fa::mocking::MockQ;
     use rand::thread_rng;
-    use std::f64::consts::E;
 
     #[test]
     #[should_panic]
@@ -257,37 +263,37 @@ mod tests {
 
     // #[test]
     // fn test_2d() {
-        // let p = Softmax::new(MockQ::new_shared(None), 1.0);
-        // let mut rng = thread_rng();
-        // let mut counts = vec![0.0, 0.0];
+    // let p = Softmax::new(MockQ::new_shared(None), 1.0);
+    // let mut rng = thread_rng();
+    // let mut counts = vec![0.0, 0.0];
 
-        // for _ in 0..50000 {
-            // counts[p.sample(&mut rng, &vec![0.0, 1.0])] += 1.0;
-        // }
+    // for _ in 0..50000 {
+    // counts[p.sample(&mut rng, &vec![0.0, 1.0])] += 1.0;
+    // }
 
-        // let means: Vec<f64> = counts.into_iter().map(|v| v / 50000.0).collect();
+    // let means: Vec<f64> = counts.into_iter().map(|v| v / 50000.0).collect();
 
-        // assert!(compare_floats(
-            // means,
-            // &[1.0 / (1.0 + E), E / (1.0 + E)],
-            // 1e-2
-        // ));
+    // assert!(compare_floats(
+    // means,
+    // &[1.0 / (1.0 + E), E / (1.0 + E)],
+    // 1e-2
+    // ));
     // }
 
     // #[test]
     // fn test_probabilites_1() {
-        // let p = Softmax::new(MockQ::new_shared(None), 1.0);
+    // let p = Softmax::new(MockQ::new_shared(None), 1.0);
 
-        // assert!(compare_floats(
-            // p.evaluate((&vec![0.0, 1.0],)),
-            // &[1.0 / (1.0 + E), E / (1.0 + E)],
-            // 1e-6
-        // ));
-        // assert!(compare_floats(
-            // p.evaluate((&vec![0.0, 2.0],)),
-            // &[1.0 / (1.0 + E * E), E * E / (1.0 + E * E)],
-            // 1e-6
-        // ));
+    // assert!(compare_floats(
+    // p.evaluate((&vec![0.0, 1.0],)),
+    // &[1.0 / (1.0 + E), E / (1.0 + E)],
+    // 1e-6
+    // ));
+    // assert!(compare_floats(
+    // p.evaluate((&vec![0.0, 2.0],)),
+    // &[1.0 / (1.0 + E * E), E * E / (1.0 + E * E)],
+    // 1e-6
+    // ));
     // }
 
     // #[test]

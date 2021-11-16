@@ -1,18 +1,13 @@
 //! Actor-critic algorithms.
-use crate::{
-    domains::Transition,
-    fa::StateActionUpdate,
-    policies::Policy,
-    Function,
-    Handler,
-};
+use crate::{domains::Transition, fa::StateActionUpdate, policies::Policy, Function, Handler};
 
 pub trait Critic<'t, S: 't, A: 't> {
     fn target(&self, t: &'t Transition<S, A>) -> f64;
 }
 
 impl<'t, F, S: 't, A: 't> Critic<'t, S, A> for F
-where F: Fn(&'t Transition<S, A>) -> f64,
+where
+    F: Fn(&'t Transition<S, A>) -> f64,
 {
     fn target(&self, t: &'t Transition<S, A>) -> f64 {
         (self)(t)
@@ -22,7 +17,8 @@ where F: Fn(&'t Transition<S, A>) -> f64,
 pub struct QCritic<Q>(pub Q);
 
 impl<'t, Q, S: 't, A: 't> Critic<'t, S, A> for QCritic<Q>
-where Q: Function<(&'t S, &'t A), Output = f64>,
+where
+    Q: Function<(&'t S, &'t A), Output = f64>,
 {
     fn target(&self, t: &'t Transition<S, A>) -> f64 {
         self.0.evaluate((t.from.state(), &t.action))
@@ -35,7 +31,8 @@ pub struct TDCritic<V> {
 }
 
 impl<'t, V, S: 't, A: 't> Critic<'t, S, A> for TDCritic<V>
-where V: Function<(&'t S,), Output = f64>,
+where
+    V: Function<(&'t S,), Output = f64>,
 {
     fn target(&self, t: &'t Transition<S, A>) -> f64 {
         let nv = self.v_func.evaluate((t.to.state(),));
@@ -87,10 +84,7 @@ impl<Q, P> ActorCritic<QCritic<Q>, P> {
 impl<V, P> ActorCritic<TDCritic<V>, P> {
     pub fn tdac(v_func: V, policy: P, alpha: f64, gamma: f64) -> Self {
         ActorCritic {
-            critic: TDCritic {
-                gamma,
-                v_func,
-            },
+            critic: TDCritic { gamma, v_func },
             policy,
             alpha,
         }
@@ -109,7 +103,7 @@ where
         self.policy.handle(StateActionUpdate {
             state: t.from.state(),
             action: &t.action,
-            error: self.alpha * self.critic.target(&t),
+            error: self.alpha * self.critic.target(t),
         })
     }
 }

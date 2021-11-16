@@ -1,8 +1,7 @@
 use crate::{
     policies::Policy,
     utils::{argmax_choose_rng, argmaxima},
-    Enumerable,
-    Function,
+    Enumerable, Function,
 };
 use rand::Rng;
 use std::ops::Index;
@@ -16,7 +15,9 @@ use std::ops::Index;
 pub struct Greedy<Q>(Q);
 
 impl<Q> Greedy<Q> {
-    pub fn new(q_func: Q) -> Self { Greedy(q_func) }
+    pub fn new(q_func: Q) -> Self {
+        Greedy(q_func)
+    }
 }
 
 impl<S, Q> Function<(S,)> for Greedy<Q>
@@ -66,9 +67,13 @@ where
 }
 
 impl<S, Q: Enumerable<(S,), Output = Vec<f64>>> Enumerable<(S,)> for Greedy<Q> {
-    fn len(&self, args: (S,)) -> usize { self.0.len(args) }
+    fn len(&self, args: (S,)) -> usize {
+        self.0.len(args)
+    }
 
-    fn evaluate_index(&self, (s,): (S,), index: usize) -> f64 { self.evaluate((s, index)) }
+    fn evaluate_index(&self, (s,): (S,), index: usize) -> f64 {
+        self.evaluate((s, index))
+    }
 }
 
 impl<S, Q: Enumerable<(S,), Output = Vec<f64>>> Policy<S> for Greedy<Q> {
@@ -80,17 +85,19 @@ impl<S, Q: Enumerable<(S,), Output = Vec<f64>>> Policy<S> for Greedy<Q> {
         argmax_choose_rng(rng, qs).0
     }
 
-    fn mode(&self, s: S) -> usize { self.0.find_max((s,)).0 }
+    fn mode(&self, s: S) -> usize {
+        self.0.find_max((s,)).0
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use approx::assert_abs_diff_eq;
     use crate::{
         fa::mocking::MockQ,
-        policies::{EnumerablePolicy, Greedy, Policy},
+        policies::{Greedy, Policy},
         Function,
     };
+    use approx::assert_abs_diff_eq;
     use rand::thread_rng;
 
     #[test]

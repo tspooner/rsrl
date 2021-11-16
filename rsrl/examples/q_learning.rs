@@ -10,7 +10,7 @@ use rsrl::{
         LFA,
     },
     make_shared,
-    policies::{EpsilonGreedy, Greedy, Policy, Random},
+    policies::{Greedy, Policy},
     spaces::Space,
     Handler,
 };
@@ -25,10 +25,7 @@ fn main() {
         let q_func = make_shared(LFA::vector(basis, SGD(0.001), n_actions));
         let policy = Greedy::new(q_func.clone());
 
-        (QLearning {
-            q_func,
-            gamma: 0.9,
-        }, policy)
+        (QLearning { q_func, gamma: 0.9 }, policy)
     };
 
     for e in 0..200 {

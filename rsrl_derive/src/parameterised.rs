@@ -25,9 +25,9 @@ impl Implementation {
         }
     }
 
-    fn make_where_predicates(types: &Vec<Type>) -> Vec<syn::WherePredicate> {
+    fn make_where_predicates(types: &[Type]) -> Vec<syn::WherePredicate> {
         types
-            .into_iter()
+            .iter()
             .map(|g| parse_quote! { #g: crate::params::Parameterised })
             .collect()
     }
@@ -104,12 +104,12 @@ pub fn expand_derive_parameterised(ast: &syn::DeriveInput) -> TokenStream {
     let generics = implementation.add_trait_bounds(ast.generics.clone());
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
-    TokenStream::from(quote! {
+    quote! {
         #[automatically_derived]
         impl #impl_generics crate::params::Parameterised for #name #ty_generics #where_clause {
             #body
         }
-    })
+    }
 }
 
 fn parameterised_impl(data: &Data) -> Implementation {
@@ -144,7 +144,7 @@ fn parameterised_struct_impl(ds: &DataStruct) -> Implementation {
                 .iter()
                 .enumerate()
                 .find(|(_, f)| match &f.ident {
-                    Some(ident) => ident.to_string() == WEIGHTS,
+                    Some(ident) => *ident == WEIGHTS,
                     None => false,
                 })
                 .expect("Couldn't infer weights field, consider annotating with #[weights].");

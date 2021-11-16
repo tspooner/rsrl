@@ -73,7 +73,9 @@ impl CartPole {
 }
 
 impl Default for CartPole {
-    fn default() -> CartPole { CartPole::new(0.0, 0.0, 0.0, 0.0) }
+    fn default() -> CartPole {
+        CartPole::new(0.0, 0.0, 0.0, 0.0)
+    }
 }
 
 impl Domain for CartPole {
@@ -117,7 +119,9 @@ impl Domain for CartPole {
             + Interval::bounded(LIMITS_DTHETA[0], LIMITS_DTHETA[1])
     }
 
-    fn action_space(&self) -> Ordinal { Ordinal::new(2) }
+    fn action_space(&self) -> Ordinal {
+        Ordinal::new(2)
+    }
 }
 
 #[cfg(test)]
@@ -135,7 +139,7 @@ mod tests {
                 assert_eq!(state[1], 0.0);
                 assert_eq!(state[2], 0.0);
                 assert_eq!(state[3], 0.0);
-            },
+            }
             _ => panic!("Should yield a fully observable state."),
         }
     }
@@ -144,7 +148,7 @@ mod tests {
     fn test_step_0() {
         let mut m = CartPole::default();
 
-        let (ns, r) = m.step(&0);
+        let (ns, _r) = m.step(&0);
         let ns = ns.state();
 
         assert!((ns[0] + 0.0032931628891235).abs() < 1e-7);
@@ -152,7 +156,7 @@ mod tests {
         assert!((ns[2] - 0.0029499634056967).abs() < 1e-7);
         assert!((ns[3] - 0.2951522145037250).abs() < 1e-7);
 
-        let (ns, r) = m.step(&0);
+        let (ns, _r) = m.step(&0);
         let ns = ns.state();
 
         assert!((ns[0] + 0.0131819582085161).abs() < 1e-7);
@@ -165,7 +169,7 @@ mod tests {
     fn test_step_1() {
         let mut m = CartPole::default();
 
-        let (ns, r) = m.step(&1);
+        let (ns, _r) = m.step(&1);
         let ns = ns.state();
 
         assert!((ns[0] - 0.0032931628891235).abs() < 1e-7);
@@ -173,7 +177,7 @@ mod tests {
         assert!((ns[2] + 0.0029499634056967).abs() < 1e-7);
         assert!((ns[3] + 0.2951522145037250).abs() < 1e-7);
 
-        let (ns, r) = m.step(&1);
+        let (ns, _r) = m.step(&1);
         let ns = ns.state();
 
         assert!((ns[0] - 0.0131819582085161).abs() < 1e-7);

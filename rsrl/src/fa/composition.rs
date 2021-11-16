@@ -1,10 +1,7 @@
 use crate::{
-    fa::{transforms, StateActionUpdate, StateUpdate, GradientUpdate, ScaledGradientUpdate},
+    fa::{transforms, GradientUpdate, ScaledGradientUpdate, StateActionUpdate, StateUpdate},
     params::{Buffer, BufferMut},
-    Differentiable,
-    Function,
-    Handler,
-    Parameterised,
+    Differentiable, Function, Handler, Parameterised,
 };
 
 /// Composition of an FA and a differentiable transform.
@@ -21,7 +18,9 @@ pub struct Composition<F, T> {
 }
 
 impl<F, T> Composition<F, T> {
-    pub fn new(fa: F, transform: T) -> Self { Composition { fa, transform } }
+    pub fn new(fa: F, transform: T) -> Self {
+        Composition { fa, transform }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -88,7 +87,7 @@ where
 
     fn grad_log(&self, args: (&'s S,)) -> Self::Jacobian {
         let gx = self.fa.evaluate(args);
-        let fgx = self.transform.transform(gx.clone());
+        let fgx = self.transform.transform(gx);
         let f_gx = self.transform.grad(gx);
 
         self.fa.grad(args).map_into(|x| f_gx * x / fgx)
@@ -135,7 +134,7 @@ where
 
     fn grad_log(&self, args: (&'s S, &'a A)) -> Self::Jacobian {
         let gx = self.fa.evaluate(args);
-        let fgx = self.transform.transform(gx.clone());
+        let fgx = self.transform.transform(gx);
         let f_gx = self.transform.grad(gx);
 
         self.fa.grad(args).map_into(|x| f_gx * x / fgx)
@@ -154,8 +153,7 @@ where
     fn handle(
         &mut self,
         msg: StateActionUpdate<&'s S, A, f64>,
-    ) -> Result<Self::Response, Self::Error>
-    {
+    ) -> Result<Self::Response, Self::Error> {
         let gx = self.fa.evaluate((msg.state, *msg.action.borrow()));
         let f_gx = self.transform.grad(gx);
 
